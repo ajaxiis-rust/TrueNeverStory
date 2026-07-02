@@ -1037,12 +1037,27 @@ export class SQLiteStore {
   searchEntitiesFTS(query: string, limit = 10): EntityData[] {
     const safeQuery = this.sanitizeFtsQuery(query);
     if (!safeQuery) return [];
-    const pattern = `%${safeQuery.toLowerCase()}%`;
-    const rows = this.db.query(`
-      SELECT * FROM entities
-      WHERE _search LIKE ?
+    const tokens = safeQuery.split(/\s+/).filter(Boolean);
+    const ftsQuery = tokens.join(" OR ");
+
+    let rows = this.db.query(`
+      SELECT e.uid, e.name, e.entity_type, e.summary, e.tags, e.description, e.profile
+      FROM entities_fts fts
+      JOIN entities e ON e.rowid = fts.rowid
+      WHERE entities_fts MATCH ?
+      ORDER BY rank
       LIMIT ?
-    `).all(pattern, limit) as Record<string, unknown>[];
+    `).all(ftsQuery, limit) as Record<string, unknown>[];
+
+    if (rows.length === 0) {
+      const pattern = `%${safeQuery.toLowerCase()}%`;
+      rows = this.db.query(`
+        SELECT * FROM entities
+        WHERE _search LIKE ?
+        LIMIT ?
+      `).all(pattern, limit) as Record<string, unknown>[];
+    }
+
     return rows.map(row => ({
       uid: row.uid as string,
       name: row.name as string,
@@ -1105,12 +1120,27 @@ export class SQLiteStore {
   searchMemoriesFTS(query: string, limit = 10): MemoryResult[] {
     const safeQuery = this.sanitizeFtsQuery(query);
     if (!safeQuery) return [];
-    const pattern = `%${safeQuery.toLowerCase()}%`;
-    const rows = this.db.query(`
-      SELECT id, content, role, session_id FROM memories
-      WHERE _search LIKE ?
+    const tokens = safeQuery.split(/\s+/).filter(Boolean);
+    const ftsQuery = tokens.join(" OR ");
+
+    let rows = this.db.query(`
+      SELECT m.id, m.content, m.role, m.session_id
+      FROM memories_fts fts
+      JOIN memories m ON m.id = fts.rowid
+      WHERE memories_fts MATCH ?
+      ORDER BY rank
       LIMIT ?
-    `).all(pattern, limit) as Record<string, unknown>[];
+    `).all(ftsQuery, limit) as Record<string, unknown>[];
+
+    if (rows.length === 0) {
+      const pattern = `%${safeQuery.toLowerCase()}%`;
+      rows = this.db.query(`
+        SELECT id, content, role, session_id FROM memories
+        WHERE _search LIKE ?
+        LIMIT ?
+      `).all(pattern, limit) as Record<string, unknown>[];
+    }
+
     return rows.map(row => ({
       id: row.id as number,
       content: row.content as string,

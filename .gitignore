@@ -11,3 +11,4 @@ compiled/
 .llama-server.pid
 .tns-server.pid
 docs/compose/
+public/provider-presets.js
