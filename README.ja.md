@@ -491,6 +491,18 @@ bun run build
 - `src/lib/sqlite-store.ts` — searchDense/searchMemoriesDenseがbatchCosineSimilarityを使用
 - `build.sh` — 5つのすべてのカーネルをコンパイル（probability, vector_4dim, vector_full, batch_ops, graph_ops）
 
+**Performance (ms per 1000 iterations):**
+
+| Operation | Python | NumPy | TS | TS+SQLite | Mojo | Mojo vs TS |
+|-----------|--------|-------|-----|-----------|------|------------|
+| cosine (768-dim) | 3.6 | 4.8 | 5.2 | - | **1.5** | **3.5x** |
+| batch_cosine (100×768) | 35.6 | 6.1 | 27.4 | 105.4 | **14.0** | **2.0x** |
+| age_decay (100 NPCs) | 75.6 | 21.5 | 1.8 | - | **1.6** | 1.1x |
+| rrf_fusion (100×3) | 706.1 | 10.4 | 2.5 | - | **2.2** | 1.1x |
+| reputation (500 rels) | 41.9 | - | 5.1 | - | **3.1** | **1.6x** |
+
+Mojo kernels use `abi("c")` + `UnsafePointer` FFI with TypeScript fallbacks. All functions have zero-overhead TS fallbacks when `.so` is unavailable.
+
 ### 社会・政治システム (v0.11.0)
 
 | 機能 | 説明 |
