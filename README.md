@@ -22,6 +22,7 @@
 | **Living Director** | Background agent advances story arcs, villain agendas, NPC interactions |
 | **Immersive Roleplay** | Third-person narrative, NPC dialogue, scene transitions – LLM never speaks for your character |
 | **Quest System** | Dynamic quest generation, objectives, rewards, prerequisites, chains, time limits |
+| **Story Planner** | LLM-driven arc planning with compressed context, two-phase generation, adaptive replanning |
 | **Researcher Agent** | Fact-checking, realism validation, historical accuracy for recipes, characters, and scenes |
 | **NPC Intelligence** | Memory search, autonomous behavior, social relationships, enriched dialogue context |
 | **NPC Economy** | Feudal hierarchy (10 ranks), taxes, bribes, food production, family system, vices, 34 archetypes |

@@ -112,7 +112,6 @@ export class NarrativeService {
     this.probResolver = new ProbabilityContextResolver(this.entityStore, null);
     this.probEngine.setContextResolver(this.probResolver);
     this.probEngine.setWorldClock(this.clock);
-    this.storyPlanner = new StoryPlanner(join(deps.dbPath, "story_planner.json"));
     this.villainManager = new VillainManager(
       join(deps.dbPath, "villains.json"),
       this.chronicler,
@@ -128,6 +127,15 @@ export class NarrativeService {
       this.llmQueue,
       this.chronicler,
     );
+
+    this.storyPlanner = new StoryPlanner({
+      statePath: join(deps.dbPath, "story_planner.json"),
+      llmQueue: this.llmQueue,
+      npcRuntime: this.npcRuntime,
+      chronicler: this.chronicler,
+      worldName: (deps.worldFrame.name as string) ?? "Unknown World",
+      worldRules: ((deps.worldFrame.rules as Array<{ name: string }>) ?? []).map(r => r.name),
+    });
 
     // NEW: Story Engine
     this.storyEngine = new StoryEngine({
