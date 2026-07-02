@@ -33,6 +33,30 @@ export class DialogueContext {
     const faction = this._findFaction(npcName);
     if (faction) {
       parts.push(`Faction: ${faction}`);
+      const details = this._social.getFactionDetails(faction);
+      if (details?.leader) parts.push(`Faction leader: ${details.leader}`);
+    }
+
+    const lord = this._social.getFeudalLord(npcName);
+    if (lord) {
+      parts.push(`Your lord: ${lord}`);
+    }
+
+    const vassals = this._social.getFeudalVassals(npcName);
+    if (vassals.length > 0) {
+      parts.push(`Your vassals: ${vassals.join(", ")}`);
+    }
+
+    if (faction) {
+      const allies = this._social.getActiveAlliances(faction);
+      if (allies.length > 0) {
+        const alliedNames = allies.map(a => a.faction1 === faction ? a.faction2 : a.faction1);
+        parts.push(`Allied factions: ${alliedNames.join(", ")}`);
+      }
+      const summary = this._social.getFactionSummary(faction);
+      if (summary.enemies.length > 0) {
+        parts.push(`Enemy factions: ${summary.enemies.join(", ")}`);
+      }
     }
 
     const recentMemories = await this._memory.search(npcName, playerOrNpc);
@@ -80,6 +104,23 @@ export class DialogueContext {
       for (const rel of rels.slice(0, 5)) {
         parts.push(`- ${rel.target}: ${rel.type}`);
       }
+    }
+
+    const lord = this._social.getFeudalLord(npcName);
+    const vassals = this._social.getFeudalVassals(npcName);
+    if (lord || vassals.length > 0) {
+      parts.push(`Feudal ties:`);
+      if (lord) parts.push(`- Sworn to: ${lord}`);
+      if (vassals.length > 0) parts.push(`- Vassals: ${vassals.join(", ")}`);
+    }
+
+    const faction = this._findFaction(npcName);
+    if (faction) {
+      const summary = this._social.getFactionSummary(faction);
+      parts.push(`Faction: ${faction} (${summary.type}, influence: ${summary.influence})`);
+      if (summary.leader) parts.push(`Your faction leader: ${summary.leader}`);
+      if (summary.allies.length > 0) parts.push(`Allied with: ${summary.allies.join(", ")}`);
+      if (summary.enemies.length > 0) parts.push(`At war with: ${summary.enemies.join(", ")}`);
     }
 
     const memories = await this._memory.getRecentContext(npcName, 3);

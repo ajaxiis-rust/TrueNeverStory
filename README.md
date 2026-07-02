@@ -1,6 +1,6 @@
-# TrueNeverStory v0.10.3 – Building Rich Interactive Narrative Games
+# TrueNeverStory v0.11.0 – Building Rich Interactive Narrative Games
 
-**TrueNeverStory v0.10.3** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
+**TrueNeverStory v0.11.0** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
 
 - **TypeScript (Bun + Hono)** – Web server, API, WebSocket, routing, auth, streaming, business logic
 - **Mojo FFI** – Compute kernels for probability calculations and vector operations (optional, with TypeScript fallback)
@@ -21,10 +21,13 @@
 | **Romance System** | Full romantic relationship management with probability-driven actions |
 | **Living Director** | Background agent advances story arcs, villain agendas, NPC interactions |
 | **Immersive Roleplay** | Third-person narrative, NPC dialogue, scene transitions – LLM never speaks for your character |
-| **Quest System** | Dynamic quest generation and objective tracking |
+| **Quest System** | Dynamic quest generation, objectives, rewards, prerequisites, chains, time limits |
 | **Researcher Agent** | Fact-checking, realism validation, historical accuracy for recipes, characters, and scenes |
 | **NPC Intelligence** | Memory search, autonomous behavior, social relationships, enriched dialogue context |
 | **NPC Economy** | Feudal hierarchy (10 ranks), taxes, bribes, food production, family system, vices, 34 archetypes |
+| **Social Graph** | Relationships, factions (6 types), political alliances (5 types), feudal hierarchy, inter-faction reputation |
+| **Dialogue System** | NPC conversations with session management, topics, greetings/farewells, mood-driven responses |
+| **Inventory System** | Items with rarity, stats, equipment slots, weight limits, gold, trading between characters |
 | **Item System** | Unique items with permanent stat boosts (1-10%), evaluated by Historian/Researcher agents |
 | **14 Specialized Agents** | Narrator, Director, Scene, NPC, Chronicler, Story Planner, Social Sim, Villain, Researcher, Historian, Cartographer, Merchant, Quest Giver, Lorekeeper |
 | **WebSocket Real-Time** | Live roleplay streaming and memory event broadcasts |
@@ -54,10 +57,11 @@
 │  ┌──────────────────▼───────────▼─────────────────────┐  │
 │  │              Service Layer                          │  │
 │  │  RoleplayEngine │ ProbabilityEngine │ RomanceEngine│  │
-│  │  QuestManager   │ WorldClock        │ Director     │  │
+│  │  QuestManager   │ QuestSystem       │ Director     │  │
 │  │  StoryPlanner   │ VillainManager    │ SocialSim    │  │
 │  │  ResearcherAgent│ CrafterAgent      │ NPCGenerator │  │
 │  │  Chronicler     │ NpcEconomy        │ ItemEval     │  │
+│  │  SocialGraph    │ DialogueManager   │ InventoryMgr │  │
 │  └───────────────────────┬────────────────────────────┘  │
 │  ┌───────────────────────▼────────────────────────────┐  │
 │  │           Memory System (WorldMemory)               │  │
@@ -433,11 +437,15 @@ TrueNeverStory/
 │   ├── routes/           # 17 route modules (chat, entities, agents, memory, etc.)
 │   │   ├── i18n.ts       # Translation CRUD endpoints
 │   │   └── ...
-│   ├── services/         # 48 services (roleplay engine, agents, probability, npc-economy, etc.)
+│   ├── services/         # 52 services (roleplay engine, agents, social graph, dialogue, inventory, etc.)
 │   │   ├── agent-config.ts   # Agent configuration (SQLite-first + JSON fallback)
 │   │   ├── npc-generator.ts  # Intelligent NPC creation with archetypes
 │   │   ├── npc-economy.ts    # Feudal economy simulation
 │   │   ├── item-evaluation.ts # Item uniqueness and boost evaluation
+│   │   ├── social-graph.ts   # Relationships, factions, alliances, feudal hierarchy
+│   │   ├── dialogue-manager.ts # NPC conversation sessions and topics
+│   │   ├── quest-system.ts   # Quest lifecycle, objectives, rewards, chains
+│   │   ├── inventory-manager.ts # Item management, equipment, trading
 │   │   └── ...
 │   ├── intelligence/     # Graph analyzer, duplicates, recommender, scene generator
 │   ├── i18n/             # Language packs (EN, RU, DE, FR, ES, JA, ZH)
@@ -529,6 +537,26 @@ bun run build
 ---
 
 ## Recent Changes
+
+### Social & Political Systems (v0.11.0)
+
+New social simulation, dialogue, quest, and inventory systems:
+
+| Feature | Description |
+|---------|-------------|
+| **Feudal Hierarchy in SocialGraph** | Sworn fealty, lords/vassals, chain of command, loyalty, rebellion |
+| **Faction System** | 6 faction types (military/economic/religious/criminal/noble/neutral), leaders, influence, treasury |
+| **Political Alliances** | 5 alliance types (military/trade/defensive/non_aggression/vassal), betrayal, reputation |
+| **NPC Dialogue** | Session management, 11 topic categories, contextual greetings/farewells, mood-driven |
+| **Quest System** | 5 quest types, 7 objective types, rewards, prerequisites, time limits, chains |
+| **Inventory System** | Item rarity (5 tiers), equipment slots, weight/capacity, gold, trading |
+| **NPC Relationships** | Friend/enemy/neutral/romantic/rival/mentor with strength tracking |
+
+**New files:**
+- `src/services/social-graph.ts` — Relationships, factions, alliances, feudal hierarchy
+- `src/services/dialogue-manager.ts` — NPC conversation sessions and topics
+- `src/services/quest-system.ts` — Quest lifecycle, objectives, rewards, chains
+- `src/services/inventory-manager.ts` — Item management, equipment, trading
 
 ### NPC Economy System (v0.10.3)
 

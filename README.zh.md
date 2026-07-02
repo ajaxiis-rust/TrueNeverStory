@@ -1,6 +1,6 @@
-# TrueNeverStory v0.10.3 – 交互式叙事游戏平台
+# TrueNeverStory v0.11.0 – 交互式叙事游戏平台
 
-**TrueNeverStory v0.10.3** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
+**TrueNeverStory v0.11.0** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
 
 - **TypeScript (Bun + Hono)** – Web 服务器、API、WebSocket、路由、认证、流式传输、业务逻辑
 - **Mojo FFI** – 概率计算和向量操作的计算内核（可选，带 TypeScript 回退）
@@ -464,7 +464,20 @@ bun run build
 
 ## 最近更改
 
-### NPC 经济系统 (v0.10.3)
+### 社交与政治系统 (v0.11.0)
+
+| 功能 | 描述 |
+|------|------|
+| **封建等级** | 宣誓效忠、领主/附庸、指挥链、忠诚度、叛乱 |
+| **派系系统** | 6种类型（军事/经济/宗教/犯罪/贵族/中立）、领袖、影响力 |
+| **政治联盟** | 5种类型（军事/贸易/防御/互不侵犯/附庸）、背叛、声望 |
+| **NPC对话** | 会话管理、11个话题类别、情境问候 |
+| **任务系统** | 5种类型、7种目标类型、奖励、前置条件、任务链 |
+| **背包系统** | 物品稀有度（5级）、装备槽、负重/容量、交易 |
+
+**新文件:** `social-graph.ts`, `dialogue-manager.ts`, `quest-system.ts`, `inventory-manager.ts`
+
+### NPC 经济系统 (v0.11.0)
 
 完整的封建经济模拟，拥有活生生的 NPC：
 
@@ -481,7 +494,7 @@ bun run build
 | **权力丧失** | 叛乱 → 死亡/奴役，战争 → 赎金/奴役，破产 → 奴役 |
 | **物品提升** | 独特物品提供永久属性提升（1-10%），由历史学家/研究员评估 |
 
-### SQLite 存储提示词和翻译 (v0.10.3)
+### SQLite 存储提示词和翻译 (v0.11.0)
 代理提示词和 UI 字符串现在按世界+语言存储在 SQLite 中：
 
 - **`agent_prompts` 表** — 按世界+语言存储 `systemPrompt`、`userTemplate`、`outputFormat`
@@ -553,7 +566,7 @@ function t(key) {
 }
 ```
 
-### 新专业代理 (v0.10.3)
+### 新专业代理 (v0.11.0)
 用于世界丰富和玩家交互的五个新代理：
 
 - **历史学家** — 回忆和叙述历史事件、传说和年代记
@@ -564,7 +577,7 @@ function t(key) {
 
 每个代理在 `src/services/agent-config.ts` 中配置了自己的系统提示词、用户模板和输出格式。
 
-### 全代理 RAG 系统 (v0.10.3)
+### 全代理 RAG 系统 (v0.11.0)
 为每个代理提供长期记忆的完整嵌入支持：
 
 - **llama.cpp 嵌入服务器** — 端口 5002 上的专用 BGE-M3 模型用于向量生成
@@ -592,7 +605,7 @@ function t(key) {
 - `src/lib/sqlite-store.ts` — 带 FTS5 + 向量搜索 + RRF 的 SQLiteStore
 - `src/lib/vector-ops.ts` — 向量操作（余弦、L2、点积）
 
-### NPC 系统革新 (v0.10.3)
+### NPC 系统革新 (v0.11.0)
 用于更智能 NPC 行为的四项新服务：
 
 - **MemoryEngine** — 语义搜索、情感/位置过滤、NPC 情节记忆的聚类
@@ -604,7 +617,7 @@ function t(key) {
 
 **集成：** `NPCAgent.initialize(runtime, statePath)` 创建所有四个组件。当 DialogueContext 未初始化时回退到模板/PromptBuilder。
 
-### 研究员代理 (v0.10.3)
+### 研究员代理 (v0.11.0)
 用于事实核查和真实感验证的新代理：
 - **`verifyRecipe()`** – 验证合成食谱的合理性
 - **`researchTopic()`** – 世界构建的历史/文化研究

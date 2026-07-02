@@ -1,6 +1,6 @@
-# TrueNeverStory v0.10.3 – Plataforma de Juegos Narrativos Interactivos
+# TrueNeverStory v0.11.0 – Plataforma de Juegos Narrativos Interactivos
 
-**TrueNeverStory v0.10.3** es una reimplementación moderna de la plataforma de mundos de fantasía [BRING](https://github.com/Eva-E1/BRING), migrada de Python a un stack híbrido de alto rendimiento:
+**TrueNeverStory v0.11.0** es una reimplementación moderna de la plataforma de mundos de fantasía [BRING](https://github.com/Eva-E1/BRING), migrada de Python a un stack híbrido de alto rendimiento:
 
 - **TypeScript (Bun + Hono)** – Servidor web, API, WebSocket, enrutamiento, auth, streaming, lógica de negocio
 - **Mojo FFI** – Núcleos de cómputo para cálculos de probabilidad y operaciones vectoriales (opcional, con fallback TypeScript)
@@ -464,7 +464,20 @@ bun run build
 
 ## Cambios Recientes
 
-### Sistema de Economía NPC (v0.10.3)
+### Sistemas sociales y políticos (v0.11.0)
+
+| Característica | Descripción |
+|----------------|-------------|
+| **Jerarquía feudal** | Juramento de lealtad, señores/vasallos, cadena de mando, lealtad, rebelión |
+| **Sistema de facciones** | 6 tipos (militar/económico/religioso/criminal/noble/neutro), líderes, influencia |
+| **Alianzas políticas** | 5 tipos (militar/comercio/defensa/no agresión/vasallo), traición, reputación |
+| **Diálogos NPC** | Gestión de sesiones, 11 categorías de temas, saludos contextuales |
+| **Sistema de misiones** | 5 tipos, 7 tipos de objetivos, recompensas, prerrequisitos, cadenas |
+| **Sistema de inventario** | Rareza (5 niveles), ranuras de equipo, peso/capacidad, comercio |
+
+**Archivos nuevos:** `social-graph.ts`, `dialogue-manager.ts`, `quest-system.ts`, `inventory-manager.ts`
+
+### Sistema de Economía NPC (v0.11.0)
 
 Simulación feudal completa con NPCs vivos:
 
@@ -481,7 +494,7 @@ Simulación feudal completa con NPCs vivos:
 | **Pérdida de poder** | Rebelión → muerte/esclavitud, Guerra → rescate/esclavitud, Bancarrota → esclavitud |
 | **Mejoras de objetos** | Objetos únicos dan mejoras permanentes de estadísticas (1-10%), evaluados por Historiador/Investigador |
 
-### Almacenamiento SQLite para prompts y traducciones (v0.10.3)
+### Almacenamiento SQLite para prompts y traducciones (v0.11.0)
 Los prompts de agentes y cadenas UI ahora se almacenan en SQLite por mundo + idioma:
 
 - **Tabla `agent_prompts`** — almacena `systemPrompt`, `userTemplate`, `outputFormat` por mundo + idioma
@@ -553,7 +566,7 @@ function t(key) {
 }
 ```
 
-### Nuevos agentes especializados (v0.10.3)
+### Nuevos agentes especializados (v0.11.0)
 Cinco nuevos agentes para enriquecimiento del mundo e interacción con jugadores:
 
 - **Historiador** — recuerda y narra eventos históricos, lore y cronología
@@ -564,7 +577,7 @@ Cinco nuevos agentes para enriquecimiento del mundo e interacción con jugadores
 
 Cada agente tiene sus propios prompts de sistema, plantillas de usuario y formatos de salida configurados en `src/services/agent-config.ts`.
 
-### Sistema RAG para todos los agentes (v0.10.3)
+### Sistema RAG para todos los agentes (v0.11.0)
 Soporte completo de embeddings con memoria a largo plazo para cada agente:
 
 - **llama.cpp Embedding Server** — modelo BGE-M3 dedicado en puerto 5002 para generación de vectores
@@ -593,7 +606,7 @@ Solicitud del agente → AgentMemoryStore → SQLite (búsqueda híbrida)
 - `src/lib/sqlite-store.ts` — SQLiteStore con FTS5 + búsqueda vectorial + RRF
 - `src/lib/vector-ops.ts` — Operaciones vectoriales (coseno, L2, producto escalar)
 
-### Reforma del sistema NPC (v0.10.3)
+### Reforma del sistema NPC (v0.11.0)
 Cuatro nuevos servicios para un comportamiento NPC más inteligente:
 
 - **MemoryEngine** — búsqueda semántica, filtrado por emoción/ubicación, clustering de recuerdos sobre memorias episódicas de NPC
@@ -605,7 +618,7 @@ Cuatro nuevos servicios para un comportamiento NPC más inteligente:
 
 **Integración:** `NPCAgent.initialize(runtime, statePath)` crea los cuatro componentes. Fallback a template/PromptBuilder cuando DialogueContext no está inicializado.
 
-### Agente Investigador (v0.10.3)
+### Agente Investigador (v0.11.0)
 Nuevo agente para verificación de hechos y validación de realismo:
 - **`verifyRecipe()`** – valida recetas del crafter por plausibilidad
 - **`researchTopic()`** – investigación histórica/cultural para construcción del mundo

@@ -1,6 +1,6 @@
-# TrueNeverStory v0.10.3 – Plateforme de jeux narratifs interactifs
+# TrueNeverStory v0.11.0 – Plateforme de jeux narratifs interactifs
 
-**TrueNeverStory v0.10.3** est une réimplémentation moderne de la plateforme de mondes fantastiques [BRING](https://github.com/Eva-E1/BRING), migrée de Python vers une stack hybride haute performance :
+**TrueNeverStory v0.11.0** est une réimplémentation moderne de la plateforme de mondes fantastiques [BRING](https://github.com/Eva-E1/BRING), migrée de Python vers une stack hybride haute performance :
 
 - **TypeScript (Bun + Hono)** – Serveur web, API, WebSocket, routage, auth, streaming, logique métier
 - **Mojo FFI** – Noyaux de calcul pour les probabilités et opérations vectorielles (optionnel, avec fallback TypeScript)
@@ -464,7 +464,20 @@ bun run build
 
 ## Dernières modifications
 
-### Système d'Économie NPC (v0.10.3)
+### Systèmes sociaux et politiques (v0.11.0)
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Hiérarchie féodale** | Serment de fidélité, seigneurs/vassaux, chaîne de commandement, loyauté |
+| **Système de factions** | 6 types (militaire/économique/religieux/criminel/noble/neutre), dirigeants |
+| **Alliances politiques** | 5 types (militaire/commerce/défense/non-agression/vassal), trahison |
+| **Dialogues PNJ** | Gestion des sessions, 11 catégories de sujets, salutations contextuelles |
+| **Système de quêtes** | 5 types, 7 types d'objectifs, récompenses, prérequis, chaînes |
+| **Système d'inventaire** | Rareté (5 niveaux), emplacements d'équipement, poids/capacité, commerce |
+
+**Nouveaux fichiers :** `social-graph.ts`, `dialogue-manager.ts`, `quest-system.ts`, `inventory-manager.ts`
+
+### Système d'Économie NPC (v0.11.0)
 
 Simulation féodale complète avec des PNJ vivants :
 
@@ -481,7 +494,7 @@ Simulation féodale complète avec des PNJ vivants :
 | **Perte de pouvoir** | Rébellion → mort/esclavage, Guerre → rançon/esclavage, Faillite → esclavage |
 | **Bonus d'objets** | Les objets uniques donnent des bonus permanents de stats (1-10%), évalués par Historien/Chercheur |
 
-### Stockage SQLite pour prompts et traductions (v0.10.3)
+### Stockage SQLite pour prompts et traductions (v0.11.0)
 Les prompts d'agents et les chaînes UI sont maintenant stockés dans SQLite par monde + langue :
 
 - **Table `agent_prompts`** — stocke `systemPrompt`, `userTemplate`, `outputFormat` par monde + langue
@@ -553,7 +566,7 @@ function t(key) {
 }
 ```
 
-### Nouveaux agents spécialisés (v0.10.3)
+### Nouveaux agents spécialisés (v0.11.0)
 Cinq nouveaux agents pour l'enrichissement du monde et l'interaction avec les joueurs :
 
 - **Historien** — se souvient et raconte les événements historiques, le lore et la chronologie
@@ -564,7 +577,7 @@ Cinq nouveaux agents pour l'enrichissement du monde et l'interaction avec les jo
 
 Chaque agent a ses propres prompts système, modèles utilisateur et formats de sortie configurés dans `src/services/agent-config.ts`.
 
-### Système RAG pour tous les agents (v0.10.3)
+### Système RAG pour tous les agents (v0.11.0)
 Support complet des embeddings avec mémoire à long terme pour chaque agent :
 
 - **llama.cpp Embedding Server** — modèle BGE-M3 dédié sur le port 5002 pour la génération de vecteurs
@@ -593,7 +606,7 @@ Requête agent → AgentMemoryStore → SQLite (recherche hybride)
 - `src/lib/sqlite-store.ts` — SQLiteStore avec FTS5 + recherche vectorielle + RRF
 - `src/lib/vector-ops.ts` — Opérations vectorielles (cosinus, L2, produit scalaire)
 
-### Refonte du système NPC (v0.10.3)
+### Refonte du système NPC (v0.11.0)
 Quatre nouveaux services pour un comportement NPC plus intelligent :
 
 - **MemoryEngine** — recherche sémantique, filtrage par émotion/lieu, clustering des souvenirs sur les mémoires épisodiques des NPC
@@ -605,7 +618,7 @@ Quatre nouveaux services pour un comportement NPC plus intelligent :
 
 **Intégration :** `NPCAgent.initialize(runtime, statePath)` crée les quatre composants. Fallback sur le template/PromptBuilder quand DialogueContext n'est pas initialisé.
 
-### Agent Chercheur (v0.10.3)
+### Agent Chercheur (v0.11.0)
 Nouvel agent pour la vérification de faits et la validation du réalisme :
 - **`verifyRecipe()`** – valide les recettes du crafter pour le réalisme
 - **`researchTopic()`** – recherche historique/culturelle pour la construction du monde

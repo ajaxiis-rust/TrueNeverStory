@@ -1,6 +1,6 @@
-# TrueNeverStory v0.10.3 – Plattform für interaktive narratives Spielen
+# TrueNeverStory v0.11.0 – Plattform für interaktive narratives Spielen
 
-**TrueNeverStory v0.10.3** ist eine moderne Neuimplementierung der [BRING](https://github.com/Eva-E1/BRING) Fantasy-Welt-Plattform, migriert von Python zu einem leistungsstarken Hybrid-Stack:
+**TrueNeverStory v0.11.0** ist eine moderne Neuimplementierung der [BRING](https://github.com/Eva-E1/BRING) Fantasy-Welt-Plattform, migriert von Python zu einem leistungsstarken Hybrid-Stack:
 
 - **TypeScript (Bun + Hono)** – Webserver, API, WebSocket, Routing, Auth, Streaming, Geschäftslogik
 - **Mojo FFI** – Compute-Kerne für Wahrscheinlichkeitsberechnungen und Vektoroperationen (optional, mit TypeScript-Fallback)
@@ -477,7 +477,20 @@ bun run build
 
 ## Letzte Änderungen
 
-### NPC-Wirtschaftssystem (v0.10.3)
+### Soziale und politische Systeme (v0.11.0)
+
+| Feature | Beschreibung |
+|---------|-------------|
+| **Feudale Hierarchie** | Treueschwörung, Herren/Vasallen, Befehlskette, Loyalität, Rebellion |
+| **Fraktionssystem** | 6 Typen (militärisch/wirtschaftlich/religiös/kriminell/adlig/neutral), Anführer, Einfluss |
+| **Politische Allianzen** | 5 Typen (militärisch/Handel/Verteidigung/Nichtangriff/Vasall), Verrat, Reputation |
+| **NPC-Dialoge** | Sitzungsverwaltung, 11 Themenkategorien, kontextuelle Begrüßungen |
+| **Quest-System** | 5 Quest-Typen, 7 Zieltypen, Belohnungen, Voraussetzungen, Ketten |
+| **Inventarsystem** | Item-Rarität (5 Stufen), Ausrüstungsplätze, Gewicht/Kapazität, Handel |
+
+**Neue Dateien:** `social-graph.ts`, `dialogue-manager.ts`, `quest-system.ts`, `inventory-manager.ts`
+
+### NPC-Wirtschaftssystem (v0.11.0)
 
 Vollständige feudale Wirtschaftssimulation mit lebendigen NPCs:
 
@@ -494,7 +507,7 @@ Vollständige feudale Wirtschaftssimulation mit lebendigen NPCs:
 | **Machtverlust** | Rebellion → Tod/Sklaverei, Krieg → Lösegeld/Sklaverei, Bankrott → Sklaverei |
 | **Item-Boosts** | Einzigartige Items geben dauerhafte Attributs-Boosts (1-10%), bewertet von Historiker/Forscher |
 
-### SQLite-Speicher für Prompts & Übersetzungen (v0.10.3)
+### SQLite-Speicher für Prompts & Übersetzungen (v0.11.0)
 Agent-Prompts und UI-Strings werden jetzt in SQLite pro Welt + Sprache gespeichert:
 
 - **`agent_prompts` Tabelle** — speichert `systemPrompt`, `userTemplate`, `outputFormat` pro Welt + Sprache
@@ -566,7 +579,7 @@ function t(key) {
 }
 ```
 
-### Neue spezialisierte Agenten (v0.10.3)
+### Neue spezialisierte Agenten (v0.11.0)
 Fünf neue Agenten für Weltanreicherung und Spielerinteraktion:
 
 - **Historiker** — erinnert und erzählt historische Ereignisse, Lore und Chronologie
@@ -577,7 +590,7 @@ Fünf neue Agenten für Weltanreicherung und Spielerinteraktion:
 
 Jeder Agent hat eigene System-Prompts, Benutzervorlagen und Ausgabeformate in `src/services/agent-config.ts`.
 
-### RAG-System für alle Agenten (v0.10.3)
+### RAG-System für alle Agenten (v0.11.0)
 Vollständige Embedding-Unterstützung mit Langzeitgedächtnis für jeden Agenten:
 
 - **llama.cpp Embedding Server** — dediziertes BGE-M3-Modell auf Port 5002 für Vektorgenerierung
@@ -605,7 +618,7 @@ Agent-Anfrage → AgentMemoryStore → SQLite (Hybrid-Suche)
 - `src/lib/sqlite-store.ts` — SQLiteStore mit FTS5 + Vektorsuche + RRF
 - `src/lib/vector-ops.ts` — Vektoroperationen (Kosinus, L2, Skalarprodukt)
 
-### NPC-System Überarbeitung (v0.10.3)
+### NPC-System Überarbeitung (v0.11.0)
 Vier neue Dienste für intelligentes NPC-Verhalten:
 
 - **MemoryEngine** — semantische Suche, Emotions-/Ortsfilterung, Speicherclustering über episodische NPC-Gedächtnisse
@@ -617,7 +630,7 @@ Vier neue Dienste für intelligentes NPC-Verhalten:
 
 **Integration:** `NPCAgent.initialize(runtime, statePath)` erstellt alle vier Komponenten. Fallback auf Template/PromptBuilder wenn DialogueContext nicht initialisiert.
 
-### Researcher-Agent (v0.10.3)
+### Researcher-Agent (v0.11.0)
 Neuer Agent für Faktencheck und Realismusvalidierung:
 - **`verifyRecipe()`** – validiert Crafter-Rezepte auf Plausibilität
 - **`researchTopic()`** – historische/kulturelle Forschung für Weltbau
