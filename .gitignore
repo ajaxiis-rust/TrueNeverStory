@@ -10,3 +10,4 @@ compiled/
 .server.pid
 .llama-server.pid
 .tns-server.pid
+docs/compose/
