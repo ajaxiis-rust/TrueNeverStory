@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.2 – インタラクティブ・ナラティブ・ゲームプラットフォーム
+# TrueNeverStory v0.11.4 – インタラクティブ・ナラティブ・ゲームプラットフォーム
 
-**TrueNeverStory v0.11.2** は、[BRING](https://github.com/Eva-E1/BRING)ファンタジー世界プラットフォームの現代的な再実装で、Pythonから高性能ハイブリッドスタックに移行されました：
+**TrueNeverStory v0.11.4** は、[BRING](https://github.com/Eva-E1/BRING)ファンタジー世界プラットフォームの現代的な再実装で、Pythonから高性能ハイブリッドスタックに移行されました：
 
 - **TypeScript (Bun + Hono)** – Webサーバー、API、WebSocket、ルーティング、認証、ストリーミング、ビジネスロジック
 - **Mojo FFI** – 確率計算およびベクトル演算用のコンピュータカーネル（オプション、TypeScriptフォールバック付き）
@@ -465,7 +465,7 @@ bun run build
 
 ## 最近の変更
 
-### Mojoカーネル拡張 (v0.11.2)
+### Mojoカーネル拡張 (v0.11.4)
 
 ベクトル検索、バッチNPC操作、グラフ走査のためのMojo計算カーネルの大幅なパフォーマンス拡張：
 

@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.2 – 交互式叙事游戏平台
+# TrueNeverStory v0.11.4 – 交互式叙事游戏平台
 
-**TrueNeverStory v0.11.2** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
+**TrueNeverStory v0.11.4** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
 
 - **TypeScript (Bun + Hono)** – Web 服务器、API、WebSocket、路由、认证、流式传输、业务逻辑
 - **Mojo FFI** – 概率计算和向量操作的计算内核（可选，带 TypeScript 回退）
@@ -465,7 +465,7 @@ bun run build
 
 ## 最近更改
 
-### Mojo内核扩展 (v0.11.2)
+### Mojo内核扩展 (v0.11.4)
 
 Mojo计算内核的重大性能扩展，支持向量搜索、NPC批量操作和图遍历：
 

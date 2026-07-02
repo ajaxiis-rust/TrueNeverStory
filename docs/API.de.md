@@ -440,4 +440,4 @@ Bei aktivierter Passwort-Authentifizierung verwenden Sitzungen HttpOnly-Cookies.
 
 ---
 
-*Generiert: 2026-06-27 | TrueNeverStory v0.11.2*
+*Generiert: 2026-06-27 | TrueNeverStory v0.11.4*

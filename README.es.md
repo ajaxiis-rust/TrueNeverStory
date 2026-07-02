@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.2 – Plataforma de Juegos Narrativos Interactivos
+# TrueNeverStory v0.11.4 – Plataforma de Juegos Narrativos Interactivos
 
-**TrueNeverStory v0.11.2** es una reimplementación moderna de la plataforma de mundos de fantasía [BRING](https://github.com/Eva-E1/BRING), migrada de Python a un stack híbrido de alto rendimiento:
+**TrueNeverStory v0.11.4** es una reimplementación moderna de la plataforma de mundos de fantasía [BRING](https://github.com/Eva-E1/BRING), migrada de Python a un stack híbrido de alto rendimiento:
 
 - **TypeScript (Bun + Hono)** – Servidor web, API, WebSocket, enrutamiento, auth, streaming, lógica de negocio
 - **Mojo FFI** – Núcleos de cómputo para cálculos de probabilidad y operaciones vectoriales (opcional, con fallback TypeScript)
@@ -465,7 +465,7 @@ bun run build
 
 ## Cambios Recientes
 
-### Expansión del kernel Mojo (v0.11.2)
+### Expansión del kernel Mojo (v0.11.4)
 
 Mayor rendimiento de los kernels de cómputo Mojo para búsqueda vectorial, operaciones batch NPC y recorrido de grafos:
 
