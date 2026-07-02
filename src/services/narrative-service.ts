@@ -28,6 +28,7 @@ import { StoryArcManager } from "./story-arc-manager";
 import { UserAgent } from "./user-agent";
 import { BirthScenario } from "./birth";
 import { WorldEvolver } from "./world-evolver";
+import { NPCGenerator } from "./npc-generator";
 import { GraphValidator } from "../intelligence/graph-validator";
 import { SQLiteStore } from "../lib/sqlite-store";
 import { getLogger } from "../utils/logger";
@@ -66,6 +67,7 @@ export class NarrativeService {
   readonly storyArcManager: StoryArcManager;
   readonly userAgent: UserAgent;
   readonly worldEvolver: WorldEvolver;
+  readonly npcGenerator: NPCGenerator;
   readonly graphValidator: GraphValidator;
   readonly sqliteStore: SQLiteStore;
 
@@ -176,9 +178,18 @@ export class NarrativeService {
       this.validator,
     );
 
+    // NEW: NPC Generator (intelligent NPC creation)
+    this.npcGenerator = new NPCGenerator({
+      llmQueue: this.llmQueue,
+      entityStore: this.entityStore,
+      eventBus: this.eventBus,
+      worldFrame: deps.worldFrame,
+    });
+
     // NEW: World Evolver (auto-add NPCs/locations/items)
     this.worldEvolver = new WorldEvolver({
       worldBuilder: this.worldBuilder,
+      npcGenerator: this.npcGenerator,
       chronicler: this.chronicler,
     });
 

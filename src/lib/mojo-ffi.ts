@@ -1,5 +1,5 @@
 /**
- * TrueNeverStory v0.10.0 — Mojo FFI Bindings with TypeScript Fallback
+ * TrueNeverStory v3 — Mojo FFI Bindings with TypeScript Fallback
  * Calls Mojo compute kernels via Bun FFI when available,
  * falls back to pure TypeScript implementations otherwise.
  */

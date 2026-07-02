@@ -344,6 +344,35 @@ export async function listModels(): Promise<ModelInfo[]> {
     }
   }
 
+  // Scan Kobold.cpp models directory
+  const koboldDir = join(process.env.HOME ?? "/home/opc", "koboldcpp", "models");
+  if (existsSync(koboldDir)) {
+    const files = readdirSync(koboldDir).filter((f) => f.endsWith(".gguf"));
+    for (const file of files) {
+      const filePath = join(koboldDir, file);
+      const stat = statSync(filePath);
+      const existing = models.find((m) => m.path === filePath);
+      if (existing) {
+        existing.size = stat.size;
+        existing.sizeHuman = formatSize(stat.size);
+        if (existing.status !== "installed") existing.status = "installed";
+      } else {
+        models.push({
+          id: `local:${file}`,
+          name: file.replace(".gguf", ""),
+          size: stat.size,
+          sizeHuman: formatSize(stat.size),
+          source: "koboldcpp",
+          status: "installed",
+          path: filePath,
+          format: "gguf",
+          downloadedAt: stat.mtime.toISOString(),
+          backend: "llamacpp",
+        });
+      }
+    }
+  }
+
   await saveModels(models);
 
   // Deduplicate by ID

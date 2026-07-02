@@ -1,6 +1,7 @@
 /**
  * CrafterAgent — scans inventory, combines items by recipes.
  * Suggests possible crafts from available ingredients.
+ * Evaluates item uniqueness and assigns boosts.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -9,6 +10,8 @@ import type { UnifiedEntityStore } from "../store/entity-store";
 import { EntityNode } from "../models/entity";
 import type { LLMQueue } from "../lib/llm-queue";
 import { PromptBuilder } from "./prompt-builder";
+import { ItemEvaluationService } from "./item-evaluation";
+import type { ItemBoost } from "../models/item";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("crafter-agent");
@@ -35,10 +38,12 @@ export class CrafterAgent {
   private _llmQueue: LLMQueue;
   private _recipes: Recipe[] = [];
   private _inventory: Map<string, number> = new Map();
+  private _evaluationService: ItemEvaluationService;
 
   constructor(entityStore: UnifiedEntityStore, llmQueue: LLMQueue, dataDir?: string) {
     this._entityStore = entityStore;
     this._llmQueue = llmQueue;
+    this._evaluationService = new ItemEvaluationService(llmQueue);
     this._loadRecipes(dataDir);
   }
 
@@ -236,5 +241,72 @@ export class CrafterAgent {
       const ingStr = r.ingredients.join(" + ");
       return `  ${r.name} (${r.nameRu}): ${ingStr} → ${r.result} [${r.difficulty}]`;
     }).join("\n");
+  }
+
+  /** Craft with evaluation — checks uniqueness and assigns boost */
+  async craftWithEvaluation(
+    recipeId: string,
+    characterName: string,
+    worldHistory: string,
+    worldRules: string,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    result?: string;
+    boost?: ItemBoost;
+    isUnique?: boolean;
+  }> {
+    // 1. Создаём предмет
+    const craftResult = this.craft(recipeId, characterName);
+    if (!craftResult.success) {
+      return craftResult;
+    }
+
+    // 2. Находим рецепт для получения описания
+    const recipe = this._recipes.find((r) => r.id === recipeId);
+    const itemDescription = recipe?.description ?? craftResult.result ?? "";
+
+    // 3. Оцениваем уникальность
+    const evaluation = await this._evaluationService.evaluate(
+      {
+        id: craftResult.result!,
+        name: craftResult.result!,
+        description: itemDescription,
+        isUnique: false,
+      },
+      worldHistory,
+      worldRules,
+    );
+
+    const isUnique = evaluation.historianResult.isUnique;
+    const boost = evaluation.researcherResult.boost;
+
+    // 4. Обновляем предмет в entity store
+    if (isUnique && boost) {
+      const allItems = this._entityStore.listByType("Item");
+      for (const item of allItems) {
+        if (item.name === craftResult.result) {
+          item.profile.l2.isUnique = true;
+          item.profile.l2.boost = boost;
+          item.profile.l2.evaluatedAt = evaluation.evaluatedAt;
+          break;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: isUnique
+        ? `Crafted ${craftResult.result} — УНИКАЛЬНЫЙ! +${(boost?.multiplier ?? 0) * 100}% ${boost?.stat ?? "unknown"}`
+        : `Crafted ${craftResult.result}`,
+      result: craftResult.result,
+      boost: isUnique ? boost : undefined,
+      isUnique,
+    };
+  }
+
+  /** Get evaluation service for external use */
+  getEvaluationService(): ItemEvaluationService {
+    return this._evaluationService;
   }
 }

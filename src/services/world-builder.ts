@@ -17,6 +17,7 @@ import { atomicWriteJson, readJsonFileSync } from "../lib/atomic-io";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { getLogger } from "../utils/logger";
+import { NPCGenerator } from "./npc-generator";
 
 const log = getLogger("world-builder");
 
@@ -230,35 +231,19 @@ export class WorldBuilder {
 
   async addNPC(factionOrRace: string): Promise<EntityNode> {
     if (!this.worldFrame) throw new Error("World must be created first");
-    const name = `NPC_${factionOrRace}_${Math.floor(100 + Math.random() * 900)}`;
-    const profile = new LayeredProfile(
-      { name, type: "Character", group: factionOrRace, summary: "Newly created NPC", tags: [], relationships: [] },
-      {},
-      {},
-    );
-    const node = new EntityNode({
-      uid: `Character:${name}`,
-      name,
-      entity_type: "Character",
-      profile: profile.toDict(),
-      group_id: "characters",
+
+    const generator = new NPCGenerator({
+      llmQueue: this._llmQueue,
+      entityStore: this._entityStore,
+      eventBus: this._eventBus,
+      worldFrame: this.worldFrame,
     });
-    this._entityStore.add(node);
 
-    const rulesSummary = this._getRulesText();
-    const existingNames = safeNames(this._entityStore.allNodes());
-    const l2 = await this._expandL2(node, rulesSummary, existingNames);
-    this._entityStore.updateEntityLevel(node.uid, "l2", l2);
+    const result = await generator.generate(factionOrRace);
 
-    (this.worldFrame.characters as Record<string, unknown>[]).push({ name });
+    (this.worldFrame.characters as Record<string, unknown>[]).push({ name: result.name });
     await this._saveWorldFrame();
 
-    await this._eventBus.publishSimple(
-      EventTopic.ENTITY_ADDED,
-      { uid: node.uid, type: "Character" },
-      "world_builder",
-    );
-
-    return node;
+    return result.node;
   }
 }

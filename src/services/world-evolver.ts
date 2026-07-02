@@ -4,6 +4,7 @@
  */
 
 import type { WorldBuilder } from "./world-builder";
+import type { NPCGenerator } from "./npc-generator";
 import type { Chronicler } from "./chronicler";
 import type { EntityNode } from "../models/entity";
 import { getLogger } from "../utils/logger";
@@ -12,15 +13,18 @@ const log = getLogger("world-evolver");
 
 export interface WorldEvolverDeps {
   worldBuilder: WorldBuilder;
+  npcGenerator: NPCGenerator;
   chronicler: Chronicler;
 }
 
 export class WorldEvolver {
   private _builder: WorldBuilder;
+  private _npcGenerator: NPCGenerator;
   private _chronicler: Chronicler;
 
   constructor(deps: WorldEvolverDeps) {
     this._builder = deps.worldBuilder;
+    this._npcGenerator = deps.npcGenerator;
     this._chronicler = deps.chronicler;
   }
 
@@ -39,14 +43,14 @@ export class WorldEvolver {
 
   async addRandomNPC(factionOrRace?: string): Promise<string> {
     const faction = factionOrRace ?? this._pickRandomFaction();
-    const node: EntityNode = await this._builder.addNPC(faction);
+    const result = await this._npcGenerator.generate(faction);
     await this._chronicler.logEvent(
-      `New NPC ${node.name} appeared in the world.`,
+      `New NPC ${result.name} appeared in the world. (${result.archetype}, ${result.profession})`,
       new Date(),
       "evolution",
     );
-    log.info(`Added NPC: ${node.name} (${faction})`);
-    return node.name;
+    log.info(`Added NPC: ${result.name} (${faction}, ${result.archetype})`);
+    return result.name;
   }
 
   async addRandomLocation(): Promise<string> {

@@ -2,7 +2,7 @@
 
 REST API for the TrueNeverStory world-building and roleplay platform. All endpoints return JSON unless noted.
 
-**Base URL:** `http://localhost:8000`
+**Base URL:** `http://localhost:3000`
 
 ---
 
@@ -440,4 +440,4 @@ When password auth is enabled, sessions use HttpOnly cookies. Include `credentia
 
 ---
 
-*Generated: 2026-06-27 | TrueNeverStory v0.10.0*
+*Generated: 2026-06-27 | TrueNeverStory v3*

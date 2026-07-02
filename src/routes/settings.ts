@@ -98,7 +98,7 @@ function killLlamaServers(): void {
 }
 
 function findModel(name: string): string {
-  const modelDirs = ["./local-models"];
+  const modelDirs = ["/home/opc/prj/HIBRING/local-models", "/home/opc/koboldcpp/models"];
   for (const dir of modelDirs) {
     try {
       const files = readdirSync(dir);
