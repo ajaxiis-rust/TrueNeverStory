@@ -13,6 +13,11 @@ import { SceneAgent } from "./scene-agent";
 import { DirectorAgent } from "./director-agent";
 import { CrafterAgent } from "./crafter-agent";
 import { ResearcherAgent } from "./researcher-agent";
+import { HistorianAgent } from "./historian-agent";
+import { CartographerAgent } from "./cartographer-agent";
+import { MerchantAgent } from "./merchant-agent";
+import { QuestGiverAgent } from "./quest-giver-agent";
+import { LorekeeperAgent } from "./lorekeeper-agent";
 import { StartResolver } from "./start-resolver";
 import { Chronicler } from "./chronicler";
 import type { NPCRuntime } from "./npc-runtime";
@@ -81,6 +86,11 @@ export class RoleplayEngine {
   readonly directorAgent: DirectorAgent;
   readonly crafter: CrafterAgent;
   readonly researcher: ResearcherAgent;
+  readonly historian: ServiceMessageAgent;
+  readonly cartographer: ServiceMessageAgent;
+  readonly merchant: ServiceMessageAgent;
+  readonly questGiver: ServiceMessageAgent;
+  readonly lorekeeper: ServiceMessageAgent;
   readonly startResolver: StartResolver;
   readonly chronicler: Chronicler;
   readonly memory: MemoryManager;
@@ -117,6 +127,58 @@ export class RoleplayEngine {
     this.directorAgent = new DirectorAgent(deps.llmQueue);
     this.crafter = new CrafterAgent(deps.entityStore, deps.llmQueue, deps.dbPath);
     this.researcher = new ResearcherAgent(deps.llmQueue);
+
+    const historianRaw = new HistorianAgent(deps.llmQueue);
+    this.historian = { name: "Historian", generateServiceMessage: async (ctx) => {
+      const events = (await this.chronicler.getTimeline(new Date(this.currentTime.getTime() - 7 * 24 * 60 * 60 * 1000), 30)).map(e => e.description);
+      const worldRules = this._entityStore.allNodes().filter(n => n.entityType === "WorldRule").map(n => n.profile.summary);
+      return historianRaw.generate({ query: ctx.message, worldHistory: events, relevantEvents: ctx.recentEvents, worldRules });
+    }};
+
+    const cartographerRaw = new CartographerAgent(deps.llmQueue);
+    this.cartographer = { name: "Cartographer", generateServiceMessage: async (ctx) => {
+      const locations = this._entityStore.listByType("Location").map(l => ({
+        name: l.name,
+        description: (l.profile.l2.description as string) ?? (l.profile.summary as string) ?? "",
+        connections: this._entityStore.allNodes()
+          .filter(n => n.entityType === "Relationship" && (n.profile.l1.source === l.uid || n.profile.l1.target === l.uid))
+          .map(n => {
+            const otherUid = n.profile.l1.source === l.uid ? n.profile.l1.target : n.profile.l1.source;
+            const other = this._entityStore.get(otherUid as string);
+            return other?.name ?? "";
+          })
+          .filter(Boolean),
+      }));
+      return cartographerRaw.generate({ query: ctx.message, locations, currentLocation: ctx.location });
+    }};
+
+    const merchantRaw = new MerchantAgent(deps.llmQueue);
+    this.merchant = { name: "Merchant", generateServiceMessage: async (ctx) => {
+      const items = this._entityStore.listByType("Item").slice(0, 20).map(i => ({
+        name: i.name,
+        price: (i.profile.l2.price as number) ?? 10,
+        quantity: 1,
+      }));
+      return merchantRaw.generate({ query: ctx.message, merchantName: ctx.character, inventory: items, worldEconomy: ctx.worldRules.join("; ") || "Standard fantasy economy" });
+    }};
+
+    const questGiverRaw = new QuestGiverAgent(deps.llmQueue);
+    this.questGiver = { name: "Quest Giver", generateServiceMessage: async (ctx) => {
+      const quests = this._entityStore.listByType("Quest").map(q => ({
+        title: q.name,
+        status: (q.profile.l2.status as string) ?? "active",
+      }));
+      return questGiverRaw.generate({ query: ctx.message, worldState: ctx.recentEvents.join("; ") || "No recent events", activeQuests: quests, nearbyNpcs: ctx.nearbyNpcs, playerLevel: 1 });
+    }};
+
+    const lorekeeperRaw = new LorekeeperAgent(deps.llmQueue);
+    this.lorekeeper = { name: "Lorekeeper", generateServiceMessage: async (ctx) => {
+      const facts = this._entityStore.allNodes().filter(n => n.entityType === "WorldRule" || n.entityType === "Lore").map(n => `${n.name}: ${n.profile.summary}`);
+      const races = this._entityStore.listByType("Race").map(r => `${r.name}: ${r.profile.summary}`);
+      const magicSystem = this._entityStore.allNodes().filter(n => n.entityType === "MagicSystem").map(n => n.profile.summary).join("; ") || "Not defined";
+      return lorekeeperRaw.generate({ query: ctx.message, worldFacts: facts, magicSystem, races });
+    }};
+
     this.startResolver = new StartResolver(deps.entityStore, deps.llmQueue);
     this.chronicler = deps.chronicler ?? new Chronicler(join(deps.dbPath, "timeline.jsonl"));
     this.memory = new MemoryManager(join(deps.dbPath, "roleplay_memory.json"));
@@ -199,7 +261,7 @@ export class RoleplayEngine {
   async processAgentMessage(agentId: string, message: string): Promise<{ response: string; agentId: string; agentName: string }> {
     const agent = this._getAgentById(agentId);
     if (!agent) {
-      return { response: `Unknown agent: ${agentId}. Available: narrator, director, scene, npc, chronicler, story-planner, social-sim, villain, researcher`, agentId, agentName: agentId };
+      return { response: `Unknown agent: ${agentId}. Available: narrator, director, scene, npc, chronicler, story-planner, social-sim, villain, researcher, historian, cartographer, merchant, quest-giver, lorekeeper`, agentId, agentName: agentId };
     }
 
     const recentEvents = (await this.chronicler.getTimeline(
@@ -278,6 +340,11 @@ Player request: "${ctx.message}"`;
         return this._llmQueue.generateText(villainPrompt, 1, 0.7);
       }},
       researcher: this.researcher,
+      historian: this.historian,
+      cartographer: this.cartographer,
+      merchant: this.merchant,
+      "quest-giver": this.questGiver,
+      lorekeeper: this.lorekeeper,
     };
     return agents[agentId] ?? null;
   }
