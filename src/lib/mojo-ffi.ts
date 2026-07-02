@@ -2,6 +2,11 @@
  * TrueNeverStory v3 — Mojo FFI Bindings with TypeScript Fallback
  * Calls Mojo compute kernels via Bun FFI when available,
  * falls back to pure TypeScript implementations otherwise.
+ *
+ * Platform support:
+ *   - Linux (x64, arm64): Full Mojo FFI support
+ *   - macOS (arm64, x64): Full Mojo FFI support
+ *   - Windows (x64): TypeScript fallback only (Mojo compiler not available)
  */
 
 import { dlopen, FFIType } from "bun:ffi";
@@ -11,7 +16,14 @@ import { homedir } from "node:os";
 
 const distDir = join(import.meta.dir, "../../dist");
 
+const IS_WINDOWS = process.platform === "win32";
+const SO_EXT = IS_WINDOWS ? ".dll" : ".so";
+const LOG_PREFIX = IS_WINDOWS ? "[mojo-ffi:windows]" : "[mojo-ffi]";
+
 function findSo(name: string): string {
+  // On Windows, Mojo kernels are not available — skip search
+  if (IS_WINDOWS) return join(distDir, name);
+
   // 1. Same directory as binary (distribution layout)
   const binDir = join(process.execPath, "..");
   const binPath = join(binDir, name);
@@ -26,8 +38,8 @@ function findSo(name: string): string {
   if (existsSync(cwdLibPath)) return cwdLibPath;
 
   // 4. Source tree (dev mode): dist/<platform>/
-  const platform = process.platform === "win32" ? "windows-x64"
-    : process.platform === "darwin" ? (process.arch === "arm64" ? "macos-arm64" : "macos-x64")
+  const platform = process.platform === "darwin"
+    ? (process.arch === "arm64" ? "macos-arm64" : "macos-x64")
     : process.arch === "arm64" ? "linux-arm64"
     : "linux-x64";
 
@@ -699,6 +711,7 @@ export function batchReputation(
 }
 
 export function isMojoAvailable(): boolean {
+  if (IS_WINDOWS) return false;
   tryLoadProbLib();
   tryLoadVecLib();
   tryLoadVecFullLib();
@@ -708,6 +721,9 @@ export function isMojoAvailable(): boolean {
 }
 
 export function getBackend(): string {
+  if (IS_WINDOWS) {
+    return "typescript";
+  }
   tryLoadProbLib();
   tryLoadVecLib();
   tryLoadVecFullLib();
