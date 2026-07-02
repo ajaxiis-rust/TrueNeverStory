@@ -440,4 +440,4 @@ Cuando la autenticación por contraseña está habilitada, las sesiones usan coo
 
 ---
 
-*Generado: 2026-06-27 | TrueNeverStory v0.10.0*
+*Generado: 2026-06-27 | TrueNeverStory v0.11.2*
