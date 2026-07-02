@@ -113,7 +113,12 @@ export class NarrativeService {
     this.probEngine.setContextResolver(this.probResolver);
     this.probEngine.setWorldClock(this.clock);
     this.storyPlanner = new StoryPlanner(join(deps.dbPath, "story_planner.json"));
-    this.villainManager = new VillainManager(join(deps.dbPath, "villains.json"), this.chronicler);
+    this.villainManager = new VillainManager(
+      join(deps.dbPath, "villains.json"),
+      this.chronicler,
+      this.llmQueue,
+      this.entityStore,
+    );
     this.socialSim = new SocialSimulator(this.entityStore, this.chronicler, deps.dbPath);
 
     // NEW: NPC Runtime (OptimizedMemoryStore)

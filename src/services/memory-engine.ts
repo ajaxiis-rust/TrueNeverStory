@@ -1,3 +1,8 @@
+/**
+ * Memory Engine — semantic search over NPC episodic memories with weighted scoring.
+ * Replaces simple String.includes() with multi-signal relevance ranking.
+ */
+
 import type { NPCRuntime } from "./npc-runtime";
 import type { EpisodicMemory } from "../models/npc-state";
 
@@ -7,6 +12,11 @@ export interface MemoryCluster {
   avgImportance: number;
 }
 
+interface ScoredMemory {
+  memory: EpisodicMemory;
+  score: number;
+}
+
 export class MemoryEngine {
   private _runtime: NPCRuntime;
 
@@ -14,24 +24,72 @@ export class MemoryEngine {
     this._runtime = runtime;
   }
 
-  async search(name: string, query: string): Promise<EpisodicMemory[]> {
+  async search(name: string, query: string, limit = 10): Promise<EpisodicMemory[]> {
     const memories = await this._getDedupedMemories(name);
+    if (memories.length === 0) return [];
+
     const queryLower = query.toLowerCase();
-    return memories.filter(m =>
-      m.description.toLowerCase().includes(queryLower)
-    );
+    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+
+    const scored: ScoredMemory[] = [];
+    const now = Date.now();
+
+    for (const mem of memories) {
+      let score = 0;
+      const descLower = mem.description.toLowerCase();
+      let hasKeywordMatch = false;
+
+      for (const word of queryWords) {
+        if (descLower.includes(word)) {
+          score += 2;
+          hasKeywordMatch = true;
+        }
+      }
+
+      if (descLower.includes(queryLower)) {
+        score += 5;
+        hasKeywordMatch = true;
+      }
+
+      if (!hasKeywordMatch) continue;
+
+      if (mem.importance > 0.7) score += 1.5;
+      else if (mem.importance > 0.4) score += 0.5;
+
+      const ageMs = now - new Date(mem.timestamp).getTime();
+      const ageDays = ageMs / (1000 * 60 * 60 * 24);
+      if (ageDays < 1) score += 2;
+      else if (ageDays < 7) score += 1;
+      else if (ageDays < 30) score += 0.5;
+
+      if (mem.emotion && queryLower.includes(mem.emotion)) score += 3;
+
+      if (mem.involvedEntities.some(e => queryLower.includes(e.toLowerCase()))) score += 2;
+
+      if (mem.location && queryLower.includes(mem.location.toLowerCase())) score += 1.5;
+
+      scored.push({ memory: mem, score });
+    }
+
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(s => s.memory);
   }
 
   async searchByEmotion(name: string, emotion: string): Promise<EpisodicMemory[]> {
     const memories = await this._getDedupedMemories(name);
-    return memories.filter(m => m.emotion === emotion);
+    return memories
+      .filter(m => m.emotion === emotion)
+      .sort((a, b) => b.importance - a.importance);
   }
 
   async searchByLocation(name: string, location: string): Promise<EpisodicMemory[]> {
     const memories = await this._getDedupedMemories(name);
-    return memories.filter(m =>
-      m.location.toLowerCase().includes(location.toLowerCase())
-    );
+    const locLower = location.toLowerCase();
+    return memories
+      .filter(m => m.location.toLowerCase().includes(locLower))
+      .sort((a, b) => b.importance - a.importance);
   }
 
   async clusterMemories(name: string): Promise<MemoryCluster[]> {
