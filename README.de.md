@@ -22,6 +22,7 @@
 | **Lebender Regisseur** | Hintergrund-Agent entwickelt Handlungsstränge, Schurkenpläne, NPC-Interaktionen |
 | **Immersives Rollenspiel** | Ich-Erzähler, NPC-Dialoge, Szenenübergänge – LLM spricht nie für deinen Charakter |
 | **Quest-System** | Dynamische Quest-Generierung und Zielverfolgung |
+| **Story-Planer** | LLM-gesteuerte Handlungsplanung mit komprimiertem Kontext und adaptiver Neuplanung |
 | **Researcher-Agent** | Faktencheck, Realismusvalidierung, historische Genauigkeit für Rezepte, Charaktere und Szenen |
 | **NPC-Intelligenz** | Speicher Suche, autonomes Verhalten, soziale Beziehungen, angereicherter Dialog-Kontext |
 | **NPC-Wirtschaft** | Feudale Hierarchie (10 Ränge), Steuern, Bestechung, Nahrungsmittelproduktion, Familiensystem, Lastern, 34 Archetypen |
@@ -486,6 +487,7 @@ bun run build
 | **Politische Allianzen** | 5 Typen (militärisch/Handel/Verteidigung/Nichtangriff/Vasall), Verrat, Reputation |
 | **NPC-Dialoge** | Sitzungsverwaltung, 11 Themenkategorien, kontextuelle Begrüßungen |
 | **Quest-System** | 5 Quest-Typen, 7 Zieltypen, Belohnungen, Voraussetzungen, Ketten |
+| **Story-Planer** | LLM-gesteuerte Handlungsplanung mit komprimiertem Kontext und adaptiver Neuplanung |
 | **Inventarsystem** | Item-Rarität (5 Stufen), Ausrüstungsplätze, Gewicht/Kapazität, Handel |
 
 **Neue Dateien:** `social-graph.ts`, `dialogue-manager.ts`, `quest-system.ts`, `inventory-manager.ts`

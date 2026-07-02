@@ -22,6 +22,7 @@
 | **Directeur vivant** | Agent en arrière-plan qui développe les arcs narratifs, plans de méchants, interactions NPC |
 | **Jeu de rôle immersif** | Narration à la troisième personne, dialogues NPC, transitions de scènes – LLM ne parle jamais pour votre personnage |
 | **Système de quêtes** | Génération dynamique de quêtes et suivi d'objectifs |
+| **Planificateur du2019histoire** | Planification dynamique par LLM, génération en deux phases, replanification adaptative |
 | **Agent Chercheur** | Vérification de faits, validation du réalisme, précision historique pour recettes, personnages et scènes |
 | **Intelligence NPC** | Recherche en mémoire, comportement autonome, relations sociales, contexte de dialogue enrichi |
 | **Économie NPC** | Hiérarchie féodale (10 rangs), taxes, pots-de-vin, production alimentaire, système familial, vices, 34 archétypes |
@@ -473,6 +474,7 @@ bun run build
 | **Alliances politiques** | 5 types (militaire/commerce/défense/non-agression/vassal), trahison |
 | **Dialogues PNJ** | Gestion des sessions, 11 catégories de sujets, salutations contextuelles |
 | **Système de quêtes** | 5 types, 7 types d'objectifs, récompenses, prérequis, chaînes |
+| **Planificateur du2019histoire** | Planification dynamique par LLM, génération en deux phases, replanification adaptative |
 | **Système d'inventaire** | Rareté (5 niveaux), emplacements d'équipement, poids/capacité, commerce |
 
 **Nouveaux fichiers :** `social-graph.ts`, `dialogue-manager.ts`, `quest-system.ts`, `inventory-manager.ts`

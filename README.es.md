@@ -22,6 +22,7 @@
 | **Director viviente** | Agente de fondo que desarrolla arcos narrativos, planes de villanos, interacciones NPC |
 | **Juego de rol inmersivo** | Narración en tercera persona, diálogos NPC, transiciones de escena – LLM nunca habla por tu personaje |
 | **Sistema de misiones** | Generación dinámica de misiones y seguimiento de objetivos |
+| **Planificador de historias** | Planificación dinámica con LLM, generación en dos fases, replaneación adaptativa |
 | **Agente Investigador** | Verificación de hechos, validación de realismo, precisión histórica para recetas, personajes y escenas |
 | **Inteligencia NPC** | Búsqueda en memoria, comportamiento autónomo, relaciones sociales, contexto de diálogo enriquecido |
 | **Economía NPC** | Jerarquía feudal (10 rangos), impuestos, sobornos, producción de alimentos, sistema familiar, vicios, 34 arquetipos |
@@ -473,6 +474,7 @@ bun run build
 | **Alianzas políticas** | 5 tipos (militar/comercio/defensa/no agresión/vasallo), traición, reputación |
 | **Diálogos NPC** | Gestión de sesiones, 11 categorías de temas, saludos contextuales |
 | **Sistema de misiones** | 5 tipos, 7 tipos de objetivos, recompensas, prerrequisitos, cadenas |
+| **Planificador de historias** | Planificación dinámica con LLM, generación en dos fases, replaneación adaptativa |
 | **Sistema de inventario** | Rareza (5 niveles), ranuras de equipo, peso/capacidad, comercio |
 
 **Archivos nuevos:** `social-graph.ts`, `dialogue-manager.ts`, `quest-system.ts`, `inventory-manager.ts`
