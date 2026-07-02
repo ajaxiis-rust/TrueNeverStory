@@ -1,6 +1,6 @@
-# TrueNeverStory v0.10.0 – Plateforme de jeux narratifs interactifs
+# TrueNeverStory v0.10.3 – Plateforme de jeux narratifs interactifs
 
-**TrueNeverStory v0.10.0** est une réimplémentation moderne de la plateforme de mondes fantastiques [BRING](https://github.com/Eva-E1/BRING), migrée de Python vers une stack hybride haute performance :
+**TrueNeverStory v0.10.3** est une réimplémentation moderne de la plateforme de mondes fantastiques [BRING](https://github.com/Eva-E1/BRING), migrée de Python vers une stack hybride haute performance :
 
 - **TypeScript (Bun + Hono)** – Serveur web, API, WebSocket, routage, auth, streaming, logique métier
 - **Mojo FFI** – Noyaux de calcul pour les probabilités et opérations vectorielles (optionnel, avec fallback TypeScript)
@@ -24,6 +24,8 @@
 | **Système de quêtes** | Génération dynamique de quêtes et suivi d'objectifs |
 | **Agent Chercheur** | Vérification de faits, validation du réalisme, précision historique pour recettes, personnages et scènes |
 | **Intelligence NPC** | Recherche en mémoire, comportement autonome, relations sociales, contexte de dialogue enrichi |
+| **Économie NPC** | Hiérarchie féodale (10 rangs), taxes, pots-de-vin, production alimentaire, système familial, vices, 34 archétypes |
+| **Système d'objets** | Objets uniques avec bonus permanents de stats (1-10%), évalués par les agents Historien/Chercheur |
 | **14 agents spécialisés** | Narrateur, Réalisateur, Scène, PNJ, Chroniqueur, Planificateur, Sim. sociale, Méchant, Chercheur, Historien, Cartographe, Marchand, Donneur de quêtes, Gardien des connaissances |
 | **WebSocket en temps réel** | Streaming de jeu de rôle en direct et événements de mémoire |
 | **SSE Streaming** | Livraison progressive de récit via Server-Sent Events |
@@ -462,7 +464,24 @@ bun run build
 
 ## Dernières modifications
 
-### Stockage SQLite pour prompts et traductions (v0.10.0)
+### Système d'Économie NPC (v0.10.3)
+
+Simulation féodale complète avec des PNJ vivants :
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Hiérarchie féodale** | 10 rangs : Esclave → Citoyen → Baronnet → Baron → Vicomte → Comte → Marquis → Duc → Roi → Empereur |
+| **Stats NPC** | 6 stats : richesse, pouvoir, popularité, santé, expérience, intrigue |
+| **Système de taxes** | Taxes hiérarchiques : 0% (Empereur) → 90% (Citoyen), réduit par pouvoir/popularité |
+| **Mécanique de pots-de-vin** | Pots-de-vin à risque : 10% de base + montant/témoins, seuil de trahison |
+| **Économie alimentaire** | Les esclaves produisent 300-1000 nourriture/mois, tous consomment par rang |
+| **Système familial** | 50% des revenus à la femme, 10% aux enfants, héritage au décès |
+| **Vices et dégradation** | 8 vices affectant les stats, déclin de santé lié à l'âge |
+| **34 archétypes** | 22 par défaut + 12 uniques, sélection aléatoire pondérée, groupes de contexte |
+| **Perte de pouvoir** | Rébellion → mort/esclavage, Guerre → rançon/esclavage, Faillite → esclavage |
+| **Bonus d'objets** | Les objets uniques donnent des bonus permanents de stats (1-10%), évalués par Historien/Chercheur |
+
+### Stockage SQLite pour prompts et traductions (v0.10.3)
 Les prompts d'agents et les chaînes UI sont maintenant stockés dans SQLite par monde + langue :
 
 - **Table `agent_prompts`** — stocke `systemPrompt`, `userTemplate`, `outputFormat` par monde + langue
@@ -534,7 +553,7 @@ function t(key) {
 }
 ```
 
-### Nouveaux agents spécialisés (v0.10.0)
+### Nouveaux agents spécialisés (v0.10.3)
 Cinq nouveaux agents pour l'enrichissement du monde et l'interaction avec les joueurs :
 
 - **Historien** — se souvient et raconte les événements historiques, le lore et la chronologie
@@ -545,7 +564,7 @@ Cinq nouveaux agents pour l'enrichissement du monde et l'interaction avec les jo
 
 Chaque agent a ses propres prompts système, modèles utilisateur et formats de sortie configurés dans `src/services/agent-config.ts`.
 
-### Système RAG pour tous les agents (v0.10.0)
+### Système RAG pour tous les agents (v0.10.3)
 Support complet des embeddings avec mémoire à long terme pour chaque agent :
 
 - **llama.cpp Embedding Server** — modèle BGE-M3 dédié sur le port 5002 pour la génération de vecteurs
@@ -574,7 +593,7 @@ Requête agent → AgentMemoryStore → SQLite (recherche hybride)
 - `src/lib/sqlite-store.ts` — SQLiteStore avec FTS5 + recherche vectorielle + RRF
 - `src/lib/vector-ops.ts` — Opérations vectorielles (cosinus, L2, produit scalaire)
 
-### Refonte du système NPC (v0.10.0)
+### Refonte du système NPC (v0.10.3)
 Quatre nouveaux services pour un comportement NPC plus intelligent :
 
 - **MemoryEngine** — recherche sémantique, filtrage par émotion/lieu, clustering des souvenirs sur les mémoires épisodiques des NPC
@@ -586,7 +605,7 @@ Quatre nouveaux services pour un comportement NPC plus intelligent :
 
 **Intégration :** `NPCAgent.initialize(runtime, statePath)` crée les quatre composants. Fallback sur le template/PromptBuilder quand DialogueContext n'est pas initialisé.
 
-### Agent Chercheur (v0.10.0)
+### Agent Chercheur (v0.10.3)
 Nouvel agent pour la vérification de faits et la validation du réalisme :
 - **`verifyRecipe()`** – valide les recettes du crafter pour le réalisme
 - **`researchTopic()`** – recherche historique/culturelle pour la construction du monde

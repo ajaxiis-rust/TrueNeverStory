@@ -1,6 +1,6 @@
-# TrueNeverStory v0.10.0 – Building Rich Interactive Narrative Games
+# TrueNeverStory v0.10.3 – Building Rich Interactive Narrative Games
 
-**TrueNeverStory v0.10.0** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
+**TrueNeverStory v0.10.3** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
 
 - **TypeScript (Bun + Hono)** – Web server, API, WebSocket, routing, auth, streaming, business logic
 - **Mojo FFI** – Compute kernels for probability calculations and vector operations (optional, with TypeScript fallback)
@@ -24,6 +24,8 @@
 | **Quest System** | Dynamic quest generation and objective tracking |
 | **Researcher Agent** | Fact-checking, realism validation, historical accuracy for recipes, characters, and scenes |
 | **NPC Intelligence** | Memory search, autonomous behavior, social relationships, enriched dialogue context |
+| **NPC Economy** | Feudal hierarchy (10 ranks), taxes, bribes, food production, family system, vices, 34 archetypes |
+| **Item System** | Unique items with permanent stat boosts (1-10%), evaluated by Historian/Researcher agents |
 | **14 Specialized Agents** | Narrator, Director, Scene, NPC, Chronicler, Story Planner, Social Sim, Villain, Researcher, Historian, Cartographer, Merchant, Quest Giver, Lorekeeper |
 | **WebSocket Real-Time** | Live roleplay streaming and memory event broadcasts |
 | **SSE Streaming** | Server-sent events for progressive narrative delivery |
@@ -54,7 +56,8 @@
 │  │  RoleplayEngine │ ProbabilityEngine │ RomanceEngine│  │
 │  │  QuestManager   │ WorldClock        │ Director     │  │
 │  │  StoryPlanner   │ VillainManager    │ SocialSim    │  │
-│  │  ResearcherAgent│ CrafterAgent      │ Chronicler   │  │
+│  │  ResearcherAgent│ CrafterAgent      │ NPCGenerator │  │
+│  │  Chronicler     │ NpcEconomy        │ ItemEval     │  │
 │  └───────────────────────┬────────────────────────────┘  │
 │  ┌───────────────────────▼────────────────────────────┐  │
 │  │           Memory System (WorldMemory)               │  │
@@ -426,12 +429,15 @@ TrueNeverStory/
 │   │   └── ...
 │   ├── memory/           # WorldMemory, FAISS index, cognitive pipeline, scoring
 │   ├── middleware/        # Auth, CORS, error handler, logger, rate limiter
-│   ├── models/           # Entity, chat, probability, romance, quest, story, memory
-│   ├── routes/           # 16 route modules (chat, entities, agents, memory, etc.)
+│   ├── models/           # Entity, chat, probability, romance, quest, story, memory, archetype, item, npc-stats, rank
+│   ├── routes/           # 17 route modules (chat, entities, agents, memory, etc.)
 │   │   ├── i18n.ts       # Translation CRUD endpoints
 │   │   └── ...
-│   ├── services/         # 42 services (roleplay engine, agents, probability, etc.)
+│   ├── services/         # 48 services (roleplay engine, agents, probability, npc-economy, etc.)
 │   │   ├── agent-config.ts   # Agent configuration (SQLite-first + JSON fallback)
+│   │   ├── npc-generator.ts  # Intelligent NPC creation with archetypes
+│   │   ├── npc-economy.ts    # Feudal economy simulation
+│   │   ├── item-evaluation.ts # Item uniqueness and boost evaluation
 │   │   └── ...
 │   ├── intelligence/     # Graph analyzer, duplicates, recommender, scene generator
 │   ├── i18n/             # Language packs (EN, RU, DE, FR, ES, JA, ZH)
@@ -524,7 +530,35 @@ bun run build
 
 ## Recent Changes
 
-### SQLite Storage for Prompts & Translations (v0.10.0)
+### NPC Economy System (v0.10.3)
+
+Full feudal economy simulation with living NPCs:
+
+| Feature | Description |
+|---------|-------------|
+| **Feudal Hierarchy** | 10 ranks: Slave → Commoner → Baronet → Baron → Viscount → Count → Marquis → Duke → King → Emperor |
+| **NPC Stats** | 6 stats: wealth, power, popularity, health, experience, intrigue |
+| **Tax System** | Hierarchical taxes: 0% (Emperor) → 90% (Commoner), reduced by power/popularity |
+| **Bribe Mechanics** | Risk-based bribes: 10% base + amount/witnesses, betrayal threshold |
+| **Food Economy** | Slaves produce 300-1000 food/month, all consume by rank |
+| **Family System** | 50% income to wife, 10% to children, inheritance on death |
+| **Vices & Degradation** | 8 vices affecting stats, age-based health decay |
+| **34 Archetypes** | 22 default + 12 unique, weighted-random selection, context groups |
+| **Power Loss** | Rebellion → death/slavery, War → ransom/slavery, Bankruptcy → slavery |
+| **Item Boosts** | Unique items give permanent stat boosts (1-10%), evaluated by Historian/Researcher |
+
+**New files:**
+- `src/models/npc-stats.ts` — NPCStats, Vices, FamilyExpenses
+- `src/models/rank.ts` — Feudal hierarchy (10 ranks)
+- `src/models/archetype.ts` — 34 archetypes with weights
+- `src/models/item.ts` — Item, ItemBoost
+- `src/services/npc-generator.ts` — Intelligent NPC creation with archetype selection
+- `src/services/npc-economy.ts` — Core economy logic
+- `src/services/npc-economy-runtime.ts` — Turn-based simulation
+- `src/services/slave-economy.ts` — Slave trade mechanics
+- `src/services/item-evaluation.ts` — Item uniqueness evaluation
+
+### SQLite Storage for Prompts & Translations (v0.10.3)
 Agent prompts and UI translations now stored in SQLite per world + language:
 
 - **`agent_prompts` table** — stores `systemPrompt`, `userTemplate`, `outputFormat` per world + language
@@ -596,7 +630,7 @@ function t(key) {
 }
 ```
 
-### New Specialized Agents (v0.10.0)
+### New Specialized Agents (v0.10.3)
 Five new agents for world enrichment and player interaction:
 
 - **Historian** — recalls and narrates historical events, lore, and chronology
@@ -607,7 +641,7 @@ Five new agents for world enrichment and player interaction:
 
 Each agent has its own system prompt, user template, and output format configured in `src/services/agent-config.ts`.
 
-### RAG System for All Agents (v0.10.0)
+### RAG System for All Agents (v0.10.3)
 Full embedding support with long-term memory for every agent:
 
 - **llama.cpp Embedding Server** — dedicated BGE-M3 model on port 5002 for vector generation
@@ -635,7 +669,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 - `src/lib/sqlite-store.ts` — SQLiteStore with FTS5 + vector search + RRF
 - `src/lib/vector-ops.ts` — Vector operations (cosine, L2, dot product)
 
-### NPC System Overhaul (v0.10.0)
+### NPC System Overhaul (v0.10.3)
 Four new services for smarter NPC behavior:
 
 - **MemoryEngine** — semantic search, emotion/location filtering, memory clustering over NPC episodic memories
@@ -647,7 +681,7 @@ Four new services for smarter NPC behavior:
 
 **Integration:** `NPCAgent.initialize(runtime, statePath)` creates all four components. Falls back to template/PromptBuilder when DialogueContext not initialized.
 
-### ResearcherAgent (v0.10.0)
+### ResearcherAgent (v0.10.3)
 New agent for fact-checking and realism validation:
 - **`verifyRecipe()`** — validates crafter recipes for plausibility
 - **`researchTopic()`** — historical/cultural research for world-building
@@ -735,7 +769,7 @@ bun run dev &
 # Run tests
 bun test
 
-# Expected output: 305 passing
+# Expected output: 355 passing
 ```
 
 ---
