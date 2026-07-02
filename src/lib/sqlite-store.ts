@@ -2,6 +2,7 @@ import { Database } from 'bun:sqlite';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { vectorToBlob, blobToVector, cosineSimilarity, reciprocalRankFusion, type RankedItem } from './vector-ops';
+import { batchCosineFlat, flattenBuffers } from './mojo-ffi';
 
 export interface EntityData {
   uid: string;
@@ -1077,24 +1078,26 @@ export class SQLiteStore {
   }
 
   searchDense(queryVector: Float32Array, topK = 10): EmbeddingResult[] {
-    const rows = this.db.query('SELECT entity_uid, vector, dim, source FROM embeddings').all() as {
+    const dim = queryVector.length;
+    const rows = this.db.query('SELECT entity_uid, vector, dim, source FROM embeddings WHERE dim = ?').all(dim) as {
       entity_uid: string | null;
       vector: Buffer;
       dim: number;
       source: string;
     }[];
 
-    const results: EmbeddingResult[] = [];
-    for (const row of rows) {
-      const vec = blobToVector(row.vector);
-      if (vec.length === queryVector.length) {
-        results.push({
-          entityUid: row.entity_uid,
-          score: cosineSimilarity(queryVector, vec),
-          source: row.source,
-        });
-      }
+    if (rows.length === 0) {
+      return [];
     }
+
+    const flatDb = flattenBuffers(rows.map(r => r.vector), dim);
+    const scores = batchCosineFlat(queryVector, flatDb, rows.length, dim);
+
+    const results: EmbeddingResult[] = rows.map((row, i) => ({
+      entityUid: row.entity_uid,
+      score: scores[i]!,
+      source: row.source,
+    }));
 
     return results.sort((a, b) => b.score - a.score).slice(0, topK);
   }
@@ -1151,7 +1154,8 @@ export class SQLiteStore {
   }
 
   searchMemoriesDense(queryVector: Float32Array, topK = 10): MemoryResult[] {
-    const rows = this.db.query('SELECT id, content, role, session_id, vector, dim FROM memories WHERE vector IS NOT NULL').all() as {
+    const dim = queryVector.length;
+    const rows = this.db.query('SELECT id, content, role, session_id, vector, dim FROM memories WHERE vector IS NOT NULL AND dim = ?').all(dim) as {
       id: number;
       content: string;
       role: string | null;
@@ -1160,19 +1164,20 @@ export class SQLiteStore {
       dim: number;
     }[];
 
-    const results: MemoryResult[] = [];
-    for (const row of rows) {
-      const vec = blobToVector(row.vector);
-      if (vec.length === queryVector.length) {
-        results.push({
-          id: row.id,
-          content: row.content,
-          score: cosineSimilarity(queryVector, vec),
-          role: row.role ?? undefined,
-          sessionId: row.session_id ?? undefined,
-        });
-      }
+    if (rows.length === 0) {
+      return [];
     }
+
+    const flatDb = flattenBuffers(rows.map(r => r.vector), dim);
+    const scores = batchCosineFlat(queryVector, flatDb, rows.length, dim);
+
+    const results: MemoryResult[] = rows.map((row, i) => ({
+      id: row.id,
+      content: row.content,
+      score: scores[i]!,
+      role: row.role ?? undefined,
+      sessionId: row.session_id ?? undefined,
+    }));
 
     return results.sort((a, b) => b.score - a.score).slice(0, topK);
   }

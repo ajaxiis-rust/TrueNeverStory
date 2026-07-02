@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.0 – Plattform für interaktive narratives Spielen
+# TrueNeverStory v0.11.2 – Plattform für interaktive narratives Spielen
 
-**TrueNeverStory v0.11.0** ist eine moderne Neuimplementierung der [BRING](https://github.com/Eva-E1/BRING) Fantasy-Welt-Plattform, migriert von Python zu einem leistungsstarken Hybrid-Stack:
+**TrueNeverStory v0.11.2** ist eine moderne Neuimplementierung der [BRING](https://github.com/Eva-E1/BRING) Fantasy-Welt-Plattform, migriert von Python zu einem leistungsstarken Hybrid-Stack:
 
 - **TypeScript (Bun + Hono)** – Webserver, API, WebSocket, Routing, Auth, Streaming, Geschäftslogik
 - **Mojo FFI** – Compute-Kerne für Wahrscheinlichkeitsberechnungen und Vektoroperationen (optional, mit TypeScript-Fallback)
@@ -477,6 +477,32 @@ bun run build
 ---
 
 ## Letzte Änderungen
+
+### Mojo-Kernel-Erweiterung (v0.11.2)
+
+Leistungssteigerung der Mojo-Berechnungskerne für Vektorsuche, Batch-NPC-Operationen und Graphtraversierung:
+
+| Funktion | Beschreibung |
+|----------|--------------|
+| **Wahrscheinlichkeitskern** | Erfolgschance, Wurfergebnis, Modifikator + Batch-Wahrscheinlichkeiten via Mojo FFI |
+| **Vektorkern** | 4-dim Kosinusähnlichkeit, L2-Distanz, Skalarprodukt via Mojo FFI |
+| **Vollständige Vektoren** | 768-dim BGE-M3 Embeddings — Batch-Kosinusähnlichkeit via Mojo FFI |
+| **Batch-NPC-Operationen** | Altersabbau, Laster, Steuern, Vermögenssumme, Loyalitätsprüfungen via Mojo FFI |
+| **Graphoperationen** | RRF-Fusion, Beziehungsstärke, Berechnung der Reputation via Mojo FFI |
+| **SQLite-Beschleunigung** | searchDense/searchMemoriesDense verwenden Batch-Kosinusähnlichkeit |
+
+**Neue Dateien:**
+- `mojo/kernels/vector_full.mojo` — Vollständige Vektoroperationen (Kosinus, L2, Skalarprodukt, Batch)
+- `mojo/kernels/batch_ops.mojo` — Batch-NPC-Statistik-Operationen (Altersabbau, Laster, Steuern, Loyalität)
+- `mojo/kernels/graph_ops.mojo` — Graphtraversierung und RRF-Fusion
+- `src/lib/mojo-ffi.test.ts` — 19 Tests für alle FFI-Bindungen
+
+**Geänderte Dateien:**
+- `mojo/kernels/probability_ffi.mojo` — batch_success_chance und batch_roll hinzugefügt
+- `src/lib/mojo-ffi.ts` — 5 Kernel-Bindungen mit TypeScript-Fallbacks
+- `src/lib/vector-ops.ts` — Nutzt Mojo-beschleunigtes cosineSimilarity
+- `src/lib/sqlite-store.ts` — searchDense/searchMemoriesDense nutzen batchCosineSimilarity
+- `build.sh` — Kompiliert alle 5 Kerne (probability, vector_4dim, vector_full, batch_ops, graph_ops)
 
 ### Soziale und politische Systeme (v0.11.0)
 

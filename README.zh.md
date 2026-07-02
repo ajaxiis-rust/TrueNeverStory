@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.0 – 交互式叙事游戏平台
+# TrueNeverStory v0.11.2 – 交互式叙事游戏平台
 
-**TrueNeverStory v0.11.0** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
+**TrueNeverStory v0.11.2** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
 
 - **TypeScript (Bun + Hono)** – Web 服务器、API、WebSocket、路由、认证、流式传输、业务逻辑
 - **Mojo FFI** – 概率计算和向量操作的计算内核（可选，带 TypeScript 回退）
@@ -464,6 +464,32 @@ bun run build
 ---
 
 ## 最近更改
+
+### Mojo内核扩展 (v0.11.2)
+
+Mojo计算内核的重大性能扩展，支持向量搜索、NPC批量操作和图遍历：
+
+| 功能 | 描述 |
+|------|------|
+| **概率内核** | 成功率、投掷结果、修饰符 + 批量概率通过Mojo FFI |
+| **向量内核** | 4维余弦相似度、L2距离、点积通过Mojo FFI |
+| **全维度向量** | 768维BGE-M3嵌入 — 批量余弦相似度通过Mojo FFI |
+| **批量NPC操作** | 年龄衰减、恶习衰减、税收、财富总和、忠诚度检查通过Mojo FFI |
+| **图操作** | RRF融合、关系强度、声望计算通过Mojo FFI |
+| **SQLite加速** | searchDense/searchMemoriesDense使用批量余弦相似度 |
+
+**新文件：**
+- `mojo/kernels/vector_full.mojo` — 全维度向量操作（余弦、L2、点积、批量）
+- `mojo/kernels/batch_ops.mojo` — 批量NPC统计操作（年龄衰减、恶习、税收、忠诚度）
+- `mojo/kernels/graph_ops.mojo` — 图遍历和RRF融合
+- `src/lib/mojo-ffi.test.ts` — 19个测试覆盖所有FFI绑定
+
+**修改的文件：**
+- `mojo/kernels/probability_ffi.mojo` — 新增batch_success_chance和batch_roll
+- `src/lib/mojo-ffi.ts` — 5个内核绑定，带TypeScript回退
+- `src/lib/vector-ops.ts` — 使用Mojo加速的cosineSimilarity
+- `src/lib/sqlite-store.ts` — searchDense/searchMemoriesDense使用batchCosineSimilarity
+- `build.sh` — 编译全部5个内核（probability, vector_4dim, vector_full, batch_ops, graph_ops）
 
 ### 社交与政治系统 (v0.11.0)
 

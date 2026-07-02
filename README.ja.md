@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.0 – インタラクティブ・ナラティブ・ゲームプラットフォーム
+# TrueNeverStory v0.11.2 – インタラクティブ・ナラティブ・ゲームプラットフォーム
 
-**TrueNeverStory v0.11.0** は、[BRING](https://github.com/Eva-E1/BRING)ファンタジー世界プラットフォームの現代的な再実装で、Pythonから高性能ハイブリッドスタックに移行されました：
+**TrueNeverStory v0.11.2** は、[BRING](https://github.com/Eva-E1/BRING)ファンタジー世界プラットフォームの現代的な再実装で、Pythonから高性能ハイブリッドスタックに移行されました：
 
 - **TypeScript (Bun + Hono)** – Webサーバー、API、WebSocket、ルーティング、認証、ストリーミング、ビジネスロジック
 - **Mojo FFI** – 確率計算およびベクトル演算用のコンピュータカーネル（オプション、TypeScriptフォールバック付き）
@@ -464,6 +464,32 @@ bun run build
 ---
 
 ## 最近の変更
+
+### Mojoカーネル拡張 (v0.11.2)
+
+ベクトル検索、バッチNPC操作、グラフ走査のためのMojo計算カーネルの大幅なパフォーマンス拡張：
+
+| 機能 | 説明 |
+|------|------|
+| **確率カーネル** | 成功確率、ロール結果、修飾子 + バッチ確率Mojo FFI経由 |
+| **ベクトルカーネル** | 4次元コサイン類似度、L2距離、内積Mojo FFI経由 |
+| **フルディメンションベクトル** | 768次元BGE-M3埋め込み — バッチコサイン類似度Mojo FFI経由 |
+| **バッチNPC操作** | 年齢減衰、悪習、税金、富の合計、忠誠度チェックMojo FFI経由 |
+| **グラフ操作** | RRF融合、関係強度、評判計算Mojo FFI経由 |
+| **SQLite高速化** | searchDense/searchMemoriesDenseがバッチコサイン類似度を使用 |
+
+**新規ファイル:**
+- `mojo/kernels/vector_full.mojo` — フルディメンションベクトル演算（コサイン、L2、内積、バッチ）
+- `mojo/kernels/batch_ops.mojo` — バッチNPC統計演算（年齢減衰、悪習、税金、忠誠度）
+- `mojo/kernels/graph_ops.mojo` — グラフ走査とRRF融合
+- `src/lib/mojo-ffi.test.ts` — 19のテスト、すべてのFFIバインディングをカバー
+
+**変更ファイル:**
+- `mojo/kernels/probability_ffi.mojo` — batch_success_chanceとbatch_rollを追加
+- `src/lib/mojo-ffi.ts` — 5つのカーネルバインディング、TypeScriptフォールバック付き
+- `src/lib/vector-ops.ts` — Mojo高速化cosineSimilarityを使用
+- `src/lib/sqlite-store.ts` — searchDense/searchMemoriesDenseがbatchCosineSimilarityを使用
+- `build.sh` — 5つのすべてのカーネルをコンパイル（probability, vector_4dim, vector_full, batch_ops, graph_ops）
 
 ### 社会・政治システム (v0.11.0)
 

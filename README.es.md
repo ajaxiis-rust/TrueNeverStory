@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.0 – Plataforma de Juegos Narrativos Interactivos
+# TrueNeverStory v0.11.2 – Plataforma de Juegos Narrativos Interactivos
 
-**TrueNeverStory v0.11.0** es una reimplementación moderna de la plataforma de mundos de fantasía [BRING](https://github.com/Eva-E1/BRING), migrada de Python a un stack híbrido de alto rendimiento:
+**TrueNeverStory v0.11.2** es una reimplementación moderna de la plataforma de mundos de fantasía [BRING](https://github.com/Eva-E1/BRING), migrada de Python a un stack híbrido de alto rendimiento:
 
 - **TypeScript (Bun + Hono)** – Servidor web, API, WebSocket, enrutamiento, auth, streaming, lógica de negocio
 - **Mojo FFI** – Núcleos de cómputo para cálculos de probabilidad y operaciones vectoriales (opcional, con fallback TypeScript)
@@ -464,6 +464,32 @@ bun run build
 ---
 
 ## Cambios Recientes
+
+### Expansión del kernel Mojo (v0.11.2)
+
+Mayor rendimiento de los kernels de cómputo Mojo para búsqueda vectorial, operaciones batch NPC y recorrido de grafos:
+
+| Característica | Descripción |
+|----------------|-------------|
+| **Kernel de probabilidades** | Chance de éxito, resultado de tirada, modificador + probabilidades batch vía Mojo FFI |
+| **Kernel vectorial** | Similitud coseno 4-dim, distancia L2, producto escalar vía Mojo FFI |
+| **Vectores de dimensión completa** | Embeddings BGE-M3 de 768-dim — similitud coseno batch vía Mojo FFI |
+| **Operaciones batch NPC** | Decadencia por edad, vices, impuestos, suma de riqueza, verificaciones de lealtad vía Mojo FFI |
+| **Operaciones de grafo** | Fusión RRF, fuerza de relación, cálculo de reputación vía Mojo FFI |
+| **Aceleración SQLite** | searchDense/searchMemoriesDense usan similitud coseno por lotes |
+
+**Archivos nuevos:**
+- `mojo/kernels/vector_full.mojo` — Operaciones vectoriales de dimensión completa (coseno, L2, producto escalar, batch)
+- `mojo/kernels/batch_ops.mojo` — Operaciones batch de estadísticas NPC (decadencia, vices, impuestos, lealtad)
+- `mojo/kernels/graph_ops.mojo` — Recorrido de grafo y fusión RRF
+- `src/lib/mojo-ffi.test.ts` — 19 pruebas cubriendo todos los bindings FFI
+
+**Archivos modificados:**
+- `mojo/kernels/probability_ffi.mojo` — Añadidos batch_success_chance y batch_roll
+- `src/lib/mojo-ffi.ts` — 5 bindings de kernel con fallbacks TypeScript
+- `src/lib/vector-ops.ts` — Usa cosineSimilarity acelerado por Mojo
+- `src/lib/sqlite-store.ts` — searchDense/searchMemoriesDense usan batchCosineSimilarity
+- `build.sh` — Compila los 5 kernels (probability, vector_4dim, vector_full, batch_ops, graph_ops)
 
 ### Sistemas sociales y políticos (v0.11.0)
 

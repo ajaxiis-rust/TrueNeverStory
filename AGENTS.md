@@ -305,7 +305,12 @@ All agents have full embedding support with long-term memory via RAG:
 - **SQLite Hybrid Search** — FTS5 keyword search + dense vector search + Reciprocal Rank Fusion (RRF)
 - **AgentMemoryStore** — per-agent, per-session memory isolation via `role` column
 - **World-Scoped Memory** — memory is isolated per world to prevent cross-world hallucinations
-- **Mojo Graph Operations** — vector operations via Mojo FFI for performance
+- **Mojo Compute Kernels** — 5 Mojo kernels via FFI with TypeScript fallbacks:
+  - `probability_ffi.mojo` — Success chance, roll outcomes, batch probability
+  - `vector_ffi.mojo` — 4-dim vector operations (cosine, L2, dot)
+  - `vector_full.mojo` — Full-dimension vector operations (768-dim BGE-M3)
+  - `batch_ops.mojo` — Batch NPC operations (age decay, vice, tax, loyalty)
+  - `graph_ops.mojo` — Graph traversal, RRF fusion, reputation computation
 
 **Memory Flow:**
 ```

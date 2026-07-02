@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.0 – Building Rich Interactive Narrative Games
+# TrueNeverStory v0.11.2 – Building Rich Interactive Narrative Games
 
-**TrueNeverStory v0.11.0** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
+**TrueNeverStory v0.11.2** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
 
 - **TypeScript (Bun + Hono)** – Web server, API, WebSocket, routing, auth, streaming, business logic
 - **Mojo FFI** – Compute kernels for probability calculations and vector operations (optional, with TypeScript fallback)
@@ -538,6 +538,32 @@ bun run build
 ---
 
 ## Recent Changes
+
+### Mojo Kernel Expansion (v0.11.2)
+
+Major performance expansion of Mojo compute kernels for vector search, NPC batch operations, and graph traversal:
+
+| Feature | Description |
+|---------|-------------|
+| **Probability Kernel** | Success chance, roll outcome, modifier + batch probability via Mojo FFI |
+| **Vector Kernel** | 4-dim cosine similarity, L2 distance, dot product via Mojo FFI |
+| **Full-Dimension Vector** | 768-dim BGE-M3 embeddings — batch cosine similarity via Mojo FFI |
+| **Batch NPC Operations** | Age decay, vice decay, tax, wealth sum, loyalty checks via Mojo FFI |
+| **Graph Operations** | RRF fusion, relationship strength, reputation computation via Mojo FFI |
+| **SQLite Acceleration** | searchDense/searchMemoriesDense use batch cosine similarity |
+
+**New files:**
+- `mojo/kernels/vector_full.mojo` — Full-dimension vector operations (cosine, L2, dot, batch)
+- `mojo/kernels/batch_ops.mojo` — Batch NPC stat operations (age decay, vice, tax, loyalty)
+- `mojo/kernels/graph_ops.mojo` — Graph traversal and RRF fusion
+- `src/lib/mojo-ffi.test.ts` — 19 tests covering all Mojo FFI bindings
+
+**Modified files:**
+- `mojo/kernels/probability_ffi.mojo` — Added batch_success_chance and batch_roll
+- `src/lib/mojo-ffi.ts` — 5 kernel bindings with TypeScript fallbacks
+- `src/lib/vector-ops.ts` — Uses Mojo-accelerated cosineSimilarity
+- `src/lib/sqlite-store.ts` — searchDense/searchMemoriesDense use batchCosineSimilarity
+- `build.sh` — Compiles all 5 kernels (probability, vector_4dim, vector_full, batch_ops, graph_ops)
 
 ### Social & Political Systems (v0.11.0)
 

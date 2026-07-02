@@ -8,16 +8,11 @@ export function blobToVector(blob: Buffer): Float32Array {
   return new Float32Array(ab);
 }
 
+import { cosineSimilarityFull } from "./mojo-ffi";
+
 export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   if (a.length !== b.length) throw new Error('Vector dimension mismatch');
-  let dot = 0, normA = 0, normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i]! * b[i]!;
-    normA += a[i]! * a[i]!;
-    normB += b[i]! * b[i]!;
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom === 0 ? 0 : dot / denom;
+  return cosineSimilarityFull(a, b);
 }
 
 export interface RankedItem {

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────
-#  TrueNeverStory v0.10.0 — Universal build, compile & launch script
+#  TrueNeverStory v0.11.2 — Universal build, compile & launch script
 #  Detects hardware, installs deps, compiles binaries,
 #  cross-compiles for other platforms, starts server
 # ─────────────────────────────────────────────────────────────
@@ -376,7 +376,7 @@ compile_mojo() {
         fi
     fi
 
-    # Vector kernels
+    # Vector kernels (4-dim)
     if [[ -f mojo/kernels/vector_ffi.mojo ]]; then
         if mojo "${mojo_args[@]}" -o "${COMPILE_DIR}/libtns_vectors.so" mojo/kernels/vector_ffi.mojo 2>&1; then
             info "Compiled: ${COMPILE_DIR}/libtns_vectors.so"
@@ -385,6 +385,45 @@ compile_mojo() {
                 warn "Mojo cross-compile failed (${COMPILE_TARGET} from ${CURRENT_TARGET})"
             else
                 warn "Vector kernel compilation failed"
+            fi
+        fi
+    fi
+
+    # Vector full kernel (768-dim)
+    if [[ -f mojo/kernels/vector_full.mojo ]]; then
+        if mojo "${mojo_args[@]}" -o "${COMPILE_DIR}/libtns_vector_full.so" mojo/kernels/vector_full.mojo 2>&1; then
+            info "Compiled: ${COMPILE_DIR}/libtns_vector_full.so"
+        else
+            if [[ "$COMPILE_TARGET" != "$CURRENT_TARGET" ]]; then
+                warn "Mojo cross-compile failed (${COMPILE_TARGET} from ${CURRENT_TARGET})"
+            else
+                warn "Vector full kernel compilation failed"
+            fi
+        fi
+    fi
+
+    # Batch operations kernel
+    if [[ -f mojo/kernels/batch_ops.mojo ]]; then
+        if mojo "${mojo_args[@]}" -o "${COMPILE_DIR}/libtns_batch_ops.so" mojo/kernels/batch_ops.mojo 2>&1; then
+            info "Compiled: ${COMPILE_DIR}/libtns_batch_ops.so"
+        else
+            if [[ "$COMPILE_TARGET" != "$CURRENT_TARGET" ]]; then
+                warn "Mojo cross-compile failed (${COMPILE_TARGET} from ${CURRENT_TARGET})"
+            else
+                warn "Batch ops kernel compilation failed"
+            fi
+        fi
+    fi
+
+    # Graph operations kernel
+    if [[ -f mojo/kernels/graph_ops.mojo ]]; then
+        if mojo "${mojo_args[@]}" -o "${COMPILE_DIR}/libtns_graph_ops.so" mojo/kernels/graph_ops.mojo 2>&1; then
+            info "Compiled: ${COMPILE_DIR}/libtns_graph_ops.so"
+        else
+            if [[ "$COMPILE_TARGET" != "$CURRENT_TARGET" ]]; then
+                warn "Mojo cross-compile failed (${COMPILE_TARGET} from ${CURRENT_TARGET})"
+            else
+                warn "Graph ops kernel compilation failed"
             fi
         fi
     fi
