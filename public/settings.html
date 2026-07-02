@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrueNeverStory — Settings</title>
+
+
+<link href="/static/fonts/fonts.css" rel="stylesheet">
+<style>
+:root{--black:#000;--surface:#080808;--surface-raised:#111;--surface-hover:#161616;--border:#1A1A1A;--border-visible:#272727;--border-strong:#353535;--text-disabled:#666;--text-tertiary:#8E8E8E;--text-secondary:#BBB;--text-primary:#E0E0E0;--text-display:#FFF;--accent:#D71921;--success:#4A9E5C;--warning:#D4A843;--interactive:#5B9BF6;--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;background:var(--black);overflow:hidden}
+body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:12px;color:var(--text-primary);display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+.topbar{display:flex;align-items:center;gap:12px;padding:0 20px;height:40px;border-bottom:1px solid var(--border);flex-shrink:0}
+.topbar__brand{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-disabled)}
+.topbar__brand span{color:var(--text-display);font-weight:700}
+.topbar__sep{width:1px;height:14px;background:var(--border)}
+.topbar__title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary)}
+.topbar__spacer{flex:1}
+.topbar__btn{background:transparent;border:1px solid var(--border-visible);color:var(--text-tertiary);font-family:var(--font-mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;cursor:pointer;border-radius:var(--radius-pill);transition:all var(--dur-fast)}
+.topbar__btn:hover{border-color:var(--text-secondary);color:var(--text-primary)}
+
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+.content::-webkit-scrollbar{width:2px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--border-visible);border-radius:2px}
+
+.section{margin-bottom:24px}
+.section__title{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-secondary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section__title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:12px}
+
+.field{display:flex;flex-direction:column;gap:4px}
+.field__label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-disabled)}
+.field__input{background:var(--surface);border:1px solid var(--border-visible);border-radius:var(--radius-md);padding:8px 12px;font-family:var(--font-mono);font-size:12px;color:var(--text-primary);outline:none;transition:border-color var(--dur-fast)}
+.field__input:focus{border-color:var(--text-secondary)}
+.field__input::placeholder{color:var(--text-disabled)}
+.field__input option{background:var(--surface);color:var(--text-primary)}
+select.field__input{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23666' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.field__hint{font-size:9px;color:var(--text-disabled);letter-spacing:.04em}
+
+.row{display:flex;gap:12px;align-items:end}
+.row .field{flex:1}
+
+.actions{display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.btn{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;padding:8px 20px;border-radius:var(--radius-pill);cursor:pointer;transition:all var(--dur-fast);border:1px solid var(--border-visible);background:transparent;color:var(--text-secondary)}
+.btn:hover{border-color:var(--text-secondary);color:var(--text-primary)}
+.btn--primary{background:var(--text-display);color:var(--black);border-color:var(--text-display)}
+.btn--primary:hover{opacity:.9}
+.btn--danger{border-color:var(--accent);color:var(--accent)}
+.btn--danger:hover{background:var(--accent);color:var(--black)}
+
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 20px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;z-index:100;animation:toastIn 200ms var(--ease-out)}
+.toast--ok{background:var(--success);color:var(--black)}
+.toast--err{background:var(--accent);color:var(--black)}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.toggle{display:flex;align-items:center;gap:10px;cursor:pointer}
+.toggle__track{width:36px;height:20px;border-radius:var(--radius-pill);background:var(--border-visible);position:relative;transition:background var(--dur-fast);flex-shrink:0}
+.toggle__track::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-disabled);transition:all var(--dur-fast)}
+.toggle--on .toggle__track{background:var(--text-display)}
+.toggle--on .toggle__track::after{transform:translateX(16px);background:var(--black)}
+.toggle__label{font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em}
+
+@media(max-width:768px){
+  .page{padding:12px}
+  .page__title{font-size:18px;margin-bottom:16px}
+  .back{font-size:10px;padding:6px 12px}
+  .section{padding:14px}
+  .section__title{font-size:12px}
+  .field{flex-direction:column;align-items:stretch}
+  .field__input,.field__select{width:100%;font-size:13px}
+  .save-btn{width:100%;font-size:11px;padding:10px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand"><span>TrueNeverStory</span></div>
+  <div class="topbar__sep"></div>
+  <div class="topbar__title" data-i18n="uiSettings">Settings</div>
+  <div class="topbar__spacer"></div>
+  <div class="topbar__status" style="display:flex;align-items:center;gap:8px;margin-right:12px">
+    <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-disabled);text-transform:uppercase;letter-spacing:.08em">
+      <span class="topbar__dot" id="llamacppDot" style="width:6px;height:6px"></span>llamacpp
+    </span>
+    <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-disabled);text-transform:uppercase;letter-spacing:.08em">
+      <span class="topbar__dot" id="ollamaDot" style="width:6px;height:6px"></span>ollama
+    </span>
+  </div>
+  <a href="/models" class="topbar__btn" data-i18n="uiModels">MODELS</a>
+  <a href="/worlds" class="topbar__btn">WORLDS</a>
+  <a href="/agents" class="topbar__btn" data-i18n="uiAgents">AGENTS</a>
+  <a href="/" class="topbar__btn" data-i18n="uiBackToChat">BACK TO CHAT</a>
+</div>
+
+<div class="content" id="content">
+  <form id="settingsForm" onsubmit="return false">
+
+    <!-- Language -->
+    <div class="section">
+      <div class="section__title" data-i18n="uiLanguage">Language</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label" data-i18n="uiLanguage">Language</label>
+          <select class="field__input" id="language" onchange="onLanguageChange(this.value)">
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- LLM -->
+    <div class="section">
+      <div class="section__title" data-i18n="uiLlmConfig">LLM Configuration</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Base URL</label>
+          <input class="field__input" id="llmBaseUrl" placeholder="http://localhost:11434/v1">
+          <span class="field__hint">OpenAI-compatible endpoint</span>
+        </div>
+        <div class="field">
+          <label class="field__label">API Key</label>
+          <input class="field__input" id="llmApiKey" type="password" placeholder="sk-...">
+        </div>
+        <div class="field">
+          <label class="field__label">Model</label>
+          <select class="field__input" id="llmModel"><option value="">Loading...</option></select>
+        </div>
+        <div class="field">
+          <label class="field__label">Timeout (seconds)</label>
+          <input class="field__input" id="llmTimeout" type="number" value="120">
+        </div>
+        <div class="field">
+          <label class="field__label">Max Tokens</label>
+          <input class="field__input" id="llmMaxTokens" type="number" value="4096">
+        </div>
+        <div class="field">
+          <label class="field__label">Temperature</label>
+          <input class="field__input" id="llmTemperature" type="number" step="0.1" min="0" max="2" value="0.7">
+        </div>
+        <div class="field">
+          <label class="field__label">Max Retries</label>
+          <input class="field__input" id="llmMaxRetries" type="number" value="3">
+        </div>
+        <div class="field">
+          <label class="field__label">Max Concurrent</label>
+          <input class="field__input" id="llmMaxConcurrent" type="number" value="8">
+        </div>
+      </div>
+    </div>
+
+    <!-- Embeddings -->
+    <div class="section">
+      <div class="section__title">Embeddings</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Model</label>
+          <select class="field__input" id="embeddingModel"><option value="">Loading...</option></select>
+        </div>
+        <div class="field">
+          <label class="field__label">Base URL</label>
+          <input class="field__input" id="embeddingBaseUrl" placeholder="(same as LLM if empty)">
+        </div>
+        <div class="field">
+          <label class="field__label">API Key</label>
+          <input class="field__input" id="embeddingApiKey" type="password" placeholder="(same as LLM if empty)">
+        </div>
+      </div>
+    </div>
+
+    <!-- Server -->
+    <div class="section">
+      <div class="section__title">Server</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Host</label>
+          <input class="field__input" id="serverHost" placeholder="0.0.0.0">
+        </div>
+        <div class="field">
+          <label class="field__label">Port</label>
+          <input class="field__input" id="serverPort" type="number" value="8000">
+        </div>
+        <div class="field">
+          <label class="field__label">Database Path</label>
+          <input class="field__input" id="dbPath" placeholder="./world_db">
+        </div>
+      </div>
+    </div>
+
+    <!-- Local Model (MAX / llama.cpp) -->
+    <div class="section">
+      <div class="section__title">Local Model — Compute (MAX / llama.cpp / Ollama)</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">GPU Layers (-1 = auto)</label>
+          <input class="field__input" id="modelNumGpuLayers" type="number" value="-1">
+          <span class="field__hint">Number of layers offloaded to GPU. -1 = all layers. 0 = CPU only.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">CPU Threads</label>
+          <input class="field__input" id="modelNumCpuThreads" type="number" min="1" max="128" value="3">
+          <span class="field__hint">Number of CPU threads for inference.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Context Length</label>
+          <input class="field__input" id="modelContextLength" type="number" min="512" max="200000" value="4096">
+          <span class="field__hint">Maximum context window (tokens). Affects VRAM usage.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Batch Size</label>
+          <input class="field__input" id="modelBatchSize" type="number" min="32" max="8192" value="512">
+          <span class="field__hint">Prompt processing batch size. Higher = faster but more VRAM.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section__title">Local Model — Sampling Parameters</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Temperature</label>
+          <input class="field__input" id="modelTemperature" type="number" step="0.05" min="0" max="2" value="0.7">
+          <span class="field__hint">0.0 = deterministic, 1.0 = creative, 2.0 = very random.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Top P (nucleus sampling)</label>
+          <input class="field__input" id="modelTopP" type="number" step="0.05" min="0" max="1" value="0.9">
+          <span class="field__hint">Cumulative probability threshold. 0.9 = top 90% tokens.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Top K</label>
+          <input class="field__input" id="modelTopK" type="number" min="1" max="200" value="40">
+          <span class="field__hint">Limit to K most probable tokens at each step.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Repeat Penalty</label>
+          <input class="field__input" id="modelRepeatPenalty" type="number" step="0.05" min="1" max="2" value="1.1">
+          <span class="field__hint">1.0 = no penalty. &gt;1.0 = penalize repetition.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Mirostat (0=off, 1=v1, 2=v2)</label>
+          <input class="field__input" id="modelMirostat" type="number" min="0" max="2" value="0">
+          <span class="field__hint">Adaptive sampling for consistent perplexity.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Mirostat Tau</label>
+          <input class="field__input" id="modelMirostatTau" type="number" step="0.5" min="1" max="20" value="5.0">
+          <span class="field__hint">Target entropy. Lower = more focused.</span>
+        </div>
+        <div class="field">
+          <label class="field__label">Mirostat Eta</label>
+          <input class="field__input" id="modelMirostatEta" type="number" step="0.01" min="0.01" max="1" value="0.1">
+          <span class="field__hint">Learning rate for Mirostat adaptation.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth -->
+    <div class="section">
+      <div class="section__title">Authentication</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Password</label>
+          <input class="field__input" id="authPassword" type="password" placeholder="Leave empty to disable auth">
+          <span class="field__hint">Empty = no authentication required</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory -->
+    <div class="section">
+      <div class="section__title">Memory System</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Max Entries</label>
+          <input class="field__input" id="maxMemoryEntries" type="number" value="10000">
+        </div>
+        <div class="field">
+          <label class="field__label">Embedding Dimension</label>
+          <input class="field__input" id="embeddingDimension" type="number" value="384">
+        </div>
+        <div class="field">
+          <label class="field__label">Similarity Threshold</label>
+          <input class="field__input" id="similarityThreshold" type="number" step="0.05" min="0" max="1" value="0.7">
+        </div>
+        <div class="field">
+          <label class="field__label">Half-life (days)</label>
+          <input class="field__input" id="halfLifeDays" type="number" step="0.5" value="7">
+        </div>
+      </div>
+    </div>
+
+    <!-- Probability -->
+    <div class="section">
+      <div class="section__title">Probability System</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Global Luck (0.0 – 1.0)</label>
+          <input class="field__input" id="globalLuck" type="number" step="0.05" min="0" max="1" value="0.5">
+          <span class="field__hint">0.5 = neutral, higher = more lucky</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- World -->
+    <div class="section">
+      <div class="section__title">World</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Auto-Heal Graph</label>
+          <div class="toggle toggle--on" id="autoHealToggle" onclick="toggleSwitch(this)">
+            <div class="toggle__track"></div>
+            <span class="toggle__label">Enabled</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAX Serve -->
+    <div class="section">
+      <div class="section__title">MAX Serve (Mojo)</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">Endpoint URL</label>
+          <input class="field__input" id="maxServeUrl" placeholder="http://localhost:8000">
+          <span class="field__hint">Optional: Mojo MAX Serve for vector search</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LLM Server Control -->
+    <div class="section">
+      <div class="section__title">LLM Server Control</div>
+      <div class="grid">
+        <div class="field">
+          <label class="field__label">LLM Port</label>
+          <input class="field__input" id="llmPort" type="number" value="5001">
+        </div>
+        <div class="field">
+          <label class="field__label">LLM Threads</label>
+          <input class="field__input" id="llmThreads" type="number" min="1" max="32" value="2">
+        </div>
+        <div class="field">
+          <label class="field__label">LLM Context Size</label>
+          <input class="field__input" id="llmCtxSize" type="number" min="512" max="131072" value="8192">
+        </div>
+        <div class="field">
+          <label class="field__label">Embed Port</label>
+          <input class="field__input" id="embedPort" type="number" value="5002">
+        </div>
+        <div class="field">
+          <label class="field__label">Embed Threads</label>
+          <input class="field__input" id="embedThreads" type="number" min="1" max="16" value="1">
+        </div>
+        <div class="field">
+          <label class="field__label">Embed Context Size</label>
+          <input class="field__input" id="embedCtxSize" type="number" min="512" max="32768" value="8192">
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <span id="llmStatus" style="font-size:10px;color:var(--text-disabled)">Checking...</span>
+        <button class="btn" onclick="checkServerStatus()">Refresh Status</button>
+        <button class="btn btn--primary" onclick="restartServers()" id="restartBtn">Apply & Restart</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn--primary" id="saveBtn" onclick="saveSettings()">Save Settings</button>
+      <button class="btn btn--danger" id="resetBtn" onclick="resetSettings()">Reset to Defaults</button>
+      <div style="flex:1"></div>
+      <button class="btn" onclick="window.location='/'">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const EN={uiSettings:"Settings",uiBackToChat:"BACK TO CHAT",uiModels:"MODELS",uiAgents:"AGENTS",uiLlmConfig:"LLM Configuration",uiBaseUrl:"Base URL",uiBaseUrlHint:"OpenAI-compatible endpoint",uiApiKey:"API Key",uiModel:"Model",uiTimeout:"Timeout (seconds)",uiMaxTokens:"Max Tokens",uiTemperature:"Temperature",uiMaxRetries:"Max Retries",uiMaxConcurrent:"Max Concurrent",uiEmbeddings:"Embeddings",uiServer:"Server",uiHost:"Host",uiPort:"Port",uiDbPath:"Database Path",uiLocalModel:"Local Model — Compute (llama.cpp / Ollama)",uiGpuLayers:"GPU Layers (-1 = auto)",uiGpuLayersHint:"Number of layers offloaded to GPU. -1 = all layers. 0 = CPU only.",uiCpuThreads:"CPU Threads",uiCpuThreadsHint:"Number of CPU threads for inference.",uiContextLength:"Context Length",uiContextLengthHint:"Maximum context window (tokens). Affects VRAM usage.",uiBatchSize:"Batch Size",uiBatchSizeHint:"Prompt processing batch size. Higher = faster but more VRAM.",uiSampling:"Local Model — Sampling Parameters",uiTopP:"Top P (nucleus sampling)",uiTopPHint:"Cumulative probability threshold. 0.9 = top 90% tokens.",uiTopK:"Top K",uiTopKHint:"Limit to K most probable tokens at each step.",uiRepeatPenalty:"Repeat Penalty",uiRepeatPenaltyHint:"1.0 = no penalty. >1.0 = penalize repetition.",uiMirostat:"Mirostat (0=off, 1=v1, 2=v2)",uiMirostatHint:"Adaptive sampling for consistent perplexity.",uiMirostatTau:"Mirostat Tau",uiMirostatTauHint:"Target entropy. Lower = more focused.",uiMirostatEta:"Mirostat Eta",uiMirostatEtaHint:"Learning rate for Mirostat adaptation.",uiAuth:"Authentication",uiPassword:"Password",uiPasswordHint:"Empty = no authentication required",uiMemory:"Memory System",uiMaxEntries:"Max Entries",uiEmbeddingDim:"Embedding Dimension",uiSimilarityThreshold:"Similarity Threshold",uiHalfLife:"Half-life (days)",uiProbability:"Probability System",uiGlobalLuck:"Global Luck (0.0 – 1.0)",uiGlobalLuckHint:"0.5 = neutral, higher = more lucky",uiWorld:"World",uiAutoHeal:"Auto-Heal Graph",uiEnabled:"Enabled",uiDisabled:"Disabled",uiMaxServe:"MAX Serve (Mojo)",uiEndpointUrl:"Endpoint URL",uiEndpointHint:"Optional: Mojo MAX Serve for vector search",uiSave:"Save Settings",uiReset:"Reset to Defaults",uiCancel:"Cancel",uiLanguage:"Language",uiConfirmReset:"Reset all settings to defaults?",uiSaveSuccess:"Settings saved successfully",uiSaveFail:"Failed to save",uiLoadFail:"Failed to load settings",uiResetSuccess:"Settings reset to defaults"};
+const RU={...EN,uiSettings:"Настройки",uiBackToChat:"К ЧАТУ",uiModels:"МОДЕЛИ",uiAgents:"АГЕНТЫ",uiLlmConfig:"Конфигурация LLM",uiBaseUrl:"Base URL",uiBaseUrlHint:"OpenAI-совместимая конечная точка",uiApiKey:"API Key",uiModel:"Модель",uiTimeout:"Таймаут (секунды)",uiMaxTokens:"Макс. токенов",uiTemperature:"Температура",uiMaxRetries:"Макс. повторов",uiMaxConcurrent:"Макс. параллельных",uiEmbeddings:"Эмбеддинги",uiServer:"Сервер",uiHost:"Хост",uiPort:"Порт",uiDbPath:"Путь к БД",uiLocalModel:"Локальная модель — Вычисления (llama.cpp / Ollama)",uiGpuLayers:"GPU слои (-1 = авто)",uiGpuLayersHint:"Количество слоёв на GPU. -1 = все. 0 = только CPU.",uiCpuThreads:"Потоки CPU",uiCpuThreadsHint:"Количество потоков CPU для инференса.",uiContextLength:"Длина контекста",uiContextLengthHint:"Макс. окно контекста (токены). Влияет на VRAM.",uiBatchSize:"Размер батча",uiBatchSizeHint:"Размер батча обработки промпта. Больше = быстрее, но больше VRAM.",uiSampling:"Локальная модель — Параметры сэмплирования",uiTopP:"Top P (ядройное сэмплирование)",uiTopPHint:"Порог кумулятивной вероятности. 0.9 = топ 90% токенов.",uiTopK:"Top K",uiTopKHint:"Ограничить K наиболее вероятными токенами на каждом шаге.",uiRepeatPenalty:"Штраф за повтор",uiRepeatPenaltyHint:"1.0 = без штрафа. >1.0 = штраф за повторение.",uiMirostat:"Mirostat (0=выкл, 1=v1, 2=v2)",uiMirostatHint:"Адаптивное сэмплирование для стабильной перплексии.",uiMirostatTau:"Mirostat Tau",uiMirostatTauHint:"Целевая энтропия. Меньше = более сфокусировано.",uiMirostatEta:"Mirostat Eta",uiMirostatEtaHint:"Скорость обучения для адаптации Mirostat.",uiAuth:"Аутентификация",uiPassword:"Пароль",uiPasswordHint:"Пусто = аутентификация не требуется",uiMemory:"Система памяти",uiMaxEntries:"Макс. записей",uiEmbeddingDim:"Размерность эмбеддингов",uiSimilarityThreshold:"Порог схожести",uiHalfLife:"Полураспад (дни)",uiProbability:"Система вероятностей",uiGlobalLuck:"Глобальная удача (0.0 – 1.0)",uiGlobalLuckHint:"0.5 = нейтрально, выше = более везучий",uiWorld:"Мир",uiAutoHeal:"Авто-восстановление графа",uiEnabled:"Включено",uiDisabled:"Выключено",uiMaxServe:"MAX Serve (Mojo)",uiEndpointUrl:"URL эндпоинта",uiEndpointHint:"Опционально: Mojo MAX Serve для векторного поиска",uiSave:"Сохранить настройки",uiReset:"Сбросить к стандартным",uiCancel:"Отмена",uiLanguage:"Язык",uiConfirmReset:"Сбросить все настройки к стандартным?",uiSaveSuccess:"Настройки успешно сохранены",uiSaveFail:"Ошибка сохранения",uiLoadFail:"Ошибка загрузки настроек",uiResetSuccess:"Настройки сброшены к стандартным"};
+const DE={...EN,uiSettings:"Einstellungen",uiBackToChat:"ZUM CHAT",uiLlmConfig:"LLM-Konfiguration",uiModel:"Modell",uiTemperature:"Temperatur",uiSave:"Einstellungen speichern",uiReset:"Auf Standard zurücksetzen",uiCancel:"Abbrechen",uiLanguage:"Sprache",uiEnabled:"Aktiviert",uiDisabled:"Deaktiviert",uiSaveSuccess:"Einstellungen gespeichert",uiSaveFail:"Speichern fehlgeschlagen",uiLoadFail:"Laden fehlgeschlagen",uiResetSuccess:"Einstellungen zurückgesetzt",uiConfirmReset:"Alle Einstellungen zurücksetzen?"};
+const FR={...EN,uiSettings:"Paramètres",uiBackToChat:"AU CHAT",uiLlmConfig:"Configuration LLM",uiModel:"Modèle",uiTemperature:"Température",uiSave:"Enregistrer",uiReset:"Par défaut",uiCancel:"Annuler",uiLanguage:"Langue",uiEnabled:"Activé",uiDisabled:"Désactivé",uiSaveSuccess:"Paramètres enregistrés",uiSaveFail:"Échec de l'enregistrement",uiLoadFail:"Échec du chargement",uiResetSuccess:"Paramètres réinitialisés",uiConfirmReset:"Réinitialiser tous les paramètres ?"};
+const ES={...EN,uiSettings:"Ajustes",uiBackToChat:"AL CHAT",uiLlmConfig:"Configuración LLM",uiModel:"Modelo",uiTemperature:"Temperatura",uiSave:"Guardar",uiReset:"Por defecto",uiCancel:"Cancelar",uiLanguage:"Idioma",uiEnabled:"Activado",uiDisabled:"Desactivado",uiSaveSuccess:"Ajustes guardados",uiSaveFail:"Error al guardar",uiLoadFail:"Error al cargar",uiResetSuccess:"Ajustes restablecidos",uiConfirmReset:"¿Restablecer todos los ajustes?"};
+const JA={...EN,uiSettings:"設定",uiBackToChat:"チャットへ",uiLlmConfig:"LLM設定",uiModel:"モデル",uiTemperature:"温度",uiSave:"保存",uiReset:"デフォルト",uiCancel:"キャンセル",uiLanguage:"言語",uiEnabled:"有効",uiDisabled:"無効",uiSaveSuccess:"設定を保存しました",uiSaveFail:"保存に失敗しました",uiLoadFail:"読み込みに失敗しました",uiResetSuccess:"設定をリセットしました",uiConfirmReset:"すべての設定をリセットしますか？"};
+const ZH={...EN,uiSettings:"设置",uiBackToChat:"返回聊天",uiLlmConfig:"LLM配置",uiModel:"模型",uiTemperature:"温度",uiSave:"保存",uiReset:"恢复默认",uiCancel:"取消",uiLanguage:"语言",uiEnabled:"启用",uiDisabled:"禁用",uiSaveSuccess:"设置已保存",uiSaveFail:"保存失败",uiLoadFail:"加载失败",uiResetSuccess:"设置已重置",uiConfirmReset:"重置所有设置？"};
+</script>
+<script>
+const API = '/api';
+let currentSettings = {};
+let currentLang = null;
+let LANG_PACKS = {};
+let remoteSettingsTranslations = {};
+
+const UI_KEYS = [
+  'uiSettings','uiBackToChat','uiLlmConfig','uiBaseUrl','uiBaseUrlHint','uiApiKey',
+  'uiModel','uiTimeout','uiMaxTokens','uiTemperature','uiMaxRetries','uiMaxConcurrent',
+  'uiEmbeddings','uiServer','uiHost','uiPort','uiDbPath','uiLocalModel','uiGpuLayers',
+  'uiGpuLayersHint','uiCpuThreads','uiCpuThreadsHint','uiContextLength','uiContextLengthHint',
+  'uiBatchSize','uiBatchSizeHint','uiSampling','uiTopP','uiTopPHint','uiTopK','uiTopKHint',
+  'uiRepeatPenalty','uiRepeatPenaltyHint','uiMirostat','uiMirostatHint','uiMirostatTau',
+  'uiMirostatTauHint','uiMirostatEta','uiMirostatEtaHint','uiAuth','uiPassword','uiPasswordHint',
+  'uiMemory','uiMaxEntries','uiEmbeddingDim','uiSimilarityThreshold','uiHalfLife',
+  'uiProbability','uiGlobalLuck','uiGlobalLuckHint','uiWorld','uiAutoHeal','uiEnabled',
+  'uiDisabled','uiMaxServe','uiEndpointUrl','uiEndpointHint','uiSave','uiReset','uiCancel',
+  'uiLanguage','uiConfirmReset','uiSaveSuccess','uiSaveFail','uiLoadFail','uiResetSuccess'
+];
+
+function toast(msg, ok) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + (ok ? 'toast--ok' : 'toast--err');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function toggleSwitch(el) {
+  el.classList.toggle('toggle--on');
+  const label = el.querySelector('.toggle__label');
+  label.textContent = el.classList.contains('toggle--on') ? currentLang.uiEnabled : currentLang.uiDisabled;
+}
+
+function applyUI(lang) {
+  currentLang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (lang[key]) el.textContent = lang[key];
+  });
+  const toggle = document.getElementById('autoHealToggle');
+  if (toggle) {
+    const label = toggle.querySelector('.toggle__label');
+    label.textContent = toggle.classList.contains('toggle--on') ? lang.uiEnabled : lang.uiDisabled;
+  }
+}
+
+async function loadLanguages() {
+  try {
+    const res = await fetch(API + '/languages', { credentials: 'include' });
+    const data = await res.json();
+    const sel = document.getElementById('language');
+    data.languages.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.code;
+      opt.textContent = `${l.native} (${l.name})`;
+      sel.appendChild(opt);
+    });
+  } catch {}
+}
+
+async function loadLangPack(code) {
+  const langs = { en: EN, ru: RU, de: DE, fr: FR, es: ES, ja: JA, zh: ZH };
+  const basePack = langs[code] || EN;
+  
+  // Fetch remote translations for settings page
+  try {
+    const res = await fetch(`${API}/i18n/translations/${code}/settings`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      remoteSettingsTranslations = data.translations || {};
+    }
+  } catch (e) {
+    console.warn('Failed to load remote settings translations', e);
+  }
+  
+  // Merge remote translations over base pack (remote wins)
+  return { ...basePack, ...remoteSettingsTranslations };
+}
+
+function onLanguageChange(code) {
+  loadLangPack(code).then(lang => {
+    applyUI(lang);
+    if (currentSettings.llmApiKey === '••••••••') {}
+    toast(lang.uiSaveSuccess || 'Language changed', true);
+  });
+}
+
+let _allModels = [];
+let _installedNames = new Set();
+let _backends = { ollama: false, llamacpp: false };
+
+const INSTALL_LINKS = {
+  ollama: 'https://ollama.com/download',
+  llamacpp: 'https://github.com/ggerganov/llama.cpp#build',
+};
+
+async function loadModelsForSelects() {
+  try {
+    const [modelsRes, backendsRes] = await Promise.all([
+      fetch(API + '/models', { credentials: 'include' }),
+      fetch(API + '/backends', { credentials: 'include' }),
+    ]);
+    if (!modelsRes.ok) return;
+    const data = await modelsRes.json();
+    if (backendsRes.ok) _backends = await backendsRes.json();
+
+    const llamacppDot = document.getElementById('llamacppDot');
+    const ollamaDot = document.getElementById('ollamaDot');
+    if (llamacppDot) llamacppDot.className = 'topbar__dot ' + (_backends.llamacpp ? 'topbar__dot--on' : 'topbar__dot--off');
+    if (ollamaDot) ollamaDot.className = 'topbar__dot ' + (_backends.ollama ? 'topbar__dot--on' : 'topbar__dot--off');
+
+    const installed = (data.models || []).filter(m => m.status === 'installed');
+    const catalog = data.catalog || [];
+
+    _installedNames = new Set(installed.map(m => m.name));
+
+    const llmSel = document.getElementById('llmModel');
+    const embSel = document.getElementById('embeddingModel');
+    llmSel.innerHTML = '';
+    embSel.innerHTML = '';
+
+    const installedText = installed.filter(m => {
+      const n = m.name.toLowerCase();
+      return !n.includes('embed') && !n.includes('bge');
+    });
+    const installedEmbed = installed.filter(m => {
+      const n = m.name.toLowerCase();
+      return n.includes('embed') || n.includes('bge') || n.includes('rerank');
+    });
+
+    const catalogText = catalog.filter(m => {
+      const n = (m.name || '').toLowerCase();
+      return !n.includes('embed') && !n.includes('bge');
+    });
+    const catalogEmbed = catalog.filter(m => {
+      const n = (m.name || '').toLowerCase();
+      return n.includes('embed') || n.includes('bge') || n.includes('rerank');
+    });
+
+    function populateSelect(sel, instItems, catItems, backend) {
+      const defaultOpt = document.createElement('option');
+      defaultOpt.value = '';
+      defaultOpt.textContent = '-- select model --';
+      sel.appendChild(defaultOpt);
+
+      const availableInst = instItems.filter(m => _backends[m.backend] !== false);
+      if (availableInst.length > 0) {
+        const grp = document.createElement('optgroup');
+        grp.label = 'Installed';
+        availableInst.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.name;
+          opt.textContent = m.name;
+          grp.appendChild(opt);
+        });
+        sel.appendChild(grp);
+      }
+
+      const availCat = catItems.filter(m => _backends[m.backend] !== false);
+      if (availCat.length > 0) {
+        const grp = document.createElement('optgroup');
+        grp.label = 'Available';
+        availCat.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.name;
+          opt.textContent = m.name;
+          grp.appendChild(opt);
+        });
+        sel.appendChild(grp);
+      }
+
+      if (!_backends[backend]) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = `Install ${backend} first →`;
+        opt.disabled = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    populateSelect(llmSel, installedText, catalogText, 'llamacpp');
+    populateSelect(embSel, installedEmbed, catalogEmbed, 'llamacpp');
+  } catch {}
+}
+
+async function loadSettings() {
+  try {
+    const res = await fetch(API + '/settings', { credentials: 'include' });
+    if (res.status === 401) { window.location = '/login'; return; }
+    if (!res.ok) throw new Error('Failed to load');
+    const s = await res.json();
+    currentSettings = s;
+
+    await loadModelsForSelects();
+
+    document.getElementById('llmBaseUrl').value = s.llmBaseUrl || '';
+    document.getElementById('llmApiKey').value = s.llmApiKey || '';
+
+    const llmSel = document.getElementById('llmModel');
+    if (s.llmModel && !Array.from(llmSel.options).some(o => o.value === s.llmModel)) {
+      const opt = document.createElement('option');
+      opt.value = s.llmModel;
+      opt.textContent = s.llmModel + (_installedNames.has(s.llmModel) ? ' ✓' : '');
+      llmSel.appendChild(opt);
+    }
+    llmSel.value = s.llmModel || '';
+    document.getElementById('llmTimeout').value = s.llmTimeout || 120;
+    document.getElementById('llmMaxTokens').value = s.llmMaxTokens || 4096;
+    document.getElementById('llmTemperature').value = s.llmTemperature || 0.7;
+    document.getElementById('llmMaxRetries').value = s.llmMaxRetries || 3;
+    document.getElementById('llmMaxConcurrent').value = s.llmMaxConcurrent || 8;
+    const embSel = document.getElementById('embeddingModel');
+    if (s.embeddingModel && !Array.from(embSel.options).some(o => o.value === s.embeddingModel)) {
+      const opt = document.createElement('option');
+      opt.value = s.embeddingModel;
+      opt.textContent = s.embeddingModel + (_installedNames.has(s.embeddingModel) ? ' ✓' : '');
+      embSel.appendChild(opt);
+    }
+    embSel.value = s.embeddingModel || '';
+    document.getElementById('embeddingBaseUrl').value = s.embeddingBaseUrl || '';
+    document.getElementById('embeddingApiKey').value = s.embeddingApiKey || '';
+    document.getElementById('serverHost').value = s.serverHost || '0.0.0.0';
+    document.getElementById('serverPort').value = s.serverPort || 8000;
+    document.getElementById('dbPath').value = s.dbPath || './world_db';
+    document.getElementById('modelNumGpuLayers').value = s.modelNumGpuLayers ?? -1;
+    document.getElementById('modelNumCpuThreads').value = s.modelNumCpuThreads ?? 3;
+    document.getElementById('modelContextLength').value = s.modelContextLength ?? 4096;
+    document.getElementById('modelBatchSize').value = s.modelBatchSize ?? 512;
+    document.getElementById('modelTemperature').value = s.modelTemperature ?? 0.7;
+    document.getElementById('modelTopP').value = s.modelTopP ?? 0.9;
+    document.getElementById('modelTopK').value = s.modelTopK ?? 40;
+    document.getElementById('modelRepeatPenalty').value = s.modelRepeatPenalty ?? 1.1;
+    document.getElementById('modelMirostat').value = s.modelMirostat ?? 0;
+    document.getElementById('modelMirostatTau').value = s.modelMirostatTau ?? 5.0;
+    document.getElementById('modelMirostatEta').value = s.modelMirostatEta ?? 0.1;
+    document.getElementById('authPassword').value = s.authPassword || '';
+    document.getElementById('maxMemoryEntries').value = s.maxMemoryEntries || 10000;
+    document.getElementById('embeddingDimension').value = s.embeddingDimension || 384;
+    document.getElementById('similarityThreshold').value = s.similarityThreshold || 0.7;
+    document.getElementById('halfLifeDays').value = s.halfLifeDays || 7;
+    document.getElementById('globalLuck').value = s.globalLuck ?? 0.5;
+    document.getElementById('maxServeUrl').value = s.maxServeUrl || 'http://localhost:8000';
+    document.getElementById('language').value = s.language || 'en';
+
+    const toggle = document.getElementById('autoHealToggle');
+    if (s.autoHeal) {
+      toggle.classList.add('toggle--on');
+    } else {
+      toggle.classList.remove('toggle--on');
+    }
+
+    loadLangPack(s.language || 'en').then(applyUI);
+  } catch (e) {
+    toast('Failed to load settings: ' + e.message, false);
+  }
+}
+
+async function saveSettings() {
+  const data = {
+    language: document.getElementById('language').value,
+    llmBaseUrl: document.getElementById('llmBaseUrl').value,
+    llmModel: document.getElementById('llmModel').value,
+    llmTimeout: Number(document.getElementById('llmTimeout').value),
+    llmMaxTokens: Number(document.getElementById('llmMaxTokens').value),
+    llmTemperature: Number(document.getElementById('llmTemperature').value),
+    llmMaxRetries: Number(document.getElementById('llmMaxRetries').value),
+    llmMaxConcurrent: Number(document.getElementById('llmMaxConcurrent').value),
+    embeddingModel: document.getElementById('embeddingModel').value,
+    embeddingBaseUrl: document.getElementById('embeddingBaseUrl').value,
+    serverHost: document.getElementById('serverHost').value,
+    serverPort: Number(document.getElementById('serverPort').value),
+    dbPath: document.getElementById('dbPath').value,
+    modelNumGpuLayers: Number(document.getElementById('modelNumGpuLayers').value),
+    modelNumCpuThreads: Number(document.getElementById('modelNumCpuThreads').value),
+    modelContextLength: Number(document.getElementById('modelContextLength').value),
+    modelBatchSize: Number(document.getElementById('modelBatchSize').value),
+    modelTemperature: Number(document.getElementById('modelTemperature').value),
+    modelTopP: Number(document.getElementById('modelTopP').value),
+    modelTopK: Number(document.getElementById('modelTopK').value),
+    modelRepeatPenalty: Number(document.getElementById('modelRepeatPenalty').value),
+    modelMirostat: Number(document.getElementById('modelMirostat').value),
+    modelMirostatTau: Number(document.getElementById('modelMirostatTau').value),
+    modelMirostatEta: Number(document.getElementById('modelMirostatEta').value),
+    maxMemoryEntries: Number(document.getElementById('maxMemoryEntries').value),
+    embeddingDimension: Number(document.getElementById('embeddingDimension').value),
+    similarityThreshold: Number(document.getElementById('similarityThreshold').value),
+    halfLifeDays: Number(document.getElementById('halfLifeDays').value),
+    globalLuck: Number(document.getElementById('globalLuck').value),
+    autoHeal: document.getElementById('autoHealToggle').classList.contains('toggle--on'),
+    maxServeUrl: document.getElementById('maxServeUrl').value,
+  };
+
+  const apiKey = document.getElementById('llmApiKey').value;
+  if (apiKey && apiKey !== '••••••••') data.llmApiKey = apiKey;
+  const embKey = document.getElementById('embeddingApiKey').value;
+  if (embKey && embKey !== '••••••••') data.embeddingApiKey = embKey;
+  const authPw = document.getElementById('authPassword').value;
+  if (authPw && authPw !== '••••••••') data.authPassword = authPw;
+
+  try {
+    const res = await fetch(API + '/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Failed to save');
+    const lang = await loadLangPack(data.language);
+    toast(lang.uiSaveSuccess, true);
+    loadSettings();
+  } catch (e) {
+    toast(currentLang.uiSaveFail + ': ' + e.message, false);
+  }
+}
+
+async function resetSettings() {
+  if (!confirm(currentLang.uiConfirmReset)) return;
+  try {
+    const res = await fetch(API + '/settings/reset', { method: 'POST', credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to reset');
+    toast(currentLang.uiResetSuccess, true);
+    loadSettings();
+  } catch (e) {
+    toast('Failed to reset: ' + e.message, false);
+  }
+}
+
+async function loadLLMConfig() {
+  try {
+    const res = await fetch(API + '/llm-config', { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to load');
+    const config = await res.json();
+    document.getElementById('llmPort').value = config.llmPort || 5001;
+    document.getElementById('llmThreads').value = config.llmThreads || 2;
+    document.getElementById('llmCtxSize').value = config.llmCtxSize || 8192;
+    document.getElementById('embedPort').value = config.embedPort || 5002;
+    document.getElementById('embedThreads').value = config.embedThreads || 1;
+    document.getElementById('embedCtxSize').value = config.embedCtxSize || 8192;
+  } catch (e) {
+    console.warn('Failed to load LLM config:', e);
+  }
+}
+
+async function saveLLMConfig() {
+  const config = {
+    llmPort: Number(document.getElementById('llmPort').value),
+    llmThreads: Number(document.getElementById('llmThreads').value),
+    llmCtxSize: Number(document.getElementById('llmCtxSize').value),
+    embedPort: Number(document.getElementById('embedPort').value),
+    embedThreads: Number(document.getElementById('embedThreads').value),
+    embedCtxSize: Number(document.getElementById('embedCtxSize').value),
+  };
+  try {
+    const res = await fetch(API + '/llm-config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Failed to save');
+    return true;
+  } catch (e) {
+    toast('Failed to save LLM config: ' + e.message, false);
+    return false;
+  }
+}
+
+async function checkServerStatus() {
+  try {
+    const res = await fetch(API + '/server/status', { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to check');
+    const status = await res.json();
+    const el = document.getElementById('llmStatus');
+    const llmDot = status.llmRunning ? '●' : '○';
+    const embedDot = status.embedRunning ? '●' : '○';
+    el.innerHTML = `<span style="color:${status.llmRunning ? 'var(--success)' : 'var(--accent)'}">LLM ${status.llmPort} ${llmDot}</span> | <span style="color:${status.embedRunning ? 'var(--success)' : 'var(--accent)'}">Embed ${status.embedPort} ${embedDot}</span>`;
+  } catch (e) {
+    document.getElementById('llmStatus').textContent = 'Status check failed';
+  }
+}
+
+async function restartServers() {
+  if (!confirm('Restart LLM servers with current config?')) return;
+  
+  const btn = document.getElementById('restartBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  
+  // Save config first
+  const saved = await saveLLMConfig();
+  if (!saved) {
+    btn.disabled = false;
+    btn.textContent = 'Apply & Restart';
+    return;
+  }
+  
+  btn.textContent = 'Restarting...';
+  
+  try {
+    const res = await fetch(API + '/server/restart', { method: 'POST', credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to restart');
+    toast('Servers restarting...', true);
+    
+    // Wait and check status
+    setTimeout(async () => {
+      await checkServerStatus();
+      btn.disabled = false;
+      btn.textContent = 'Apply & Restart';
+    }, 5000);
+  } catch (e) {
+    toast('Restart failed: ' + e.message, false);
+    btn.disabled = false;
+    btn.textContent = 'Apply & Restart';
+  }
+}
+
+loadLanguages();
+loadSettings();
+loadLLMConfig();
+checkServerStatus();
+</script>
+</body>
+</html>

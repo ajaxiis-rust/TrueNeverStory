@@ -1,0 +1,177 @@
+/**
+ * Agent configuration routes — per-agent settings, prompts, and model assignment.
+ * IMPORTANT: Specific routes (providers) MUST come before /:id routes.
+ */
+
+import { Hono } from "hono";
+import {
+  loadAgentConfig,
+  saveAgentConfig,
+  loadAllAgentConfigs,
+  resetAgentConfig,
+  getActiveWorld,
+  getWorldLanguage,
+  type AgentConfig,
+} from "../services/agent-config";
+import { getProviderManager } from "../lib/providers";
+import { getLogger } from "../utils/logger";
+
+const log = getLogger("agents-route");
+const agents = new Hono();
+
+/** Rate limit for agent config writes: max 30 per minute per IP */
+const writeAttempts = new Map<string, { count: number; resetAt: number }>();
+const WRITE_MAX = 30;
+const WRITE_WINDOW = 60_000;
+
+function checkWriteLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = writeAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    writeAttempts.set(ip, { count: 1, resetAt: now + WRITE_WINDOW });
+    return true;
+  }
+  if (entry.count >= WRITE_MAX) return false;
+  entry.count++;
+  return true;
+}
+
+/**
+ * GET /api/agents — List all agents with configs.
+ */
+agents.get("/agents", async (c) => {
+  const configs = loadAllAgentConfigs();
+  return c.json({ agents: configs });
+});
+
+/**
+ * GET /api/agents/providers/options — Get provider/model options for assignment.
+ * MUST come before /:id to avoid Hono matching "providers" as agent id.
+ */
+agents.get("/agents/providers/options", async (c) => {
+  const manager = await getProviderManager();
+  const providers = manager.getProviders();
+  const models = await manager.listAllModels();
+
+  const options = providers.map(p => ({
+    id: p.id,
+    name: p.name,
+    models: models[p.id] || [],
+  }));
+
+  return c.json({ providers: options });
+});
+
+/**
+ * GET /api/agents/:id — Get single agent config.
+ */
+agents.get("/agents/:id", async (c) => {
+  const config = loadAgentConfig(c.req.param("id"));
+  return c.json({ agent: config });
+});
+
+/**
+ * PUT /api/agents/:id — Update agent config.
+ */
+agents.put("/agents/:id", async (c) => {
+  const ip = c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown";
+  if (!checkWriteLimit(ip)) {
+    log.warn({ ip, agentId: c.req.param("id") }, "Agent config write rate limit exceeded");
+    return c.json({ error: "Rate limit exceeded for config writes" }, 429);
+  }
+
+  const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig>;
+  const agentId = c.req.param("id");
+  const current = loadAgentConfig(agentId);
+  const updated = { ...current, ...body };
+
+  // Merge prompts separately to avoid overwriting
+  if (body.prompts) {
+    updated.prompts = { ...current.prompts, ...body.prompts };
+    log.info({ agentId, ip, promptKeys: Object.keys(body.prompts) }, "Agent prompts updated");
+  }
+
+  await saveAgentConfig(agentId, updated);
+
+  // Sync to provider-manager assignments
+  if (updated.providerId || updated.modelId) {
+    try {
+      const manager = await getProviderManager();
+      manager.assignAgent(agentId, updated.providerId || manager.getDefaultProvider()?.id || "", updated.modelId || "", {
+        temperature: updated.temperature,
+        maxTokens: updated.maxTokens,
+      });
+    } catch (err) {
+      log.debug({ err }, "Failed to sync agent config");
+    }
+  }
+
+  return c.json({ status: "saved", agent: updated });
+});
+
+/**
+ * PUT /api/agents/:id/prompts — Update only prompts for an agent.
+ */
+agents.put("/agents/:id/prompts", async (c) => {
+  const ip = c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown";
+  if (!checkWriteLimit(ip)) {
+    log.warn({ ip, agentId: c.req.param("id") }, "Agent prompts write rate limit exceeded");
+    return c.json({ error: "Too many writes, wait a minute and try again" }, 429);
+  }
+
+  const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig["prompts"]>;
+  const agentId = c.req.param("id");
+  const current = loadAgentConfig(agentId);
+  current.prompts = { ...current.prompts, ...body };
+  log.info({ agentId, ip, promptKeys: Object.keys(body) }, "Agent prompts updated directly");
+  await saveAgentConfig(agentId, current);
+  return c.json({ status: "saved", prompts: current.prompts });
+});
+
+/**
+ * GET /api/agents/:id/prompts/:lang — Get agent prompts for a specific language.
+ * Query params: world (optional, defaults to active world)
+ */
+agents.get("/agents/:id/prompts/:lang", async (c) => {
+  const agentId = c.req.param("id");
+  const lang = c.req.param("lang");
+  const world = c.req.query("world") ?? getActiveWorld();
+  const config = loadAgentConfig(agentId, world, lang);
+  return c.json({ agentId, language: lang, world, prompts: config.prompts });
+});
+
+/**
+ * PUT /api/agents/:id/prompts/:lang — Upsert agent prompts for a specific language.
+ * Query params: world (optional, defaults to active world)
+ */
+agents.put("/agents/:id/prompts/:lang", async (c) => {
+  const ip = c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown";
+  if (!checkWriteLimit(ip)) {
+    log.warn({ ip, agentId: c.req.param("id") }, "Agent prompts write rate limit exceeded");
+    return c.json({ error: "Too many writes, wait a minute and try again" }, 429);
+  }
+
+  const agentId = c.req.param("id");
+  const lang = c.req.param("lang");
+  const world = c.req.query("world") ?? getActiveWorld();
+  const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig["prompts"]>;
+  const current = loadAgentConfig(agentId, world, lang);
+  current.prompts = { ...current.prompts, ...body };
+  log.info({ agentId, ip, lang, world, promptKeys: Object.keys(body) }, "Agent prompts updated for language");
+  await saveAgentConfig(agentId, current, world, lang);
+  return c.json({ status: "saved", language: lang, world, prompts: current.prompts });
+});
+
+/**
+ * POST /api/agents/:id/reset — Reset agent to defaults.
+ */
+agents.post("/agents/:id/reset", async (c) => {
+  try {
+    const config = await resetAgentConfig(c.req.param("id"));
+    return c.json({ status: "reset", agent: config });
+  } catch (err) {
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 404);
+  }
+});
+
+export { agents as agentsRouter };

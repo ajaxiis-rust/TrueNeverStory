@@ -1,0 +1,90 @@
+[
+  {
+    "id": "bread",
+    "name": "Bread",
+    "category": "food",
+    "difficulty": 1,
+    "time_minutes": 30,
+    "ingredients": ["flour", "water", "salt", "yeast"],
+    "description": "Simple bread baked in an oven or over fire.",
+    "effects": { "health": 5 },
+    "tags": ["common", "staple"]
+  },
+  {
+    "id": "healing_potion",
+    "name": "Healing Potion",
+    "category": "alchemy",
+    "difficulty": 3,
+    "time_minutes": 60,
+    "ingredients": ["red_herb", "water", "glass_vial"],
+    "description": "A crimson liquid that restores health when consumed.",
+    "effects": { "health": 25 },
+    "tags": ["magical", "healing"]
+  },
+  {
+    "id": "stew",
+    "name": "Hearty Stew",
+    "category": "food",
+    "difficulty": 2,
+    "time_minutes": 45,
+    "ingredients": ["meat", "potato", "carrot", "onion", "water"],
+    "description": "A thick, warming stew cooked over slow fire.",
+    "effects": { "health": 15, "mood": 5 },
+    "tags": ["comfort", "warm"]
+  },
+  {
+    "id": "iron_sword",
+    "name": "Iron Sword",
+    "category": "weapon",
+    "difficulty": 4,
+    "time_minutes": 120,
+    "ingredients": ["iron_ingot", "wooden_handle", "leather_wrap"],
+    "description": "A sturdy iron blade forged at a smithy.",
+    "effects": {},
+    "tags": ["weapon", "melee"]
+  },
+  {
+    "id": "leather_armor",
+    "name": "Leather Armor",
+    "category": "armor",
+    "difficulty": 3,
+    "time_minutes": 90,
+    "ingredients": ["leather", "thread", "buckle"],
+    "description": "Light armor made from tanned leather.",
+    "effects": {},
+    "tags": ["armor", "light"]
+  },
+  {
+    "id": "torch",
+    "name": "Torch",
+    "category": "tool",
+    "difficulty": 1,
+    "time_minutes": 5,
+    "ingredients": ["stick", "cloth", "oil"],
+    "description": "A simple torch that provides light in dark places.",
+    "effects": {},
+    "tags": ["light", "common"]
+  },
+  {
+    "id": "antidote",
+    "name": "Antidote",
+    "category": "alchemy",
+    "difficulty": 2,
+    "time_minutes": 20,
+    "ingredients": ["green_herb", "water", "vial"],
+    "description": "Cures poison and toxins.",
+    "effects": { "cure_poison": true },
+    "tags": ["magical", "cure"]
+  },
+  {
+    "id": "elven_bread",
+    "name": "Elven Bread",
+    "category": "food",
+    "difficulty": 5,
+    "time_minutes": 180,
+    "ingredients": ["elf_flour", "moonwater", "honey", "star_anise"],
+    "description": "Ancient elven recipe. Sustaining and faintly magical.",
+    "effects": { "health": 10, "stamina": 20, "mood": 10 },
+    "tags": ["exotic", "magical"]
+  }
+]

@@ -1,0 +1,776 @@
+# TrueNeverStory v0.10.0 – Building Rich Interactive Narrative Games
+
+**TrueNeverStory v0.10.0** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
+
+- **TypeScript (Bun + Hono)** – Web server, API, WebSocket, routing, auth, streaming, business logic
+- **Mojo FFI** – Compute kernels for probability calculations and vector operations (optional, with TypeScript fallback)
+
+> *"From a single prompt to a living, breathing world – where every NPC remembers, every action has a chance, and the story never stops."*
+
+---
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Layered World Building** | Every entity (character, location, item, faction) has three layers: L1 (classification), L2 (details), L3 (secrets) |
+| **Graph-First Knowledge** | All relationships in a directed graph with O(1) lookups, BFS traversal, branch management |
+| **Self-Optimising Memory** | Vector-accelerated memory with cognitive pipeline (entity extraction, contradiction detection, pain signals) |
+| **RAG for All Agents** | Full embedding support via llama.cpp (BGE-M3) + SQLite hybrid search (FTS5 + dense vectors + RRF) |
+| **Probability System** | Deterministic outcomes for combat, persuasion, stealth, romance, investigation with dynamic modifiers |
+| **Romance System** | Full romantic relationship management with probability-driven actions |
+| **Living Director** | Background agent advances story arcs, villain agendas, NPC interactions |
+| **Immersive Roleplay** | Third-person narrative, NPC dialogue, scene transitions – LLM never speaks for your character |
+| **Quest System** | Dynamic quest generation and objective tracking |
+| **Researcher Agent** | Fact-checking, realism validation, historical accuracy for recipes, characters, and scenes |
+| **NPC Intelligence** | Memory search, autonomous behavior, social relationships, enriched dialogue context |
+| **14 Specialized Agents** | Narrator, Director, Scene, NPC, Chronicler, Story Planner, Social Sim, Villain, Researcher, Historian, Cartographer, Merchant, Quest Giver, Lorekeeper |
+| **WebSocket Real-Time** | Live roleplay streaming and memory event broadcasts |
+| **SSE Streaming** | Server-sent events for progressive narrative delivery |
+| **i18n (7 languages)** | Full localization: EN, RU, DE, FR, ES, JA, ZH — UI, prompts, agent names |
+| **SQLite Storage** | Agent prompts and UI translations stored in SQLite per world + language |
+| **Password Auth** | Session-based authentication with HttpOnly cookies |
+| **Terminal UI** | Beautiful dark terminal-style web interface |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Browser (Terminal UI)                 │
+│              WebSocket + REST + SSE                      │
+└───────────────────────┬─────────────────────────────────┘
+                        │ HTTP / WebSocket
+┌───────────────────────▼─────────────────────────────────┐
+│              TypeScript (Bun + Hono)                     │
+│                                                          │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │
+│  │ HTTP API │ │WebSocket │ │SSE Stream│ │   Auth     │  │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬──────┘  │
+│       └─────────────┼───────────┼─────────────┘         │
+│  ┌──────────────────▼───────────▼─────────────────────┐  │
+│  │              Service Layer                          │  │
+│  │  RoleplayEngine │ ProbabilityEngine │ RomanceEngine│  │
+│  │  QuestManager   │ WorldClock        │ Director     │  │
+│  │  StoryPlanner   │ VillainManager    │ SocialSim    │  │
+│  │  ResearcherAgent│ CrafterAgent      │ Chronicler   │  │
+│  └───────────────────────┬────────────────────────────┘  │
+│  ┌───────────────────────▼────────────────────────────┐  │
+│  │           Memory System (WorldMemory)               │  │
+│  │  VectorIndex │ CognitivePipeline │ EntityExtractor │  │
+│  │  Scoring     │ Partitions        │ WriteBuffer     │  │
+│  └───────────────────────┬────────────────────────────┘  │
+│  ┌───────────────────────▼────────────────────────────┐  │
+│  │           Data Layer (EntityStore + JSON)            │  │
+│  └────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │      Mojo FFI (optional, auto-detected)            │  │
+│  │  Probability Kernels │ Vector Operations           │  │
+│  │  .so/.dylib → dlopen() or TypeScript fallback      │  │
+│  └────────────────────────────────────────────────────┘  │
+└───────────────────────┬─────────────────────────────────┘
+                        │ HTTP (OpenAI-compatible)
+┌───────────────────────▼─────────────────────────────────┐
+│              External LLM API (Ollama, OpenAI, etc.)     │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Platform Compatibility
+
+| Платформа | Статус | Mojo FFI | Запуск | Заметки |
+|-----------|:------:|:--------:|--------|---------|
+| Linux x86_64 | ✅ Full | ✅ | `./tns-server` | Полная поддержка |
+| Linux ARM64 | ✅ Full | ✅ | `./tns-server` | Полная поддержка |
+| macOS ARM64 | ✅ Full | ✅ | `./tns-server` | Apple Silicon |
+| macOS x86_64 | ✅ Full | ✅ | `./tns-server` | Intel Mac |
+| Windows x86_64 | ✅ Fallback | ❌ | `tns-server.exe` | TypeScript fallback |
+
+### Mojo vs TypeScript Backend
+
+Сервер автоматически определяет доступность Mojo ядер:
+
+- **Mojo backend** — вычисления через FFI (~10-50x быстрее для векторных операций)
+- **TypeScript fallback** — чистый TypeScript (работает везде, медленнее)
+
+Проверить backend: `getBackend()` → `"mojo"` или `"typescript"`
+
+### Windows
+
+Windows полностью поддерживается через TypeScript fallback. Mojo `.so` не компилируются для Windows (Mojo не поддерживает MSVC). Все функции работают одинаково — разница только в производительности вычислений. WSL2 не требуется.
+
+См. [COMPILE.md](COMPILE.md) для деталей.
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- [Bun](https://bun.sh) v1.0+ (for development)
+- An OpenAI-compatible LLM API (OpenAI, Ollama, vLLM, LM Studio, etc.)
+
+For compiled binary — nothing required, just run.
+
+### 1. Install
+
+```bash
+cd TNS
+bun install
+```
+
+### 2. Configure LLM
+
+Open `http://localhost:8000/settings` and configure your LLM provider:
+
+- **Ollama** (local): `http://localhost:11434/v1`, model: `llama3`
+- **OpenAI**: `https://api.openai.com/v1`, model: `gpt-4o-mini`
+- **vLLM** (local): `http://localhost:8000/v1`
+- **LM Studio**: `http://localhost:1234/v1`
+
+Or edit `conf/settings.json` directly.
+
+### 3. Run
+
+```bash
+bun run dev
+```
+
+Open `http://localhost:8000` and login with password: **`changeme`**
+
+Change the password in Settings after first login.
+
+### Binary (no dependencies)
+
+```bash
+# Download from GitHub Releases, then:
+chmod +x tns-server
+./tns-server
+# Login: http://localhost:8000 — password: changeme
+```
+
+---
+
+## Usage Examples
+
+### Running from Binary (No Dependencies)
+
+Download the latest release for your platform and run directly:
+
+```bash
+# Linux / macOS
+chmod +x tns-server
+./tns-server
+
+# Windows
+tns-server.exe
+```
+
+No Bun, Node.js, or any runtime required. Just configure `.env` and run.
+
+### Running from Source (Development)
+
+```bash
+# Hot reload development mode
+bun run dev
+
+# Production mode (no hot reload)
+bun run start
+
+# Build bundle only (no binary)
+bun run build
+```
+
+### Starting with Local LLM (Ollama)
+
+```bash
+# 1. Start Ollama with a model
+ollama pull llama3
+ollama serve
+
+# 2. Configure TNS to use Ollama
+cat > .env << 'EOF'
+WORLD_LLM_BASE_URL=http://localhost:11434/v1
+WORLD_LLM_API_KEY=ollama
+WORLD_LLM_MODEL=llama3
+WORLD_SERVER_HOST=0.0.0.0
+WORLD_SERVER_PORT=8000
+AUTH_PASSWORD=mypassword
+EOF
+
+# 3. Start the server
+./tns-server
+```
+
+### Starting with OpenAI API
+
+```bash
+cat > .env << 'EOF'
+WORLD_LLM_BASE_URL=https://api.openai.com/v1
+WORLD_LLM_API_KEY=sk-your-key-here
+WORLD_LLM_MODEL=gpt-4o-mini
+WORLD_SERVER_HOST=0.0.0.0
+WORLD_SERVER_PORT=8000
+AUTH_PASSWORD=mypassword
+EOF
+
+./tns-server
+```
+
+### API Usage Examples
+
+```bash
+# Login
+curl -c cookies.txt -X POST http://localhost:8000/login \
+  -d "password=mypassword"
+
+# Start a new game session
+curl -b cookies.txt -X POST http://localhost:8000/api/chat/setup \
+  -H "Content-Type: application/json" \
+  -d '{"character": "Aragorn", "role": "protagonist"}'
+
+# Send a message and get narrative
+curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "I draw my sword and face the dragon"}'
+
+# Streaming response (SSE)
+curl -b cookies.txt -N http://localhost:8000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Tell me about this ancient forest"}'
+
+# Search entities
+curl -b cookies.txt "http://localhost:8000/api/search?q=dragon"
+
+# Get entity details
+curl -b cookies.txt http://localhost:8000/api/entity/uid-character-aragorn
+
+# Get graph neighbors
+curl -b cookies.txt "http://localhost:8000/api/neighbors/uid-location-rivendell?depth=2"
+
+# Check probability
+curl -b cookies.txt http://localhost:8000/api/probability/aragorn/combat
+
+# List quests
+curl -b cookies.txt http://localhost:8000/api/quests
+```
+
+### WebSocket Real-Time Roleplay
+
+```javascript
+// Connect to roleplay WebSocket
+const ws = new WebSocket('ws://localhost:8000/ws/roleplay/session-id');
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({
+    type: 'message',
+    content: 'I enter the tavern and look around'
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(data.narrative); // Real-time narrative stream
+};
+```
+
+### Docker (Optional)
+
+```bash
+# Build image
+docker build -t tns .
+
+# Run with Ollama
+docker run -p 8000:8000 \
+  -e WORLD_LLM_BASE_URL=http://host.docker.internal:11434/v1 \
+  -e AUTH_PASSWORD=mypassword \
+  tns
+```
+
+### Compiling from Source
+
+```bash
+# Install Mojo (optional, for performance kernels)
+curl https://get.modular.com | sh
+modular install mojo
+
+# Compile for current platform
+./build.sh compile
+
+# Compile for specific platform
+./build.sh compile linux-x64
+./build.sh compile macos-arm64
+
+# Cross-compile for all platforms
+./build.sh cross
+
+# See COMPILE.md for full details
+```
+
+---
+
+## API Endpoints
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/login` | Login page |
+| POST | `/login` | Authenticate (form: `password=...`) |
+| POST | `/logout` | Clear session |
+
+### Chat
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/chat/setup` | Initialize roleplay session |
+| POST | `/api/chat/message` | Send message, get narrative |
+| POST | `/api/chat/stream` | SSE streaming response |
+| GET | `/api/chat/session` | Current session state |
+| GET | `/api/chat/history` | Conversation history |
+
+### Entities & Graph
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/entity/:uid` | Get entity details |
+| GET | `/api/neighbors/:uid` | Get neighbors with depth |
+| GET | `/api/path` | Find shortest path |
+| GET | `/api/search` | Search by name or semantic |
+| GET | `/api/graph/summary` | Graph statistics |
+
+### Branches
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/branch/create` | Create branch |
+| POST | `/api/branch/switch` | Switch active branch |
+| POST | `/api/branch/merge` | Merge into main |
+| GET | `/api/branch/list` | List all branches |
+
+### Probability
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/probability/:character/:profile` | Get success chance |
+| POST | `/api/probability/modifier` | Apply modifier |
+| GET | `/api/probability/modifiers/:entity` | List active modifiers |
+
+### Romance
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/romance/:c1/:c2` | Get relationship status |
+| POST | `/api/romance/attempt/:action` | Attempt romance action |
+| GET | `/api/romance/characters/:char` | List character's romances |
+
+### Quests
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/quests` | List all quests |
+| GET | `/api/quest/:id` | Get quest details |
+
+### Sessions & Maintenance
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/sessions` | List session histories |
+| POST | `/api/maintenance/run` | Run maintenance |
+| GET | `/api/maintenance/status` | Maintenance stats |
+| POST | `/api/launch` | Start new game |
+| POST | `/api/continue` | Resume game |
+| GET | `/api/health` | Health check |
+
+### Agents
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/agents` | List all agent configs |
+| GET | `/api/agents/:id` | Get single agent config |
+| PUT | `/api/agents/:id` | Update agent config |
+| PUT | `/api/agents/:id/prompts` | Update agent prompts |
+| GET | `/api/agents/:id/prompts/:lang` | Get prompts for specific language |
+| PUT | `/api/agents/:id/prompts/:lang` | Upsert prompts for specific language |
+| POST | `/api/agents/:id/reset` | Reset agent to defaults |
+| GET | `/api/agents/providers/options` | Provider/model options |
+
+### i18n Translations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/i18n/translations/:lang/:page` | Get translations for language + page |
+| GET | `/api/i18n/translations/:lang` | Get all translations for language |
+| PUT | `/api/i18n/translations` | Upsert batch of translations |
+| DELETE | `/api/i18n/translations/:lang/:page/:key` | Delete translation key |
+
+### WebSocket
+
+| Endpoint | Description |
+|----------|-------------|
+| `ws://host:8000/ws/roleplay/:sessionId` | Real-time roleplay |
+| `ws://host:8000/ws/memory` | Memory event feed |
+
+---
+
+## Project Structure
+
+```
+TrueNeverStory/
+├── src/
+│   ├── config/           # Zod-validated environment config
+│   ├── lib/              # LLM client, queue, event bus, history, atomic I/O
+│   │   ├── sqlite-store.ts    # SQLite database (entities, embeddings, memories, agent_prompts, ui_translations)
+│   │   └── ...
+│   ├── memory/           # WorldMemory, FAISS index, cognitive pipeline, scoring
+│   ├── middleware/        # Auth, CORS, error handler, logger, rate limiter
+│   ├── models/           # Entity, chat, probability, romance, quest, story, memory
+│   ├── routes/           # 16 route modules (chat, entities, agents, memory, etc.)
+│   │   ├── i18n.ts       # Translation CRUD endpoints
+│   │   └── ...
+│   ├── services/         # 42 services (roleplay engine, agents, probability, etc.)
+│   │   ├── agent-config.ts   # Agent configuration (SQLite-first + JSON fallback)
+│   │   └── ...
+│   ├── intelligence/     # Graph analyzer, duplicates, recommender, scene generator
+│   ├── i18n/             # Language packs (EN, RU, DE, FR, ES, JA, ZH)
+│   ├── store/            # EntityStore with O(1) NameIndex
+│   ├── utils/            # Logger, hash, time utilities
+│   ├── app.ts            # Hono app with middleware chain
+│   └── index.ts          # Server entry point
+├── mojo/
+│   ├── kernels/          # FFI probability + vector kernels
+│   └── src/              # 81 Mojo source files (optional performance backend)
+├── public/
+│   ├── index.html        # Terminal-style web UI
+│   ├── agents.html       # Agent configuration (i18n-enabled, fetches from SQLite)
+│   ├── providers.html    # LLM provider settings
+│   ├── models.html       # Model management
+│   └── settings.html     # Global settings (i18n-enabled, fetches from SQLite)
+├── worlds/
+│   ├── default/          # Active world
+│   │   ├── world_frame.json
+│   │   ├── entities.json
+│   │   ├── agents/       # Per-agent JSON configs (fallback)
+│   │   ├── session_history/
+│   │   ├── chapters/
+│   │   ├── timeline.jsonl
+│   │   └── settings.json
+├── world_db/             # SQLite database directory
+│   ├── tns.db            # Main database (entities, embeddings, memories)
+│   └── global/           # Global translations database
+│       └── tns.db        # UI translations (agents, settings, agent_names, agent_descs)
+├── local-models/         # GGUF models (downloaded locally)
+├── tests/
+│   ├── entity-store.test.ts
+│   ├── probability-engine.test.ts
+│   └── integration/
+│       └── server.test.ts
+├── .env                  # Configuration (git-ignored)
+├── .env.example          # Configuration template
+├── startgame.sh          # Server + llama-server launcher (with PID cleanup)
+├── package.json
+├── tsconfig.json
+└── plan.md               # Migration plan
+```
+
+---
+
+## Configuration
+
+All configuration is via environment variables (`.env` file):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WORLD_LLM_BASE_URL` | – | OpenAI-compatible LLM endpoint |
+| `WORLD_LLM_API_KEY` | – | API key |
+| `WORLD_LLM_MODEL` | `gpt-4o-mini` | Model name |
+| `WORLD_LLM_TIMEOUT` | `120` | Request timeout (seconds) |
+| `WORLD_LLM_MAX_TOKENS` | `4096` | Max tokens per response |
+| `WORLD_LLM_TEMPERATURE` | `0.7` | Sampling temperature |
+| `WORLD_LLM_MAX_CONCURRENT` | `8` | Max concurrent LLM requests |
+| `WORLD_DB_PATH` | `./worlds/default` | Database directory |
+| `LOCAL_MODELS_PATH` | `./local-models` | Local GGUF models directory |
+| `WORLD_SERVER_HOST` | `0.0.0.0` | Listen address |
+| `WORLD_SERVER_PORT` | `8000` | Listen port |
+| `AUTH_PASSWORD` | – | Login password (empty = no auth) |
+| `MAX_SERVE_URL` | `http://localhost:8000` | Mojo MAX Serve endpoint |
+
+---
+
+## Development
+
+```bash
+# Development with hot reload
+bun run dev
+
+# Type checking
+npx tsc --noEmit
+
+# Run all tests
+bun test
+
+# Run specific tests
+bun test tests/entity-store.test.ts
+bun test tests/probability-engine.test.ts
+bun test tests/integration/server.test.ts
+
+# Build for production
+bun run build
+```
+
+---
+
+## Recent Changes
+
+### SQLite Storage for Prompts & Translations (v0.10.0)
+Agent prompts and UI translations now stored in SQLite per world + language:
+
+- **`agent_prompts` table** — stores `systemPrompt`, `userTemplate`, `outputFormat` per world + language
+- **`ui_translations` table** — stores UI strings per language + page (agents, settings, agent_names, agent_descs)
+- **Dual-write strategy** — writes go to both SQLite and JSON files for backward compatibility
+- **Language-aware prompts** — each world can have its own language setting, affecting which prompts are loaded
+- **Auto-seeding** — on first startup, all 7 languages are seeded into `ui_translations`
+
+**Storage hierarchy:**
+1. **SQLite** (`tns.db`) — primary storage, per world + language
+2. **JSON files** (`worlds/{world}/agents/{agentId}.json`) — fallback during migration
+3. **Hardcoded defaults** (`DEFAULT_PROMPTS` in `src/services/agent-config.ts`)
+
+### i18n API Endpoints
+New REST API for translation management:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/i18n/translations/:lang/:page` | Get translations for language + page |
+| GET | `/api/i18n/translations/:lang` | Get all translations for language |
+| PUT | `/api/i18n/translations` | Upsert batch of translations |
+| DELETE | `/api/i18n/translations/:lang/:page/:key` | Delete translation key |
+
+**Example request (PUT):**
+```json
+{
+  "language": "ru",
+  "page": "agents",
+  "entries": {
+    "title": "Настройки агентов",
+    "savePrompts": "Сохранить промпты"
+  }
+}
+```
+
+### Language-Aware Agent Prompts
+Agent prompts now support per-world, per-language storage:
+
+```sql
+CREATE TABLE agent_prompts (
+  world TEXT NOT NULL DEFAULT 'default',
+  agent_id TEXT NOT NULL,
+  language TEXT NOT NULL DEFAULT 'en',
+  system_prompt TEXT NOT NULL DEFAULT '',
+  user_template TEXT NOT NULL DEFAULT '',
+  output_format TEXT NOT NULL DEFAULT '',
+  UNIQUE(world, agent_id, language)
+);
+```
+
+**API endpoints for language-specific prompts:**
+- `GET /api/agents/:id/prompts/:lang` — get prompts for specific language
+- `PUT /api/agents/:id/prompts/:lang` — upsert prompts for specific language
+
+### Frontend i18n Integration
+Frontend pages now fetch translations from SQLite via API:
+
+```javascript
+// agents.html
+async function loadTranslations(langCode) {
+  const res = await fetch(`/api/i18n/translations/${langCode}/agents`);
+  const data = await res.json();
+  remoteTranslations = data.translations || {};
+}
+
+function t(key) {
+  if (remoteTranslations[key] !== undefined) return remoteTranslations[key];
+  return I18N[lang]?.[key] ?? I18N.en[key] ?? key;
+}
+```
+
+### New Specialized Agents (v0.10.0)
+Five new agents for world enrichment and player interaction:
+
+- **Historian** — recalls and narrates historical events, lore, and chronology
+- **Cartographer** — provides information about locations, distances, paths, and geography
+- **Merchant** — handles trading, pricing, and NPC inventory management
+- **Quest Giver** — generates contextual quests based on world state with objectives and rewards
+- **Lorekeeper** — maintains world facts, magic rules, race information, and established canon
+
+Each agent has its own system prompt, user template, and output format configured in `src/services/agent-config.ts`.
+
+### RAG System for All Agents (v0.10.0)
+Full embedding support with long-term memory for every agent:
+
+- **llama.cpp Embedding Server** — dedicated BGE-M3 model on port 5002 for vector generation
+- **SQLite Hybrid Search** — FTS5 keyword search + dense vector search + Reciprocal Rank Fusion (RRF)
+- **AgentMemoryStore** — per-agent, per-session memory isolation via `role` column
+- **World-Scoped Memory** — memory is isolated per world to prevent cross-world hallucinations
+- **Mojo Graph Operations** — vector operations via Mojo FFI for performance (cosine similarity, L2 distance)
+
+**Architecture:**
+```
+Agent Request → AgentMemoryStore → SQLite (hybrid search)
+                                      ↓
+                              ┌───────┴───────┐
+                              │ FTS5 (LIKE)   │ Dense Vectors (BGE-M3)
+                              │ Keyword Match │ Cosine Similarity
+                              └───────┬───────┘
+                                      ↓
+                              Reciprocal Rank Fusion (RRF)
+                                      ↓
+                              Context for LLM Prompt
+```
+
+**Key files:**
+- `src/lib/agent-memory-store.ts` — AgentMemoryStore with embedding integration
+- `src/lib/sqlite-store.ts` — SQLiteStore with FTS5 + vector search + RRF
+- `src/lib/vector-ops.ts` — Vector operations (cosine, L2, dot product)
+
+### NPC System Overhaul (v0.10.0)
+Four new services for smarter NPC behavior:
+
+- **MemoryEngine** — semantic search, emotion/location filtering, memory clustering over NPC episodic memories
+- **BehaviorEngine** — autonomous actions, goal evaluation, daily routines, mood adaptation, decision making
+- **SocialGraph** — relationship tracking, reputation scores, mutual friends, faction membership and conflicts
+- **DialogueContext** — enriched NPC prompts combining relationship, memory, mood, location, faction, goals, and inventory context
+
+**Architecture:** Two parallel tracks — Track 1 (Memory + Behavior) builds the foundation, Track 2 (Social + Dialogue) adds user-facing features.
+
+**Integration:** `NPCAgent.initialize(runtime, statePath)` creates all four components. Falls back to template/PromptBuilder when DialogueContext not initialized.
+
+### ResearcherAgent (v0.10.0)
+New agent for fact-checking and realism validation:
+- **`verifyRecipe()`** — validates crafter recipes for plausibility
+- **`researchTopic()`** — historical/cultural research for world-building
+- **`validateCharacter()`** — checks character clothing, food, daily life
+- **`enrichScene()`** — adds grounded sensory details to scenes
+- **`factCheck()`** — general fact verification
+
+### i18n System
+Full localization support for 7 languages (EN, RU, DE, FR, ES, JA, ZH):
+- All agent prompts and UI strings
+- Agent names and descriptions
+- Settings pages (agents, providers, models)
+- Server start/stop messages
+
+**Structure** — each language is a separate file under `src/i18n/`:
+
+```
+src/i18n/
+├── types.ts    # LanguagePack interface + Language type
+├── en.ts       # English (base pack — all keys defined here)
+├── ru.ts       # Russian (extends EN, overrides translations)
+├── de.ts       # German
+├── fr.ts       # French
+├── es.ts       # Spanish
+├── ja.ts       # Japanese
+├── zh.ts       # Chinese
+└── index.ts    # Barrel export, registry, getLanguagePack()
+```
+
+**Adding a new language** (e.g. Korean):
+
+1. Create `src/i18n/ko.ts`:
+```ts
+import { EN } from "./en";
+import type { LanguagePack } from "./types";
+
+export const KO: LanguagePack = {
+  ...EN,
+  code: "ko",
+  name: "Korean",
+  nativeName: "한국어",
+  systemPrompt: "한국어로만 답변하세요.",
+  uiSettings: "설정",
+  // ... override other keys
+};
+```
+
+2. Register in `src/i18n/index.ts`:
+```ts
+import { KO } from "./ko";
+// add to Language type: "ko"
+// add to PACKS: ko: KO
+// add to LANGUAGES array
+```
+
+3. Add `"ko"` to the `Language` union in `src/i18n/types.ts`.
+
+**Usage in code:**
+```ts
+import { t, getLanguagePack, setLanguage } from "../i18n";
+
+const lang = t();                  // current language pack
+const ru = getLanguagePack("ru");  // specific pack
+setLanguage("de");                 // switch active language
+```
+
+### Server Improvements
+- **PID file tracking** (`.server.pid`) — prevents orphaned processes
+- **Stale process cleanup** — auto-kills leftovers on restart
+- **Graceful shutdown** — 5-second SIGTERM timeout, then SIGKILL fallback
+
+---
+
+## Testing
+
+The test suite includes:
+
+- **Unit tests**: Entity store CRUD, probability engine calculations
+- **Integration tests**: Full HTTP API flow, auth, WebSocket
+
+```bash
+# Start server (required for integration tests)
+bun run dev &
+
+# Run tests
+bun test
+
+# Expected output: 305 passing
+```
+
+---
+
+## Migration from Python
+
+This project is a TypeScript + Mojo port of [BRING](https://github.com/Eva-E1/BRING) — a Python AI-powered fantasy world platform. Key changes:
+
+| Component | Python | TypeScript |
+|-----------|--------|------------|
+| Web framework | FastAPI | Hono (Bun) |
+| Runtime | Python asyncio | Bun native async |
+| Validation | Pydantic | Zod |
+| Logging | Python logging | Lightweight logger (pino replacement) |
+| Graph | NetworkX | Custom adjacency map |
+| Vector search | FAISS (Python) | Mojo FFI + local cosine fallback |
+| WebSocket | FastAPI WebSocket | Bun native WebSocket |
+| Auth | None | Cookie-based session |
+| Streaming | SSE (starlette) | ReadableStream + SSE |
+
+---
+
+## Disclaimer
+
+This project was developed using **vibe coding** — an AI-assisted development approach powered by [MiMo Code](https://github.com/XiaomiMiMo/MiMo). The codebase was generated through human-AI collaboration, which means:
+
+- The code is **functional and tested** — all features work as described
+- Some areas may contain **suboptimal patterns** or could benefit from refactoring
+- There may be **minor inconsistencies** in code style across different modules
+- The architecture and logic are **human-reviewed and validated**
+
+If you find areas for improvement, contributions are welcome.
+
+---
+
+## License
+
+Apache 2.0

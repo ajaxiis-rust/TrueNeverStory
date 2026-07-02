@@ -1,0 +1,8 @@
+[project]
+name = "bring-kernels"
+description = "Mojo kernels for BRING game engine"
+requires-python = ">=3.10"
+
+[dependencies]
+max-serve = ">=2026.1"
+numpy = ">=1.24"

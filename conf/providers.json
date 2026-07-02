@@ -1,0 +1,30 @@
+{
+  "providers": [
+    {
+      "id": "llamacpp",
+      "name": "llama.cpp (Local)",
+      "type": "llamacpp",
+      "authType": "apikey",
+      "baseUrl": "http://localhost:5001/v1",
+      "apiKey": "sk-placeholder",
+      "models": [],
+      "defaultModel": "gemma-3-4b-it.Q4_K_M",
+      "enabled": true,
+      "priority": 1
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama (Local)",
+      "type": "ollama",
+      "authType": "apikey",
+      "baseUrl": "http://localhost:11434/v1",
+      "apiKey": "ollama",
+      "models": [],
+      "defaultModel": "llama3",
+      "enabled": true,
+      "priority": 2
+    }
+  ],
+  "assignments": [],
+  "defaultProviderId": ""
+}

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrueNeverStory — Worlds</title>
+
+
+<link href="/static/fonts/fonts.css" rel="stylesheet">
+<style>
+:root{--black:#000;--surface:#080808;--surface-raised:#111;--surface-hover:#161616;--border:#1A1A1A;--border-visible:#272727;--border-strong:#353535;--text-disabled:#666;--text-tertiary:#8E8E8E;--text-secondary:#BBB;--text-primary:#E0E0E0;--text-display:#FFF;--accent:#D71921;--success:#4A9E5C;--success-subtle:rgba(74,158,92,.12);--warning:#D4A843;--interactive:#5B9BF6;--interactive-subtle:rgba(91,155,246,.1);--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;background:var(--black);overflow:hidden}
+body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:14px;color:var(--text-primary);display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+.topbar{display:flex;align-items:center;gap:12px;padding:0 20px;height:48px;border-bottom:1px solid var(--border);flex-shrink:0}
+.topbar__brand{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-disabled)}
+.topbar__brand span{color:var(--text-display);font-weight:700}
+.topbar__sep{width:1px;height:18px;background:var(--border)}
+.topbar__title{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary)}
+.topbar__spacer{flex:1}
+.topbar__btn{background:transparent;border:1px solid var(--border-visible);color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:6px 16px;cursor:pointer;border-radius:var(--radius-pill);transition:all var(--dur-fast);text-decoration:none;display:inline-flex;align-items:center}
+.topbar__btn:hover{border-color:var(--text-secondary);color:var(--text-primary)}
+.topbar__btn--active{border-color:var(--interactive);color:var(--interactive)}
+
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+.content::-webkit-scrollbar{width:2px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--border-visible);border-radius:2px}
+
+.section{margin-bottom:20px}
+.section__title{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section__title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.world-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.world-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:all var(--dur-fast);position:relative}
+.world-card:hover{border-color:var(--border-visible);background:var(--surface-hover)}
+.world-card--active{border-color:var(--interactive)}
+.world-card__header{display:flex;align-items:start;justify-content:space-between;margin-bottom:8px}
+.world-card__name{font-family:var(--font-body);font-size:16px;color:var(--text-display);font-weight:500}
+.world-card__genre{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-disabled);background:var(--surface);padding:2px 8px;border-radius:var(--radius-pill);border:1px solid var(--border)}
+.world-card__desc{font-size:12px;color:var(--text-tertiary);line-height:1.4;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.world-card__meta{display:flex;gap:12px;font-size:11px;color:var(--text-disabled)}
+.world-card__actions{display:flex;gap:6px;margin-top:12px}
+.world-card__active{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--interactive);position:absolute;top:12px;right:12px}
+
+/* Form */
+.form{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;flex-direction:column;gap:10px}
+.form__row{display:flex;gap:10px;align-items:end}
+.form__field{display:flex;flex-direction:column;gap:3px;flex:1}
+.form__field--full{flex:0 0 100%}
+.form__label{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-disabled)}
+.form__input,.form__textarea,.form__select{background:var(--surface);border:1px solid var(--border-visible);border-radius:var(--radius-md);padding:9px 12px;font-family:var(--font-mono);font-size:13px;color:var(--text-primary);outline:none;transition:border-color var(--dur-fast);width:100%}
+.form__input:focus,.form__textarea:focus{border-color:var(--text-secondary)}
+.form__input::placeholder,.form__textarea::placeholder{color:var(--text-disabled)}
+.form__textarea{min-height:80px;resize:vertical;line-height:1.5;font-size:12px}
+.form__select{appearance:none;cursor:pointer}
+
+.btn{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;padding:7px 16px;border-radius:var(--radius-pill);cursor:pointer;transition:all var(--dur-fast);border:1px solid var(--border-visible);background:transparent;color:var(--text-secondary)}
+.btn:hover{border-color:var(--text-secondary);color:var(--text-primary)}
+.btn--primary{background:var(--text-display);color:var(--black);border-color:var(--text-display)}
+.btn--primary:hover{opacity:.9}
+.btn--danger{border-color:var(--accent);color:var(--accent)}
+.btn--danger:hover{background:var(--accent);color:var(--black)}
+.btn--sm{padding:5px 12px;font-size:11px}
+.btn--success{border-color:var(--success);color:var(--success)}
+.btn--success:hover{background:var(--success);color:var(--black)}
+
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:13px;letter-spacing:.06em;z-index:100;animation:toastIn 200ms var(--ease-out)}
+.toast--ok{background:var(--success);color:var(--black)}
+.toast--err{background:var(--accent);color:var(--black)}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;animation:fadeIn 150ms var(--ease-out)}
+.modal-box{background:var(--surface-raised);border:1px solid var(--border-visible);border-radius:var(--radius-lg);width:560px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.modal-title{font-family:var(--font-mono);font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary)}
+.modal-close{background:transparent;border:none;color:var(--text-disabled);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px}
+.modal-close:hover{color:var(--text-primary)}
+.modal-body{flex:1;overflow-y:auto;padding:16px 20px}
+
+.empty{text-align:center;padding:40px;color:var(--text-disabled);font-size:13px}
+
+@media(max-width:768px){.world-grid{grid-template-columns:1fr}.topbar__btn{padding:5px 10px;font-size:11px}}
+@media(max-width:480px){.topbar__brand span{display:none}.form__row{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand"><span>TrueNeverStory</span></div>
+  <div class="topbar__sep"></div>
+  <div class="topbar__title">Worlds</div>
+  <div class="topbar__spacer"></div>
+  <a href="/providers" class="topbar__btn">PROVIDERS</a>
+  <a href="/models" class="topbar__btn">MODELS</a>
+  <a href="/agents" class="topbar__btn">AGENTS</a>
+  <a href="/settings" class="topbar__btn">CONFIG</a>
+  <a href="/" class="topbar__btn">BACK</a>
+</div>
+
+<div class="content" id="content">
+  <div class="section">
+    <div class="section__title">Your Worlds</div>
+    <div id="worldGrid" class="world-grid"><div class="empty">Loading...</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section__title">Create New World</div>
+    <div class="form" id="createForm">
+      <div class="form__row">
+        <div class="form__field">
+          <label class="form__label">World Name</label>
+          <input class="form__input" id="fName" placeholder="dark-realm, starwars, etc.">
+        </div>
+        <div class="form__field">
+          <label class="form__label">Title</label>
+          <input class="form__input" id="fTitle" placeholder="The Dark Realm">
+        </div>
+      </div>
+      <div class="form__field form__field--full">
+        <label class="form__label">Description</label>
+        <textarea class="form__textarea" id="fDesc" placeholder="A world of eternal twilight where ancient magic..."></textarea>
+      </div>
+      <div class="form__row">
+        <div class="form__field">
+          <label class="form__label">Genre</label>
+          <select class="form__select" id="fGenre">
+            <option value="fantasy">Fantasy</option>
+            <option value="sci-fi">Sci-Fi</option>
+            <option value="horror">Horror</option>
+            <option value="post-apocalyptic">Post-Apocalyptic</option>
+            <option value="historical">Historical</option>
+            <option value="cyberpunk">Cyberpunk</option>
+            <option value="steampunk">Steampunk</option>
+            <option value="mythology">Mythology</option>
+          </select>
+        </div>
+        <div class="form__field">
+          <label class="form__label">Language</label>
+          <select class="form__select" id="fLang">
+            <option value="en">English</option>
+            <option value="ru">Russian</option>
+            <option value="de">German</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+            <option value="ja">Japanese</option>
+            <option value="zh">Chinese</option>
+          </select>
+        </div>
+      </div>
+      <div class="form__field form__field--full">
+        <label class="form__label">World Rules (one per line)</label>
+        <textarea class="form__textarea" id="fRules" placeholder="Magic requires blood sacrifice&#10;The dead cannot be resurrected&#10;Dragons are extinct"></textarea>
+      </div>
+      <div class="form__field form__field--full">
+        <label class="form__label">Magic System (optional)</label>
+        <textarea class="form__textarea" id="fMagic" placeholder="Elemental magic drawn from ley lines..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="resetForm()">CLEAR</button>
+        <button class="btn btn--primary" onclick="createWorld()">CREATE WORLD</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+
+async function apiFetch(path, opts) {
+  const res = await fetch(API + path, { credentials: 'include', ...opts });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+  return res.json();
+}
+
+function toast(msg, ok) {
+  const el = document.createElement('div');
+  el.className = 'toast toast--' + (ok ? 'ok' : 'err');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+let activeWorld = 'default';
+
+async function loadWorlds() {
+  try {
+    const data = await apiFetch('/worlds');
+    activeWorld = data.active;
+    const grid = document.getElementById('worldGrid');
+    if (!data.worlds || data.worlds.length === 0) {
+      grid.innerHTML = '<div class="empty">No worlds yet. Create one below.</div>';
+      return;
+    }
+    grid.innerHTML = data.worlds.map(w => `
+      <div class="world-card ${w.name === activeWorld ? 'world-card--active' : ''}" onclick="selectWorld('${w.name}')">
+        ${w.name === activeWorld ? '<div class="world-card__active">ACTIVE</div>' : ''}
+        <div class="world-card__header">
+          <div class="world-card__name">${esc(w.title || w.name)}</div>
+          ${w.genre ? '<div class="world-card__genre">' + esc(w.genre) + '</div>' : ''}
+        </div>
+        ${w.description ? '<div class="world-card__desc">' + esc(w.description) + '</div>' : ''}
+        <div class="world-card__meta">
+          <span>${w.entityCount} entities</span>
+          <span>${w.sessionCount} sessions</span>
+          <span>${esc(w.language)}</span>
+        </div>
+        <div class="world-card__actions">
+          ${w.name !== activeWorld ? '<button class="btn btn--sm btn--success" onclick="event.stopPropagation();switchWorld(\'' + w.name + '\')">SWITCH</button>' : ''}
+          ${w.name !== activeWorld ? '<button class="btn btn--sm btn--danger" onclick="event.stopPropagation();deleteWorld(\'' + w.name + '\')">DELETE</button>' : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('worldGrid').innerHTML = '<div class="empty">Failed to load worlds: ' + esc(e.message) + '</div>';
+  }
+}
+
+function selectWorld(name) {
+  switchWorld(name);
+}
+
+async function switchWorld(name) {
+  try {
+    await apiFetch('/worlds/' + name + '/switch', { method: 'POST' });
+    activeWorld = name;
+    toast('Switched to ' + name, true);
+    loadWorlds();
+  } catch (e) {
+    toast('Switch failed: ' + e.message, false);
+  }
+}
+
+async function deleteWorld(name) {
+  if (!confirm('Delete world "' + name + '"? This cannot be undone.')) return;
+  try {
+    await apiFetch('/worlds/' + name, { method: 'DELETE' });
+    toast('World deleted', true);
+    loadWorlds();
+  } catch (e) {
+    toast('Delete failed: ' + e.message, false);
+  }
+}
+
+async function createWorld() {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { toast('World name is required', false); return; }
+
+  const body = {
+    name,
+    title: document.getElementById('fTitle').value.trim() || name,
+    description: document.getElementById('fDesc').value.trim(),
+    genre: document.getElementById('fGenre').value,
+    language: document.getElementById('fLang').value,
+    worldRules: document.getElementById('fRules').value.split('\n').filter(l => l.trim()),
+    magicSystem: document.getElementById('fMagic').value.trim(),
+  };
+
+  try {
+    await apiFetch('/worlds', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    toast('World "' + name + '" created', true);
+    resetForm();
+    loadWorlds();
+  } catch (e) {
+    toast('Create failed: ' + e.message, false);
+  }
+}
+
+function resetForm() {
+  document.getElementById('fName').value = '';
+  document.getElementById('fTitle').value = '';
+  document.getElementById('fDesc').value = '';
+  document.getElementById('fGenre').value = 'fantasy';
+  document.getElementById('fLang').value = 'en';
+  document.getElementById('fRules').value = '';
+  document.getElementById('fMagic').value = '';
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadWorlds();
+</script>
+</body>
+</html>

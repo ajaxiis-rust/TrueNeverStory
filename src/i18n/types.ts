@@ -1,0 +1,134 @@
+export type Language = "en" | "ru" | "de" | "fr" | "es" | "ja" | "zh";
+
+export interface LanguagePack {
+  code: Language;
+  name: string;
+  nativeName: string;
+
+  systemPrompt: string;
+
+  narratorIntro: (name: string) => string;
+  narratorRules: string;
+  narratorTimeline: string;
+  narratorConversation: string;
+  narratorMemories: string;
+  narratorFacts: string;
+  narratorNpcs: string;
+  narratorInstruction: string;
+  narratorOutput: string;
+
+  npcIntro: (name: string, personality: string, location: string) => string;
+  npcEvents: string;
+  npcInstruction: (name: string) => string;
+
+  sceneIntro: (char: string, from: string, to: string) => string;
+  sceneInstruction: string;
+
+  directorIntro: string;
+  directorInstruction: string;
+
+  whereToGo: string;
+  noPlace: (name: string) => string;
+  toWhom: (name: string) => string;
+  whomTalking: string;
+  whatSay: (name: string) => string;
+  noNpc: (name: string) => string;
+  emptyInventory: string;
+  noCharacter: string;
+  youSee: string;
+  youSeeNothing: string;
+  noQuests: string;
+  unknownCommand: (cmd: string) => string;
+  goodbye: string;
+  sessionSaved: string;
+
+  crafterIntro: string;
+  crafterScenario: (item1: string, item2: string) => string;
+  crafterInstruction: string;
+  crafterInventoryEmpty: string;
+  crafterNothingToCraft: string;
+  crafterCrafted: (result: string, ingredients: string) => string;
+  crafterMissingIngredient: (item: string, need: number, have: number) => string;
+  crafterUnknownRecipe: (id: string) => string;
+  crafterSuggestion: (item1: string, item2: string) => string;
+  crafterAlreadyHave: (item: string) => string;
+
+  researcherIntro: string;
+  researcherRecipeCheck: string;
+  researcherRecipeInstruction: string;
+  researcherTopicResearch: string;
+  researcherTopicInstruction: string;
+  researcherCharacterCheck: string;
+  researcherCharacterInstruction: string;
+  researcherSceneEnrich: string;
+  researcherSceneInstruction: string;
+  researcherFactCheck: string;
+  researcherFactCheckInstruction: string;
+
+  uiSettings: string;
+  uiBackToChat: string;
+  uiLlmConfig: string;
+  uiBaseUrl: string;
+  uiBaseUrlHint: string;
+  uiApiKey: string;
+  uiModel: string;
+  uiTimeout: string;
+  uiMaxTokens: string;
+  uiTemperature: string;
+  uiMaxRetries: string;
+  uiMaxConcurrent: string;
+  uiEmbeddings: string;
+  uiServer: string;
+  uiHost: string;
+  uiPort: string;
+  uiDbPath: string;
+  uiLocalModel: string;
+  uiGpuLayers: string;
+  uiGpuLayersHint: string;
+  uiCpuThreads: string;
+  uiCpuThreadsHint: string;
+  uiContextLength: string;
+  uiContextLengthHint: string;
+  uiBatchSize: string;
+  uiBatchSizeHint: string;
+  uiSampling: string;
+  uiTopP: string;
+  uiTopPHint: string;
+  uiTopK: string;
+  uiTopKHint: string;
+  uiRepeatPenalty: string;
+  uiRepeatPenaltyHint: string;
+  uiMirostat: string;
+  uiMirostatHint: string;
+  uiMirostatTau: string;
+  uiMirostatTauHint: string;
+  uiMirostatEta: string;
+  uiMirostatEtaHint: string;
+  uiAuth: string;
+  uiPassword: string;
+  uiPasswordHint: string;
+  uiMemory: string;
+  uiMaxEntries: string;
+  uiEmbeddingDim: string;
+  uiSimilarityThreshold: string;
+  uiHalfLife: string;
+  uiProbability: string;
+  uiGlobalLuck: string;
+  uiGlobalLuckHint: string;
+  uiWorld: string;
+  uiAutoHeal: string;
+  uiEnabled: string;
+  uiDisabled: string;
+  uiMaxServe: string;
+  uiEndpointUrl: string;
+  uiEndpointHint: string;
+  uiSave: string;
+  uiReset: string;
+  uiCancel: string;
+  uiLanguage: string;
+  uiConfirmReset: string;
+  uiSaveSuccess: string;
+  uiSaveFail: string;
+  uiLoadFail: string;
+  uiResetSuccess: string;
+}

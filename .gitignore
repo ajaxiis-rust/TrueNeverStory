@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+world_db/
+worlds/
+local-models/
+compiled/
+*.log
+*.swp
+.server.pid
+.llama-server.pid
+.tns-server.pid
