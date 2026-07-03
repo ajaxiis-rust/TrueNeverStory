@@ -121,7 +121,7 @@ jobs:
           path: release/tns-macos-arm64.tar.gz
 
   build-macos-x64:
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
 
@@ -137,7 +137,7 @@ jobs:
         run: bun run lint
 
       - name: Compile binary
-        run: bun build --compile --outfile tns-server src/index.ts
+        run: bun build --compile --target bun-darwin-x64 --outfile tns-server src/index.ts
 
       - name: Package
         run: |

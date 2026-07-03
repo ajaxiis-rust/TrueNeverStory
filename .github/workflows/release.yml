@@ -34,8 +34,8 @@ jobs:
             artifact: tns-macos-arm64
             so_ext: ".dylib"
 
-          # macOS x64
-          - os: macos-13
+          # macOS x64 (cross-compiled from arm64)
+          - os: macos-latest
             target_bun: bun-darwin-x64
             artifact: tns-macos-x64
             so_ext: ".dylib"
