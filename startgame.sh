@@ -10,9 +10,18 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 PID_FILE="$SCRIPT_DIR/.server.pid"
-BIN="dist/$(uname -m | sed 's/x86_64/linux-x64/;s/aarch64/linux-arm64/')/tns-server"
+ARCH=$(uname -m | sed 's/x86_64/linux-x64/;s/aarch64/linux-arm64/')
 
-if [[ -x "$BIN" ]]; then
+# Find binary: check dist/<arch>/ first, then root directory
+BIN=""
+for candidate in "dist/$ARCH/tns-server" "./tns-server"; do
+    if [[ -x "$candidate" ]]; then
+        BIN="$candidate"
+        break
+    fi
+done
+
+if [[ -n "$BIN" ]]; then
     MODE="binary"
 else
     BIN=""
@@ -109,7 +118,19 @@ echo -e "${CYAN}║  Ctrl+C:  stop server${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"
 echo ""
 
-LLAMA_BIN="dist/$(uname -m | sed 's/x86_64/linux-x64/;s/aarch64/linux-arm64/')/llama-server"
+# Auto-create .env from example if missing
+if [[ ! -f ".env" && -f ".env.example" ]]; then
+    cp .env.example .env
+    echo -e "${CYAN}Created .env from .env.example — edit it to configure your server.${NC}"
+fi
+
+LLAMA_BIN=""
+for candidate in "dist/$ARCH/llama-server" "./llama-server"; do
+    if [[ -x "$candidate" ]]; then
+        LLAMA_BIN="$candidate"
+        break
+    fi
+done
 
 cleanup() {
     trap '' SIGINT SIGTERM
