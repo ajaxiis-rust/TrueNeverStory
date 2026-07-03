@@ -1,0 +1,124 @@
+name: Build & Release (Bun + Mojo FFI)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  BUN_VERSION: "latest"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Linux x64
+          - os: ubuntu-latest
+            target_bun: bun-linux-x64
+            artifact: tns-linux-x64
+            so_ext: ".so"
+
+          # Linux arm64
+          - os: ubuntu-22.04-arm
+            target_bun: bun-linux-arm64
+            artifact: tns-linux-arm64
+            so_ext: ".so"
+
+          # macOS arm64
+          - os: macos-latest
+            target_bun: bun-darwin-arm64
+            artifact: tns-macos-arm64
+            so_ext: ".dylib"
+
+          # macOS x64
+          - os: macos-13
+            target_bun: bun-darwin-x64
+            artifact: tns-macos-x64
+            so_ext: ".dylib"
+
+          # Windows (только Bun, без Mojo)
+          - os: windows-latest
+            target_bun: bun-windows-x64
+            artifact: tns-windows-x64
+            so_ext: ""   # без Mojo
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # === Bun ===
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Build Bun binary
+        run: bun build --compile --target ${{ matrix.target_bun }} --outfile tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }} src/index.ts
+
+      # === Mojo FFI (только Linux + macOS) ===
+      - name: Setup Mojo
+        if: matrix.os != 'windows-latest'
+        uses: fabasoad/setup-mojo-action@v3
+
+      - name: Build Mojo Kernels
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd mojo
+          
+          # kernels
+          mojo build --emit shared-lib -O3 \
+            -o ../libtns_kernels${{ matrix.so_ext }} \
+            kernels/probability_ffi.mojo
+
+          # vectors
+          mojo build --emit shared-lib -O3 \
+            -o ../libtns_vectors${{ matrix.so_ext }} \
+            kernels/vector_ffi.mojo
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p release/${{ matrix.artifact }}
+          
+          cp tns-server* release/${{ matrix.artifact }}/ 2>/dev/null || true
+          
+          # Копируем Mojo .so/.dylib
+          if [[ -f libtns_kernels${{ matrix.so_ext }} ]]; then
+            cp libtns_kernels${{ matrix.so_ext }} release/${{ matrix.artifact }}/
+            cp libtns_vectors${{ matrix.so_ext }} release/${{ matrix.artifact }}/
+          fi
+          
+          cp .env.example release/${{ matrix.artifact }}/ 2>/dev/null || true
+          cp startgame.sh release/${{ matrix.artifact }}/ 2>/dev/null || true
+          cp README.md release/${{ matrix.artifact }}/
+          cp COMPILE.md release/${{ matrix.artifact }}/
+
+          if [[ "${{ matrix.os }}" == windows* ]]; then
+            cd release && 7z a ${{ matrix.artifact }}.zip ${{ matrix.artifact }}/
+          else
+            chmod +x release/${{ matrix.artifact }}/tns-server* 2>/dev/null || true
+            cd release && tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}/
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.artifact }}.*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/**/*.{tar.gz,zip}
