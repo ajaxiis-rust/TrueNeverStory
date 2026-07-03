@@ -58,7 +58,19 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Build Bun binary
-        run: bun build --compile --target ${{ matrix.target_bun }} --outfile tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }} src/index.ts
+        run: |
+          TARGET="${{ matrix.target_bun }}"
+          RUNNER="${{ runner.os }}-${{ runner.arch }}"
+          echo "Target: $TARGET  Runner: $RUNNER"
+          # Cross-compile only when target differs from runner arch
+          if [[ "$TARGET" == *"arm64"* && "$RUNNER" == *"X64"* ]] || \
+             [[ "$TARGET" == *"x64"* && "$RUNNER" == *"ARM64"* ]]; then
+            echo "Cross-compiling..."
+            bun build --compile --target "$TARGET" --outfile "tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }}" src/index.ts
+          else
+            echo "Native build..."
+            bun build --compile --outfile "tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }}" src/index.ts
+          fi
 
       # === Mojo FFI (только Linux + macOS) ===
       - name: Setup Mojo
