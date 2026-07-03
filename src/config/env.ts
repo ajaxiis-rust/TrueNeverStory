@@ -1,7 +1,34 @@
 import { z } from "zod";
 import { getLogger } from "../utils/logger";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const log = getLogger("config");
+
+/**
+ * Load .env file into process.env.
+ * Needed for compiled binaries (bun run auto-loads .env, but compiled does not).
+ */
+function loadDotEnv(): void {
+  const envPath = join(process.cwd(), ".env");
+  if (!existsSync(envPath)) return;
+  try {
+    const content = readFileSync(envPath, "utf-8");
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim();
+      if (!(key in process.env)) {
+        process.env[key] = value;
+      }
+    }
+  } catch (err) {
+    log.warn({ err }, "Failed to load .env file");
+  }
+}
 
 const envSchema = z.object({
   CONF_PATH: z.string().default("./conf"),
@@ -36,6 +63,7 @@ let _config: EnvConfig | null = null;
 
 export function loadConfig(): EnvConfig {
   if (_config) return _config;
+  loadDotEnv();
   const result = envSchema.safeParse(process.env);
   if (!result.success) {
     log.warn({ errors: result.error.flatten().fieldErrors }, "Environment validation warnings");
