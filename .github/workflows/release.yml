@@ -99,6 +99,7 @@ jobs:
           mkdir -p release/${{ matrix.artifact }}
           
           cp tns-server* release/${{ matrix.artifact }}/ 2>/dev/null || true
+          cp -r public/ release/${{ matrix.artifact }}/ 2>/dev/null || true
           
           # Копируем Mojo .so/.dylib
           if [[ -f libtns_kernels${{ matrix.so_ext }} ]]; then

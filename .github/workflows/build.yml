@@ -35,6 +35,7 @@ jobs:
         run: |
           mkdir -p release/tns-linux-x64
           cp tns-server release/tns-linux-x64/
+          cp -r public/ release/tns-linux-x64/
           cp .env.example release/tns-linux-x64/
           cp startgame.sh release/tns-linux-x64/
           cp README.md release/tns-linux-x64/
@@ -71,6 +72,7 @@ jobs:
         run: |
           mkdir -p release/tns-linux-arm64
           cp tns-server release/tns-linux-arm64/
+          cp -r public/ release/tns-linux-arm64/
           cp .env.example release/tns-linux-arm64/
           cp startgame.sh release/tns-linux-arm64/
           cp README.md release/tns-linux-arm64/
@@ -107,6 +109,7 @@ jobs:
         run: |
           mkdir -p release/tns-macos-arm64
           cp tns-server release/tns-macos-arm64/
+          cp -r public/ release/tns-macos-arm64/
           cp .env.example release/tns-macos-arm64/
           cp startgame.sh release/tns-macos-arm64/
           cp README.md release/tns-macos-arm64/
@@ -143,6 +146,7 @@ jobs:
         run: |
           mkdir -p release/tns-macos-x64
           cp tns-server release/tns-macos-x64/
+          cp -r public/ release/tns-macos-x64/
           cp .env.example release/tns-macos-x64/
           cp startgame.sh release/tns-macos-x64/
           cp README.md release/tns-macos-x64/
@@ -180,6 +184,7 @@ jobs:
         run: |
           mkdir -p release/tns-windows-x64
           cp tns-server.exe release/tns-windows-x64/
+          cp -r public/ release/tns-windows-x64/
           cp .env.example release/tns-windows-x64/
           cp README.md release/tns-windows-x64/
           cp COMPILE.md release/tns-windows-x64/

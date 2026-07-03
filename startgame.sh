@@ -314,13 +314,13 @@ auto_configure() {
     # Ensure auth password is set
     local pw
     pw=$(env_get "AUTH_PASSWORD")
-    if [[ -z "$pw" || "$pw" == "changeme" ]]; then
+    if [[ -z "$pw" ]]; then
         # Generate a random password
         local new_pw
         new_pw=$(head -c 8 /dev/urandom | base64 | tr -d '/+=' | head -c 8)
         write_env_key "AUTH_PASSWORD" "$new_pw"
-        echo -e "${CYAN}  Generated auth password: ${new_pw}${NC}"
-        echo -e "${CYAN}  (change in Settings after first login)${NC}"
+        echo -e "${GREEN}  Generated auth password: ${new_pw}${NC}"
+        echo -e "${DIM}  (change in Settings after first login)${NC}"
     fi
 }
 
