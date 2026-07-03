@@ -8,6 +8,7 @@ const ENTITY_COUNT = 1000;
 const QUERY_COUNT = 100;
 
 const EMBEDDING_URL = 'http://127.0.0.1:5002';
+let embeddingAvailable = false;
 
 async function getEmbedding(text: string): Promise<Float32Array> {
   const res = await fetch(`${EMBEDDING_URL}/v1/embeddings`, {
@@ -87,8 +88,19 @@ class FileDB {
 
 // ── Benchmark ──
 
-beforeAll(() => {
+beforeAll(async () => {
   mkdirSync(BENCH_DIR, { recursive: true });
+  try {
+    const res = await fetch(`${EMBEDDING_URL}/v1/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'bge-m3', input: 'test' }),
+      signal: AbortSignal.timeout(3000),
+    });
+    embeddingAvailable = res.ok;
+  } catch {
+    embeddingAvailable = false;
+  }
 });
 
 afterAll(() => {
@@ -196,6 +208,7 @@ describe('Performance: SQLite vs File DB', () => {
   });
 
   test('hybrid search: SQLite (FTS + vectors) vs File (text only)', async () => {
+    if (!embeddingAvailable) return;
     const entities = generateEntities(10);
     const queries = ['Лилит'];
 

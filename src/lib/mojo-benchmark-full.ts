@@ -48,7 +48,7 @@ function tsBatchAgeDecay(health: Float32Array, ages: Int32Array): void {
     else if (age < 60) f = 0.3;
     else if (age < 80) f = 0.6;
     else f = 1.0;
-    health[i] = Math.max(0, Math.min(1000, health[i] - 10 * f));
+    health[i] = Math.max(0, Math.min(1000, health[i]! - 10 * f));
   }
 }
 
@@ -153,7 +153,7 @@ function benchSQLiteBatch(dim: number, nVectors: number) {
 
   db.run("CREATE TABLE vectors (id INTEGER PRIMARY KEY, dim INTEGER, vec BLOB)");
   for (let i = 0; i < nVectors; i++) {
-    db.run("INSERT INTO vectors (dim, vec) VALUES (?, ?)", dim, Buffer.from(rand(dim).buffer));
+    db.run("INSERT INTO vectors (dim, vec) VALUES (?, ?)", [dim, Buffer.from(rand(dim).buffer)]);
   }
 
   const q = rand(dim);
@@ -203,8 +203,8 @@ async function main() {
 
   const tsCos = bench("TS cosine", () => tsCosine(a, b), iters);
   const mojoCos = bench("Mojo cosine", () => cosineSimilarityFull(a, b), iters);
-  allResults["TS"]["cosine"] = { ms: tsCos.ms, ops: tsCos.ops };
-  allResults["Mojo"]["cosine"] = { ms: mojoCos.ms, ops: mojoCos.ops };
+  allResults["TS"]!["cosine"] = { ms: tsCos.ms, ops: tsCos.ops };
+  allResults["Mojo"]!["cosine"] = { ms: mojoCos.ms, ops: mojoCos.ops };
 
   const speedupCos = (tsCos.ms / mojoCos.ms).toFixed(1);
   console.log(`  TS:   ${tsCos.ms.toFixed(1).padStart(6)}ms  (${tsCos.ops} ops/s)`);
@@ -218,11 +218,11 @@ async function main() {
 
   const tsBatch = bench("TS batch", () => tsBatchCosine(a, dbVecs), 200);
   const mojoBatch = bench("Mojo batch", () => batchCosineFlat(a, flatDb, nVectors, dim), 200);
-  allResults["TS"]["batch_cosine"] = { ms: tsBatch.ms, ops: tsBatch.ops };
-  allResults["Mojo"]["batch_cosine"] = { ms: mojoBatch.ms, ops: mojoBatch.ops };
+  allResults["TS"]!["batch_cosine"] = { ms: tsBatch.ms, ops: tsBatch.ops };
+  allResults["Mojo"]!["batch_cosine"] = { ms: mojoBatch.ms, ops: mojoBatch.ops };
 
   const sqlR = benchSQLiteBatch(dim, nVectors);
-  allResults["TS+SQLite"]["batch_cosine"] = { ms: sqlR.ms, ops: sqlR.ops };
+  allResults["TS+SQLite"]!["batch_cosine"] = { ms: sqlR.ms, ops: sqlR.ops };
 
   const speedupBatch = (tsBatch.ms / mojoBatch.ms).toFixed(1);
   const speedupSql = (sqlR.ms / mojoBatch.ms).toFixed(1);
@@ -234,7 +234,7 @@ async function main() {
   // ── 3. SQLite Search (100 queries × 100 vectors) ─────────
   console.log("── 3. SQLite Search (100 queries × 100 vectors) ─────────");
   const sqlSearch = benchSQLite(dim, nVectors, 100);
-  allResults["TS+SQLite"]["search_100"] = { ms: sqlSearch.ms, ops: sqlSearch.ops };
+  allResults["TS+SQLite"]!["search_100"] = { ms: sqlSearch.ms, ops: sqlSearch.ops };
   console.log(`  TS+SQLite:  ${sqlSearch.ms.toFixed(1).padStart(6)}ms  (${sqlSearch.ops} ops/s)`);
   console.log("");
 
@@ -252,8 +252,8 @@ async function main() {
     const h = health.slice();
     batchAgeDecay(h, ages, 10);
   }, iters);
-  allResults["TS"]["age_decay"] = { ms: tsAge.ms, ops: tsAge.ops };
-  allResults["Mojo"]["age_decay"] = { ms: mojoAge.ms, ops: mojoAge.ops };
+  allResults["TS"]!["age_decay"] = { ms: tsAge.ms, ops: tsAge.ops };
+  allResults["Mojo"]!["age_decay"] = { ms: mojoAge.ms, ops: mojoAge.ops };
 
   const speedupAge = (tsAge.ms / mojoAge.ms).toFixed(1);
   console.log(`  TS:   ${tsAge.ms.toFixed(1).padStart(6)}ms  (${tsAge.ops} ops/s)`);
@@ -269,8 +269,8 @@ async function main() {
 
   const tsRrf = bench("TS rrf", () => tsRrfFusion(rrfScores, rrfRanks, nLists, nItems, k), iters);
   const mojoRrf = bench("Mojo rrf", () => rrfFusion(rrfScores, rrfRanks, nLists, nItems, k), iters);
-  allResults["TS"]["rrf"] = { ms: tsRrf.ms, ops: tsRrf.ops };
-  allResults["Mojo"]["rrf"] = { ms: mojoRrf.ms, ops: mojoRrf.ops };
+  allResults["TS"]!["rrf"] = { ms: tsRrf.ms, ops: tsRrf.ops };
+  allResults["Mojo"]!["rrf"] = { ms: mojoRrf.ms, ops: mojoRrf.ops };
 
   const speedupRrf = (tsRrf.ms / mojoRrf.ms).toFixed(1);
   console.log(`  TS:   ${tsRrf.ms.toFixed(1).padStart(6)}ms  (${tsRrf.ops} ops/s)`);
@@ -286,8 +286,8 @@ async function main() {
 
   const tsRep = bench("TS reputation", () => tsReputation(relStr, relTypes), iters);
   const mojoRep = bench("Mojo reputation", () => batchReputation(relStr, relTypes), iters);
-  allResults["TS"]["reputation"] = { ms: tsRep.ms, ops: tsRep.ops };
-  allResults["Mojo"]["reputation"] = { ms: mojoRep.ms, ops: mojoRep.ops };
+  allResults["TS"]!["reputation"] = { ms: tsRep.ms, ops: tsRep.ops };
+  allResults["Mojo"]!["reputation"] = { ms: mojoRep.ms, ops: mojoRep.ops };
 
   const speedupRep = (tsRep.ms / mojoRep.ms).toFixed(1);
   console.log(`  TS:   ${tsRep.ms.toFixed(1).padStart(6)}ms  (${tsRep.ops} ops/s)`);
@@ -328,9 +328,9 @@ async function main() {
   for (const op of ops) {
     const py = pyData[op]?.toFixed(1) ?? "-";
     const np = npData[op]?.toFixed(1) ?? "-";
-    const ts = allResults["TS"][op]?.ms.toFixed(1) ?? "-";
-    const sql = allResults["TS+SQLite"][op]?.ms.toFixed(1) ?? "-";
-    const mojo = allResults["Mojo"][op]?.ms.toFixed(1) ?? "-";
+    const ts = allResults["TS"]![op]?.ms.toFixed(1) ?? "-";
+    const sql = allResults["TS+SQLite"]![op]?.ms.toFixed(1) ?? "-";
+    const mojo = allResults["Mojo"]![op]?.ms.toFixed(1) ?? "-";
 
     console.log(
       `  ${op.padEnd(33)}${py.padStart(10)}${np.padStart(10)}${ts.padStart(10)}${sql.padStart(12)}${mojo.padStart(10)}`

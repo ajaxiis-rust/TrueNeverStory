@@ -205,7 +205,7 @@ if [[ -z "$LLM_URL" || -z "$LLM_MODEL" ]]; then
     echo ""
     echo -e "${YELLOW}⚠  LLM not configured!${NC}"
     echo -e "${CYAN}   Open http://localhost:${PORT}/settings to configure your LLM provider.${NC}"
-    echo -e "${CYAN}   Supported: Ollama, OpenAI, vLLM, LM Studio, or any OpenAI-compatible API.${NC}"
+    echo -e "${CYAN}   Supported: llama.cpp, Ollama, OpenAI, vLLM, LM Studio, or any OpenAI-compatible API.${NC}"
     echo ""
 fi
 

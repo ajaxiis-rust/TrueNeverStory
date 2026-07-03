@@ -352,7 +352,7 @@ function tsBatchAgeDecay(health: Float32Array, ages: Int32Array, decayRate: numb
     else if (age < 60) factor = 0.3;
     else if (age < 80) factor = 0.6;
     else factor = 1.0;
-    health[i] = Math.max(0, Math.min(1000, health[i] - decayRate * factor));
+    health[i] = Math.max(0, Math.min(1000, health[i]! - decayRate * factor));
   }
 }
 
@@ -369,7 +369,7 @@ function tsBatchViceDecay(
       for (let v = 0; v < nVices; v++) {
         totalDecay += vices[i * nVices + v]! * 0.01;
       }
-      stats[i * nStats + s] = Math.max(0, stats[i * nStats + s] - totalDecay);
+      stats[i * nStats + s] = Math.max(0, stats[i * nStats + s]! - totalDecay);
     }
   }
 }

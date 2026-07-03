@@ -128,7 +128,7 @@ describe("Mojo FFI - Batch Operations", () => {
     expect(result).toHaveLength(3);
     // Each result should be 0 or 1
     for (let i = 0; i < result.length; i++) {
-      expect([0, 1]).toContain(result[i]);
+      expect([0, 1]).toContain(result[i]!);
     }
   });
 });

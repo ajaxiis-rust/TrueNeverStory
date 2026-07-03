@@ -51,7 +51,7 @@ function tsBatchAgeDecay(health: Float32Array, ages: Int32Array, decayRate: numb
     else if (age < 60) factor = 0.3;
     else if (age < 80) factor = 0.6;
     else factor = 1.0;
-    health[i] = Math.max(0, Math.min(1000, health[i] - decayRate * factor));
+    health[i] = Math.max(0, Math.min(1000, health[i]! - decayRate * factor));
   }
 }
 
