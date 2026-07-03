@@ -59,17 +59,15 @@ jobs:
 
       - name: Build Bun binary
         run: |
-          TARGET="${{ matrix.target_bun }}"
-          RUNNER="${{ runner.os }}-${{ runner.arch }}"
-          echo "Target: $TARGET  Runner: $RUNNER"
-          # Cross-compile only when target differs from runner arch
-          if [[ "$TARGET" == *"arm64"* && "$RUNNER" == *"X64"* ]] || \
-             [[ "$TARGET" == *"x64"* && "$RUNNER" == *"ARM64"* ]]; then
-            echo "Cross-compiling..."
-            bun build --compile --target "$TARGET" --outfile "tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }}" src/index.ts
+          OUT="tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }}"
+          # Cross-compile: only when target arch differs from runner
+          if [[ "${{ runner.arch }}" == "X64" && "${{ matrix.target_bun }}" == *"arm64"* ]] || \
+             [[ "${{ runner.arch }}" == "ARM64" && "${{ matrix.target_bun }}" == *"x64"* ]]; then
+            echo "Cross-compiling: ${{ matrix.target_bun }}"
+            bun build --compile --target "${{ matrix.target_bun }}" --outfile "$OUT" src/index.ts
           else
-            echo "Native build..."
-            bun build --compile --outfile "tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }}" src/index.ts
+            echo "Native build"
+            bun build --compile --outfile "$OUT" src/index.ts
           fi
 
       # === Mojo FFI (только Linux + macOS) ===
