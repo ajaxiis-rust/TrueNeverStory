@@ -1,6 +1,6 @@
-# TrueNeverStory v0.11.4 – Building Rich Interactive Narrative Games
+# TrueNeverStory v0.12.0 – Building Rich Interactive Narrative Games
 
-**TrueNeverStory v0.11.4** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
+**TrueNeverStory v0.12.0** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
 
 - **TypeScript (Bun + Hono)** – Web server, API, WebSocket, routing, auth, streaming, business logic
 - **Mojo FFI** – Compute kernels for probability calculations and vector operations (optional, with TypeScript fallback)
@@ -538,6 +538,39 @@ bun run build
 ---
 
 ## Recent Changes
+
+### Birth System & Model Catalog (v0.12.0)
+
+Character creation, model catalog expansion, and LLM timeout improvements:
+
+| Feature | Description |
+|---------|-------------|
+| **Birth Wizard** | Full character creation UI in Worlds tab — hints, age, isekai mode, opening narrative |
+| **Engine Bridge** | Birth wizard automatically connects new character to roleplay engine via `/chat/setup` |
+| **Model Catalog** | YandexGPT 5 Lite 8B, GigaChat 3.1 10B-A1.8B (MoE), GigaChat 20B-A3B added to downloads |
+| **Catalog Always Visible** | Model catalog shows even when backend not installed |
+| **LLM Timeout Stack** | Per-call timeout support: `LLMRequestOptions.timeout` flows through client → queue → provider |
+| **Birth Timeout 600s** | Birth flow LLM calls use 10-minute timeout (family tree, name, isekai, narrative) |
+| **Default Timeout 300s** | Global LLM timeout increased from 120s to 300s for slow local models |
+| **i18n Worlds Page** | Full 7-language support (EN/RU/DE/FR/ES/JA/ZH) for Worlds tab + Birth Wizard |
+
+**Modified files:**
+- `src/routes/launch.ts` — Returns `initial_location` in launch response
+- `src/routes/index.ts` — Wired `initLaunch(narrativeCtx)` (was missing)
+- `src/index.ts` — Added `initLaunch` import and call
+- `src/services/model-manager.ts` — YandexGPT, GigaChat models in POPULAR_MODELS
+- `src/services/birth.ts` — LLM calls use 600s timeout
+- `src/lib/llm-client.ts` — Per-call timeout, fallback 300s
+- `src/lib/llm-queue.ts` — Timeout propagation through task queue
+- `src/lib/providers/llm-provider.ts` — `timeout` field in LLMRequestOptions
+- `src/lib/providers/llamacpp-provider.ts` — Uses per-call timeout, default 300s
+- `src/lib/providers/openai-provider.ts` — Uses per-call timeout
+- `src/lib/providers/google-provider.ts` — Uses per-call timeout
+- `src/lib/providers/ollama-provider.ts` — Uses per-call timeout
+- `src/lib/providers/anthropic-provider.ts` — Uses per-call timeout
+- `src/config/env.ts` — `WORLD_LLM_TIMEOUT` default 120 → 300
+- `public/worlds.html` — Birth wizard modal, i18n, NEW GAME buttons
+- `public/index.html` — NEW redirects to worlds, session character display
 
 ### Mojo Kernel Expansion (v0.11.4)
 

@@ -150,7 +150,7 @@ export class LLMClient {
 
   async generateText(
     prompt: string,
-    options: { temperature?: number; maxTokens?: number; jsonMode?: boolean; systemPrompt?: string } = {},
+    options: { temperature?: number; maxTokens?: number; jsonMode?: boolean; systemPrompt?: string; timeout?: number } = {},
   ): Promise<string> {
     const provider = await this._getProvider();
     const temp = options.temperature ?? this._getTemperature();
@@ -172,6 +172,7 @@ export class LLMClient {
           maxTokens: maxTok,
           jsonMode: options.jsonMode,
           systemPrompt: options.systemPrompt ?? lang.systemPrompt,
+          timeout: options.timeout,
         });
 
         this._cache.put(cacheKey, result);
@@ -182,7 +183,7 @@ export class LLMClient {
     }
 
     // Fallback to direct API call
-    return this._generateTextDirect(prompt, { temperature: temp, maxTokens: maxTok, jsonMode: options.jsonMode });
+    return this._generateTextDirect(prompt, { temperature: temp, maxTokens: maxTok, jsonMode: options.jsonMode, timeout: options.timeout });
   }
 
   async *generateTextStream(
@@ -211,7 +212,7 @@ export class LLMClient {
 
   private async _generateTextDirect(
     prompt: string,
-    options: { temperature?: number; maxTokens?: number; jsonMode?: boolean },
+    options: { temperature?: number; maxTokens?: number; jsonMode?: boolean; timeout?: number },
   ): Promise<string> {
     const temp = options.temperature ?? this._getTemperature();
     const maxTok = options.maxTokens ?? this._getMaxTokens();
@@ -235,7 +236,7 @@ export class LLMClient {
     for (let attempt = 0; attempt <= this._maxRetries; attempt++) {
       try {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 120000);
+        const timer = setTimeout(() => controller.abort(), (options.timeout ?? 300) * 1000);
 
         const res = await fetch(`${this._fallbackBaseUrl}/chat/completions`, {
           method: "POST",
@@ -272,7 +273,7 @@ export class LLMClient {
 
   async generateJson(
     prompt: string,
-    options: { temperature?: number; maxTokens?: number } = {},
+    options: { temperature?: number; maxTokens?: number; timeout?: number } = {},
   ): Promise<Record<string, unknown>> {
     const text = await this.generateText(prompt, { ...options, jsonMode: true });
     try {

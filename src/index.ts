@@ -12,6 +12,7 @@ import { initEntities } from "./routes/entities";
 import { initBranches } from "./routes/branches";
 import { initMemory } from "./routes/memory";
 import { initSessions } from "./routes/sessions";
+import { initLaunch } from "./routes/launch";
 import { WebSocketManager } from "./services/websocket-manager";
 import { Navigator } from "./services/navigator";
 import { RoleplayEngine } from "./services/roleplay-engine";
@@ -104,6 +105,7 @@ async function main() {
   initBranches(narrativeCtx.graphStore);
   initMemory(wsManager);
   initSessions(narrativeCtx.historyMgr);
+  initLaunch(narrativeCtx);
 
   // Create Hono app
   const app = createApp();

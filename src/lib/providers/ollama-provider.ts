@@ -40,7 +40,7 @@ export class OllamaProvider implements LLMProvider {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout((this._config.timeout ?? 120) * 1000),
+      signal: AbortSignal.timeout((options?.timeout ?? this._config.timeout ?? 300) * 1000),
     });
 
     if (!response.ok) {

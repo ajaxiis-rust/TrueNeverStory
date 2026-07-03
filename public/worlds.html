@@ -81,7 +81,34 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 
 .empty{text-align:center;padding:40px;color:var(--text-disabled);font-size:13px}
 
-@media(max-width:768px){.world-grid{grid-template-columns:1fr}.topbar__btn{padding:5px 10px;font-size:11px}}
+.birth-wizard{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;animation:fadeIn 150ms var(--ease-out)}
+.birth-wizard--open{display:flex}
+.birth-wizard__box{background:var(--surface-raised);border:1px solid var(--border-visible);border-radius:var(--radius-lg);width:520px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+.birth-wizard__head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.birth-wizard__title{font-family:var(--font-mono);font-size:14px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-display)}
+.birth-wizard__close{background:transparent;border:none;color:var(--text-disabled);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px;line-height:1}
+.birth-wizard__close:hover{color:var(--text-primary)}
+.birth-wizard__body{flex:1;overflow-y:auto;padding:20px}
+.birth-wizard__narrative{font-family:var(--font-body);font-size:14px;line-height:1.7;color:var(--text-primary);padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:16px;white-space:pre-wrap;max-height:300px;overflow-y:auto}
+.birth-wizard__info{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.birth-wizard__tag{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-pill);color:var(--text-secondary)}
+.birth-wizard__tag--accent{border-color:var(--accent);color:var(--accent)}
+.birth-wizard__tag--success{border-color:var(--success);color:var(--success)}
+.birth-wizard__tag--interactive{border-color:var(--interactive);color:var(--interactive)}
+.birth-wizard__footer{display:flex;gap:8px;justify-content:flex-end;padding:16px 20px;border-top:1px solid var(--border)}
+.birth-wizard__loading{text-align:center;padding:40px;color:var(--text-disabled);font-size:13px}
+.birth-wizard__loading::after{content:'';display:block;width:20px;height:20px;border:2px solid var(--border-visible);border-top-color:var(--text-secondary);border-radius:50%;animation:spin .6s linear infinite;margin:12px auto 0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.toggle{display:flex;align-items:center;gap:8px;cursor:pointer}
+.toggle__track{width:36px;height:20px;background:var(--border-visible);border-radius:10px;position:relative;transition:background var(--dur-fast)}
+.toggle--on .toggle__track{background:var(--interactive)}
+.toggle__thumb{width:16px;height:16px;background:var(--text-display);border-radius:50%;position:absolute;top:2px;left:2px;transition:transform var(--dur-fast)}
+.toggle--on .toggle__thumb{transform:translateX(16px)}
+.toggle__label{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)}
+
+@media(max-width:768px){.world-grid{grid-template-columns:1fr}.topbar__btn{padding:5px 10px;font-size:11px}.birth-wizard__box{width:calc(100vw - 32px)}}
 @media(max-width:480px){.topbar__brand span{display:none}.form__row{flex-direction:column}}
 </style>
 </head>
@@ -90,83 +117,248 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 <div class="topbar">
   <div class="topbar__brand"><span>TrueNeverStory</span></div>
   <div class="topbar__sep"></div>
-  <div class="topbar__title">Worlds</div>
+  <div class="topbar__title" data-i18n="uiWorlds">Worlds</div>
   <div class="topbar__spacer"></div>
-  <a href="/providers" class="topbar__btn">PROVIDERS</a>
-  <a href="/models" class="topbar__btn">MODELS</a>
-  <a href="/agents" class="topbar__btn">AGENTS</a>
-  <a href="/settings" class="topbar__btn">CONFIG</a>
-  <a href="/" class="topbar__btn">BACK</a>
+  <a href="/providers" class="topbar__btn" data-i18n="uiProviders">PROVIDERS</a>
+  <a href="/models" class="topbar__btn" data-i18n="uiModels">MODELS</a>
+  <a href="/agents" class="topbar__btn" data-i18n="uiAgents">AGENTS</a>
+  <a href="/settings" class="topbar__btn" data-i18n="uiConfig">CONFIG</a>
+  <a href="/" class="topbar__btn" data-i18n="uiBack">BACK</a>
 </div>
 
 <div class="content" id="content">
   <div class="section">
-    <div class="section__title">Your Worlds</div>
-    <div id="worldGrid" class="world-grid"><div class="empty">Loading...</div></div>
+    <div class="section__title" data-i18n="uiYourWorlds">Your Worlds</div>
+    <div id="worldGrid" class="world-grid"><div class="empty" data-i18n="uiLoading">Loading...</div></div>
   </div>
 
   <div class="section">
-    <div class="section__title">Create New World</div>
+    <div class="section__title" data-i18n="uiCreateWorld">Create New World</div>
     <div class="form" id="createForm">
       <div class="form__row">
         <div class="form__field">
-          <label class="form__label">World Name</label>
+          <label class="form__label" data-i18n="uiWorldName">World Name</label>
           <input class="form__input" id="fName" placeholder="dark-realm, starwars, etc.">
         </div>
         <div class="form__field">
-          <label class="form__label">Title</label>
+          <label class="form__label" data-i18n="uiTitle">Title</label>
           <input class="form__input" id="fTitle" placeholder="The Dark Realm">
         </div>
       </div>
       <div class="form__field form__field--full">
-        <label class="form__label">Description</label>
+        <label class="form__label" data-i18n="uiDescription">Description</label>
         <textarea class="form__textarea" id="fDesc" placeholder="A world of eternal twilight where ancient magic..."></textarea>
       </div>
       <div class="form__row">
         <div class="form__field">
-          <label class="form__label">Genre</label>
+          <label class="form__label" data-i18n="uiGenre">Genre</label>
           <select class="form__select" id="fGenre">
-            <option value="fantasy">Fantasy</option>
-            <option value="sci-fi">Sci-Fi</option>
-            <option value="horror">Horror</option>
-            <option value="post-apocalyptic">Post-Apocalyptic</option>
-            <option value="historical">Historical</option>
-            <option value="cyberpunk">Cyberpunk</option>
-            <option value="steampunk">Steampunk</option>
-            <option value="mythology">Mythology</option>
+            <option value="fantasy" data-i18n="uiGenreFantasy">Fantasy</option>
+            <option value="sci-fi" data-i18n="uiGenreScifi">Sci-Fi</option>
+            <option value="horror" data-i18n="uiGenreHorror">Horror</option>
+            <option value="post-apocalyptic" data-i18n="uiGenrePostapoc">Post-Apocalyptic</option>
+            <option value="historical" data-i18n="uiGenreHistorical">Historical</option>
+            <option value="cyberpunk" data-i18n="uiGenreCyberpunk">Cyberpunk</option>
+            <option value="steampunk" data-i18n="uiGenreSteampunk">Steampunk</option>
+            <option value="mythology" data-i18n="uiGenreMythology">Mythology</option>
           </select>
         </div>
         <div class="form__field">
-          <label class="form__label">Language</label>
+          <label class="form__label" data-i18n="uiLanguage">Language</label>
           <select class="form__select" id="fLang">
             <option value="en">English</option>
-            <option value="ru">Russian</option>
-            <option value="de">German</option>
-            <option value="fr">French</option>
-            <option value="es">Spanish</option>
-            <option value="ja">Japanese</option>
-            <option value="zh">Chinese</option>
+            <option value="ru">Русский</option>
+            <option value="de">Deutsch</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
           </select>
         </div>
       </div>
       <div class="form__field form__field--full">
-        <label class="form__label">World Rules (one per line)</label>
+        <label class="form__label" data-i18n="uiWorldRules">World Rules (one per line)</label>
         <textarea class="form__textarea" id="fRules" placeholder="Magic requires blood sacrifice&#10;The dead cannot be resurrected&#10;Dragons are extinct"></textarea>
       </div>
       <div class="form__field form__field--full">
-        <label class="form__label">Magic System (optional)</label>
+        <label class="form__label" data-i18n="uiMagicSystem">Magic System (optional)</label>
         <textarea class="form__textarea" id="fMagic" placeholder="Elemental magic drawn from ley lines..."></textarea>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn" onclick="resetForm()">CLEAR</button>
-        <button class="btn btn--primary" onclick="createWorld()">CREATE WORLD</button>
+        <button class="btn" onclick="resetForm()" data-i18n="uiClear">CLEAR</button>
+        <button class="btn btn--primary" onclick="createWorld()" data-i18n="uiCreateWorldBtn">CREATE WORLD</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="birth-wizard" id="birthWizard">
+  <div class="birth-wizard__box">
+    <div class="birth-wizard__head">
+      <span class="birth-wizard__title" data-i18n="uiBirthWizard">Birth Wizard</span>
+      <button class="birth-wizard__close" onclick="closeBirthWizard()">&times;</button>
+    </div>
+    <div class="birth-wizard__body" id="birthWizardBody">
+      <div class="form">
+        <div class="form__field form__field--full">
+          <label class="form__label" data-i18n="uiBirthHints">Character Hints (optional)</label>
+          <textarea class="form__textarea" id="birthHints" data-i18n-placeholder="uiBirthHintsPlaceholder" placeholder="e.g. female elf, mage, noble family, name: Aria...&#10;Leave empty for random generation"></textarea>
+        </div>
+        <div class="form__row">
+          <div class="form__field">
+            <label class="form__label" data-i18n="uiStartingAge">Starting Age</label>
+            <input class="form__input" id="birthAge" type="number" min="0" max="100" value="5">
+          </div>
+          <div class="form__field" style="flex:0 0 auto">
+            <label class="form__label" data-i18n="uiIsekaiMode">Isekai Mode</label>
+            <div class="toggle" id="birthIsekai" onclick="this.classList.toggle('toggle--on')">
+              <div class="toggle__track"><div class="toggle__thumb"></div></div>
+              <span class="toggle__label" data-i18n="uiReincarnation">Reincarnation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="birth-wizard__footer" id="birthWizardFooter">
+      <button class="btn" onclick="closeBirthWizard()" data-i18n="uiCancel">CANCEL</button>
+      <button class="btn btn--primary" id="birthStartBtn" onclick="startBirth()" data-i18n="uiStartNewLife">START NEW LIFE</button>
     </div>
   </div>
 </div>
 
 <script>
 const API = '/api';
+
+// ── i18n ──
+const I18N = {
+  en: {
+    uiWorlds:"Worlds",uiProviders:"PROVIDERS",uiModels:"MODELS",uiAgents:"AGENTS",uiConfig:"CONFIG",uiBack:"BACK",
+    uiYourWorlds:"Your Worlds",uiCreateWorld:"Create New World",uiLoading:"Loading...",
+    uiWorldName:"World Name",uiTitle:"Title",uiDescription:"Description",uiGenre:"Genre",uiLanguage:"Language",
+    uiWorldRules:"World Rules (one per line)",uiMagicSystem:"Magic System (optional)",
+    uiClear:"CLEAR",uiCreateWorldBtn:"CREATE WORLD",uiNewGame:"NEW GAME",uiSwitch:"SWITCH",uiDelete:"DELETE",
+    uiBirthWizard:"Birth Wizard",uiBirthHints:"Character Hints (optional)",uiStartingAge:"Starting Age",
+    uiIsekaiMode:"Isekai Mode",uiReincarnation:"Reincarnation",uiCancel:"CANCEL",uiStartNewLife:"START NEW LIFE",
+    uiPlayNow:"PLAY NOW",uiRetry:"RETRY",uiClose:"CLOSE",
+    uiCreating:"Creating your character...",uiGenerating:"GENERATING...",uiFailed:"Failed:",uiNoWorlds:"No worlds yet. Create one below.",
+    uiBirthHintsPlaceholder:"e.g. female elf, mage, noble family, name: Aria...\nLeave empty for random generation",
+    uiGenreFantasy:"Fantasy",uiGenreScifi:"Sci-Fi",uiGenreHorror:"Horror",uiGenrePostapoc:"Post-Apocalyptic",
+    uiGenreHistorical:"Historical",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythology",
+    uiEntities:"entities",uiSessions:"sessions",uiActive:"ACTIVE",
+  },
+  ru: {
+    uiWorlds:"Миры",uiProviders:"ПРОВАЙДЕРЫ",uiModels:"МОДЕЛИ",uiAgents:"АГЕНТЫ",uiConfig:"НАСТРОЙКИ",uiBack:"НАЗАД",
+    uiYourWorlds:"Ваши миры",uiCreateWorld:"Создать новый мир",uiLoading:"Загрузка...",
+    uiWorldName:"Название мира",uiTitle:"Заголовок",uiDescription:"Описание",uiGenre:"Жанр",uiLanguage:"Язык",
+    uiWorldRules:"Правила мира (по одному на строку)",uiMagicSystem:"Система магии (необязательно)",
+    uiClear:"ОЧИСТИТЬ",uiCreateWorldBtn:"СОЗДАТЬ МИР",uiNewGame:"НОВАЯ ИГРА",uiSwitch:"ПЕРЕКЛЮЧИТЬ",uiDelete:"УДАЛИТЬ",
+    uiBirthWizard:"Мастер рождения",uiBirthHints:"Подсказки персонажа (необязательно)",uiStartingAge:"Начальный возраст",
+    uiIsekaiMode:"Режим исekai",uiReincarnation:"Перерождение",uiCancel:"ОТМЕНА",uiStartNewLife:"НАЧАТЬ НОВУЮ ЖИЗНЬ",
+    uiPlayNow:"ИГРАТЬ",uiRetry:"ПОВТОРИТЬ",uiClose:"ЗАКРЫТЬ",
+    uiCreating:"Создаём вашего персонажа...",uiGenerating:"ГЕНЕРАЦИЯ...",uiFailed:"Ошибка:",uiNoWorlds:"Пока нет миров. Создайте ниже.",
+    uiBirthHintsPlaceholder:"например: эльфийка, маг, дворянская семья, имя: Ария...\nОставьте пустым для случайной генерации",
+    uiGenreFantasy:"Фэнтези",uiGenreScifi:"Научная фантастика",uiGenreHorror:"Ужасы",uiGenrePostapoc:"Постапокалипсис",
+    uiGenreHistorical:"Историческое",uiGenreCyberpunk:"Киберпанк",uiGenreSteampunk:"Стимпанк",uiGenreMythology:"Мифология",
+    uiEntities:"сущностей",uiSessions:"сессий",uiActive:"АКТИВЕН",
+  },
+  de: {
+    uiWorlds:"Welten",uiProviders:"ANBIETER",uiModels:"MODELLE",uiAgents:"AGENTEN",uiConfig:"KONFIG",uiBack:"ZURÜCK",
+    uiYourWorlds:"Ihre Welten",uiCreateWorld:"Neue Welt erstellen",uiLoading:"Laden...",
+    uiWorldName:"Weltenname",uiTitle:"Titel",uiDescription:"Beschreibung",uiGenre:"Genre",uiLanguage:"Sprache",
+    uiWorldRules:"Weltenregeln (eine pro Zeile)",uiMagicSystem:"Magiesystem (optional)",
+    uiClear:"LÖSCHEN",uiCreateWorldBtn:"WELT ERSTELLEN",uiNewGame:"NEUES SPIEL",uiSwitch:"WECHSELN",uiDelete:"LÖSCHEN",
+    uiBirthWizard:"Geburts-Assistent",uiBirthHints:"Charakter-Hinweise (optional)",uiStartingAge:"Startalter",
+    uiIsekaiMode:"Isekai-Modus",uiReincarnation:"Reinkarnation",uiCancel:"ABBRECHEN",uiStartNewLife:"NEUES LEBEN STARTEN",
+    uiPlayNow:"SPIELEN",uiRetry:"ERNEUT VERSUCHEN",uiClose:"SCHLIEßEN",
+    uiCreating:"Charakter wird erstellt...",uiGenerating:"GENERIEREN...",uiFailed:"Fehler:",uiNoWorlds:"Noch keine Welten. Erstellen Sie eine unten.",
+    uiBirthHintsPlaceholder:"z.B. weiblicher Elfe, Mager, Adelsfamilie, Name: Aria...\nLeer lassen für zufällige Generierung",
+    uiGenreFantasy:"Fantasy",uiGenreScifi:"Sci-Fi",uiGenreHorror:"Horror",uiGenrePostapoc:"Post-Apokalypse",
+    uiGenreHistorical:"Historisch",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythologie",
+    uiEntities:"Einheiten",uiSessions:"Sitzungen",uiActive:"AKTIV",
+  },
+  fr: {
+    uiWorlds:"Mondes",uiProviders:"FOURNISSEURS",uiModels:"MODÈLES",uiAgents:"AGENTS",uiConfig:"CONFIG",uiBack:"RETOUR",
+    uiYourWorlds:"Vos mondes",uiCreateWorld:"Créer un nouveau monde",uiLoading:"Chargement...",
+    uiWorldName:"Nom du monde",uiTitle:"Titre",uiDescription:"Description",uiGenre:"Genre",uiLanguage:"Langue",
+    uiWorldRules:"Règles du monde (une par ligne)",uiMagicSystem:"Système de magie (optionnel)",
+    uiClear:"EFFACER",uiCreateWorldBtn:"CRÉER LE MONDE",uiNewGame:"NOUVELLE PARTIE",uiSwitch:"CHANGER",uiDelete:"SUPPRIMER",
+    uiBirthWizard:"Assistant de naissance",uiBirthHints:"Indices du personnage (optionnel)",uiStartingAge:"Âge de départ",
+    uiIsekaiMode:"Mode Isekai",uiReincarnation:"Réincarnation",uiCancel:"ANNULER",uiStartNewLife:"COMMENCER UNE NOUVELLE VIE",
+    uiPlayNow:"JOUER",uiRetry:"RÉESSAYER",uiClose:"FERMER",
+    uiCreating:"Création de votre personnage...",uiGenerating:"GÉNÉRATION...",uiFailed:"Erreur:",uiNoWorlds:"Aucun monde pour le moment. Créez-en un ci-dessous.",
+    uiBirthHintsPlaceholder:"ex: elfe femme, mage, famille noble, nom: Aria...\nLaisser vide pour génération aléatoire",
+    uiGenreFantasy:"Fantaisie",uiGenreScifi:"Sci-Fi",uiGenreHorror:"Horreur",uiGenrePostapoc:"Post-apocalyptique",
+    uiGenreHistorical:"Historique",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythologie",
+    uiEntities:"entités",uiSessions:"sessions",uiActive:"ACTIF",
+  },
+  es: {
+    uiWorlds:"Mundos",uiProviders:"PROVEEDORES",uiModels:"MODELOS",uiAgents:"AGENTES",uiConfig:"CONFIG",uiBack:"VOLVER",
+    uiYourWorlds:"Tus mundos",uiCreateWorld:"Crear nuevo mundo",uiLoading:"Cargando...",
+    uiWorldName:"Nombre del mundo",uiTitle:"Título",uiDescription:"Descripción",uiGenre:"Género",uiLanguage:"Idioma",
+    uiWorldRules:"Reglas del mundo (una por línea)",uiMagicSystem:"Sistema de magia (opcional)",
+    uiClear:"LIMPIAR",uiCreateWorldBtn:"CREAR MUNDO",uiNewGame:"NUEVA PARTIDA",uiSwitch:"CAMBIAR",uiDelete:"ELIMINAR",
+    uiBirthWizard:"Asistente de nacimiento",uiBirthHints:"Pistas del personaje (opcional)",uiStartingAge:"Edad inicial",
+    uiIsekaiMode:"Modo Isekai",uiReincarnation:"Reencarnación",uiCancel:"CANCELAR",uiStartNewLife:"EMPEZAR NUEVA VIDA",
+    uiPlayNow:"JUGAR",uiRetry:"REINTENTAR",uiClose:"CERRAR",
+    uiCreating:"Creando tu personaje...",uiGenerating:"GENERANDO...",uiFailed:"Error:",uiNoWorlds:"Aún no hay mundos. Crea uno abajo.",
+    uiBirthHintsPlaceholder:"ej: elfa femenina, maga, familia noble, nombre: Aria...\nDejar vacío para generación aleatoria",
+    uiGenreFantasy:"Fantasía",uiGenreScifi:"Ciencia ficción",uiGenreHorror:"Terror",uiGenrePostapoc:"Post-apocalíptico",
+    uiGenreHistorical:"Histórico",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mitología",
+    uiEntities:"entidades",uiSessions:"sesiones",uiActive:"ACTIVO",
+  },
+  ja: {
+    uiWorlds:"ワールド",uiProviders:"プロバイダー",uiModels:"モデル",uiAgents:"エージェント",uiConfig:"設定",uiBack:"戻る",
+    uiYourWorlds:"あなたのワールド",uiCreateWorld:"新しいワールドを作成",uiLoading:"読み込み中...",
+    uiWorldName:"ワールド名",uiTitle:"タイトル",uiDescription:"説明",uiGenre:"ジャンル",uiLanguage:"言語",
+    uiWorldRules:"ワールドのルール（1行に1つ）",uiMagicSystem:"魔法システム（オプション）",
+    uiClear:"クリア",uiCreateWorldBtn:"ワールドを作成",uiNewGame:"新規ゲーム",uiSwitch:"切替",uiDelete:"削除",
+    uiBirthWizard:"出生ウィザード",uiBirthHints:"キャラクターのヒント（オプション）",uiStartingAge:"開始年齢",
+    uiIsekaiMode:"異世界モード",uiReincarnation:"転生",uiCancel:"キャンセル",uiStartNewLife:"新しい人生を始める",
+    uiPlayNow:"プレイ",uiRetry:"再試行",uiClose:"閉じる",
+    uiCreating:"キャラクターを作成中...",uiGenerating:"生成中...",uiFailed:"エラー:",uiNoWorlds:"まだワールドがありません。下で作成してください。",
+    uiBirthHintsPlaceholder:"例: 女性エルフ、魔法使い、貴族の家、名前: アリア...\n空欄にするとランダム生成",
+    uiGenreFantasy:"ファンタジー",uiGenreScifi:"SF",uiGenreHorror:"ホラー",uiGenrePostapoc:"ポストアポカリプス",
+    uiGenreHistorical:"歴史",uiGenreCyberpunk:"サイバーパンク",uiGenreSteampunk:"スチームパンク",uiGenreMythology:"神話",
+    uiEntities:"エンティティ",uiSessions:"セッション",uiActive:"アクティブ",
+  },
+  zh: {
+    uiWorlds:"世界",uiProviders:"供应商",uiModels:"模型",uiAgents:"智能体",uiConfig:"配置",uiBack:"返回",
+    uiYourWorlds:"你的世界",uiCreateWorld:"创建新世界",uiLoading:"加载中...",
+    uiWorldName:"世界名称",uiTitle:"标题",uiDescription:"描述",uiGenre:"类型",uiLanguage:"语言",
+    uiWorldRules:"世界规则（每行一条）",uiMagicSystem:"魔法系统（可选）",
+    uiClear:"清除",uiCreateWorldBtn:"创建世界",uiNewGame:"新游戏",uiSwitch:"切换",uiDelete:"删除",
+    uiBirthWizard:"出生向导",uiBirthHints:"角色提示（可选）",uiStartingAge:"起始年龄",
+    uiIsekaiMode:"异世界模式",uiReincarnation:"转生",uiCancel:"取消",uiStartNewLife:"开始新生活",
+    uiPlayNow:"开始游戏",uiRetry:"重试",uiClose:"关闭",
+    uiCreating:"正在创建角色...",uiGenerating:"生成中...",uiFailed:"错误:",uiNoWorlds:"还没有世界。在下方创建一个。",
+    uiBirthHintsPlaceholder:"例如：女性精灵、法师、贵族家庭、名字：艾莉亚...\n留空则随机生成",
+    uiGenreFantasy:"奇幻",uiGenreScifi:"科幻",uiGenreHorror:"恐怖",uiGenrePostapoc:"后末日",
+    uiGenreHistorical:"历史",uiGenreCyberpunk:"赛博朋克",uiGenreSteampunk:"蒸汽朋克",uiGenreMythology:"神话",
+    uiEntities:"实体",uiSessions:"会话",uiActive:"活跃",
+  },
+};
+
+function applyLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (lang[k]) el.textContent = lang[k];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const k = el.getAttribute('data-i18n-placeholder');
+    if (lang[k]) el.placeholder = lang[k];
+  });
+}
+
+async function loadLang() {
+  try {
+    const r = await fetch(API + '/settings', { credentials: 'include' });
+    const s = await r.json();
+    window._lang = I18N[s.language] || I18N.en;
+  } catch { window._lang = I18N.en; }
+  applyLang(window._lang);
+}
+
+function t(key) { return (window._lang && window._lang[key]) || I18N.en[key] || key; }
 
 async function apiFetch(path, opts) {
   const res = await fetch(API + path, { credentials: 'include', ...opts });
@@ -190,30 +382,31 @@ async function loadWorlds() {
     activeWorld = data.active;
     const grid = document.getElementById('worldGrid');
     if (!data.worlds || data.worlds.length === 0) {
-      grid.innerHTML = '<div class="empty">No worlds yet. Create one below.</div>';
+      grid.innerHTML = '<div class="empty">' + t('uiNoWorlds') + '</div>';
       return;
     }
     grid.innerHTML = data.worlds.map(w => `
       <div class="world-card ${w.name === activeWorld ? 'world-card--active' : ''}" onclick="selectWorld('${w.name}')">
-        ${w.name === activeWorld ? '<div class="world-card__active">ACTIVE</div>' : ''}
+        ${w.name === activeWorld ? '<div class="world-card__active">' + t('uiActive') + '</div>' : ''}
         <div class="world-card__header">
           <div class="world-card__name">${esc(w.title || w.name)}</div>
           ${w.genre ? '<div class="world-card__genre">' + esc(w.genre) + '</div>' : ''}
         </div>
         ${w.description ? '<div class="world-card__desc">' + esc(w.description) + '</div>' : ''}
         <div class="world-card__meta">
-          <span>${w.entityCount} entities</span>
-          <span>${w.sessionCount} sessions</span>
+          <span>${w.entityCount} ${t('uiEntities')}</span>
+          <span>${w.sessionCount} ${t('uiSessions')}</span>
           <span>${esc(w.language)}</span>
         </div>
         <div class="world-card__actions">
-          ${w.name !== activeWorld ? '<button class="btn btn--sm btn--success" onclick="event.stopPropagation();switchWorld(\'' + w.name + '\')">SWITCH</button>' : ''}
-          ${w.name !== activeWorld ? '<button class="btn btn--sm btn--danger" onclick="event.stopPropagation();deleteWorld(\'' + w.name + '\')">DELETE</button>' : ''}
+          <button class="btn btn--sm btn--primary" onclick="event.stopPropagation();openBirthWizard('${esc(w.name)}')">${t('uiNewGame')}</button>
+          ${w.name !== activeWorld ? '<button class="btn btn--sm btn--success" onclick="event.stopPropagation();switchWorld(\'' + w.name + '\')">' + t('uiSwitch') + '</button>' : ''}
+          ${w.name !== activeWorld ? '<button class="btn btn--sm btn--danger" onclick="event.stopPropagation();deleteWorld(\'' + w.name + '\')">' + t('uiDelete') + '</button>' : ''}
         </div>
       </div>
     `).join('');
   } catch (e) {
-    document.getElementById('worldGrid').innerHTML = '<div class="empty">Failed to load worlds: ' + esc(e.message) + '</div>';
+    document.getElementById('worldGrid').innerHTML = '<div class="empty">' + esc(e.message) + '</div>';
   }
 }
 
@@ -225,27 +418,27 @@ async function switchWorld(name) {
   try {
     await apiFetch('/worlds/' + name + '/switch', { method: 'POST' });
     activeWorld = name;
-    toast('Switched to ' + name, true);
+    toast('✓', true);
     loadWorlds();
   } catch (e) {
-    toast('Switch failed: ' + e.message, false);
+    toast(e.message, false);
   }
 }
 
 async function deleteWorld(name) {
-  if (!confirm('Delete world "' + name + '"? This cannot be undone.')) return;
+  if (!confirm('Delete "' + name + '"?')) return;
   try {
     await apiFetch('/worlds/' + name, { method: 'DELETE' });
-    toast('World deleted', true);
+    toast('✓', true);
     loadWorlds();
   } catch (e) {
-    toast('Delete failed: ' + e.message, false);
+    toast(e.message, false);
   }
 }
 
 async function createWorld() {
   const name = document.getElementById('fName').value.trim();
-  if (!name) { toast('World name is required', false); return; }
+  if (!name) { toast(t('uiWorldName'), false); return; }
 
   const body = {
     name,
@@ -263,11 +456,11 @@ async function createWorld() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    toast('World "' + name + '" created', true);
+    toast('✓', true);
     resetForm();
     loadWorlds();
   } catch (e) {
-    toast('Create failed: ' + e.message, false);
+    toast(e.message, false);
   }
 }
 
@@ -287,7 +480,83 @@ function esc(s) {
   return d.innerHTML;
 }
 
-loadWorlds();
+// ── Birth Wizard ──
+let birthWorldName = '';
+
+function openBirthWizard(worldName) {
+  birthWorldName = worldName;
+  document.getElementById('birthWizard').classList.add('birth-wizard--open');
+  document.getElementById('birthHints').value = '';
+  document.getElementById('birthAge').value = '5';
+  document.getElementById('birthIsekai').classList.remove('toggle--on');
+  document.getElementById('birthStartBtn').disabled = false;
+  document.getElementById('birthStartBtn').textContent = t('uiStartNewLife');
+}
+
+function closeBirthWizard() {
+  document.getElementById('birthWizard').classList.remove('birth-wizard--open');
+  birthWorldName = '';
+}
+
+async function startBirth() {
+  const btn = document.getElementById('birthStartBtn');
+  const body = document.getElementById('birthWizardBody');
+  const footer = document.getElementById('birthWizardFooter');
+
+  btn.disabled = true;
+  btn.textContent = t('uiGenerating');
+
+  const hints = document.getElementById('birthHints').value.trim();
+  const isekai = document.getElementById('birthIsekai').classList.contains('toggle--on');
+  const startingAge = parseInt(document.getElementById('birthAge').value) || 5;
+
+  body.innerHTML = '<div class="birth-wizard__loading">' + t('uiCreating') + '</div>';
+  footer.innerHTML = '';
+
+  try {
+    const res = await apiFetch('/launch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hints, isekai, starting_age: startingAge }),
+    });
+
+    if (res.status === 'error') throw new Error(res.error || 'Launch failed');
+
+    // Connect character to roleplay engine
+    await apiFetch('/chat/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        character: res.character_name,
+        location: res.initial_location || 'unknown',
+        session_id: res.session_id,
+      }),
+    });
+
+    // Show result
+    body.innerHTML = `
+      <div class="birth-wizard__info">
+        <span class="birth-wizard__tag birth-wizard__tag--accent">${esc(res.character_name)}</span>
+        <span class="birth-wizard__tag">${esc(res.race)}</span>
+        <span class="birth-wizard__tag birth-wizard__tag--interactive">${esc(res.social_class)}</span>
+        <span class="birth-wizard__tag birth-wizard__tag--success">${esc(res.birthplace)}</span>
+      </div>
+      <div class="birth-wizard__narrative">${esc(res.opening_narrative)}</div>
+    `;
+    footer.innerHTML = `
+      <button class="btn" onclick="closeBirthWizard()">${t('uiClose')}</button>
+      <a class="btn btn--primary" href="/" style="text-decoration:none">${t('uiPlayNow')}</a>
+    `;
+  } catch (e) {
+    body.innerHTML = '<div class="birth-wizard__loading" style="color:var(--accent)">' + t('uiFailed') + ' ' + esc(e.message) + '</div>';
+    footer.innerHTML = `
+      <button class="btn" onclick="closeBirthWizard()">${t('uiClose')}</button>
+      <button class="btn btn--primary" onclick="openBirthWizard('${esc(birthWorldName)}')">${t('uiRetry')}</button>
+    `;
+  }
+}
+
+loadLang().then(() => loadWorlds());
 </script>
 </body>
 </html>

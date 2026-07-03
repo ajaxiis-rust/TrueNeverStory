@@ -57,12 +57,13 @@ export class LLMQueue {
     priority: TaskPriority = TaskPriority.NORMAL,
     temperature = 0.7,
     agentId?: string,
+    timeout?: number,
   ): Promise<string> {
     const task = new DirectorTask({
       id: crypto.randomUUID(),
       type: "llm_text",
       priority,
-      data: { prompt, temperature },
+      data: { prompt, temperature, timeout },
       created_at: new Date(),
     });
 
@@ -84,12 +85,13 @@ export class LLMQueue {
     priority: TaskPriority = TaskPriority.NORMAL,
     temperature = 0.7,
     agentId?: string,
+    timeout?: number,
   ): Promise<Record<string, unknown>> {
     const task = new DirectorTask({
       id: crypto.randomUUID(),
       type: "llm_json",
       priority,
-      data: { prompt, temperature },
+      data: { prompt, temperature, timeout },
       created_at: new Date(),
     });
 
@@ -119,12 +121,12 @@ export class LLMQueue {
         if (task.type === "llm_text") {
           result = await llm.generateText(
             task.data.prompt as string,
-            { temperature: task.data.temperature as number },
+            { temperature: task.data.temperature as number, timeout: task.data.timeout as number | undefined },
           );
         } else {
           result = await llm.generateJson(
             task.data.prompt as string,
-            { temperature: task.data.temperature as number },
+            { temperature: task.data.temperature as number, timeout: task.data.timeout as number | undefined },
           );
         }
         resolve(result);

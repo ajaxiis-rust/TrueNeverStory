@@ -11,7 +11,7 @@ const envSchema = z.object({
   WORLD_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   WORLD_EMBEDDING_BASE_URL: z.string().default(""),
   WORLD_EMBEDDING_API_KEY: z.string().default(""),
-  WORLD_LLM_TIMEOUT: z.coerce.number().default(120),
+  WORLD_LLM_TIMEOUT: z.coerce.number().default(300),
   WORLD_LLM_MAX_TOKENS: z.coerce.number().default(4096),
   WORLD_LLM_TEMPERATURE: z.coerce.number().default(0.7),
   WORLD_LLM_MAX_RETRIES: z.coerce.number().default(3),

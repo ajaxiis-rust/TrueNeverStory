@@ -52,7 +52,7 @@ export class LlamaCppProvider implements LLMProvider {
       method: "POST",
       headers: this._headers,
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout((this._config.timeout ?? 120) * 1000),
+      signal: AbortSignal.timeout((options?.timeout ?? this._config.timeout ?? 300) * 1000),
     });
 
     if (!response.ok) {
@@ -146,7 +146,7 @@ export class LlamaCppProvider implements LLMProvider {
       method: "POST",
       headers: this._headers,
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout((this._config.timeout ?? 120) * 1000),
+      signal: AbortSignal.timeout((options?.timeout ?? this._config.timeout ?? 300) * 1000),
     });
 
     if (!response.ok) {

@@ -89,6 +89,7 @@ launch.post("/launch", async (c) => {
       race: params.race,
       social_class: params.social_class,
       birthplace: params.birthplace,
+      initial_location: params.initial_location,
     });
   } catch (err) {
     log.error({ err }, "Launch failed");

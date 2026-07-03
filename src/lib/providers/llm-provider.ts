@@ -44,6 +44,7 @@ export interface LLMRequestOptions {
   maxTokens?: number;
   jsonMode?: boolean;
   systemPrompt?: string;
+  timeout?: number;
 }
 
 export interface LLMProvider {

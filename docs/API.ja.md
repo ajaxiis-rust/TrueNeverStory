@@ -440,4 +440,4 @@ API キーを削除。
 
 ---
 
-*生成日: 2026-06-27 | TrueNeverStory v0.11.4*
+*生成日: 2026-06-27 | TrueNeverStory v0.12.0*

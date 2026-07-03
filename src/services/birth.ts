@@ -427,7 +427,7 @@ Generate a JSON object representing this family. Use your creativity to make the
 Return ONLY the JSON object. Be creative but keep it appropriate to the social class.`;
 
   try {
-    const result = await llmQueue.generateJson(prompt, TaskPriority.LOW, 0.8);
+    const result = await llmQueue.generateJson(prompt, TaskPriority.LOW, 0.8, undefined, 600);
     return parseFamilyTree(result);
   } catch (err) {
     log.warn({ err }, "Failed to generate family tree, using minimal");
@@ -463,7 +463,7 @@ Generate a JSON object representing their past life:
 Return ONLY the JSON object. Be creative!`;
 
   try {
-    const result = await llmQueue.generateJson(prompt, TaskPriority.LOW, 0.9);
+    const result = await llmQueue.generateJson(prompt, TaskPriority.LOW, 0.9, undefined, 600);
     return {
       past_name: (result.past_name as string) ?? "Unknown",
       past_world: (result.past_world as string) ?? "Unknown",
@@ -517,7 +517,7 @@ Return ONLY a first name, no last name. Be creative and appropriate to the cultu
 
   let baseName = "Newborn";
   try {
-    const result = await llmQueue.generateJson(prompt, TaskPriority.LOW, 0.8);
+    const result = await llmQueue.generateJson(prompt, TaskPriority.LOW, 0.8, undefined, 600);
     baseName = (result.name as string) ?? "Newborn";
   } catch {
     // Use default
@@ -606,7 +606,7 @@ Keep it to 3 paragraphs maximum. Make it feel like the opening of a high-quality
 Return ONLY the narrative text, no JSON.`;
 
   try {
-    const result = await llmQueue.generateText(prompt, TaskPriority.LOW, 0.9);
+    const result = await llmQueue.generateText(prompt, TaskPriority.LOW, 0.9, undefined, 600);
     return result || `${name} was born into the world.`;
   } catch {
     return `${name} was born to a ${socialClass} family in ${birthplace}. The world awaits their journey.`;

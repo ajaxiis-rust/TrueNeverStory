@@ -440,4 +440,4 @@ When password auth is enabled, sessions use HttpOnly cookies. Include `credentia
 
 ---
 
-*Generated: 2026-06-27 | TrueNeverStory v0.11.4*
+*Generated: 2026-06-27 | TrueNeverStory v0.12.0*
