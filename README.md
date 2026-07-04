@@ -1,9 +1,9 @@
-# TrueNeverStory v0.12.0 – Building Rich Interactive Narrative Games
+# TrueNeverStory v0.14.1 – Building Rich Interactive Narrative Games
 
-**TrueNeverStory v0.12.0** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
+**TrueNeverStory v0.14.1** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
 
 - **TypeScript (Bun + Hono)** – Web server, API, WebSocket, routing, auth, streaming, business logic
-- **Mojo FFI** – Compute kernels for probability calculations and vector operations (optional, with TypeScript fallback)
+- **C FFI Kernels** – Compute kernels for probability calculations and vector operations (compiled via Zig, with TypeScript fallback)
 
 > *"From a single prompt to a living, breathing world – where every NPC remembers, every action has a chance, and the story never stops."*
 
@@ -73,9 +73,9 @@
 │  │           Data Layer (EntityStore + JSON)            │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │      Mojo FFI (optional, auto-detected)            │  │
+│  │      C FFI Kernels (compiled via Zig)              │  │
 │  │  Probability Kernels │ Vector Operations           │  │
-│  │  .so/.dylib → dlopen() or TypeScript fallback      │  │
+│  │  .so/.dylib/.dll → dlopen() or TypeScript fallback │  │
 │  └────────────────────────────────────────────────────┘  │
 └───────────────────────┬─────────────────────────────────┘
                         │ HTTP (OpenAI-compatible)
@@ -88,26 +88,38 @@
 
 ## Platform Compatibility
 
-| Платформа | Статус | Mojo FFI | Запуск | Заметки |
-|-----------|:------:|:--------:|--------|---------|
+| Платформа | Статус | FFI | Запуск | Заметки |
+|-----------|:------:|:---:|--------|---------|
 | Linux x86_64 | ✅ Full | ✅ | `./tns-server` | Полная поддержка |
 | Linux ARM64 | ✅ Full | ✅ | `./tns-server` | Полная поддержка |
+| Linux ARMv7 | ✅ Full | ✅ | `./tns-server` | ARMhf |
+| Linux RISC-V | ✅ Full | ✅ | `./tns-server` | RISC-V 64 |
+| Linux musl | ✅ Full | ✅ | `./tns-server` | Alpine, static |
 | macOS ARM64 | ✅ Full | ✅ | `./tns-server` | Apple Silicon |
 | macOS x86_64 | ✅ Full | ✅ | `./tns-server` | Intel Mac |
-| Windows x86_64 | ✅ Fallback | ❌ | `tns-server.exe` | TypeScript fallback |
+| Windows x86_64 | ✅ Full | ✅ | `tns-server.exe` | C FFI via Zig |
+| Windows ARM64 | ✅ Full | ✅ | `tns-server.exe` | C FFI via Zig |
 
-### Mojo vs TypeScript Backend
+### C FFI vs TypeScript Backend
 
-Сервер автоматически определяет доступность Mojo ядер:
+Сервер автоматически определяет доступность FFI ядер:
 
-- **Mojo backend** — вычисления через FFI (~10-50x быстрее для векторных операций)
+- **C FFI backend** — вычисления через динамическую библиотеку (~10-50x быстрее для векторных операций)
 - **TypeScript fallback** — чистый TypeScript (работает везде, медленнее)
 
 Проверить backend: `getBackend()` → `"mojo"` или `"typescript"`
 
-### Windows
+### Cross-Compilation
 
-Windows полностью поддерживается через TypeScript fallback. Mojo `.so` не компилируются для Windows (Mojo не поддерживает MSVC). Все функции работают одинаково — разница только в производительности вычислений. WSL2 не требуется.
+Ядра компилируются через Zig для всех платформ:
+
+```bash
+./mojo/kernels/build.sh aarch64-linux    # ARM64 Linux
+./mojo/kernels/build.sh x86_64-linux     # x86_64 Linux
+./mojo/kernels/build.sh aarch64-macos    # Apple Silicon
+./mojo/kernels/build.sh x86_64-windows   # Windows x64
+./mojo/kernels/build.sh list             # Все таргеты
+```
 
 См. [COMPILE.md](COMPILE.md) для деталей.
 
@@ -300,21 +312,17 @@ docker run -p 8000:8000 \
 ### Compiling from Source
 
 ```bash
-# Install Mojo (optional, for performance kernels)
-curl https://get.modular.com | sh
-modular install mojo
+# Install Zig (for cross-compiling FFI kernels)
+# https://ziglang.org/download/
 
-# Compile for current platform
-./build.sh compile
+# Build FFI kernels for current platform
+cd mojo/kernels && ./build.sh native
 
-# Compile for specific platform
-./build.sh compile linux-x64
-./build.sh compile macos-arm64
+# Build for specific platform
+./build.sh aarch64-linux
+./build.sh x86_64-windows
 
-# Cross-compile for all platforms
-./build.sh cross
-
-# See COMPILE.md for full details
+# See mojo/kernels/build.sh list for all targets
 ```
 
 ---
@@ -391,6 +399,14 @@ modular install mojo
 | POST | `/api/launch` | Start new game |
 | POST | `/api/continue` | Resume game |
 | GET | `/api/health` | Health check |
+
+### System (Background Processing)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/system/pause` | Pause director loop and LLM queue |
+| POST | `/api/system/resume` | Resume director loop and LLM queue |
+| GET | `/api/system/status` | Get pause/running status |
 
 ### Agents
 
@@ -538,6 +554,36 @@ bun run build
 ---
 
 ## Recent Changes
+
+### C FFI Kernels & Cross-Compilation (v0.14.1)
+
+Ported Mojo compute kernels to C with Zig cross-compilation for 10 platforms:
+
+| Feature | Description |
+|---------|-------------|
+| **C FFI Kernels** | 5 compute kernels ported from Mojo to pure C (probability, vector, vector_full, batch_ops, graph_ops) |
+| **Zig Cross-Compilation** | Single build script compiles for Linux, macOS, Windows, ARM, RISC-V |
+| **10 Platform Targets** | aarch64/x86_64 Linux (glibc+musl), macOS, Windows, ARMv7, RISC-V |
+| **Distributable Packages** | Each release archive contains binary + FFI .so/.dll + public/ + .env |
+| **Pause/Resume** | Director loop and LLM queue pause when user leaves chat view |
+| **CI Workflow** | GitHub Actions builds all platforms and creates release automatically |
+
+**New files:**
+- `mojo/kernels/c/probability_ffi.c` — Probability kernels (success chance, roll, batch)
+- `mojo/kernels/c/vector_ffi.c` — 4-dim vector operations (cosine, L2, dot)
+- `mojo/kernels/c/vector_full.c` — Full-dimension vector operations (768-dim)
+- `mojo/kernels/c/batch_ops.c` — Batch NPC operations (age decay, vice, tax, loyalty)
+- `mojo/kernels/c/graph_ops.c` — Graph traversal, RRF fusion, reputation
+- `mojo/kernels/build.sh` — Cross-compilation via Zig
+- `mojo/kernels/package.sh` — Creates distributable archives
+- `src/routes/system.ts` — Pause/resume API endpoints
+- `.github/workflows/build.yaml` — CI build for all platforms
+
+**Modified files:**
+- `src/services/director-loop.ts` — Added `pause()`/`resume()` methods
+- `src/lib/llm-queue.ts` — Added `pause()`/`resume()` methods
+- `src/services/narrative-service.ts` — Added `pause()`/`resume()` delegation
+- `public/index.html` — Auto-pause on page leave, auto-resume on page load
 
 ### Birth System & Model Catalog (v0.12.0)
 
