@@ -16,42 +16,36 @@ jobs:
     strategy:
       matrix:
         include:
-          # Linux x64
           - os: ubuntu-latest
             target_bun: bun-linux-x64
             artifact: tns-linux-x64
             so_ext: ".so"
 
-          # Linux arm64
           - os: ubuntu-22.04-arm
             target_bun: bun-linux-arm64
             artifact: tns-linux-arm64
             so_ext: ".so"
 
-          # macOS arm64
           - os: macos-latest
             target_bun: bun-darwin-arm64
             artifact: tns-macos-arm64
             so_ext: ".dylib"
 
-          # macOS x64 (cross-compiled from arm64)
           - os: macos-latest
             target_bun: bun-darwin-x64
             artifact: tns-macos-x64
             so_ext: ".dylib"
 
-          # Windows (только Bun, без Mojo)
           - os: windows-latest
             target_bun: bun-windows-x64
             artifact: tns-windows-x64
-            so_ext: ""   # без Mojo
+            so_ext: ""
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v5
 
-      # === Bun ===
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -60,10 +54,13 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Type check
+        run: bun run lint
+
       - name: Build Bun binary
+        shell: bash
         run: |
           OUT="tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }}"
-          # Cross-compile: only when target arch differs from runner
           if [[ "${{ runner.arch }}" == "X64" && "${{ matrix.target_bun }}" == *"arm64"* ]] || \
              [[ "${{ runner.arch }}" == "ARM64" && "${{ matrix.target_bun }}" == *"x64"* ]]; then
             echo "Cross-compiling: ${{ matrix.target_bun }}"
@@ -73,40 +70,73 @@ jobs:
             bun build --compile --outfile "$OUT" src/index.ts
           fi
 
-      # === Mojo FFI (только Linux + macOS) ===
-      - name: Setup Mojo
-        if: matrix.os != 'windows-latest'
-        uses: fabasoad/setup-mojo-action@v3
+      # === Mojo FFI (Linux + macOS only) ===
+      - name: Install Mojo
+        if: runner.os != 'Windows'
+        uses: maxmagic/setup-mojo@v1
 
       - name: Build Mojo Kernels
-        if: matrix.os != 'windows-latest'
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
-          cd mojo
-          
-          # kernels
-          mojo build --emit shared-lib -O3 \
-            -o ../libtns_kernels${{ matrix.so_ext }} \
-            kernels/probability_ffi.mojo
+          if ! command -v mojo &>/dev/null; then
+            echo "::warning::Skipping Mojo kernels — mojo compiler not available"
+            exit 0
+          fi
 
-          # vectors
-          mojo build --emit shared-lib -O3 \
-            -o ../libtns_vectors${{ matrix.so_ext }} \
-            kernels/vector_ffi.mojo
+          echo "Mojo version: $(mojo --version)"
+          cd mojo
+
+          SO_EXT="${{ matrix.so_ext }}"
+          FAILED=0
+
+          # All 5 kernels
+          declare -A KERNELS=(
+            ["probability_ffi"]="libtns_kernels"
+            ["vector_ffi"]="libtns_vectors"
+            ["vector_full"]="libtns_vector_full"
+            ["batch_ops"]="libtns_batch_ops"
+            ["graph_ops"]="libtns_graph_ops"
+          )
+
+          for src in "${!KERNELS[@]}"; do
+            name="${KERNELS[$src]}"
+            echo "Building ${name}${SO_EXT} from ${src}.mojo..."
+            if mojo build --emit shared-lib -O3 \
+              -o "../${name}${SO_EXT}" \
+              "kernels/${src}.mojo" 2>&1; then
+              echo "  ✓ ${name}${SO_EXT}"
+            else
+              echo "  ✗ Failed: ${name}${SO_EXT}"
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          echo ""
+          echo "Built libraries:"
+          ls -lh ../*.so ../*.dylib 2>/dev/null || echo "(none)"
+
+          if [[ $FAILED -gt 0 ]]; then
+            echo "::warning::${FAILED} Mojo kernel(s) failed to build"
+          fi
 
       - name: Package
         shell: bash
         run: |
           mkdir -p release/${{ matrix.artifact }}
-          
+
           cp tns-server* release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp -r public/ release/${{ matrix.artifact }}/ 2>/dev/null || true
-          
-          # Копируем Mojo .so/.dylib
-          if [[ -f libtns_kernels${{ matrix.so_ext }} ]]; then
-            cp libtns_kernels${{ matrix.so_ext }} release/${{ matrix.artifact }}/
-            cp libtns_vectors${{ matrix.so_ext }} release/${{ matrix.artifact }}/
-          fi
-          
+
+          # Copy Mojo .so/.dylib
+          for lib in libtns_kernels libtns_vectors libtns_vector_full libtns_batch_ops libtns_graph_ops; do
+            SO="${lib}${{ matrix.so_ext }}"
+            if [[ -f "$SO" ]]; then
+              cp "$SO" release/${{ matrix.artifact }}/
+              echo "  Packaged: $SO ($(du -h "$SO" | cut -f1))"
+            fi
+          done
+
           cp .env.example release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp startgame.sh release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp README.md release/${{ matrix.artifact }}/
@@ -116,8 +146,13 @@ jobs:
             cd release && 7z a ${{ matrix.artifact }}.zip ${{ matrix.artifact }}/
           else
             chmod +x release/${{ matrix.artifact }}/tns-server* 2>/dev/null || true
+            chmod +x release/${{ matrix.artifact }}/startgame.sh 2>/dev/null || true
             cd release && tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}/
           fi
+
+          echo ""
+          echo "=== Package contents ==="
+          ls -lh release/${{ matrix.artifact }}/
 
       - uses: actions/upload-artifact@v7
         with:
@@ -131,6 +166,9 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
+
+      - name: List all artifacts
+        run: find artifacts -type f -name '*.tar.gz' -o -name '*.zip' | sort
 
       - uses: softprops/action-gh-release@v3
         with:
