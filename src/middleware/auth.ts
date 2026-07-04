@@ -80,7 +80,7 @@ function createSessionToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-function isSessionValid(token: string): boolean {
+export function isSessionValid(token: string): boolean {
   const created = sessions.get(token);
   if (!created) return false;
   if (Date.now() - created > SESSION_TTL) {

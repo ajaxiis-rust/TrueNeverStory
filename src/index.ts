@@ -5,6 +5,7 @@
 import { loadConfig, getConfig } from "./config/env";
 import { getLogger } from "./utils/logger";
 import { createApp } from "./app";
+import { isSessionValid } from "./middleware/auth";
 import { NarrativeService } from "./services/narrative-service";
 import { setEngine, setWSManager } from "./routes/chat";
 import { setWorldServices } from "./routes/worlds";
@@ -148,8 +149,9 @@ async function main() {
 
       if (url.pathname.startsWith("/ws")) {
         const cookie = req.headers.get("cookie") ?? "";
-        const hasSession = cookie.includes("bring_session=");
-        if (!hasSession && cfg.AUTH_PASSWORD) {
+        const match = cookie.match(/bring_session=([a-f0-9]+)/);
+        const token = match?.[1];
+        if ((!token || !isSessionValid(token)) && cfg.AUTH_PASSWORD) {
           return new Response("Unauthorized", { status: 401 });
         }
         const upgraded = server.upgrade(req);
