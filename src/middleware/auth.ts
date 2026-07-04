@@ -227,7 +227,7 @@ export const loginHandler: MiddlewareHandler = async (c) => {
   log.info({ ip }, "Successful login");
 
   // Set cookie and redirect
-  c.header("Set-Cookie", `bring_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL / 1000}`);
+  c.header("Set-Cookie", `bring_session=${token}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=${SESSION_TTL / 1000}`);
   return c.redirect("/");
 };
 
@@ -235,6 +235,6 @@ export const loginHandler: MiddlewareHandler = async (c) => {
 export const logoutHandler: MiddlewareHandler = async (c) => {
   const token = getSessionToken(c);
   if (token) sessions.delete(token);
-  c.header("Set-Cookie", "bring_session=; Path=/; HttpOnly; Max-Age=0");
+  c.header("Set-Cookie", "bring_session=; Path=/; HttpOnly; Secure; Max-Age=0");
   return c.redirect("/login");
 };
