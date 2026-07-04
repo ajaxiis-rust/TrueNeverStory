@@ -1,9 +1,9 @@
-# TrueNeverStory v0.12.0 – Plateforme de jeux narratifs interactifs
+# TrueNeverStory v0.14.1 – Plateforme de jeux narratifs interactifs
 
-**TrueNeverStory v0.12.0** est une réimplémentation moderne de la plateforme de mondes fantastiques [BRING](https://github.com/Eva-E1/BRING), migrée de Python vers une stack hybride haute performance :
+**TrueNeverStory v0.14.1** est une réimplémentation moderne de la plateforme de mondes fantastiques [BRING](https://github.com/Eva-E1/BRING), migrée de Python vers une stack hybride haute performance :
 
 - **TypeScript (Bun + Hono)** – Serveur web, API, WebSocket, routage, auth, streaming, logique métier
-- **Mojo FFI** – Noyaux de calcul pour les probabilités et opérations vectorielles (optionnel, avec fallback TypeScript)
+- **Noyaux C FFI (compilés via Zig, avec fallback TypeScript)** – Noyaux de calcul pour les probabilités et opérations vectorielles (compilés via Zig, avec fallback TypeScript)
 
 > *«D'un seul prompt à un monde vivant et respirant – où chaque NPC se souvient, chaque action a une chance, et l'histoire ne s'arrête jamais.»*
 
@@ -68,8 +68,9 @@
 │  │           Couche de données (EntityStore + JSON)    │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │      Mojo FFI (optionnel, détection automatique)   │  │
+│  │      Noyaux C FFI (compilés via Zig)                 │  │
 │  │  Noyaux de probabilité │ Opérations vectorielles  │  │
+│  │  .so/.dylib/.dll → dlopen() ou fallback TypeScript │  │
 │  └────────────────────────────────────────────────────┘  │
 └───────────────────────┬─────────────────────────────────┘
                         │ HTTP (compatible OpenAI)
@@ -346,6 +347,14 @@ modular install mojo
 | POST | `/api/continue` | Reprendre la partie |
 | GET | `/api/health` | Vérification de santé |
 
+### Système (traitement en arrière-plan)
+
+| Méthode | Point de terminaison | Description |
+|---------|---------------------|-------------|
+| POST | `/api/system/pause` | Mettre en pause la boucle du directeur et la file LLM |
+| POST | `/api/system/resume` | Reprendre la boucle du directeur et la file LLM |
+| GET | `/api/system/status` | Obtenir le statut pause/en cours |
+
 ### Agents
 
 | Méthode | Point de terminaison | Description |
@@ -464,6 +473,33 @@ bun run build
 ---
 
 ## Dernières modifications
+
+### Noyaux C FFI et compilation croisée (v0.14.1)
+
+Portage des noyaux de calcul Mojo en C avec compilation croisée Zig pour 10 plateformes :
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Noyaux C FFI** | 5 noyaux de calcul portés de Mojo vers du C pur (probability, vector, vector_full, batch_ops, graph_ops) |
+| **Compilation croisée Zig** | Script de build unique pour Linux, macOS, Windows, ARM, RISC-V |
+| **10 cibles plateformes** | aarch64/x86_64 Linux (glibc+musl), macOS, Windows, ARMv7, RISC-V |
+| **Packages distribuables** | Chaque archive de release contient binaire + FFI .so/.dll + public/ + .env |
+| **Pause/Reprise** | La boucle du directeur et la file LLM se mettent en pause quand l'utilisateur quitte le chat |
+
+**Nouveaux fichiers :**
+- `mojo/kernels/c/probability_ffi.c` — Noyaux de probabilités (chance de succès, lancement, batch)
+- `mojo/kernels/c/vector_ffi.c` — Opérations vectorielles 4-dim (cosinus, L2, produit scalaire)
+- `mojo/kernels/c/vector_full.c` — Opérations vectorielles pleine dimension (768-dim)
+- `mojo/kernels/c/batch_ops.c` — Opérations batch NPC (décroissance, vices, impôts, loyauté)
+- `mojo/kernels/c/graph_ops.c` — Parcours de graphe, fusion RRF, réputation
+- `mojo/kernels/build.sh` — Compilation croisée via Zig
+- `src/routes/system.ts` — Points de terminaison API pause/reprise
+
+**Fichiers modifiés :**
+- `src/services/director-loop.ts` — Méthodes `pause()`/`resume()` ajoutées
+- `src/lib/llm-queue.ts` — Méthodes `pause()`/`resume()` ajoutées
+- `src/services/narrative-service.ts` — Délégation `pause()`/`resume()` ajoutée
+- `public/index.html` — Auto-pause à la fermeture de page, auto-reprise au chargement
 
 ### Extension du noyau Mojo (v0.12.0)
 

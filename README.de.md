@@ -1,9 +1,9 @@
-# TrueNeverStory v0.12.0 – Plattform für interaktive narratives Spielen
+# TrueNeverStory v0.14.1 – Plattform für interaktive narratives Spielen
 
-**TrueNeverStory v0.12.0** ist eine moderne Neuimplementierung der [BRING](https://github.com/Eva-E1/BRING) Fantasy-Welt-Plattform, migriert von Python zu einem leistungsstarken Hybrid-Stack:
+**TrueNeverStory v0.14.1** ist eine moderne Neuimplementierung der [BRING](https://github.com/Eva-E1/BRING) Fantasy-Welt-Plattform, migriert von Python zu einem leistungsstarken Hybrid-Stack:
 
 - **TypeScript (Bun + Hono)** – Webserver, API, WebSocket, Routing, Auth, Streaming, Geschäftslogik
-- **Mojo FFI** – Compute-Kerne für Wahrscheinlichkeitsberechnungen und Vektoroperationen (optional, mit TypeScript-Fallback)
+- **C-FFI-Kernels (mit Zig kompiliert, mit TypeScript-Fallback)** – Compute-Kerne für Wahrscheinlichkeitsberechnungen und Vektoroperationen (mit Zig kompiliert, mit TypeScript-Fallback)
 
 > *"Von einem einzigen Prompt zu einer lebendigen, atmenden Welt – in der sich jeder NPC erinnert, jede Handlung eine Chance hat und die Geschichte nie aufhört."*
 
@@ -68,9 +68,9 @@
 │  │           Datenschicht (EntityStore + JSON)          │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │      Mojo FFI (optional, automatisch erkannt)      │  │
+│  │      C FFI Kernels (mit Zig kompiliert)             │  │
 │  │  Wahrscheinlichkeitskerne │ Vektoroperationen      │  │
-│  │  .so/.dylib → dlopen() oder TypeScript-Fallback     │  │
+│  │  .so/.dylib/.dll → dlopen() oder TypeScript-Fallback│  │
 │  └────────────────────────────────────────────────────┘  │
 └───────────────────────┬─────────────────────────────────┘
                         │ HTTP (OpenAI-kompatibel)
@@ -359,6 +359,14 @@ modular install mojo
 | POST | `/api/continue` | Spiel fortsetzen |
 | GET | `/api/health` | Gesundheitsprüfung |
 
+### System (Hintergrundverarbeitung)
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|--------------|
+| POST | `/api/system/pause` | Direktor-Schleife und Warteschlange pausieren |
+| POST | `/api/system/resume` | Direktor-Schleife und Warteschlange fortsetzen |
+| GET | `/api/system/status` | Pausen-/Laufstatus abrufen |
+
 ### Agenten
 
 | Methode | Endpunkt | Beschreibung |
@@ -477,6 +485,33 @@ bun run build
 ---
 
 ## Letzte Änderungen
+
+### C-FFI-Kernels & Cross-Kompilierung (v0.14.1)
+
+Portierung der Mojo-Berechnungskerne nach C mit Zig-Cross-Kompilierung für 10 Plattformen:
+
+| Funktion | Beschreibung |
+|----------|--------------|
+| **C-FFI-Kernels** | 5 Compute-Kerne von Mojo nach reinem C portiert (probability, vector, vector_full, batch_ops, graph_ops) |
+| **Zig Cross-Kompilierung** | Einzelnes Build-Skript kompiliert für Linux, macOS, Windows, ARM, RISC-V |
+| **10 Plattformziele** | aarch64/x86_64 Linux (glibc+musl), macOS, Windows, ARMv7, RISC-V |
+| **Verteilungspakete** | Jedes Release-Archiv enthält Binärdatei + FFI .so/.dll + public/ + .env |
+| **Pause/Resume** | Direktor-Schleife und LLM-Warteschlange pausieren beim Verlassen der Chat-Ansicht |
+
+**Neue Dateien:**
+- `mojo/kernels/c/probability_ffi.c` — Wahrscheinlichkeitskerne (Erfolgschance, Wurf, Batch)
+- `mojo/kernels/c/vector_ffi.c` — 4-dim Vektoroperationen (Kosinus, L2, Skalarprodukt)
+- `mojo/kernels/c/vector_full.c` — Vollständige Vektoroperationen (768-dim)
+- `mojo/kernels/c/batch_ops.c` — Batch-NPC-Operationen (Altersabbau, Laster, Steuern, Loyalität)
+- `mojo/kernels/c/graph_ops.c` — Graphtraversierung, RRF-Fusion, Reputation
+- `mojo/kernels/build.sh` — Cross-Kompilierung via Zig
+- `src/routes/system.ts` — Pause/Resume API-Endpunkte
+
+**Geänderte Dateien:**
+- `src/services/director-loop.ts` — `pause()`/`resume()`-Methoden hinzugefügt
+- `src/lib/llm-queue.ts` — `pause()`/`resume()`-Methoden hinzugefügt
+- `src/services/narrative-service.ts` — `pause()`/`resume()`-Delegation hinzugefügt
+- `public/index.html` — Auto-Pause beim Seitenverlassen, Auto-Resume beim Laden
 
 ### Mojo-Kernel-Erweiterung (v0.12.0)
 

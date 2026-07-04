@@ -1,9 +1,9 @@
-# TrueNeverStory v0.12.0 – Plataforma de Juegos Narrativos Interactivos
+# TrueNeverStory v0.14.1 – Plataforma de Juegos Narrativos Interactivos
 
-**TrueNeverStory v0.12.0** es una reimplementación moderna de la plataforma de mundos de fantasía [BRING](https://github.com/Eva-E1/BRING), migrada de Python a un stack híbrido de alto rendimiento:
+**TrueNeverStory v0.14.1** es una reimplementación moderna de la plataforma de mundos de fantasía [BRING](https://github.com/Eva-E1/BRING), migrada de Python a un stack híbrido de alto rendimiento:
 
 - **TypeScript (Bun + Hono)** – Servidor web, API, WebSocket, enrutamiento, auth, streaming, lógica de negocio
-- **Mojo FFI** – Núcleos de cómputo para cálculos de probabilidad y operaciones vectoriales (opcional, con fallback TypeScript)
+- **C FFI Kernels (compilados vía Zig, con respaldo TypeScript)** – Núcleos de cómputo para cálculos de probabilidad y operaciones vectoriales (compilados vía Zig, con respaldo TypeScript)
 
 > *"De un solo prompt a un mundo vivo y respirando – donde cada NPC recuerda, cada acción tiene una oportunidad, y la historia nunca se detiene."*
 
@@ -68,8 +68,9 @@
 │  │           Capa de Datos (EntityStore + JSON)        │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │      Mojo FFI (opcional, auto-detectado)           │  │
+│  │      C FFI Kernels (compilados vía Zig)              │  │
 │  │  Núcleos de probabilidad │ Operaciones vectoriales│  │
+│  │  .so/.dylib/.dll → dlopen() o respaldo TypeScript │  │
 │  └────────────────────────────────────────────────────┘  │
 └───────────────────────┬─────────────────────────────────┘
                         │ HTTP (compatible con OpenAI)
@@ -346,6 +347,14 @@ modular install mojo
 | POST | `/api/continue` | Continuar juego |
 | GET | `/api/health` | Verificación de salud |
 
+### Sistema (procesamiento en segundo plano)
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/api/system/pause` | Pausar bucle del director y cola LLM |
+| POST | `/api/system/resume` | Reanudar bucle del director y cola LLM |
+| GET | `/api/system/status` | Obtener estado de pausa/ejecución |
+
 ### Agentes
 
 | Método | Endpoint | Descripción |
@@ -464,6 +473,33 @@ bun run build
 ---
 
 ## Cambios Recientes
+
+### C FFI Kernels y compilación cruzada (v0.14.1)
+
+Portado de kernels de cómputo Mojo a C puro con compilación cruzada Zig para 10 plataformas:
+
+| Característica | Descripción |
+|----------------|-------------|
+| **C FFI Kernels** | 5 kernels de cómputo portados de Mojo a C puro (probability, vector, vector_full, batch_ops, graph_ops) |
+| **Compilación cruzada Zig** | Script de compilación único para Linux, macOS, Windows, ARM, RISC-V |
+| **10 objetivos de plataforma** | aarch64/x86_64 Linux (glibc+musl), macOS, Windows, ARMv7, RISC-V |
+| **Paquetes distribuibles** | Cada archivo de release contiene binario + FFI .so/.dll + public/ + .env |
+| **Pausa/Reanudación** | Bucle del director y cola LLM se pausan cuando el usuario abandona el chat |
+
+**Archivos nuevos:**
+- `mojo/kernels/c/probability_ffi.c` — Kernels de probabilidad (chance de éxito, tirada, batch)
+- `mojo/kernels/c/vector_ffi.c` — Operaciones vectoriales 4-dim (coseno, L2, producto escalar)
+- `mojo/kernels/c/vector_full.c` — Operaciones vectoriales de dimensión completa (768-dim)
+- `mojo/kernels/c/batch_ops.c` — Operaciones batch NPC (decadencia, vices, impuestos, lealtad)
+- `mojo/kernels/c/graph_ops.c` — Recorrido de grafo, fusión RRF, reputación
+- `mojo/kernels/build.sh` — Compilación cruzada vía Zig
+- `src/routes/system.ts` — Endpoints de API pausa/reanudación
+
+**Archivos modificados:**
+- `src/services/director-loop.ts` — Métodos `pause()`/`resume()` añadidos
+- `src/lib/llm-queue.ts` — Métodos `pause()`/`resume()` añadidos
+- `src/services/narrative-service.ts` — Delegación `pause()`/`resume()` añadida
+- `public/index.html` — Auto-pausa al abandonar página, auto-reanudación al cargar
 
 ### Expansión del kernel Mojo (v0.12.0)
 

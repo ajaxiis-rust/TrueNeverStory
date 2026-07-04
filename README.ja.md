@@ -1,9 +1,9 @@
-# TrueNeverStory v0.12.0 – インタラクティブ・ナラティブ・ゲームプラットフォーム
+# TrueNeverStory v0.14.1 – インタラクティブ・ナラティブ・ゲームプラットフォーム
 
-**TrueNeverStory v0.12.0** は、[BRING](https://github.com/Eva-E1/BRING)ファンタジー世界プラットフォームの現代的な再実装で、Pythonから高性能ハイブリッドスタックに移行されました：
+**TrueNeverStory v0.14.1** は、[BRING](https://github.com/Eva-E1/BRING)ファンタジー世界プラットフォームの現代的な再実装で、Pythonから高性能ハイブリッドスタックに移行されました：
 
 - **TypeScript (Bun + Hono)** – Webサーバー、API、WebSocket、ルーティング、認証、ストリーミング、ビジネスロジック
-- **Mojo FFI** – 確率計算およびベクトル演算用のコンピュータカーネル（オプション、TypeScriptフォールバック付き）
+- **C FFIカーネル（Zigでコンパイル、TypeScriptフォールバック付き）** – 確率計算およびベクトル演算用のコンピュータカーネル（Zigでコンパイル、TypeScriptフォールバック付き）
 
 > *「単一のプロンプトから、生き生きとした世界へ――すべてのNPCが覚え、すべての行動がチャンスを持ち、物語は決して終わらない。」*
 
@@ -68,8 +68,9 @@
 │  │           データ層 (EntityStore + JSON)               │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │      Mojo FFI (オプション、自動検出)                  │  │
+│  │      C FFIカーネル（Zigでコンパイル）                   │  │
 │  │  確率カーネル │ ベクトル演算                          │  │
+│  │  .so/.dylib/.dll → dlopen() またはTypeScriptフォールバック │  │
 │  └────────────────────────────────────────────────────┘  │
 └───────────────────────┬─────────────────────────────────┘
                         │ HTTP (OpenAI互換)
@@ -346,6 +347,14 @@ modular install mojo
 | POST | `/api/continue` | ゲーム再開 |
 | GET | `/api/health` | ヘルスチェック |
 
+### システム（バックグラウンド処理）
+
+| メソッド | エンドポイント | 説明 |
+|---------|---------------|------|
+| POST | `/api/system/pause` | ディレクターループとLLMキューを一時停止 |
+| POST | `/api/system/resume` | ディレクターループとLLMキューを再開 |
+| GET | `/api/system/status` | 一時停止/実行状態を取得 |
+
 ### エージェント
 
 | メソッド | エンドポイント | 説明 |
@@ -464,6 +473,33 @@ bun run build
 ---
 
 ## 最近の変更
+
+### C FFIカーネルとクロスコンパイル (v0.14.1)
+
+Mojo計算カーネルを純粋なCに移植し、Zigによる10プラットフォームのクロスコンパイルを実現：
+
+| 機能 | 説明 |
+|------|------|
+| **C FFIカーネル** | 5つの計算カーネルをMojoから純粋なCに移植（probability, vector, vector_full, batch_ops, graph_ops） |
+| **Zigクロスコンパイル** | Linux、macOS、Windows、ARM、RISC-V向けの単一ビルドスクリプト |
+| **10プラットフォームターゲット** | aarch64/x86_64 Linux (glibc+musl)、macOS、Windows、ARMv7、RISC-V |
+| **配布パッケージ** | 各リリースアーカイブにバイナリ + FFI .so/.dll + public/ + .envを含む |
+| **一時停止/再開** | ユーザーがチャットを離れた場合、ディレクターループとLLMキューを一時停止 |
+
+**新規ファイル:**
+- `mojo/kernels/c/probability_ffi.c` — 確率カーネル（成功率、ロール、バッチ）
+- `mojo/kernels/c/vector_ffi.c` — 4次元ベクトル演算（コサイン、L2、内積）
+- `mojo/kernels/c/vector_full.c` — フルディメンションベクトル演算（768次元）
+- `mojo/kernels/c/batch_ops.c` — バッチNPC操作（年齢減衰、悪習、税金、忠誠度）
+- `mojo/kernels/c/graph_ops.c` — グラフ走査、RRF融合、評判
+- `mojo/kernels/build.sh` — Zigによるクロスコンパイル
+- `src/routes/system.ts` — 一時停止/再開APIエンドポイント
+
+**変更ファイル:**
+- `src/services/director-loop.ts` — `pause()`/`resume()`メソッドを追加
+- `src/lib/llm-queue.ts` — `pause()`/`resume()`メソッドを追加
+- `src/services/narrative-service.ts` — `pause()`/`resume()`デリゲーションを追加
+- `public/index.html` — ページ離脱時の自動一時停止、ページ読み込み時の自動再開
 
 ### Mojoカーネル拡張 (v0.12.0)
 

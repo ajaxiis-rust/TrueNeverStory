@@ -1,9 +1,9 @@
-# TrueNeverStory v0.12.0 – 交互式叙事游戏平台
+# TrueNeverStory v0.14.1 – 交互式叙事游戏平台
 
-**TrueNeverStory v0.12.0** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
+**TrueNeverStory v0.14.1** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
 
 - **TypeScript (Bun + Hono)** – Web 服务器、API、WebSocket、路由、认证、流式传输、业务逻辑
-- **Mojo FFI** – 概率计算和向量操作的计算内核（可选，带 TypeScript 回退）
+- **C FFI内核（通过Zig编译，带TypeScript回退）** – 概率计算和向量操作的计算内核（通过Zig编译，带TypeScript回退）
 
 > *"从一个提示到一个活生生的世界——每个 NPC 都记得，每个行动都有机会，故事永不停止。"*
 
@@ -68,8 +68,9 @@
 │  │           数据层 (EntityStore + JSON)                │  │
 │  └────────────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │      Mojo FFI（可选，自动检测）                       │  │
+│  │      C FFI内核（通过Zig编译）                          │  │
 │  │  概率内核 │ 向量操作                                 │  │
+│  │  .so/.dylib/.dll → dlopen() 或 TypeScript回退       │  │
 │  └────────────────────────────────────────────────────┘  │
 └───────────────────────┬─────────────────────────────────┘
                         │ HTTP（兼容 OpenAI）
@@ -346,6 +347,14 @@ modular install mojo
 | POST | `/api/continue` | 继续游戏 |
 | GET | `/api/health` | 健康检查 |
 
+### 系统（后台处理）
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| POST | `/api/system/pause` | 暂停导演循环和LLM队列 |
+| POST | `/api/system/resume` | 恢复导演循环和LLM队列 |
+| GET | `/api/system/status` | 获取暂停/运行状态 |
+
 ### 代理
 
 | 方法 | 端点 | 描述 |
@@ -464,6 +473,33 @@ bun run build
 ---
 
 ## 最近更改
+
+### C FFI内核和交叉编译 (v0.14.1)
+
+将Mojo计算内核移植到纯C，通过Zig交叉编译支持10个平台：
+
+| 功能 | 描述 |
+|------|------|
+| **C FFI内核** | 5个计算内核从Mojo移植到纯C（probability, vector, vector_full, batch_ops, graph_ops） |
+| **Zig交叉编译** | 单一构建脚本，编译Linux、macOS、Windows、ARM、RISC-V |
+| **10个平台目标** | aarch64/x86_64 Linux (glibc+musl)、macOS、Windows、ARMv7、RISC-V |
+| **可分发包** | 每个发布包包含二进制文件 + FFI .so/.dll + public/ + .env |
+| **暂停/恢复** | 用户离开聊天时，导演循环和LLM队列暂停 |
+
+**新文件：**
+- `mojo/kernels/c/probability_ffi.c` — 概率内核（成功率、投掷、批量）
+- `mojo/kernels/c/vector_ffi.c` — 4维向量操作（余弦、L2、点积）
+- `mojo/kernels/c/vector_full.c` — 全维度向量操作（768维）
+- `mojo/kernels/c/batch_ops.c` — 批量NPC操作（年龄衰减、恶习、税收、忠诚度）
+- `mojo/kernels/c/graph_ops.c` — 图遍历、RRF融合、声誉
+- `mojo/kernels/build.sh` — 通过Zig交叉编译
+- `src/routes/system.ts` — 暂停/恢复API端点
+
+**修改的文件：**
+- `src/services/director-loop.ts` — 添加`pause()`/`resume()`方法
+- `src/lib/llm-queue.ts` — 添加`pause()`/`resume()`方法
+- `src/services/narrative-service.ts` — 添加`pause()`/`resume()`委托
+- `public/index.html` — 离开页面时自动暂停，加载时自动恢复
 
 ### Mojo内核扩展 (v0.12.0)
 
