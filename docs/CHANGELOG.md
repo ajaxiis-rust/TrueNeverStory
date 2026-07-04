@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.16.3 (2026-07-04)
+
+### Fix: Ollama Streaming Response Parsing
+
+Character creation (birth) fails with "Failed to parse JSON" when using Ollama.
+
+**Root cause:** `OllamaProvider` used the `/api/generate` endpoint without `stream: false`. Ollama returns streaming NDJSON by default, and `response.json()` on a stream throws `SyntaxError: Unexpected token` — a JSON parse error that cascades through the retry logic, ultimately falling back to minimal placeholder data.
+
+**Fixed:**
+- Added `stream: false` to Ollama `/api/generate` request body
+- Single non-streaming JSON response now parses correctly
+
 ## v0.16.2 (2026-07-04)
 
 ### Auth Cookie Fix for HTTP

@@ -26,6 +26,7 @@ export class OllamaProvider implements LLMProvider {
     const body: Record<string, unknown> = {
       model: this._config.defaultModel,
       prompt,
+      stream: false,
       options: {
         temperature: options.temperature ?? this._config.temperature ?? 0.7,
         num_predict: options.maxTokens ?? this._config.maxTokens ?? 4096,

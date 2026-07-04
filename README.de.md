@@ -1,4 +1,4 @@
-# TrueNeverStory v0.16.2
+# TrueNeverStory v0.16.3
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
