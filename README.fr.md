@@ -6,6 +6,8 @@ TrueNeverStory est un moteur de narration interactive propulsé par l'IA. Chaque
 
 Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les opérations critiques.
 
+**[English](README.md) | [Русский](README.ru.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+
 ---
 
 ## Fonctionnalités

@@ -6,6 +6,8 @@ TrueNeverStory — ИИ-движок интерактивных нарратив
 
 Построен на TypeScript (Bun + Hono) с C FFI ядрами вычислений для критичных к производительности операций.
 
+**[English](README.md) | [Deutsch](README.de.md) | [Français](README.fr.md) | [Español](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+
 ---
 
 ## Возможности

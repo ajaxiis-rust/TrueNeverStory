@@ -6,6 +6,8 @@ TrueNeverStory ist eine KI-gestützte interaktive Narrativ-Engine. Jeder NPC eri
 
 Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels für leistungskritische Operationen.
 
+**[English](README.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Español](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+
 ---
 
 ## Funktionen

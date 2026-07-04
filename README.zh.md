@@ -6,6 +6,8 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，
 
 基于 TypeScript (Bun + Hono) 构建，使用 C FFI 内核处理高性能计算。
 
+**[English](README.md) | [Русский](README.ru.md) | [Deutsch](README.de.md) | [Français](README.fr.md) | [Español](README.es.md) | [日本語](README.ja.md)**
+
 ---
 
 ## 功能特性
