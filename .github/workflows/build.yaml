@@ -15,35 +15,41 @@ env:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             artifact: tns-linux-x64
-            zig_target: x86_64-linux-gnu
+            cc: "zig cc -target x86_64-linux-gnu"
+            cflags: "-shared -fPIC -O3"
             suffix: .so
             bun_target: ""
 
           - os: ubuntu-latest
             artifact: tns-linux-arm64
-            zig_target: aarch64-linux-gnu
+            cc: "zig cc -target aarch64-linux-gnu"
+            cflags: "-shared -fPIC -O3"
             suffix: .so
             bun_target: bun-linux-arm64
 
           - os: macos-latest
             artifact: tns-macos-arm64
-            zig_target: aarch64-macos
+            cc: "cc"
+            cflags: "-dynamiclib -O3"
             suffix: .dylib
             bun_target: ""
 
           - os: macos-latest
             artifact: tns-macos-x64
-            zig_target: x86_64-macos
+            cc: "cc -arch x86_64"
+            cflags: "-dynamiclib -O3"
             suffix: .dylib
             bun_target: bun-darwin-x64
 
           - os: windows-latest
             artifact: tns-windows-x64
-            zig_target: x86_64-windows-gnu
+            cc: "zig cc -target x86_64-windows-gnu"
+            cflags: "-shared -fPIC -O3"
             suffix: .dll
             bun_target: ""
 
@@ -57,8 +63,8 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: Install Zig
-        if: runner.os != 'Windows'
+      - name: Install Zig (Linux)
+        if: runner.os == 'Linux'
         run: |
           curl -sL https://ziglang.org/download/${{ env.ZIG_VERSION }}/zig-linux-x86_64-${{ env.ZIG_VERSION }}.tar.xz | tar -xJ
           sudo mv zig-linux-x86_64-${{ env.ZIG_VERSION }} /usr/local/zig
@@ -80,27 +86,27 @@ jobs:
       - name: Build FFI kernels
         shell: bash
         run: |
-          cd mojo/kernels
-          declare -A KERNEL_MAP=(
-            ["probability_ffi"]="libtns_kernels"
-            ["vector_ffi"]="libtns_vectors"
-            ["vector_full"]="libtns_vector_full"
-            ["batch_ops"]="libtns_batch_ops"
-            ["graph_ops"]="libtns_graph_ops"
-          )
-          
-          SUFFIX="${{ matrix.suffix }}"
-          ZIG_TARGET="${{ matrix.zig_target }}"
-          PKG_DIR="${{ github.workspace }}/release/${{ matrix.artifact }}"
+          PKG_DIR="release/${{ matrix.artifact }}"
           mkdir -p "$PKG_DIR"
           
-          echo "Building FFI for $ZIG_TARGET"
-          for src_name in "${!KERNEL_MAP[@]}"; do
-            out_name="${KERNEL_MAP[$src_name]}"
-            zig cc -target "$ZIG_TARGET" -shared -fPIC -O3 \
-              -o "$PKG_DIR/${out_name}${SUFFIX}" \
-              "c/${src_name}.c" -lm 2>&1 | grep -v "warning" || true
-            echo "  ${out_name}${SUFFIX}"
+          CC="${{ matrix.cc }}"
+          CFLAGS="${{ matrix.cflags }}"
+          SUFFIX="${{ matrix.suffix }}"
+          
+          echo "CC=$CC CFLAGS=$CFLAGS suffix=$SUFFIX"
+          
+          for pair in \
+            "probability_ffi libtns_kernels" \
+            "vector_ffi libtns_vectors" \
+            "vector_full libtns_vector_full" \
+            "batch_ops libtns_batch_ops" \
+            "graph_ops libtns_graph_ops"; do
+            src=$(echo "$pair" | cut -d' ' -f1)
+            name=$(echo "$pair" | cut -d' ' -f2)
+            echo "  ${name}${SUFFIX}"
+            $CC $CFLAGS \
+              -o "$PKG_DIR/${name}${SUFFIX}" \
+              "mojo/kernels/c/${src}.c" -lm 2>&1 | grep -v "warning" || true
           done
 
       - name: Build Bun binary
