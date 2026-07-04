@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.15.0 (2026-07-04)
+
+### Security Hardening
+
+Comprehensive security audit and hardening — 12 findings fixed, 2 additional improvements.
+
+**Fixed:**
+- H1: WebSocket auth bypass — validate session token, not just cookie presence
+- H2: Static file path traversal — add path containment check
+- H3: Chapter filename traversal — validate filename regex
+- M2: In-memory sessions replaced with SQLite-backed store (survives restarts)
+- M3: Missing `Secure` flag on session cookie
+- M4: Rate limiter IP spoofing — shared `getClientIp` helper
+- M5: CSP hardened with `base-uri` and `form-action` restrictions
+- L1: Passwords hashed before storage in settings
+- L2: Error messages sanitized — no internal details leaked to clients
+- L3: Stale login attempt entries cleaned up periodically
+- L4: CSRF token validation on login form (cookie double-submit)
+- L6: World names validated against path traversal
+
+**New files:**
+- `src/lib/session-store.ts` — SQLite-backed session storage with auto-cleanup
+- `SECURITY-log.md` — Security change log
+- `security.md` — Full security audit report
+
+**Modified files:**
+- `src/middleware/auth.ts` — Session store integration, CSRF, Secure cookie, getClientIp
+- `src/middleware/rate-limiter.ts` — Uses shared getClientIp
+- `src/middleware/security-headers.ts` — Hardened CSP
+- `src/index.ts` — WebSocket token validation, session cleanup lifecycle
+- `src/app.ts` — Path containment check for static files
+- `src/routes/worlds.ts` — World name + filename validation
+- `src/routes/chat.ts` — Sanitized error messages
+
+**CI fixes:**
+- Fixed GitHub Actions versions (checkout@v4, upload-artifact@v4, download-artifact@v4)
+- Removed broken release job from CI workflow (build.yml)
+- Renamed CI workflow to "CI" to distinguish from release workflow
+
+---
+
 ## v0.14.1 (2026-07-04)
 
 ### C FFI Kernels & Cross-Compilation

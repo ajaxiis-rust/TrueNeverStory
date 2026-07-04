@@ -1,6 +1,6 @@
-# TrueNeverStory v0.14.1 – 交互式叙事游戏平台
+# TrueNeverStory v0.15.0 – 交互式叙事游戏平台
 
-**TrueNeverStory v0.14.1** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
+**TrueNeverStory v0.15.0** 是 [BRING](https://github.com/Eva-E1/BRING) 奇幻世界平台的现代重新实现，从 Python 迁移到高性能混合技术栈：
 
 - **TypeScript (Bun + Hono)** – Web 服务器、API、WebSocket、路由、认证、流式传输、业务逻辑
 - **C FFI内核（通过Zig编译，带TypeScript回退）** – 概率计算和向量操作的计算内核（通过Zig编译，带TypeScript回退）

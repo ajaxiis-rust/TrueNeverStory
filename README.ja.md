@@ -1,6 +1,6 @@
-# TrueNeverStory v0.14.1 – インタラクティブ・ナラティブ・ゲームプラットフォーム
+# TrueNeverStory v0.15.0 – インタラクティブ・ナラティブ・ゲームプラットフォーム
 
-**TrueNeverStory v0.14.1** は、[BRING](https://github.com/Eva-E1/BRING)ファンタジー世界プラットフォームの現代的な再実装で、Pythonから高性能ハイブリッドスタックに移行されました：
+**TrueNeverStory v0.15.0** は、[BRING](https://github.com/Eva-E1/BRING)ファンタジー世界プラットフォームの現代的な再実装で、Pythonから高性能ハイブリッドスタックに移行されました：
 
 - **TypeScript (Bun + Hono)** – Webサーバー、API、WebSocket、ルーティング、認証、ストリーミング、ビジネスロジック
 - **C FFIカーネル（Zigでコンパイル、TypeScriptフォールバック付き）** – 確率計算およびベクトル演算用のコンピュータカーネル（Zigでコンパイル、TypeScriptフォールバック付き）

@@ -1,6 +1,6 @@
-# TrueNeverStory v0.14.1 – Building Rich Interactive Narrative Games
+# TrueNeverStory v0.15.0 – Building Rich Interactive Narrative Games
 
-**TrueNeverStory v0.14.1** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
+**TrueNeverStory v0.15.0** is a modern reimplementation of the [BRING](https://github.com/Eva-E1/BRING) fantasy world platform, migrated from Python to a high-performance hybrid stack:
 
 - **TypeScript (Bun + Hono)** – Web server, API, WebSocket, routing, auth, streaming, business logic
 - **C FFI Kernels** – Compute kernels for probability calculations and vector operations (compiled via Zig, with TypeScript fallback)
@@ -554,6 +554,22 @@ bun run build
 ---
 
 ## Recent Changes
+
+### Security Hardening (v0.15.0)
+
+Comprehensive security audit and fixes:
+
+| Finding | Fix |
+|---------|-----|
+| H1: WebSocket auth bypass | Validate session token, not just cookie presence |
+| H2: Static file path traversal | Path containment check |
+| M2: In-memory sessions | SQLite-backed store with auto-cleanup |
+| M3: Missing Secure cookie flag | Added to Set-Cookie |
+| M4: Rate limiter IP spoofing | Shared `getClientIp` helper |
+| L4: Missing CSRF on login | CSRF token with cookie double-submit |
+| L6: World name traversal | Name validation on all routes |
+
+Full report: [security.md](security.md) | Change log: [SECURITY-log.md](SECURITY-log.md)
 
 ### C FFI Kernels & Cross-Compilation (v0.14.1)
 

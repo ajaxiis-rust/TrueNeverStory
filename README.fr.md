@@ -1,6 +1,6 @@
-# TrueNeverStory v0.14.1 – Plateforme de jeux narratifs interactifs
+# TrueNeverStory v0.15.0 – Plateforme de jeux narratifs interactifs
 
-**TrueNeverStory v0.14.1** est une réimplémentation moderne de la plateforme de mondes fantastiques [BRING](https://github.com/Eva-E1/BRING), migrée de Python vers une stack hybride haute performance :
+**TrueNeverStory v0.15.0** est une réimplémentation moderne de la plateforme de mondes fantastiques [BRING](https://github.com/Eva-E1/BRING), migrée de Python vers une stack hybride haute performance :
 
 - **TypeScript (Bun + Hono)** – Serveur web, API, WebSocket, routage, auth, streaming, logique métier
 - **Noyaux C FFI (compilés via Zig, avec fallback TypeScript)** – Noyaux de calcul pour les probabilités et opérations vectorielles (compilés via Zig, avec fallback TypeScript)
