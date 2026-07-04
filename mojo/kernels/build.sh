@@ -12,7 +12,15 @@ OUT_DIR="$SCRIPT_DIR/dist"
 TARGET="${1:-native}"
 mkdir -p "$OUT_DIR"
 
-KERNELS="probability_ffi vector_ffi vector_full batch_ops graph_ops"
+# Source file → output name mapping (must match TS expectations)
+declare -A KERNEL_MAP=(
+  ["probability_ffi"]="libtns_kernels"
+  ["vector_ffi"]="libtns_vectors"
+  ["vector_full"]="libtns_vector_full"
+  ["batch_ops"]="libtns_batch_ops"
+  ["graph_ops"]="libtns_graph_ops"
+)
+KERNELS="${!KERNEL_MAP[@]}"
 
 # Zig targets: https://ziglang.org/download/0.14.0/zig-linux-x86_64-0.14.0.tar.xz
 declare -A TARGETS=(
@@ -67,9 +75,10 @@ esac
 echo "Building for: $TARGET"
 echo "Compiler: $CC"
 
-for kernel in $KERNELS; do
-  echo "  $kernel$SUFFIX"
-  $CC $CFLAGS -o "$OUT_DIR/lib$kernel$SUFFIX" "$SRC_DIR/$kernel.c" $LDFLAGS
+for src_name in $KERNELS; do
+  out_name="${KERNEL_MAP[$src_name]}"
+  echo "  ${out_name}$SUFFIX"
+  $CC $CFLAGS -o "$OUT_DIR/${out_name}$SUFFIX" "$SRC_DIR/${src_name}.c" $LDFLAGS
 done
 
 echo "Done. Output in $OUT_DIR/"
