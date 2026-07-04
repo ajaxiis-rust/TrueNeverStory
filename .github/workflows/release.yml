@@ -117,23 +117,14 @@ jobs:
             exit 0
           fi
 
-          echo "Mojo version: $(mojo --version)"
+          echo "Mojo version: $(mojo --version 2>&1)"
           cd mojo
 
           SO_EXT="${{ matrix.so_ext }}"
           FAILED=0
 
-          # All 5 kernels
-          declare -A KERNELS=(
-            ["probability_ffi"]="libtns_kernels"
-            ["vector_ffi"]="libtns_vectors"
-            ["vector_full"]="libtns_vector_full"
-            ["batch_ops"]="libtns_batch_ops"
-            ["graph_ops"]="libtns_graph_ops"
-          )
-
-          for src in "${!KERNELS[@]}"; do
-            name="${KERNELS[$src]}"
+          build_kernel() {
+            local src="$1" name="$2"
             echo "Building ${name}${SO_EXT} from ${src}.mojo..."
             if mojo build --emit shared-lib -O3 \
               -o "../${name}${SO_EXT}" \
@@ -143,7 +134,13 @@ jobs:
               echo "  ✗ Failed: ${name}${SO_EXT}"
               FAILED=$((FAILED + 1))
             fi
-          done
+          }
+
+          build_kernel "probability_ffi" "libtns_kernels"
+          build_kernel "vector_ffi" "libtns_vectors"
+          build_kernel "vector_full" "libtns_vector_full"
+          build_kernel "batch_ops" "libtns_batch_ops"
+          build_kernel "graph_ops" "libtns_graph_ops"
 
           echo ""
           echo "Built libraries:"
@@ -156,14 +153,12 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          set -x
           mkdir -p release/${{ matrix.artifact }}
 
           cp tns-server* release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp -r public/ release/${{ matrix.artifact }}/ 2>/dev/null || true
 
           # Copy any Mojo libraries that were built
-          ls -la *.so *.dylib 2>/dev/null || echo "No Mojo libraries found in root"
           cp libtns_kernels${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp libtns_vectors${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp libtns_vector_full${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
