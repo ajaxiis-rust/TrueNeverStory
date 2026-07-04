@@ -253,6 +253,9 @@ worlds.get("/worlds/:name/chapters", async (c) => {
 worlds.get("/worlds/:name/chapters/:filename", async (c) => {
   const name = c.req.param("name");
   const filename = c.req.param("filename");
+  if (!/^[a-zA-Z0-9_\-]+\.md$/.test(filename)) {
+    return c.json({ error: "Invalid filename" }, 400);
+  }
   const { getConfig } = await import("../config/env");
   const chapterPath = join(getConfig().WORLDS_ROOT, name, "chapters", filename);
 
