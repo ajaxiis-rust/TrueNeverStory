@@ -122,7 +122,7 @@ jobs:
 
       - name: Package
         shell: bash
- run: |
+        run: |
           PKG_DIR="release/${{ matrix.artifact }}"
           cp -r public/ "$PKG_DIR/" 2>/dev/null || true
           cp .env.example "$PKG_DIR/" 2>/dev/null || true
