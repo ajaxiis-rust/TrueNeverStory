@@ -131,6 +131,7 @@ jobs:
         run: |
           PKG_DIR="release/${{ matrix.artifact }}"
           cp -r public/ "$PKG_DIR/" 2>/dev/null || true
+          cp -r docs/ "$PKG_DIR/" 2>/dev/null || true
           cp .env.example "$PKG_DIR/" 2>/dev/null || true
           cp startgame.sh "$PKG_DIR/" 2>/dev/null || true
           cp README*.md "$PKG_DIR/" 2>/dev/null || true
