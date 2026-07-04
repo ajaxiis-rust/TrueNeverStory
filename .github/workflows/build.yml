@@ -40,7 +40,7 @@ jobs:
           cp .env.example release/tns-linux-x64/
           cp startgame.sh release/tns-linux-x64/
           cp README*.md release/tns-linux-x64/
-          cp COMPILE.md release/tns-linux-x64/
+          cp docs/COMPILE.md release/tns-linux-x64/
           chmod +x release/tns-linux-x64/tns-server
           chmod +x release/tns-linux-x64/startgame.sh
           cd release && tar -czf tns-linux-x64.tar.gz tns-linux-x64/
@@ -77,7 +77,7 @@ jobs:
           cp .env.example release/tns-linux-arm64/
           cp startgame.sh release/tns-linux-arm64/
           cp README*.md release/tns-linux-arm64/
-          cp COMPILE.md release/tns-linux-arm64/
+          cp docs/COMPILE.md release/tns-linux-arm64/
           chmod +x release/tns-linux-arm64/tns-server
           chmod +x release/tns-linux-arm64/startgame.sh
           cd release && tar -czf tns-linux-arm64.tar.gz tns-linux-arm64/
@@ -114,7 +114,7 @@ jobs:
           cp .env.example release/tns-macos-arm64/
           cp startgame.sh release/tns-macos-arm64/
           cp README*.md release/tns-macos-arm64/
-          cp COMPILE.md release/tns-macos-arm64/
+          cp docs/COMPILE.md release/tns-macos-arm64/
           chmod +x release/tns-macos-arm64/tns-server
           chmod +x release/tns-macos-arm64/startgame.sh
           cd release && tar -czf tns-macos-arm64.tar.gz tns-macos-arm64/
@@ -151,7 +151,7 @@ jobs:
           cp .env.example release/tns-macos-x64/
           cp startgame.sh release/tns-macos-x64/
           cp README*.md release/tns-macos-x64/
-          cp COMPILE.md release/tns-macos-x64/
+          cp docs/COMPILE.md release/tns-macos-x64/
           chmod +x release/tns-macos-x64/tns-server
           chmod +x release/tns-macos-x64/startgame.sh
           cd release && tar -czf tns-macos-x64.tar.gz tns-macos-x64/
@@ -188,7 +188,7 @@ jobs:
           cp -r public/ release/tns-windows-x64/
           cp .env.example release/tns-windows-x64/
           cp README*.md release/tns-windows-x64/
-          cp COMPILE.md release/tns-windows-x64/
+          cp docs/COMPILE.md release/tns-windows-x64/
           cd release && 7z a tns-windows-x64.zip tns-windows-x64/
 
       - uses: actions/upload-artifact@v4
