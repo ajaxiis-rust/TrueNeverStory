@@ -275,4 +275,8 @@ Ver [COMPILE.md](docs/COMPILE.md). GitHub Actions compila todas las plataformas 
 
 ## Licencia
 
+---
+
+🔗 **Proyecto:** [https://github.com/ajaxiis-rust/TrueNeverStory](https://github.com/ajaxiis-rust/TrueNeverStory)
+
 Apache 2.0

@@ -229,6 +229,8 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 <script>
 const API = '/api';
 
+fetch(API + '/system/resume', { method: 'POST', credentials: 'include' }).catch(() => {});
+
 // ── i18n ──
 const I18N = {
   en: {

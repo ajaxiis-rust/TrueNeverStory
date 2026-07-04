@@ -320,4 +320,8 @@ bun build --compile --outfile tns-server src/index.ts
 
 ## Лицензия
 
+---
+
+🔗 **Проект:** [https://github.com/ajaxiis-rust/TrueNeverStory](https://github.com/ajaxiis-rust/TrueNeverStory)
+
 Apache 2.0

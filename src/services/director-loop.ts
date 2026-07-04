@@ -101,6 +101,7 @@ export class DirectorLoop {
   start(): void {
     if (this._running) return;
     this._running = true;
+    this._paused = false;
     this._timer = setInterval(() => {
       this._runTick().catch((err) => log.error({ err }, "Director tick failed"));
     }, this._config.wakeIntervalSeconds * 1000);

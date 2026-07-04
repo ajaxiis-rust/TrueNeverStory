@@ -133,7 +133,7 @@ jobs:
           cp -r public/ "$PKG_DIR/" 2>/dev/null || true
           cp .env.example "$PKG_DIR/" 2>/dev/null || true
           cp startgame.sh "$PKG_DIR/" 2>/dev/null || true
-          cp README.md "$PKG_DIR/" 2>/dev/null || true
+          cp README*.md "$PKG_DIR/" 2>/dev/null || true
           chmod +x "$PKG_DIR"/tns-server* 2>/dev/null || true
           chmod +x "$PKG_DIR"/startgame.sh 2>/dev/null || true
           

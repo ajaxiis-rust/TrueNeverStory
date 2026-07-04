@@ -250,13 +250,11 @@ export class NarrativeService {
 
   pause(): void {
     this.director.pause();
-    this.llmQueue.pause();
     log.info("Narrative services paused");
   }
 
   resume(): void {
     this.director.resume();
-    this.llmQueue.resume();
     log.info("Narrative services resumed");
   }
 

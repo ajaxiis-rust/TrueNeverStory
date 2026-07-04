@@ -29,6 +29,9 @@ launch.post("/launch", async (c) => {
   if (!_narrativeCtx) {
     return c.json({ status: "error", error: "Server not initialized" }, 503);
   }
+
+  _narrativeCtx.resume();
+
   const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
   const hints = (body.hints as string) ?? "";
   const isekai = (body.isekai as boolean) ?? false;

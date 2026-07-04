@@ -320,4 +320,8 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 
 ## License
 
+---
+
+🔗 **Project:** [https://github.com/ajaxiis-rust/TrueNeverStory](https://github.com/ajaxiis-rust/TrueNeverStory)
+
 Apache 2.0

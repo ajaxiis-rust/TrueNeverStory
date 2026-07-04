@@ -39,6 +39,7 @@ export class LLMQueue {
 
   async start(): Promise<void> {
     this._processing = true;
+    this._paused = false;
   }
 
   async stop(): Promise<void> {
