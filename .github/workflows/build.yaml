@@ -39,7 +39,7 @@ jobs:
             suffix: .dylib
             bun_target: ""
 
-          - os: macos-13
+          - os: macos-latest
             artifact: tns-macos-x64
             cc: "cc -arch x86_64"
             cflags: "-dynamiclib -O3"
