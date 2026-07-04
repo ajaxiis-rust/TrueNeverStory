@@ -243,6 +243,8 @@ ws.onmessage = (event) => {
 
 ## For Developers
 
+Full architecture docs, DI container reference, and contribution guide: [DEV.README.md](DEV.README.md)
+
 ### Prerequisites
 
 - [Bun](https://bun.sh) v1.0+
