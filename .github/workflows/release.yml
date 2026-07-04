@@ -153,6 +153,11 @@ jobs:
       - name: Package
         shell: bash
         run: |
+          echo "Working dir: $(pwd)"
+          echo "Files in root:"
+          ls -la tns-server* public/ 2>/dev/null || echo "(some missing)"
+          echo "---"
+
           mkdir -p release/${{ matrix.artifact }}
 
           cp tns-server* release/${{ matrix.artifact }}/ 2>/dev/null || true
