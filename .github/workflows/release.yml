@@ -70,122 +70,74 @@ jobs:
             bun build --compile --outfile "$OUT" src/index.ts
           fi
 
-      # === Mojo FFI (Linux + macOS only) ===
       - name: Install Mojo
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          set +e  # Don't exit on error — Mojo install is optional
-
-          # Method 1: magic CLI (no auth needed for latest)
+          set +e
           if ! command -v mojo &>/dev/null; then
-            echo "Installing magic..."
             curl -L https://magic.modular.com | bash 2>/dev/null
-            export PATH="$HOME/.modular/bin:$HOME/.local/bin:$PATH"
-
+            export PATH="$HOME/.modular/bin:$HOME/.local/bin:$HOME/.magic/bin:$PATH"
             if command -v magic &>/dev/null; then
-              echo "Installing Mojo via magic..."
-              magic install max 2>/dev/null || magic install mojo 2>/dev/null
+              magic install max 2>/dev/null || magic install mojo 2>/dev/null || true
             fi
           fi
-
-          # Method 2: Check common install paths
-          for p in \
-            "$HOME/.modular/bin/mojo" \
-            "$HOME/.local/bin/mojo" \
-            "$HOME/.magic/bin/mojo" \
-            "/usr/local/bin/mojo"; do
-            if [[ -x "$p" ]]; then
-              ln -sf "$p" /usr/local/bin/mojo 2>/dev/null || true
-              break
-            fi
+          for p in "$HOME/.modular/bin/mojo" "$HOME/.local/bin/mojo" "$HOME/.magic/bin/mojo" "/usr/local/bin/mojo"; do
+            if [[ -x "$p" ]]; then ln -sf "$p" /usr/local/bin/mojo 2>/dev/null; break; fi
           done
-
-          # Verify
-          if command -v mojo &>/dev/null; then
-            echo "Mojo installed: $(mojo --version 2>&1 || echo 'unknown version')"
-          else
-            echo "::warning::Mojo not installed — will use TypeScript fallbacks"
-          fi
+          if command -v mojo &>/dev/null; then echo "Mojo: $(mojo --version 2>&1 || echo 'ok')"; else echo "::warning::Mojo not found"; fi
 
       - name: Build Mojo Kernels
         if: runner.os != 'Windows'
         shell: bash
         run: |
           if ! command -v mojo &>/dev/null; then
-            echo "::warning::Skipping Mojo kernels — mojo compiler not available"
+            echo "::warning::Skipping Mojo kernels"
             exit 0
           fi
-
-          echo "Mojo version: $(mojo --version 2>&1)"
           cd mojo
-
-          SO_EXT="${{ matrix.so_ext }}"
-          FAILED=0
-
-          build_kernel() {
-            local src="$1" name="$2"
-            echo "Building ${name}${SO_EXT} from ${src}.mojo..."
-            if mojo build --emit shared-lib -O3 \
-              -o "../${name}${SO_EXT}" \
-              "kernels/${src}.mojo" 2>&1; then
-              echo "  ✓ ${name}${SO_EXT}"
+          for pair in \
+            "probability_ffi libtns_kernels" \
+            "vector_ffi libtns_vectors" \
+            "vector_full libtns_vector_full" \
+            "batch_ops libtns_batch_ops" \
+            "graph_ops libtns_graph_ops"; do
+            src=$(echo "$pair" | cut -d' ' -f1)
+            name=$(echo "$pair" | cut -d' ' -f2)
+            echo "Building ${name}${{ matrix.so_ext }} from ${src}.mojo..."
+            if mojo build --emit shared-lib -O3 -o "../${name}${{ matrix.so_ext }}" "kernels/${src}.mojo" 2>&1; then
+              echo "  OK"
             else
-              echo "  ✗ Failed: ${name}${SO_EXT}"
-              FAILED=$((FAILED + 1))
+              echo "  FAILED"
             fi
-          }
-
-          build_kernel "probability_ffi" "libtns_kernels"
-          build_kernel "vector_ffi" "libtns_vectors"
-          build_kernel "vector_full" "libtns_vector_full"
-          build_kernel "batch_ops" "libtns_batch_ops"
-          build_kernel "graph_ops" "libtns_graph_ops"
-
-          echo ""
-          echo "Built libraries:"
-          ls -lh ../*.so ../*.dylib 2>/dev/null || echo "(none)"
-
-          if [[ $FAILED -gt 0 ]]; then
-            echo "::warning::${FAILED} Mojo kernel(s) failed to build"
-          fi
+          done
+          echo "Libraries:"
+          ls -lh ../*.so ../*.dylib 2>/dev/null || echo "  (none)"
 
       - name: Package
         shell: bash
         run: |
-          echo "Working dir: $(pwd)"
-          echo "Files in root:"
-          ls -la tns-server* public/ 2>/dev/null || echo "(some missing)"
-          echo "---"
-
+          cd "$GITHUB_WORKSPACE"
           mkdir -p release/${{ matrix.artifact }}
-
           cp tns-server* release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp -r public/ release/${{ matrix.artifact }}/ 2>/dev/null || true
-
-          # Copy any Mojo libraries that were built
-          cp libtns_kernels${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp libtns_vectors${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp libtns_vector_full${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp libtns_batch_ops${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp libtns_graph_ops${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
-
           cp .env.example release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp startgame.sh release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp README.md release/${{ matrix.artifact }}/
-          cp COMPILE.md release/${{ matrix.artifact }}/
+          cp README.md release/${{ matrix.artifact }}/ 2>/dev/null || true
+          cp COMPILE.md release/${{ matrix.artifact }}/ 2>/dev/null || true
 
-          if [[ "${{ matrix.os }}" == windows* ]]; then
-            cd release && 7z a ${{ matrix.artifact }}.zip ${{ matrix.artifact }}/
-          else
-            chmod +x release/${{ matrix.artifact }}/tns-server* 2>/dev/null || true
-            chmod +x release/${{ matrix.artifact }}/startgame.sh 2>/dev/null || true
-            cd release && tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}/
-          fi
+          SO_EXT="${{ matrix.so_ext }}"
+          for lib in libtns_kernels libtns_vectors libtns_vector_full libtns_batch_ops libtns_graph_ops; do
+            cp "${lib}${SO_EXT}" release/${{ matrix.artifact }}/ 2>/dev/null || true
+          done
 
-          echo ""
-          echo "=== Package contents ==="
+          chmod +x release/${{ matrix.artifact }}/tns-server* 2>/dev/null || true
+          chmod +x release/${{ matrix.artifact }}/startgame.sh 2>/dev/null || true
+
+          echo "Package contents:"
           ls -lh release/${{ matrix.artifact }}/
+
+          cd release && tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}/
 
       - uses: actions/upload-artifact@v7
         with:
@@ -199,9 +151,6 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
-
-      - name: List all artifacts
-        run: find artifacts -type f -name '*.tar.gz' -o -name '*.zip' | sort
 
       - uses: softprops/action-gh-release@v3
         with:
