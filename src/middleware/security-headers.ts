@@ -25,6 +25,6 @@ export const securityHeaders: MiddlewareHandler = async (c, next) => {
   // Content Security Policy (basic)
   c.header(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' ws: wss:; img-src 'self' data:;",
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' ws: wss:; img-src 'self' data:; base-uri 'self'; form-action 'self'",
   );
 };
