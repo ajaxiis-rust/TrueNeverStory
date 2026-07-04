@@ -23,6 +23,10 @@ import { getConfig } from "../config/env";
 const log = getLogger("worlds-route");
 const worlds = new Hono();
 
+function isValidWorldName(name: string): boolean {
+  return /^[a-zA-Z0-9_\-]+$/.test(name) && name.length > 0 && name.length <= 64;
+}
+
 let _narrativeCtx: { reset: (dbPath: string, worldFrame: Record<string, unknown>) => Promise<void> } | null = null;
 let _engine: { reset: (dbPath: string) => void } | null = null;
 
@@ -55,6 +59,7 @@ worlds.get("/worlds/active", async (c) => {
  */
 worlds.get("/worlds/:name", async (c) => {
   const name = c.req.param("name");
+  if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
   const frame = getWorldFrame(name);
   if (!frame) return c.json({ error: "World not found" }, 404);
   return c.json({ name, frame });
@@ -89,6 +94,7 @@ worlds.post("/worlds", async (c) => {
  */
 worlds.put("/worlds/:name", async (c) => {
   const name = c.req.param("name");
+  if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
   const body = await c.req.json().catch(() => ({}));
   try {
     const frame = await updateWorldFrame(name, body);
@@ -103,6 +109,7 @@ worlds.put("/worlds/:name", async (c) => {
  */
 worlds.delete("/worlds/:name", async (c) => {
   const name = c.req.param("name");
+  if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
   try {
     await deleteWorld(name);
     return c.json({ status: "deleted" });
@@ -116,6 +123,7 @@ worlds.delete("/worlds/:name", async (c) => {
  */
 worlds.post("/worlds/:name/switch", async (c) => {
   const name = c.req.param("name");
+  if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
   try {
     setActiveWorld(name);
 
@@ -142,6 +150,7 @@ worlds.post("/worlds/:name/switch", async (c) => {
  */
 worlds.post("/worlds/:name/chapters/generate", async (c) => {
   const name = c.req.param("name");
+  if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
   const body = await c.req.json().catch(() => ({})) as { sessionId?: string; prompt?: string };
   const worldPath = join(getSettings().dbPath.replace(/world_db$/, ""), name);
 
@@ -225,6 +234,7 @@ Write a cohesive literary chapter (1000-2000 words). Use第三人称叙事, rich
  */
 worlds.get("/worlds/:name/chapters", async (c) => {
   const name = c.req.param("name");
+  if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
   const { getConfig } = await import("../config/env");
   const worldPath = join(getConfig().WORLDS_ROOT, name);
   const chaptersDir = join(worldPath, "chapters");
