@@ -207,6 +207,8 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
 
 ## 開発者向け
 
+完全なアーキテクチャドキュメント、DIコンテナリファレンス、コントリビューションガイド: [DEV.README.ja.md](DEV.README.ja.md)
+
 ### 前提条件
 
 - [Bun](https://bun.sh) v1.0+

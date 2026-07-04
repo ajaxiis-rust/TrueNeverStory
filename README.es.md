@@ -207,6 +207,8 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
 
 ## Para desarrolladores
 
+Documentación completa de arquitectura, referencia del contenedor DI y guía de contribución: [DEV.README.es.md](DEV.README.es.md)
+
 ### Requisitos
 
 - [Bun](https://bun.sh) v1.0+
