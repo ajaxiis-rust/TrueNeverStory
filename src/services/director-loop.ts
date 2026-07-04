@@ -62,6 +62,7 @@ export class DirectorLoop {
   private _config: DirectorConfig;
   private _statePath: string;
   private _running = false;
+  private _paused = false;
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _lastMajorBeatTime: Date | null = null;
 
@@ -120,6 +121,20 @@ export class DirectorLoop {
     return this._running;
   }
 
+  get isPaused(): boolean {
+    return this._paused;
+  }
+
+  pause(): void {
+    this._paused = true;
+    log.info("Director paused");
+  }
+
+  resume(): void {
+    this._paused = false;
+    log.info("Director resumed");
+  }
+
   async forceChanceEvent(): Promise<Record<string, unknown>> {
     return this._generateChanceEvent(this._clock.currentTime);
   }
@@ -138,6 +153,7 @@ export class DirectorLoop {
   }
 
   private async _runTick(): Promise<void> {
+    if (this._paused) return;
     try {
       await this._clock.tick(this._config.tickIntervalMinutes);
       const currentTime = this._clock.currentTime;

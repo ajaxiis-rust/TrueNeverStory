@@ -23,6 +23,7 @@ export class LLMQueue {
   private _running = 0;
   private _queue: QueuedTask[] = [];
   private _processing = false;
+  private _paused = false;
 
   constructor(llm: LLMClient, maxConcurrent = 3) {
     this._llm = llm;
@@ -50,6 +51,17 @@ export class LLMQueue {
     if (this._running > 0) {
       log.warn({ running: this._running }, "Force shutdown — tasks still running");
     }
+  }
+
+  pause(): void {
+    this._paused = true;
+    log.info("LLM queue paused");
+  }
+
+  resume(): void {
+    this._paused = false;
+    log.info("LLM queue resumed");
+    this._processNext();
   }
 
   async generateText(
@@ -107,7 +119,7 @@ export class LLMQueue {
   }
 
   private async _processNext(): Promise<void> {
-    if (this._running >= this._maxConcurrent || this._queue.length === 0) return;
+    if (this._paused || this._running >= this._maxConcurrent || this._queue.length === 0) return;
 
     const item = this._queue.shift();
     if (!item) return;

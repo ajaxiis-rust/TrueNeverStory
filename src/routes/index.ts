@@ -19,6 +19,7 @@ import { providersRouter } from "./providers";
 import { agentsRouter } from "./agents";
 import { worldsRouter } from "./worlds";
 import { i18nRouter } from "./i18n";
+import { systemRouter } from "./system";
 
 export function createRoutes(): Hono {
   const routes = new Hono();
@@ -73,6 +74,9 @@ export function createRoutes(): Hono {
 
   // Worlds (multi-world management)
   routes.route("/", worldsRouter);
+
+  // System (pause/resume)
+  routes.route("/", systemRouter);
 
   return routes;
 }
