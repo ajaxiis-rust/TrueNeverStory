@@ -209,7 +209,7 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
 
 ## Para desarrolladores
 
-Documentación completa de arquitectura, referencia del contenedor DI y guía de contribución: [DEV.README.es.md](DEV.README.es.md)
+Documentación completa de arquitectura, referencia del contenedor DI y guía de contribución: [DEV.README.es.md](docs/DEV.README.es.md)
 
 ### Requisitos
 
@@ -248,7 +248,7 @@ cd mojo/kernels
 ./build.sh list             # Todos los targets
 ```
 
-Ver [COMPILE.md](COMPILE.md). GitHub Actions compila todas las plataformas automáticamente.
+Ver [COMPILE.md](docs/COMPILE.md). GitHub Actions compila todas las plataformas automáticamente.
 
 ---
 

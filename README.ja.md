@@ -209,7 +209,7 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
 
 ## 開発者向け
 
-完全なアーキテクチャドキュメント、DIコンテナリファレンス、コントリビューションガイド: [DEV.README.ja.md](DEV.README.ja.md)
+完全なアーキテクチャドキュメント、DIコンテナリファレンス、コントリビューションガイド: [DEV.README.ja.md](docs/DEV.README.ja.md)
 
 ### 前提条件
 
@@ -248,7 +248,7 @@ cd mojo/kernels
 ./build.sh list             # すべてのターゲット
 ```
 
-詳細は [COMPILE.md](COMPILE.md) を参照。GitHub Actionsがタグプッシュ時に自動ビルド。
+詳細は [COMPILE.md](docs/COMPILE.md) を参照。GitHub Actionsがタグプッシュ時に自動ビルド。
 
 ---
 

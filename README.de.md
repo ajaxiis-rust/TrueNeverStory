@@ -211,7 +211,7 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
 
 ## Für Entwickler
 
-Vollständige Architektur-Dokumentation, DI-Container-Referenz und Contributing-Guide: [DEV.README.de.md](DEV.README.de.md)
+Vollständige Architektur-Dokumentation, DI-Container-Referenz und Contributing-Guide: [DEV.README.de.md](docs/DEV.README.de.md)
 
 ### Voraussetzungen
 
@@ -250,7 +250,7 @@ cd mojo/kernels
 ./build.sh list             # Alle Targets
 ```
 
-Siehe [COMPILE.md](COMPILE.md). GitHub Actions baut alle Plattformen automatisch bei Tag-Push.
+Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automatisch bei Tag-Push.
 
 ---
 

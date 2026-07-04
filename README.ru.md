@@ -245,7 +245,7 @@ ws.onmessage = (event) => {
 
 ## Для разработчиков
 
-Полная документация по архитектуре, DI контейнеру и гайд по контрибьюции: [DEV.README.ru.md](DEV.README.ru.md)
+Полная документация по архитектуре, DI контейнеру и гайд по контрибьюции: [DEV.README.ru.md](docs/DEV.README.ru.md)
 
 ### Требования
 
@@ -292,7 +292,7 @@ cd mojo/kernels
 bun build --compile --outfile tns-server src/index.ts
 ```
 
-См. [COMPILE.md](COMPILE.md) для деталей. GitHub Actions собирает все платформы автоматически при пуше тега.
+См. [COMPILE.md](docs/COMPILE.md) для деталей. GitHub Actions собирает все платформы автоматически при пуше тега.
 
 ---
 

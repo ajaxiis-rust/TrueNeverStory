@@ -245,7 +245,7 @@ ws.onmessage = (event) => {
 
 ## For Developers
 
-Full architecture docs, DI container reference, and contribution guide: [DEV.README.md](DEV.README.md)
+Full architecture docs, DI container reference, and contribution guide: [DEV.README.md](docs/DEV.README.md)
 
 ### Prerequisites
 
@@ -292,7 +292,7 @@ Compile server binary:
 bun build --compile --outfile tns-server src/index.ts
 ```
 
-See [COMPILE.md](COMPILE.md) for details. GitHub Actions builds all platforms automatically on tag push.
+See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platforms automatically on tag push.
 
 ---
 

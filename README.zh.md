@@ -209,7 +209,7 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
 
 ## 开发者指南
 
-完整架构文档、DI容器参考和贡献指南：[DEV.README.zh.md](DEV.README.zh.md)
+完整架构文档、DI容器参考和贡献指南：[DEV.README.zh.md](docs/DEV.README.zh.md)
 
 ### 前提条件
 
@@ -248,7 +248,7 @@ cd mojo/kernels
 ./build.sh list             # 所有目标平台
 ```
 
-详见 [COMPILE.md](COMPILE.md)。GitHub Actions 在推送标签时自动构建所有平台。
+详见 [COMPILE.md](docs/COMPILE.md)。GitHub Actions 在推送标签时自动构建所有平台。
 
 ---
 
