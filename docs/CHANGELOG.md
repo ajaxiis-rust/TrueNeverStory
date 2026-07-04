@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.16.2 (2026-07-04)
+
+### Auth Cookie Fix for HTTP
+
+Fixed login redirect loop when server runs over HTTP (not HTTPS).
+
+**Root cause:** The `bring_session` cookie was set with `Secure` flag, which browsers reject on HTTP connections. This caused a login→redirect→login loop.
+
+**Fixed:**
+- Auth cookie now detects protocol and only sets `Secure` flag for HTTPS connections
+- Logout cookie also fixed for HTTP compatibility
+
+### LLM JSON Parse Retry
+
+Added retry logic for malformed LLM responses (truncated JSON, garbage output).
+
+**Root cause:** On low-memory systems (8GB RAM, 2 cores), Ollama may return truncated or non-JSON output during complex generation (family trees). The previous code had zero retry — one parse failure meant immediate fallback to generic placeholder data.
+
+**Fixed:**
+- New `parseJsonWithRetry()` helper retries up to 2 times with stricter prompt
+- Integrated into `LLMClient.generateJson()` — all LLM JSON calls now benefit
+- 9 unit tests for retry logic, 10 integration tests for birth flow
+
 ## v0.16.0 (2026-07-04)
 
 ### Pause Race Condition Fix
