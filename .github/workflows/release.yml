@@ -73,7 +73,40 @@ jobs:
       # === Mojo FFI (Linux + macOS only) ===
       - name: Install Mojo
         if: runner.os != 'Windows'
-        uses: maxmagic/setup-mojo@v1
+        shell: bash
+        run: |
+          set +e  # Don't exit on error — Mojo install is optional
+
+          # Method 1: magic CLI (no auth needed for latest)
+          if ! command -v mojo &>/dev/null; then
+            echo "Installing magic..."
+            curl -L https://magic.modular.com | bash 2>/dev/null
+            export PATH="$HOME/.modular/bin:$HOME/.local/bin:$PATH"
+
+            if command -v magic &>/dev/null; then
+              echo "Installing Mojo via magic..."
+              magic install max 2>/dev/null || magic install mojo 2>/dev/null
+            fi
+          fi
+
+          # Method 2: Check common install paths
+          for p in \
+            "$HOME/.modular/bin/mojo" \
+            "$HOME/.local/bin/mojo" \
+            "$HOME/.magic/bin/mojo" \
+            "/usr/local/bin/mojo"; do
+            if [[ -x "$p" ]]; then
+              ln -sf "$p" /usr/local/bin/mojo 2>/dev/null || true
+              break
+            fi
+          done
+
+          # Verify
+          if command -v mojo &>/dev/null; then
+            echo "Mojo installed: $(mojo --version 2>&1 || echo 'unknown version')"
+          else
+            echo "::warning::Mojo not installed — will use TypeScript fallbacks"
+          fi
 
       - name: Build Mojo Kernels
         if: runner.os != 'Windows'
