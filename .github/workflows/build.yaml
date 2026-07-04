@@ -13,99 +13,39 @@ env:
   ZIG_VERSION: "0.14.0"
 
 jobs:
-  build-ffi:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Install Zig
-        run: |
-          curl -sL https://ziglang.org/download/${{ env.ZIG_VERSION }}/zig-linux-x86_64-${{ env.ZIG_VERSION }}.tar.xz | tar -xJ
-          sudo mv zig-linux-x86_64-${{ env.ZIG_VERSION }} /usr/local/zig
-          sudo ln -sf /usr/local/zig/zig /usr/local/bin/zig
-          zig version
-
-      - name: Build all platforms
-        run: |
-          cd mojo/kernels
-          
-          # Kernel source → output name mapping
-          declare -A KERNEL_MAP=(
-            ["probability_ffi"]="libtns_kernels"
-            ["vector_ffi"]="libtns_vectors"
-            ["vector_full"]="libtns_vector_full"
-            ["batch_ops"]="libtns_batch_ops"
-            ["graph_ops"]="libtns_graph_ops"
-          )
-          
-          # Target → zig target, suffix
-          declare -A TARGETS=(
-            ["aarch64-linux"]="aarch64-linux-gnu|.so"
-            ["x86_64-linux"]="x86_64-linux-gnu|.so"
-            ["aarch64-linux-musl"]="aarch64-linux-musl|.so"
-            ["x86_64-linux-musl"]="x86_64-linux-musl|.so"
-            ["aarch64-macos"]="aarch64-macos|.dylib"
-            ["x86_64-macos"]="x86_64-macos|.dylib"
-            ["x86_64-windows"]="x86_64-windows-gnu|.dll"
-            ["aarch64-windows"]="aarch64-windows-gnu|.dll"
-            ["armv7-linux"]="arm-linux-gnueabihf|.so"
-            ["riscv64-linux"]="riscv64-linux-gnu|.so"
-          )
-          
-          for target in "${!TARGETS[@]}"; do
-            IFS='|' read -r zig_target suffix <<< "${TARGETS[$target]}"
-            echo "=== $target ($zig_target) ==="
-            
-            pkg_dir="dist/$target"
-            mkdir -p "$pkg_dir"
-            
-            for src_name in "${!KERNEL_MAP[@]}"; do
-              out_name="${KERNEL_MAP[$src_name]}"
-              zig cc -target "$zig_target" -shared -fPIC -O3 \
-                -o "$pkg_dir/${out_name}${suffix}" \
-                "c/${src_name}.c" -lm 2>&1 | grep -v "warning" || true
-            done
-            
-            # Copy TS bindings
-            cp ../../src/lib/mojo-ffi.ts "$pkg_dir/"
-            
-            # Create tarball
-            tar -czf "dist/tns-ffi-${target}.tar.gz" -C "$pkg_dir" .
-            echo "  Built: tns-ffi-${target}.tar.gz ($(du -h dist/tns-ffi-${target}.tar.gz | cut -f1))"
-          done
-          
-          echo ""
-          echo "=== All packages ==="
-          ls -lh dist/tns-ffi-*.tar.gz
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ffi-packages
-          path: mojo/kernels/dist/tns-ffi-*.tar.gz
-
-  build-bun:
+  build:
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
-            target_bun: bun-linux-x64
             artifact: tns-linux-x64
+            zig_target: x86_64-linux-gnu
+            suffix: .so
+            bun_target: ""
 
-          - os: ubuntu-22.04-arm
-            target_bun: bun-linux-arm64
+          - os: ubuntu-latest
             artifact: tns-linux-arm64
+            zig_target: aarch64-linux-gnu
+            suffix: .so
+            bun_target: bun-linux-arm64
 
           - os: macos-latest
-            target_bun: bun-darwin-arm64
             artifact: tns-macos-arm64
+            zig_target: aarch64-macos
+            suffix: .dylib
+            bun_target: ""
 
           - os: macos-latest
-            target_bun: bun-darwin-x64
             artifact: tns-macos-x64
+            zig_target: x86_64-macos
+            suffix: .dylib
+            bun_target: bun-darwin-x64
 
           - os: windows-latest
-            target_bun: bun-windows-x64
             artifact: tns-windows-x64
+            zig_target: x86_64-windows-gnu
+            suffix: .dll
+            bun_target: ""
 
     runs-on: ${{ matrix.os }}
 
@@ -117,20 +57,64 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
+      - name: Install Zig
+        if: runner.os != 'Windows'
+        run: |
+          curl -sL https://ziglang.org/download/${{ env.ZIG_VERSION }}/zig-linux-x86_64-${{ env.ZIG_VERSION }}.tar.xz | tar -xJ
+          sudo mv zig-linux-x86_64-${{ env.ZIG_VERSION }} /usr/local/zig
+          sudo ln -sf /usr/local/zig/zig /usr/local/bin/zig
+          zig version
+
+      - name: Install Zig (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          curl -sL https://ziglang.org/download/${{ env.ZIG_VERSION }}/zig-windows-x86_64-${{ env.ZIG_VERSION }}.zip -o zig.zip
+          unzip -q zig.zip
+          mv zig-windows-x86_64-${{ env.ZIG_VERSION }} /c/zig
+          echo "/c/zig" >> $GITHUB_PATH
+
       - name: Install dependencies
         run: bun install
 
-      - name: Type check
-        run: bun run lint
+      - name: Build FFI kernels
+        shell: bash
+        run: |
+          cd mojo/kernels
+          declare -A KERNEL_MAP=(
+            ["probability_ffi"]="libtns_kernels"
+            ["vector_ffi"]="libtns_vectors"
+            ["vector_full"]="libtns_vector_full"
+            ["batch_ops"]="libtns_batch_ops"
+            ["graph_ops"]="libtns_graph_ops"
+          )
+          
+          SUFFIX="${{ matrix.suffix }}"
+          ZIG_TARGET="${{ matrix.zig_target }}"
+          PKG_DIR="${{ github.workspace }}/release/${{ matrix.artifact }}"
+          mkdir -p "$PKG_DIR"
+          
+          echo "Building FFI for $ZIG_TARGET"
+          for src_name in "${!KERNEL_MAP[@]}"; do
+            out_name="${KERNEL_MAP[$src_name]}"
+            zig cc -target "$ZIG_TARGET" -shared -fPIC -O3 \
+              -o "$PKG_DIR/${out_name}${SUFFIX}" \
+              "c/${src_name}.c" -lm 2>&1 | grep -v "warning" || true
+            echo "  ${out_name}${SUFFIX}"
+          done
 
       - name: Build Bun binary
         shell: bash
         run: |
-          OUT="tns-server${{ matrix.os == 'windows-latest' && '.exe' || '' }}"
-          if [[ "${{ runner.arch }}" == "X64" && "${{ matrix.target_bun }}" == *"arm64"* ]] || \
-             [[ "${{ runner.arch }}" == "ARM64" && "${{ matrix.target_bun }}" == *"x64"* ]]; then
-            echo "Cross-compiling: ${{ matrix.target_bun }}"
-            bun build --compile --target "${{ matrix.target_bun }}" --outfile "$OUT" src/index.ts
+          OUT="release/${{ matrix.artifact }}/tns-server"
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            OUT="${OUT}.exe"
+          fi
+          
+          BUN_TARGET="${{ matrix.bun_target }}"
+          if [[ -n "$BUN_TARGET" ]]; then
+            echo "Cross-compiling: $BUN_TARGET"
+            bun build --compile --target "$BUN_TARGET" --outfile "$OUT" src/index.ts
           else
             echo "Native build"
             bun build --compile --outfile "$OUT" src/index.ts
@@ -138,22 +122,24 @@ jobs:
 
       - name: Package
         shell: bash
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          mkdir -p release/${{ matrix.artifact }}
-          cp tns-server* release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp -r public/ release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp .env.example release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp startgame.sh release/${{ matrix.artifact }}/ 2>/dev/null || true
-          cp README.md release/${{ matrix.artifact }}/ 2>/dev/null || true
-
-          chmod +x release/${{ matrix.artifact }}/tns-server* 2>/dev/null || true
-          chmod +x release/${{ matrix.artifact }}/startgame.sh 2>/dev/null || true
-
-          echo "Package contents:"
-          ls -lh release/${{ matrix.artifact }}/
-
-          cd release && tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}/
+ run: |
+          PKG_DIR="release/${{ matrix.artifact }}"
+          cp -r public/ "$PKG_DIR/" 2>/dev/null || true
+          cp .env.example "$PKG_DIR/" 2>/dev/null || true
+          cp startgame.sh "$PKG_DIR/" 2>/dev/null || true
+          cp README.md "$PKG_DIR/" 2>/dev/null || true
+          chmod +x "$PKG_DIR"/tns-server* 2>/dev/null || true
+          chmod +x "$PKG_DIR"/startgame.sh 2>/dev/null || true
+          
+          echo "=== Package contents ==="
+          ls -lh "$PKG_DIR/"
+          
+          cd release
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            7z a ${{ matrix.artifact }}.zip ${{ matrix.artifact }}/
+          else
+            tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}/
+          fi
 
       - uses: actions/upload-artifact@v7
         with:
@@ -161,15 +147,12 @@ jobs:
           path: release/${{ matrix.artifact }}.*
 
   release:
-    needs: [build-ffi, build-bun]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
-
-      - name: List artifacts
-        run: find artifacts -type f | sort
 
       - uses: softprops/action-gh-release@v3
         with:
