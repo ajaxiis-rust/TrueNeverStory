@@ -47,7 +47,7 @@ jobs:
           chmod +x release/tns-linux-x64/startgame.sh
           cd release && tar -czf tns-linux-x64.tar.gz tns-linux-x64/
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: tns-linux-x64
           path: release/tns-linux-x64.tar.gz
@@ -86,7 +86,7 @@ jobs:
           chmod +x release/tns-linux-arm64/startgame.sh
           cd release && tar -czf tns-linux-arm64.tar.gz tns-linux-arm64/
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: tns-linux-arm64
           path: release/tns-linux-arm64.tar.gz
@@ -125,7 +125,7 @@ jobs:
           chmod +x release/tns-macos-arm64/startgame.sh
           cd release && tar -czf tns-macos-arm64.tar.gz tns-macos-arm64/
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: tns-macos-arm64
           path: release/tns-macos-arm64.tar.gz
@@ -164,7 +164,7 @@ jobs:
           chmod +x release/tns-macos-x64/startgame.sh
           cd release && tar -czf tns-macos-x64.tar.gz tns-macos-x64/
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: tns-macos-x64
           path: release/tns-macos-x64.tar.gz
@@ -201,7 +201,7 @@ jobs:
           cp README*.md release/tns-windows-x64/
           cd release && 7z a tns-windows-x64.zip tns-windows-x64/
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: tns-windows-x64
           path: release/tns-windows-x64.zip
