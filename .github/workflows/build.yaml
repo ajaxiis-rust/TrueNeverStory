@@ -25,10 +25,11 @@ jobs:
           sudo ln -sf /usr/local/zig/zig /usr/local/bin/zig
           zig version
 
-      - name: Build all FFI platforms
+      - name: Build all platforms
         run: |
           cd mojo/kernels
           
+          # Kernel source → output name mapping
           declare -A KERNEL_MAP=(
             ["probability_ffi"]="libtns_kernels"
             ["vector_ffi"]="libtns_vectors"
@@ -37,6 +38,7 @@ jobs:
             ["graph_ops"]="libtns_graph_ops"
           )
           
+          # Target → zig target, suffix
           declare -A TARGETS=(
             ["aarch64-linux"]="aarch64-linux-gnu|.so"
             ["x86_64-linux"]="x86_64-linux-gnu|.so"
@@ -52,7 +54,7 @@ jobs:
           
           for target in "${!TARGETS[@]}"; do
             IFS='|' read -r zig_target suffix <<< "${TARGETS[$target]}"
-            echo "=== $target ==="
+            echo "=== $target ($zig_target) ==="
             
             pkg_dir="dist/$target"
             mkdir -p "$pkg_dir"
@@ -64,10 +66,17 @@ jobs:
                 "c/${src_name}.c" -lm 2>&1 | grep -v "warning" || true
             done
             
+            # Copy TS bindings
             cp ../../src/lib/mojo-ffi.ts "$pkg_dir/"
+            
+            # Create tarball
             tar -czf "dist/tns-ffi-${target}.tar.gz" -C "$pkg_dir" .
-            echo "  OK: tns-ffi-${target}.tar.gz"
+            echo "  Built: tns-ffi-${target}.tar.gz ($(du -h dist/tns-ffi-${target}.tar.gz | cut -f1))"
           done
+          
+          echo ""
+          echo "=== All packages ==="
+          ls -lh dist/tns-ffi-*.tar.gz
 
       - uses: actions/upload-artifact@v7
         with:
@@ -141,6 +150,9 @@ jobs:
           chmod +x release/${{ matrix.artifact }}/tns-server* 2>/dev/null || true
           chmod +x release/${{ matrix.artifact }}/startgame.sh 2>/dev/null || true
 
+          echo "Package contents:"
+          ls -lh release/${{ matrix.artifact }}/
+
           cd release && tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}/
 
       - uses: actions/upload-artifact@v7
@@ -155,6 +167,9 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f | sort
 
       - uses: softprops/action-gh-release@v3
         with:
