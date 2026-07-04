@@ -156,19 +156,19 @@ jobs:
       - name: Package
         shell: bash
         run: |
+          set -x
           mkdir -p release/${{ matrix.artifact }}
 
           cp tns-server* release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp -r public/ release/${{ matrix.artifact }}/ 2>/dev/null || true
 
-          # Copy Mojo .so/.dylib
-          for lib in libtns_kernels libtns_vectors libtns_vector_full libtns_batch_ops libtns_graph_ops; do
-            SO="${lib}${{ matrix.so_ext }}"
-            if [[ -f "$SO" ]]; then
-              cp "$SO" release/${{ matrix.artifact }}/
-              echo "  Packaged: $SO ($(du -h "$SO" | cut -f1))"
-            fi
-          done
+          # Copy any Mojo libraries that were built
+          ls -la *.so *.dylib 2>/dev/null || echo "No Mojo libraries found in root"
+          cp libtns_kernels${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
+          cp libtns_vectors${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
+          cp libtns_vector_full${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
+          cp libtns_batch_ops${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
+          cp libtns_graph_ops${{ matrix.so_ext }} release/${{ matrix.artifact }}/ 2>/dev/null || true
 
           cp .env.example release/${{ matrix.artifact }}/ 2>/dev/null || true
           cp startgame.sh release/${{ matrix.artifact }}/ 2>/dev/null || true
