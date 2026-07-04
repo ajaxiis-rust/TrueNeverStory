@@ -17,6 +17,10 @@ const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_KEYLEN = 64;
 const PBKDF2_DIGEST = "sha512";
 
+function generateCsrfToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
 /** Get client IP from request headers. */
 export function getClientIp(c: Context): string {
   const forwarded = c.req.header("x-forwarded-for");
@@ -128,8 +132,9 @@ function getSessionToken(c: Context): string | null {
 }
 
 /** Render login HTML page. */
-function renderLoginPage(error?: string): string {
+function renderLoginPage(error?: string, csrfToken?: string): string {
   const errorMsg = error ? `<div style="color:var(--accent);font-size:11px;margin-bottom:12px">${error}</div>` : "";
+  const csrfField = csrfToken ? `<input type="hidden" name="csrf_token" value="${csrfToken}">` : "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -155,6 +160,7 @@ body{height:100vh;display:flex;align-items:center;justify-content:center;backgro
 <form class="login" method="POST" action="/login">
   <div class="title"><span>TrueNeverStory</span></div>
   ${errorMsg}
+  ${csrfField}
   <div class="field">
     <label class="label">Password</label>
     <input class="input" type="password" name="password" placeholder="Enter password" autofocus required>
@@ -204,7 +210,9 @@ export const loginPage: MiddlewareHandler = async (c) => {
   if (token && isSessionValid(token)) {
     return c.redirect("/");
   }
-  return c.html(renderLoginPage());
+  const csrfToken = generateCsrfToken();
+  c.header("Set-Cookie", `_csrf=${csrfToken}; Path=/login; HttpOnly; SameSite=Strict; Max-Age=300`);
+  return c.html(renderLoginPage(undefined, csrfToken));
 };
 
 /** Login form handler — POST /login. */
@@ -213,6 +221,13 @@ export const loginHandler: MiddlewareHandler = async (c) => {
   const ip = getClientIp(c);
   const body = await c.req.parseBody();
   const password = body.password as string;
+
+  // CSRF validation
+  const csrfToken = body.csrf_token as string;
+  const csrfCookie = parseCookies(c.req.header("cookie")).get("_csrf");
+  if (csrfToken && (!csrfCookie || csrfToken !== csrfCookie)) {
+    return c.html(renderLoginPage("Invalid form submission"), 403);
+  }
 
   // Rate limit check
   const rateCheck = checkLoginRateLimit(ip);
