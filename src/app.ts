@@ -50,6 +50,11 @@ export function createApp(): Hono {
   // ── Static assets (no auth needed) ──
   app.get("/static/*", (c) => {
     const assetPath = join(PUBLIC_DIR, c.req.path.replace(/^\//, ""));
+    const normalizedPub = PUBLIC_DIR.replace(/\\/g, "/");
+    const normalizedAsset = assetPath.replace(/\\/g, "/");
+    if (!normalizedAsset.startsWith(normalizedPub + "/") && normalizedAsset !== normalizedPub) {
+      return new Response("Forbidden", { status: 403 });
+    }
     const file = Bun.file(assetPath);
     if (file.size > 0) {
       return new Response(file);
