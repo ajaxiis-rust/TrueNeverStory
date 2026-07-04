@@ -100,7 +100,6 @@ chat.post("/message", zValidator("json", ChatMessageSchema), async (c) => {
       success: true,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
     log.error({ err }, "Error processing message");
     return c.json({
       narrative: "",
@@ -108,7 +107,7 @@ chat.post("/message", zValidator("json", ChatMessageSchema), async (c) => {
       story_time: engine.currentTime.toISOString(),
       active_character: engine.activeCharacter,
       success: false,
-      error: message,
+      error: "Internal error",
     });
   }
 });
@@ -143,12 +142,11 @@ chat.post("/agent", async (c) => {
       success: true,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
     log.error({ err }, "Error processing agent message");
     return c.json({
       narrative: "",
       success: false,
-      error: message,
+      error: "Internal error",
     });
   }
 });

@@ -85,7 +85,8 @@ worlds.post("/worlds", async (c) => {
     });
     return c.json({ status: "created", world });
   } catch (err) {
-    return c.json({ error: err instanceof Error ? err.message : String(err) }, 409);
+    log.error({ err }, "Failed to create world");
+    return c.json({ error: "Failed to create world" }, 409);
   }
 });
 
@@ -100,7 +101,8 @@ worlds.put("/worlds/:name", async (c) => {
     const frame = await updateWorldFrame(name, body);
     return c.json({ status: "updated", frame });
   } catch (err) {
-    return c.json({ error: err instanceof Error ? err.message : String(err) }, 404);
+    log.error({ err }, "Failed to update world");
+    return c.json({ error: "World not found" }, 404);
   }
 });
 
@@ -114,7 +116,8 @@ worlds.delete("/worlds/:name", async (c) => {
     await deleteWorld(name);
     return c.json({ status: "deleted" });
   } catch (err) {
-    return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+    log.error({ err }, "Failed to delete world");
+    return c.json({ error: "Failed to delete world" }, 400);
   }
 });
 
@@ -141,7 +144,8 @@ worlds.post("/worlds/:name/switch", async (c) => {
 
     return c.json({ status: "switched", active: name });
   } catch (err) {
-    return c.json({ error: err instanceof Error ? err.message : String(err) }, 400);
+    log.error({ err }, "Failed to switch world");
+    return c.json({ error: "Failed to switch world" }, 400);
   }
 });
 
