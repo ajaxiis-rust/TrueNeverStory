@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+env:
+  BUN_VERSION: "latest"
+
+jobs:
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Type check
+        run: bun run lint
+
+      - name: Compile binary
+        run: bun build --compile --outfile tns-server src/index.ts
+
+      - name: Package
+        run: |
+          mkdir -p release/tns-linux-x64
+          cp tns-server release/tns-linux-x64/
+          cp -r public/ release/tns-linux-x64/
+          cp -r docs/ release/tns-linux-x64/
+          cp .env.example release/tns-linux-x64/
+          cp startgame.sh release/tns-linux-x64/
+          cp README*.md release/tns-linux-x64/
+          chmod +x release/tns-linux-x64/tns-server
+          chmod +x release/tns-linux-x64/startgame.sh
+          cd release && tar -czf tns-linux-x64.tar.gz tns-linux-x64/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tns-linux-x64
+          path: release/tns-linux-x64.tar.gz
+
+  build-linux-arm64:
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Type check
+        run: bun run lint
+
+      - name: Compile binary
+        run: bun build --compile --outfile tns-server src/index.ts
+
+      - name: Package
+        run: |
+          mkdir -p release/tns-linux-arm64
+          cp tns-server release/tns-linux-arm64/
+          cp -r public/ release/tns-linux-arm64/
+          cp -r docs/ release/tns-linux-arm64/
+          cp .env.example release/tns-linux-arm64/
+          cp startgame.sh release/tns-linux-arm64/
+          cp README*.md release/tns-linux-arm64/
+          chmod +x release/tns-linux-arm64/tns-server
+          chmod +x release/tns-linux-arm64/startgame.sh
+          cd release && tar -czf tns-linux-arm64.tar.gz tns-linux-arm64/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tns-linux-arm64
+          path: release/tns-linux-arm64.tar.gz
+
+  build-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Type check
+        run: bun run lint
+
+      - name: Compile binary
+        run: bun build --compile --outfile tns-server src/index.ts
+
+      - name: Package
+        run: |
+          mkdir -p release/tns-macos-arm64
+          cp tns-server release/tns-macos-arm64/
+          cp -r public/ release/tns-macos-arm64/
+          cp -r docs/ release/tns-macos-arm64/
+          cp .env.example release/tns-macos-arm64/
+          cp startgame.sh release/tns-macos-arm64/
+          cp README*.md release/tns-macos-arm64/
+          chmod +x release/tns-macos-arm64/tns-server
+          chmod +x release/tns-macos-arm64/startgame.sh
+          cd release && tar -czf tns-macos-arm64.tar.gz tns-macos-arm64/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tns-macos-arm64
+          path: release/tns-macos-arm64.tar.gz
+
+  build-macos-x64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Type check
+        run: bun run lint
+
+      - name: Compile binary
+        run: bun build --compile --target bun-darwin-x64 --outfile tns-server src/index.ts
+
+      - name: Package
+        run: |
+          mkdir -p release/tns-macos-x64
+          cp tns-server release/tns-macos-x64/
+          cp -r public/ release/tns-macos-x64/
+          cp -r docs/ release/tns-macos-x64/
+          cp .env.example release/tns-macos-x64/
+          cp startgame.sh release/tns-macos-x64/
+          cp README*.md release/tns-macos-x64/
+          chmod +x release/tns-macos-x64/tns-server
+          chmod +x release/tns-macos-x64/startgame.sh
+          cd release && tar -czf tns-macos-x64.tar.gz tns-macos-x64/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tns-macos-x64
+          path: release/tns-macos-x64.tar.gz
+
+  build-windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Type check
+        run: bun run lint
+
+      - name: Compile binary
+        run: bun build --compile --outfile tns-server.exe src/index.ts
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p release/tns-windows-x64
+          cp tns-server.exe release/tns-windows-x64/
+          cp -r public/ release/tns-windows-x64/
+          cp -r docs/ release/tns-windows-x64/
+          cp .env.example release/tns-windows-x64/
+          cp README*.md release/tns-windows-x64/
+          cd release && 7z a tns-windows-x64.zip tns-windows-x64/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tns-windows-x64
+          path: release/tns-windows-x64.zip

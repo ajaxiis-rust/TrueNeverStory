@@ -35,14 +35,14 @@ jobs:
           - os: macos-latest
             artifact: tns-macos-arm64
             cc: "cc"
-            cflags: "-dynamiclib -O3 -mmacosx-version-min=13.0"
+            cflags: "-dynamiclib -O3"
             suffix: .dylib
             bun_target: ""
 
           - os: macos-latest
             artifact: tns-macos-x64
             cc: "cc -arch x86_64"
-            cflags: "-dynamiclib -O3 -mmacosx-version-min=13.0"
+            cflags: "-dynamiclib -O3"
             suffix: .dylib
             bun_target: bun-darwin-x64
 
