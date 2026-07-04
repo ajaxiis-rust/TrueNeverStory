@@ -1,154 +1,66 @@
-# TrueNeverStory v0.15.0 – Plattform für interaktive narratives Spielen
+# TrueNeverStory v0.15.0
 
-**TrueNeverStory v0.15.0** ist eine moderne Neuimplementierung der [BRING](https://github.com/Eva-E1/BRING) Fantasy-Welt-Plattform, migriert von Python zu einem leistungsstarken Hybrid-Stack:
+### Schreibe dein Buch, indem du einfach spielst.
 
-- **TypeScript (Bun + Hono)** – Webserver, API, WebSocket, Routing, Auth, Streaming, Geschäftslogik
-- **C-FFI-Kernels (mit Zig kompiliert, mit TypeScript-Fallback)** – Compute-Kerne für Wahrscheinlichkeitsberechnungen und Vektoroperationen (mit Zig kompiliert, mit TypeScript-Fallback)
+TrueNeverStory ist eine KI-gestützte interaktive Narrativ-Engine. Jeder NPC erinnert sich, jede Handlung hat eine Chance, und die Geschichte hört nie auf. Spiele eine Figur, erkunde eine lebendige Welt und beobachte, wie deine Entscheidungen die Handlung formen — oder lass die Welt sich selbst entwickeln.
 
-> *"Von einem einzigen Prompt zu einer lebendigen, atmenden Welt – in der sich jeder NPC erinnert, jede Handlung eine Chance hat und die Geschichte nie aufhört."*
+Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels für leistungskritische Operationen.
 
 ---
 
 ## Funktionen
 
 | Funktion | Beschreibung |
-|----------|--------------|
-| **Geschichtete Welterstellung** | Jede Entität (Charakter, Ort, Item, Fraktion) hat drei Schichten: L1 (Klassifikation), L2 (Details), L3 (Geheimnisse) |
-| **Graph-basiertes Wissen** | Alle Beziehungen in einem gerichteten Graphen mit O(1) Suchen, BFS-Traversierung, Branch-Management |
-| **Selbstoptimierender Speicher** | Vektor-beschleunigter Speicher mit kognitiver Pipeline (Entitäts extraktion, Widerspruchserkennung, Schmerzsignale) |
-| **RAG für alle Agenten** | Vollständige Embedding-Unterstützung über llama.cpp (BGE-M3) + SQLite Hybrid-Suche (FTS5 + dichte Vektoren + RRF) |
-| **Wahrscheinlichkeitssystem** | Deterministische Ergebnisse für Kampf, Überredung, Heimlichkeit, Romanze mit dynamischen Modifikatoren |
-| **Romanzesystem** | Vollständige romantische Beziehungsverwaltung mit wahrscheinlichkeitsbasierten Aktionen |
-| **Lebender Regisseur** | Hintergrund-Agent entwickelt Handlungsstränge, Schurkenpläne, NPC-Interaktionen |
-| **Immersives Rollenspiel** | Ich-Erzähler, NPC-Dialoge, Szenenübergänge – LLM spricht nie für deinen Charakter |
-| **Quest-System** | Dynamische Quest-Generierung und Zielverfolgung |
-| **Story-Planer** | LLM-gesteuerte Handlungsplanung mit komprimiertem Kontext und adaptiver Neuplanung |
-| **Researcher-Agent** | Faktencheck, Realismusvalidierung, historische Genauigkeit für Rezepte, Charaktere und Szenen |
-| **NPC-Intelligenz** | Speicher Suche, autonomes Verhalten, soziale Beziehungen, angereicherter Dialog-Kontext |
-| **NPC-Wirtschaft** | Feudale Hierarchie (10 Ränge), Steuern, Bestechung, Nahrungsmittelproduktion, Familiensystem, Lastern, 34 Archetypen |
-| **Item-System** | Einzigartige Items mit dauerhaften Attributs-Boosts (1-10%), bewertet von Historiker/Forscher-Agenten |
-| **14 spezialisierte Agenten** | Erzähler, Regisseur, Szene, NPC, Chronist, Story-Planer, Soz. Sim, Schurke, Forscher, Historiker, Kartograph, Kaufmann, Quest-Geber, Wissenshüter |
-| **WebSocket in Echtzeit** | Live-Rollenspiel-Streaming und Speicher-Ereignisse |
-| **SSE Streaming** | Progressive Narrativlieferung über Server-Sent Events |
-| **i18n (7 Sprachen)** | Vollständige Lokalisierung: EN, RU, DE, FR, ES, JA, ZH – UI, Prompts, Agent-Namen |
-| **SQLite-Speicher** | Agent-Prompts und UI-Strings werden in SQLite pro Welt + Sprache gespeichert |
-| **Passwort-Auth** | Sitzungsbasierte Authentifizierung mit HttpOnly Cookies |
-| **Terminal-UI** | Wunderschöne dunkle Terminal-Stil Weboberfläche |
+|----------|-------------|
+| **Lebendige Welt** | Charaktere, Orte, Gegenstände, Fraktionen — alles in einem Wissensgraphen mit O(1) Zugriff |
+| **14 KI-Agenten** | Erzähler, Regisseur, NPC, Szene, Chronist, Planer, Schurke, Forscher, Historiker, Kartograph, Händler, Questgeber, Wissenshüter, Soz. Simulation |
+| **Gedächtnis & RAG** | Vektorbasierte Suche (BGE-M3 + SQLite Hybrid FTS5/dicht/RRF) |
+| **Wahrscheinlichkeitssystem** | Deterministische Ergebnisse für Kampf, Überredung, Heimlichkeit, Romantik |
+| **Romanze & Soziales** | Beziehungsmanagement, Fraktionen, Allianzen, feudale Hierarchie, NPC-Dialoge |
+| **Quest-System** | Dynamische Quest-Generierung, Ziele, Belohnungen, Ketten, Zeitlimits |
+| **Inventar & Handel** | Gegenstände mit Seltenheit, Statistiken, Ausrüstung, Gold, NPC-Handel |
+| **NPC-Ökonomie** | Feudale Hierarchie (10 Ränge), Steuern, Nahrungsproduktion, Familiensystem, 34 Archetypen |
+| **Echtzeit-Streaming** | WebSocket + SSE für Live-Erzählung |
+| **i18n (7 Sprachen)** | EN, RU, DE, FR, ES, JA, ZH |
+| **Passwort-Auth** | Sitzungsbasiert mit HttpOnly Cookies, CSRF-Schutz |
+| **SQLite-Speicher** | Entitäten, Embeddings, Erinnerungen, Prompts, Übersetzungen |
 
 ---
 
-## Architektur
+## Unterstützte Plattformen
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Browser (Terminal UI)                 │
-│              WebSocket + REST + SSE                      │
-└───────────────────────┬─────────────────────────────────┘
-                        │ HTTP / WebSocket
-┌───────────────────────▼─────────────────────────────────┐
-│              TypeScript (Bun + Hono)                     │
-│                                                          │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │
-│  │ HTTP API │ │WebSocket │ │SSE Stream│ │   Auth     │  │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬──────┘  │
-│       └─────────────┼───────────┼─────────────┘         │
-│  ┌──────────────────▼───────────▼─────────────────────┐  │
-│  │              Dienstschicht                          │  │
-│  │  RoleplayEngine │ ProbabilityEngine │ RomanceEngine│  │
-│  │  QuestManager   │ WorldClock        │ Director     │  │
-│  │  StoryPlanner   │ VillainManager    │ SocialSim    │  │
-│  │  ResearcherAgent│ CrafterAgent      │ Chronicler   │  │
-│  └───────────────────────┬────────────────────────────┘  │
-│  ┌───────────────────────▼────────────────────────────┐  │
-│  │           Speichersystem (WorldMemory)               │  │
-│  │  VectorIndex │ CognitivePipeline │ EntityExtractor │  │
-│  │  Scoring     │ Partitions        │ WriteBuffer     │  │
-│  └───────────────────────┬────────────────────────────┘  │
-│  ┌───────────────────────▼────────────────────────────┐  │
-│  │           Datenschicht (EntityStore + JSON)          │  │
-│  └────────────────────────────────────────────────────┘  │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │      C FFI Kernels (mit Zig kompiliert)             │  │
-│  │  Wahrscheinlichkeitskerne │ Vektoroperationen      │  │
-│  │  .so/.dylib/.dll → dlopen() oder TypeScript-Fallback│  │
-│  └────────────────────────────────────────────────────┘  │
-└───────────────────────┬─────────────────────────────────┘
-                        │ HTTP (OpenAI-kompatibel)
-┌───────────────────────▼─────────────────────────────────┐
-│              Externe LLM API (Ollama, OpenAI, etc.)      │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## Plattformkompatibilität
-
-| Plattform | Status | Mojo FFI | Start | Hinweise |
-|-----------|:------:|:--------:|-------|---------|
-| Linux x86_64 | ✅ Full | ✅ | `./tns-server` | Vollständige Unterstützung |
-| Linux ARM64 | ✅ Full | ✅ | `./tns-server` | Vollständige Unterstützung |
-| macOS ARM64 | ✅ Full | ✅ | `./tns-server` | Apple Silicon |
-| macOS x86_64 | ✅ Full | ✅ | `./tns-server` | Intel Mac |
-| Windows x86_64 | ✅ Fallback | ❌ | `tns-server.exe` | TypeScript-Fallback |
+| Plattform | Status | Hinweise |
+|-----------|:------:|---------|
+| Linux x86_64 | ✅ | Volle Unterstützung, FFI-Kernels |
+| Linux ARM64 | ✅ | Volle Unterstützung, FFI-Kernels |
+| macOS ARM64 | ✅ | Apple Silicon |
+| macOS x86_64 | ✅ | Intel Mac |
+| Windows x86_64 | ✅ | C FFI via Zig |
 
 ---
 
 ## Schnellstart
 
-### Voraussetzungen
+**Kein Bun, Node.js oder andere Laufzeitumgebung nötig.** Einfach herunterladen und starten.
 
-- [Bun](https://bun.sh) v1.0+ (für Entwicklung)
-- Eine OpenAI-kompatible LLM API (OpenAI, Ollama, vLLM, LM Studio usw.)
+### 1. Herunterladen
 
-Für die kompilierte Binary — nichts nötig, einfach starten.
+Das neueste Release für deine Plattform von [GitHub Releases](https://github.com/ajaxiis-rust/TrueNeverStory/releases/latest):
 
-### 1. Installation
+| Plattform | Datei |
+|-----------|-------|
+| Linux x86_64 | `tns-linux-x64.tar.gz` |
+| Linux ARM64 | `tns-linux-arm64.tar.gz` |
+| macOS ARM64 | `tns-macos-arm64.tar.gz` |
+| macOS x86_64 | `tns-macos-x64.tar.gz` |
+| Windows x86_64 | `tns-windows-x64.zip` |
 
-```bash
-cd TNS
-bun install
-```
-
-### 2. LLM konfigurieren
-
-Öffnen Sie `http://localhost:8000/settings` und konfigurieren Sie Ihren LLM-Provider:
-
-- **Ollama** (lokal): `http://localhost:11434/v1`, Modell: `llama3`
-- **OpenAI**: `https://api.openai.com/v1`, Modell: `gpt-4o-mini`
-- **vLLM** (lokal): `http://localhost:8000/v1`
-- **LM Studio**: `http://localhost:1234/v1`
-
-Oder bearbeiten Sie `conf/settings.json` direkt.
-
-### 3. Starten
-
-```bash
-bun run dev
-```
-
-Öffnen Sie `http://localhost:8000` und melden Sie sich mit Passwort an: **`changeme`**
-
-Ändern Sie das Passwort in den Einstellungen nach dem ersten Login.
-
-### Binary (keine Abhängigkeiten)
-
-```bash
-# Von GitHub Releases herunterladen, dann:
-chmod +x tns-server
-./tns-server
-# Login: http://localhost:8000 — Passwort: changeme
-```
-
----
-
-## Verwendungsbeispiele
-
-### Aus der Binary starten (keine Abhängigkeiten)
-
-Laden Sie die neueste Version für Ihre Plattform herunter und starten Sie direkt:
+### 2. Starten
 
 ```bash
 # Linux / macOS
+tar xzf tns-linux-x64.tar.gz
+cd tns-linux-x64
 chmod +x tns-server
 ./tns-server
 
@@ -156,234 +68,50 @@ chmod +x tns-server
 tns-server.exe
 ```
 
-Kein Bun, Node.js oder andere Laufzeitumgebung erforderlich. Konfigurieren Sie `.env` und starten Sie.
+### 3. Öffnen
 
-### Aus dem Quellcode starten (Entwicklung)
+**http://localhost:8000** öffnen — Passwort: **`changeme`**
 
-```bash
-# Hot-Reload-Entwicklungsmodus
-bun run dev
+Passwort nach dem ersten Login in den Einstellungen ändern.
 
-# Produktionsmodus (kein Hot Reload)
-bun run start
-
-# Bundle erstellen (ohne Binary)
-bun run build
-```
-
-### Start mit lokalem LLM (Ollama)
-
-```bash
-# 1. Ollama mit Modell starten
-ollama pull llama3
-ollama serve
-
-# 2. TNS für Ollama konfigurieren
-cat > .env << 'EOF'
-WORLD_LLM_BASE_URL=http://localhost:11434/v1
-WORLD_LLM_API_KEY=ollama
-WORLD_LLM_MODEL=llama3
-WORLD_SERVER_HOST=0.0.0.0
-WORLD_SERVER_PORT=8000
-AUTH_PASSWORD=mypassword
-EOF
-
-# 3. Server starten
-./tns-server
-```
-
-### Start mit OpenAI API
-
-```bash
-cat > .env << 'EOF'
-WORLD_LLM_BASE_URL=https://api.openai.com/v1
-WORLD_LLM_API_KEY=sk-your-key-here
-WORLD_LLM_MODEL=gpt-4o-mini
-WORLD_SERVER_HOST=0.0.0.0
-WORLD_SERVER_PORT=8000
-AUTH_PASSWORD=mypassword
-EOF
-
-./tns-server
-```
-
-### API-Beispiele
-
-```bash
-# Anmeldung
-curl -c cookies.txt -X POST http://localhost:8000/login \
-  -d "password=mypassword"
-
-# Neues Spiel starten
-curl -b cookies.txt -X POST http://localhost:8000/api/chat/setup \
-  -H "Content-Type: application/json" \
-  -d '{"character": "Aragorn", "role": "protagonist"}'
-
-# Nachricht senden und Narrativ erhalten
-curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Ich ziehe mein Schwert und stelle mich dem Drachen"}'
-
-# Streaming-Antwort (SSE)
-curl -b cookies.txt -N http://localhost:8000/api/chat/stream \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Erzähle mir von diesem alten Wald"}'
-
-# Entitäten suchen
-curl -b cookies.txt "http://localhost:8000/api/search?q=drache"
-
-# Entitätsdetails abrufen
-curl -b cookies.txt http://localhost:8000/api/entity/uid-character-aragorn
-
-# Graph-Nachbarn abrufen
-curl -b cookies.txt "http://localhost:8000/api/neighbors/uid-location-rivendell?depth=2"
-
-# Wahrscheinlichkeit prüfen
-curl -b cookies.txt http://localhost:8000/api/probability/aragorn/combat
-
-# Quests auflisten
-curl -b cookies.txt http://localhost:8000/api/quests
-```
-
-### WebSocket für Echtzeit-Rollenspiel
-
-```javascript
-// WebSocket-Verbindung herstellen
-const ws = new WebSocket('ws://localhost:8000/ws/roleplay/session-id');
-
-ws.onopen = () => {
-  ws.send(JSON.stringify({
-    type: 'message',
-    content: 'Ich betrete die Taverne und sehe mich um'
-  }));
-};
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log(data.narrative); // Echtzeit-Narrativ-Stream
-};
-```
-
-### Aus Quellcode kompilieren
-
-```bash
-# Mojo installieren (optional, für Performance-Kernel)
-curl https://get.modular.com | sh
-modular install mojo
-
-# Für aktuelle Plattform kompilieren
-./build.sh compile
-
-# Für bestimmte Plattform kompilieren
-./build.sh compile linux-x64
-./build.sh compile macos-arm64
-
-# Cross-Kompilierung für alle Plattformen
-./build.sh cross
-
-# Details in COMPILE.md
-```
+Das war's. Keine Datenbank-Installation, keine Pakete, keine Konfigurationsdateien.
 
 ---
 
-## API-Endpunkte
+## LLM konfigurieren
 
-### Authentifizierung
+Einstellungsseite öffnen oder `.env` bearbeiten:
 
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| GET | `/login` | Anmeldeseite |
-| POST | `/login` | Authentifizierung (Formular: `password=...`) |
-| POST | `/logout` | Sitzung löschen |
+### Ollama (lokal, kostenlos)
 
-### Chat
+```bash
+ollama pull llama3
+ollama serve
+```
 
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| POST | `/api/chat/setup` | Rollenspiel-Sitzung initialisieren |
-| POST | `/api/chat/message` | Nachricht senden, Narrativ erhalten |
-| POST | `/api/chat/stream` | SSE-Streaming-Antwort |
-| GET | `/api/chat/session` | Aktueller Sitzungsstatus |
-| GET | `/api/chat/history` | Gesprächsverlauf |
+```
+WORLD_LLM_BASE_URL=http://localhost:11434/v1
+WORLD_LLM_API_KEY=ollama
+WORLD_LLM_MODEL=llama3
+```
 
-### Entitäten & Graph
+### OpenAI
 
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| GET | `/api/entity/:uid` | Entitätsdetails |
-| GET | `/api/neighbors/:uid` | Nachbarn mit Tiefe |
-| GET | `/api/path` | Kürzesten Pfad finden |
-| GET | `/api/search` | Nach Name oder semantisch suchen |
-| GET | `/api/graph/summary` | Graph-Statistiken |
+```
+WORLD_LLM_BASE_URL=https://api.openai.com/v1
+WORLD_LLM_API_KEY=sk-your-key-here
+WORLD_LLM_MODEL=gpt-4o-mini
+```
 
-### Äste
+### LM Studio
 
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| POST | `/api/branch/create` | Ast erstellen |
-| POST | `/api/branch/switch` | Aktiven Ast wechseln |
-| POST | `/api/branch/merge` | In main zusammenführen |
-| GET | `/api/branch/list` | Alle Äste auflisten |
+```
+WORLD_LLM_BASE_URL=http://localhost:1234/v1
+WORLD_LLM_API_KEY=lm-studio
+WORLD_LLM_MODEL=your-model
+```
 
-### Wahrscheinlichkeiten
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| GET | `/api/probability/:character/:profile` | Erfolgswahrscheinlichkeit |
-| POST | `/api/probability/modifier` | Modifikator anwenden |
-| GET | `/api/probability/modifiers/:entity` | Aktive Modifikatoren |
-
-### Romanze
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| GET | `/api/romance/:c1/:c2` | Beziehungsstatus |
-| POST | `/api/romance/attempt/:action` | Romantische Aktion versuchen |
-| GET | `/api/romance/characters/:char` | Charakter-Romanzen auflisten |
-
-### Quests
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| GET | `/api/quests` | Alle Quests auflisten |
-| GET | `/api/quest/:id` | Quest-Details |
-
-### Sitzungen & Wartung
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| GET | `/api/sessions` | Sitzungsverläufe |
-| POST | `/api/maintenance/run` | Wartung starten |
-| GET | `/api/maintenance/status` | Wartungsstatistiken |
-| POST | `/api/launch` | Neues Spiel starten |
-| POST | `/api/continue` | Spiel fortsetzen |
-| GET | `/api/health` | Gesundheitsprüfung |
-
-### System (Hintergrundverarbeitung)
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| POST | `/api/system/pause` | Direktor-Schleife und Warteschlange pausieren |
-| POST | `/api/system/resume` | Direktor-Schleife und Warteschlange fortsetzen |
-| GET | `/api/system/status` | Pausen-/Laufstatus abrufen |
-
-### Agenten
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| GET | `/api/agents` | Alle Agenten-Konfigurationen |
-| GET | `/api/agents/:id` | Einzelne Agenten-Konfiguration |
-| PUT | `/api/agents/:id` | Agenten-Konfiguration aktualisieren |
-| PUT | `/api/agents/:id/prompts` | Agenten-Prompts aktualisieren |
-| POST | `/api/agents/:id/reset` | Auf Standard zurücksetzen |
-| GET | `/api/agents/providers/options` | Anbieter/Modell-Optionen |
-
-### WebSocket
-
-| Endpunkt | Beschreibung |
-|----------|--------------|
-| `ws://host:8000/ws/roleplay/:sessionId` | Rollenspiel in Echtzeit |
-| `ws://host:8000/ws/memory` | Speicher-Ereignis-Feed |
+Funktioniert auch mit vLLM, Anthropic, Google und jeder OpenAI-kompatiblen API.
 
 ---
 
@@ -393,411 +121,153 @@ modular install mojo
 TrueNeverStory/
 ├── src/
 │   ├── config/           # Zod-validierte Umgebungskonfiguration
-│   ├── lib/              # LLM-Client, Queue, Event Bus, Historie, Atomic I/O
-│   ├── memory/           # WorldMemory, FAISS-Index, kognitive Pipeline, Scoring
-│   ├── middleware/        # Auth, CORS, Fehlerbehandlung, Logger, Rate Limiter
-│   ├── models/           # Entity, chat, probability, romance, quest, story, memory
-│   ├── routes/           # 13 Routenmodule (chat, entities, agents usw.)
-│   ├── services/         # 23 Dienste (roleplay engine, agenten, wahrscheinlichkeiten usw.)
-│   ├── intelligence/     # Graph-Analyse, Duplikate, Empfehlungen, Szenen-Generator
-│   ├── i18n/             # Sprachpakete (EN, RU, DE, FR, ES, JA, ZH)
+│   ├── lib/              # LLM-Client, SQLite Store, Vektoroperationen
+│   ├── memory/           # WorldMemory, kognitiver Pipeline
+│   ├── middleware/        # Auth, Rate Limiter, Sicherheitsheader
+│   ├── models/           # Entity, chat, probability, romance, quest, item
+│   ├── routes/           # API-Routen (chat, entities, agents, settings)
+│   ├── services/         # 52 Dienste (Rollenspiel-Engine, Agenten, Ökonomie)
+│   ├── intelligence/     # Graph-Analyse, Duplikaterkennung
+│   ├── i18n/             # Sprachpakete (7 Sprachen)
 │   ├── store/            # EntityStore mit O(1) NameIndex
-│   ├── utils/            # Logger, Hash, Zeitutils
-│   ├── app.ts            # Hono-App mit Middleware-Kette
-│   └── index.ts          # Server-Einstiegspunkt
-├── mojo/
-│   ├── kernels/          # FFI Wahrscheinlichkeits- und Vektorkerne
-│   └── src/              # 81 Mojo-Quelldateien (optionales Performance-Backend)
-├── public/
-│   ├── index.html        # Terminal-Style Web-UI
-│   ├── agents.html       # Agenten-Konfiguration (i18n-fähig)
-│   ├── providers.html    # LLM-Anbieter-Einstellungen
-│   ├── models.html       # Modellverwaltung
-│   └── settings.html     # Globale Einstellungen
-├── worlds/
-│   ├── default/          # Active world
-│   │   ├── world_frame.json
-│   │   ├── entities.json
-│   │   ├── agents/       # Per-agent JSON configs
-│   │   ├── session_history/
-│   │   ├── chapters/
-│   │   ├── timeline.jsonl
-│   │   └── settings.json
-├── local-models/         # GGUF models (downloaded locally)
-├── tests/
-│   ├── entity-store.test.ts
-│   ├── probability-engine.test.ts
-│   └── integration/
-│       └── server.test.ts
-├── .env                  # Konfiguration (git-ignoriert)
-├── .env.example          # Konfigurationsvorlage
-├── startgame.sh          # Server + llama-server Starter (mit PID-Bereinigung)
-├── package.json
-├── tsconfig.json
-└── plan.md               # Migrationsplan
+│   └── utils/            # Logger, Hash, Sanitizer, Template-Resolver
+├── mojo/kernels/         # C FFI Compute-Kernels (compiliert via Zig)
+├── public/               # Web-UI (Terminal-Stil)
+├── worlds/               # Weltdaten (SQLite DB, Entitäten, Sitzungen)
+├── conf/                 # Konfiguration
+└── tests/                # Test-Suite
 ```
 
 ---
 
-## Konfiguration
+## API
 
-Gesamte Konfiguration über Umgebungsvariablen (`.env`-Datei):
+### Authentifizierung
 
-| Variable | Standard | Beschreibung |
-|----------|----------|--------------|
-| `WORLD_LLM_BASE_URL` | – | OpenAI-kompatibler LLM-Endpunkt |
-| `WORLD_LLM_API_KEY` | – | API-Schlüssel |
-| `WORLD_LLM_MODEL` | `gpt-4o-mini` | Modellname |
-| `WORLD_LLM_TIMEOUT` | `120` | Anfrage-Timeout (Sekunden) |
-| `WORLD_LLM_MAX_TOKENS` | `4096` | Max. Token pro Antwort |
-| `WORLD_LLM_TEMPERATURE` | `0.7` | Sampling-Temperatur |
-| `WORLD_LLM_MAX_CONCURRENT` | `8` | Max. gleichzeitige LLM-Anfragen |
-| `WORLD_DB_PATH` | `./worlds/default` | Datenbankverzeichnis |
-| `LOCAL_MODELS_PATH` | `./local-models` | Lokale GGUF-Modelle Verzeichnis |
-| `WORLD_SERVER_HOST` | `0.0.0.0` | Listener-Adresse |
-| `WORLD_SERVER_PORT` | `8000` | Listener-Port |
-| `AUTH_PASSWORD` | – | Anmeldepasswort (leer = keine Auth) |
-| `MAX_SERVE_URL` | `http://localhost:8000` | Mojo MAX Serve-Endpunkt |
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| GET | `/login` | Login-Seite |
+| POST | `/login` | Authentifizierung |
+| POST | `/logout` | Sitzung beenden |
+
+### Chat & Rollenspiel
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| POST | `/api/chat/setup` | Sitzung initialisieren |
+| POST | `/api/chat/message` | Nachricht senden |
+| POST | `/api/chat/stream` | SSE-Streaming |
+| GET | `/api/chat/session` | Aktueller Sitzungsstatus |
+| GET | `/api/chat/history` | Gesprächsverlauf |
+
+### Entitäten & Graph
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| GET | `/api/entity/:uid` | Entitätsdetails |
+| GET | `/api/neighbors/:uid` | Nachbarn mit Tiefen-Traversal |
+| GET | `/api/search?q=` | Suche nach Name oder Semantik |
+| GET | `/api/graph/summary` | Graph-Statistiken |
+
+### Agenten & i18n
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| GET | `/api/agents` | Agenten-Konfigurationen |
+| PUT | `/api/agents/:id` | Agent aktualisieren |
+| PUT | `/api/agents/:id/prompts/:lang` | Prompts pro Sprache |
+| GET | `/api/i18n/translations/:lang/:page` | Übersetzungen |
+
+### WebSocket
+
+| Endpunkt | Beschreibung |
+|----------|-------------|
+| `ws://host:8000/ws/roleplay/:sessionId` | Echtzeit-Rollenspiel-Streaming |
 
 ---
 
-## Entwicklung
+## Beispiele
+
+### API
 
 ```bash
-# Entwicklung mit Hot Reload
-bun run dev
+# Login
+curl -c cookies.txt -X POST http://localhost:8000/login -d "password=changeme"
 
-# Typprüfung
-npx tsc --noEmit
+# Sitzung einrichten
+curl -b cookies.txt -X POST http://localhost:8000/api/chat/setup \
+  -H "Content-Type: application/json" \
+  -d '{"character": "Aragorn", "role": "protagonist"}'
 
-# Alle Tests ausführen
-bun test
-
-# Bestimmte Tests ausführen
-bun test tests/entity-store.test.ts
-bun test tests/probability-engine.test.ts
-bun test tests/integration/server.test.ts
-
-# Für Produktion bauen
-bun run build
+# Nachricht senden
+curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Ich ziehe mein Schwert und stelle dem Drachen entgegen"}'
 ```
+
+---
+
+## Für Entwickler
+
+### Voraussetzungen
+
+- [Bun](https://bun.sh) v1.0+
+
+### Einrichtung
+
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+bun run dev
+```
+
+### Befehle
+
+| Befehl | Beschreibung |
+|--------|-------------|
+| `bun run dev` | Entwicklung mit Hot Reload |
+| `bun run start` | Produktionsmodus |
+| `bun run lint` | Typprüfung |
+| `bun test` | Test-Suite ausführen |
+| `bun run build` | Bundle erstellen |
+
+---
+
+## Binary-Builds
+
+Cross-Kompilierung via Zig:
+
+```bash
+cd mojo/kernels
+./build.sh native           # Aktuelle Plattform
+./build.sh aarch64-linux    # ARM64 Linux
+./build.sh x86_64-windows   # Windows x64
+./build.sh list             # Alle Targets
+```
+
+Siehe [COMPILE.md](COMPILE.md). GitHub Actions baut alle Plattformen automatisch bei Tag-Push.
 
 ---
 
 ## Letzte Änderungen
 
-### C-FFI-Kernels & Cross-Kompilierung (v0.14.1)
+### v0.15.0 — Sicherheitsverbesserungen
 
-Portierung der Mojo-Berechnungskerne nach C mit Zig-Cross-Kompilierung für 10 Plattformen:
+- SQLite-gestützte Sitzungen
+- WebSocket-Token-Validierung
+- Path-Traversal-Schutz
+ CSRF-Schutz beim Login
+- Secure Cookie-Flag, hartes CSP
+- Fehlermeldungen sanitisiert
 
-| Funktion | Beschreibung |
-|----------|--------------|
-| **C-FFI-Kernels** | 5 Compute-Kerne von Mojo nach reinem C portiert (probability, vector, vector_full, batch_ops, graph_ops) |
-| **Zig Cross-Kompilierung** | Einzelnes Build-Skript kompiliert für Linux, macOS, Windows, ARM, RISC-V |
-| **10 Plattformziele** | aarch64/x86_64 Linux (glibc+musl), macOS, Windows, ARMv7, RISC-V |
-| **Verteilungspakete** | Jedes Release-Archiv enthält Binärdatei + FFI .so/.dll + public/ + .env |
-| **Pause/Resume** | Direktor-Schleife und LLM-Warteschlange pausieren beim Verlassen der Chat-Ansicht |
+→ [security.md](security.md) | [SECURITY-log.md](SECURITY-log.md)
 
-**Neue Dateien:**
-- `mojo/kernels/c/probability_ffi.c` — Wahrscheinlichkeitskerne (Erfolgschance, Wurf, Batch)
-- `mojo/kernels/c/vector_ffi.c` — 4-dim Vektoroperationen (Kosinus, L2, Skalarprodukt)
-- `mojo/kernels/c/vector_full.c` — Vollständige Vektoroperationen (768-dim)
-- `mojo/kernels/c/batch_ops.c` — Batch-NPC-Operationen (Altersabbau, Laster, Steuern, Loyalität)
-- `mojo/kernels/c/graph_ops.c` — Graphtraversierung, RRF-Fusion, Reputation
-- `mojo/kernels/build.sh` — Cross-Kompilierung via Zig
-- `src/routes/system.ts` — Pause/Resume API-Endpunkte
+### v0.14.1 — C FFI-Kernels & Cross-Kompilierung
 
-**Geänderte Dateien:**
-- `src/services/director-loop.ts` — `pause()`/`resume()`-Methoden hinzugefügt
-- `src/lib/llm-queue.ts` — `pause()`/`resume()`-Methoden hinzugefügt
-- `src/services/narrative-service.ts` — `pause()`/`resume()`-Delegation hinzugefügt
-- `public/index.html` — Auto-Pause beim Seitenverlassen, Auto-Resume beim Laden
-
-### Mojo-Kernel-Erweiterung (v0.12.0)
-
-Leistungssteigerung der Mojo-Berechnungskerne für Vektorsuche, Batch-NPC-Operationen und Graphtraversierung:
-
-| Funktion | Beschreibung |
-|----------|--------------|
-| **Wahrscheinlichkeitskern** | Erfolgschance, Wurfergebnis, Modifikator + Batch-Wahrscheinlichkeiten via Mojo FFI |
-| **Vektorkern** | 4-dim Kosinusähnlichkeit, L2-Distanz, Skalarprodukt via Mojo FFI |
-| **Vollständige Vektoren** | 768-dim BGE-M3 Embeddings — Batch-Kosinusähnlichkeit via Mojo FFI |
-| **Batch-NPC-Operationen** | Altersabbau, Laster, Steuern, Vermögenssumme, Loyalitätsprüfungen via Mojo FFI |
-| **Graphoperationen** | RRF-Fusion, Beziehungsstärke, Berechnung der Reputation via Mojo FFI |
-| **SQLite-Beschleunigung** | searchDense/searchMemoriesDense verwenden Batch-Kosinusähnlichkeit |
-
-**Neue Dateien:**
-- `mojo/kernels/vector_full.mojo` — Vollständige Vektoroperationen (Kosinus, L2, Skalarprodukt, Batch)
-- `mojo/kernels/batch_ops.mojo` — Batch-NPC-Statistik-Operationen (Altersabbau, Laster, Steuern, Loyalität)
-- `mojo/kernels/graph_ops.mojo` — Graphtraversierung und RRF-Fusion
-- `src/lib/mojo-ffi.test.ts` — 19 Tests für alle FFI-Bindungen
-
-**Geänderte Dateien:**
-- `mojo/kernels/probability_ffi.mojo` — batch_success_chance und batch_roll hinzugefügt
-- `src/lib/mojo-ffi.ts` — 5 Kernel-Bindungen mit TypeScript-Fallbacks
-- `src/lib/vector-ops.ts` — Nutzt Mojo-beschleunigtes cosineSimilarity
-- `src/lib/sqlite-store.ts` — searchDense/searchMemoriesDense nutzen batchCosineSimilarity
-- `build.sh` — Kompiliert alle 5 Kerne (probability, vector_4dim, vector_full, batch_ops, graph_ops)
-
-**Performance (ms per 1000 iterations):**
-
-| Operation | Python | NumPy | TS | TS+SQLite | Mojo | Mojo vs TS |
-|-----------|--------|-------|-----|-----------|------|------------|
-| cosine (768-dim) | 3.6 | 4.8 | 5.2 | - | **1.5** | **3.5x** |
-| batch_cosine (100×768) | 35.6 | 6.1 | 27.4 | 105.4 | **14.0** | **2.0x** |
-| age_decay (100 NPCs) | 75.6 | 21.5 | 1.8 | - | **1.6** | 1.1x |
-| rrf_fusion (100×3) | 706.1 | 10.4 | 2.5 | - | **2.2** | 1.1x |
-| reputation (500 rels) | 41.9 | - | 5.1 | - | **3.1** | **1.6x** |
-
-Mojo kernels use `abi("c")` + `UnsafePointer` FFI with TypeScript fallbacks. All functions have zero-overhead TS fallbacks when `.so` is unavailable.
-
-### Soziale und politische Systeme (v0.11.0)
-
-| Feature | Beschreibung |
-|---------|-------------|
-| **Feudale Hierarchie** | Treueschwörung, Herren/Vasallen, Befehlskette, Loyalität, Rebellion |
-| **Fraktionssystem** | 6 Typen (militärisch/wirtschaftlich/religiös/kriminell/adlig/neutral), Anführer, Einfluss |
-| **Politische Allianzen** | 5 Typen (militärisch/Handel/Verteidigung/Nichtangriff/Vasall), Verrat, Reputation |
-| **NPC-Dialoge** | Sitzungsverwaltung, 11 Themenkategorien, kontextuelle Begrüßungen |
-| **Quest-System** | 5 Quest-Typen, 7 Zieltypen, Belohnungen, Voraussetzungen, Ketten |
-| **Story-Planer** | LLM-gesteuerte Handlungsplanung mit komprimiertem Kontext und adaptiver Neuplanung |
-| **Inventarsystem** | Item-Rarität (5 Stufen), Ausrüstungsplätze, Gewicht/Kapazität, Handel |
-
-**Neue Dateien:** `social-graph.ts`, `dialogue-manager.ts`, `quest-system.ts`, `inventory-manager.ts`
-
-### NPC-Wirtschaftssystem (v0.11.0)
-
-Vollständige feudale Wirtschaftssimulation mit lebendigen NPCs:
-
-| Funktion | Beschreibung |
-|----------|--------------|
-| **Feudale Hierarchie** | 10 Ränge: Sklave → Bürger → Baronet → Baron → Viscount → Graf → Marquis → Herzog → König → Kaiser |
-| **NPC-Attribute** | 6 Attribute: Wohlstand, Macht, Beliebtheit, Gesundheit, Erfahrung, Intrige |
-| **Steuersystem** | Hierarchische Steuern: 0% (Kaiser) → 90% (Bürger), reduziert durch Macht/Beliebtheit |
-| **Bestechungsmechanik** | Risikobasierte Bestechung: 10% Basis + Betrag/Zeugen, Verratsschwelle |
-| **Nahrungsmittelwirtschaft** | Sklaven produzieren 300-1000 Nahrung/Monat, alle konsumieren nach Rang |
-| **Familiensystem** | 50% Einkommen an Ehefrau, 10% an Kinder, Vererbung beim Tod |
-| **Lastern & Degradierung** | 8 Laster die Attribute beeinflussen, altersbedingter Gesundheitsverfall |
-| **34 Archetypen** | 22 Standard + 12 einzigartige, gewichtete Zufallsauswahl, Kontextgruppen |
-| **Machtverlust** | Rebellion → Tod/Sklaverei, Krieg → Lösegeld/Sklaverei, Bankrott → Sklaverei |
-| **Item-Boosts** | Einzigartige Items geben dauerhafte Attributs-Boosts (1-10%), bewertet von Historiker/Forscher |
-
-### SQLite-Speicher für Prompts & Übersetzungen (v0.11.0)
-Agent-Prompts und UI-Strings werden jetzt in SQLite pro Welt + Sprache gespeichert:
-
-- **`agent_prompts` Tabelle** — speichert `systemPrompt`, `userTemplate`, `outputFormat` pro Welt + Sprache
-- **`ui_translations` Tabelle** — speichert UI-Strings pro Sprache + Seite (agents, settings, agent_names, agent_descs)
-- **Dual-write Strategie** — Schreibvorgänge erfolgen sowohl in SQLite als auch in JSON-Dateien für Abwärtskompatibilität
-- **Sprachbezogene Prompts** — jede Welt kann ihre eigene Sprache haben, die bestimmt, welche Prompts geladen werden
-- **Automatisches Befüllen** — beim ersten Start werden alle 7 Sprachen in `ui_translations` befüllt
-
-**Speicherhierarchie:**
-1. **SQLite** (`tns.db`) — primärer Speicher, pro Welt + Sprache
-2. **JSON-Dateien** (`worlds/{world}/agents/{agentId}.json`) — Fallback während der Migration
-3. **Hardcoded-Defaults** (`DEFAULT_PROMPTS` in `src/services/agent-config.ts`)
-
-### i18n API-Endpunkte
-Neue REST-API für Übersetzungsverwaltung:
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|--------------|
-| GET | `/api/i18n/translations/:lang/:page` | Übersetzungen für Sprache + Seite abrufen |
-| GET | `/api/i18n/translations/:lang` | Alle Übersetzungen für eine Sprache abrufen |
-| PUT | `/api/i18n/translations` | Batch-Übersetzungen aktualisieren |
-| DELETE | `/api/i18n/translations/:lang/:page/:key` | Übersetzungsschlüssel löschen |
-
-**Beispielanfrage (PUT):**
-```json
-{
-  "language": "de",
-  "page": "agents",
-  "entries": {
-    "title": "Agenten-Konfiguration",
-    "savePrompts": "Prompts speichern"
-  }
-}
-```
-
-### Sprachbezogene Agent-Prompts
-Agent-Prompts unterstützen jetzt die Speicherung pro Welt und Sprache:
-
-```sql
-CREATE TABLE agent_prompts (
-  world TEXT NOT NULL DEFAULT 'default',
-  agent_id TEXT NOT NULL,
-  language TEXT NOT NULL DEFAULT 'en',
-  system_prompt TEXT NOT NULL DEFAULT '',
-  user_template TEXT NOT NULL DEFAULT '',
-  output_format TEXT NOT NULL DEFAULT '',
-  UNIQUE(world, agent_id, language)
-);
-```
-
-**API-Endpunkte für sprachbezogene Prompts:**
-- `GET /api/agents/:id/prompts/:lang` — Prompts für bestimmte Sprache abrufen
-- `PUT /api/agents/:id/prompts/:lang` — Prompts für bestimmte Sprache aktualisieren
-
-### Frontend-i18n-Integration
-Frontend-Seiten laden Übersetzungen jetzt aus SQLite über die API:
-
-```javascript
-// agents.html
-async function loadTranslations(langCode) {
-  const res = await fetch(`/api/i18n/translations/${langCode}/agents`);
-  const data = await res.json();
-  remoteTranslations = data.translations || {};
-}
-
-function t(key) {
-  if (remoteTranslations[key] !== undefined) return remoteTranslations[key];
-  return I18N[lang]?.[key] ?? I18N.en[key] ?? key;
-}
-```
-
-### Neue spezialisierte Agenten (v0.11.0)
-Fünf neue Agenten für Weltanreicherung und Spielerinteraktion:
-
-- **Historiker** — erinnert und erzählt historische Ereignisse, Lore und Chronologie
-- **Kartograph** — liefert Informationen über Orte, Entfernungen, Wege und Geographie
-- **Kaufmann** — handelt mit Handel, Preisgestaltung und NPC-Inventarverwaltung
-- **Quest-Geber** — generiert kontextbezogene Quests basierend auf dem Weltzustand mit Zielen und Belohnungen
-- **Wissenshüter** — pflegt Weltfakten, Magieregeln, Rasseninformationen und etabliertes Kanon
-
-Jeder Agent hat eigene System-Prompts, Benutzervorlagen und Ausgabeformate in `src/services/agent-config.ts`.
-
-### RAG-System für alle Agenten (v0.11.0)
-Vollständige Embedding-Unterstützung mit Langzeitgedächtnis für jeden Agenten:
-
-- **llama.cpp Embedding Server** — dediziertes BGE-M3-Modell auf Port 5002 für Vektorgenerierung
-- **SQLite Hybrid-Suche** — FTS5-Schlüsselwortsuche + dichte Vektorsuche + Reciprocal Rank Fusion (RRF)
-- **AgentMemoryStore** — pro-Agent-, pro-Sessions-Isolierung über `role`-Spalte
-- **Welten-isoliertes Gedächtnis** — Gedächtnis ist pro Welt isoliert, um Halluzinationen aus anderen Welten zu verhindern
-- **Mojo Graph-Operationen** — Vektoroperationen über Mojo FFI für Performance (Kosinusähnlichkeit, L2-Abstand)
-
-**Architektur:**
-```
-Agent-Anfrage → AgentMemoryStore → SQLite (Hybrid-Suche)
-                                      ↓
-                              ┌───────┴───────┐
-                              │ FTS5 (LIKE)   │ Dichte Vektoren (BGE-M3)
-                              │ Schlüsselwort │ Kosinusähnlichkeit
-                              └───────┬───────┘
-                                      ↓
-                              Reciprocal Rank Fusion (RRF)
-                                      ↓
-                              Kontext für LLM-Prompt
-```
-
-**Schlüsseldateien:**
-- `src/lib/agent-memory-store.ts` — AgentMemoryStore mit Embedding-Integration
-- `src/lib/sqlite-store.ts` — SQLiteStore mit FTS5 + Vektorsuche + RRF
-- `src/lib/vector-ops.ts` — Vektoroperationen (Kosinus, L2, Skalarprodukt)
-
-### NPC-System Überarbeitung (v0.11.0)
-Vier neue Dienste für intelligentes NPC-Verhalten:
-
-- **MemoryEngine** — semantische Suche, Emotions-/Ortsfilterung, Speicherclustering über episodische NPC-Gedächtnisse
-- **BehaviorEngine** — autonome Aktionen, Zielbewertung, Tagesroutinen, Stimmungsanpassung, Entscheidungsfindung
-- **SocialGraph** — Beziehungsverfolgung, Reputationsscores, gemeinsame Freunde, Fraktionszugehörigkeit und Konflikte
-- **DialogueContext** — angereicherte NPC-Prompts, die Beziehungen, Gedächtnis, Stimmung, Standort, Fraktion, Ziele und Inventar kombinieren
-
-**Architektur:** Zwei parallele Tracks — Track 1 (Gedächtnis + Verhalten) baut die Grundlage, Track 2 (Soziale Verbindungen + Dialog) fügt benutzerfreundliche Funktionen hinzu.
-
-**Integration:** `NPCAgent.initialize(runtime, statePath)` erstellt alle vier Komponenten. Fallback auf Template/PromptBuilder wenn DialogueContext nicht initialisiert.
-
-### Researcher-Agent (v0.11.0)
-Neuer Agent für Faktencheck und Realismusvalidierung:
-- **`verifyRecipe()`** – validiert Crafter-Rezepte auf Plausibilität
-- **`researchTopic()`** – historische/kulturelle Forschung für Weltbau
-- **`validateCharacter()`** – prüft Kleidung, Essen, Alltag der Charaktere
-- **`enrichScene()`** – fügt realistische Sinnesdetails zu Szenen hinzu
-- **`factCheck()`** – allgemeine Faktenprüfung
-
-### i18n-System
-Vollständige Lokalisierung für 7 Sprachen (EN, RU, DE, FR, ES, JA, ZH):
-- Alle Agenten-Prompts und UI-Strings
-- Agent-Namen und Beschreibungen
-- Einstellungsseiten (Agenten, Anbieter, Modelle)
-- Server-Start/-Stop-Meldungen
-
-**Struktur** — jede Sprache hat eine eigene Datei unter `src/i18n/`:
-
-```
-src/i18n/
-├── types.ts    # LanguagePack-Schnittstelle + Language-Typ
-├── en.ts       # Englisch (Basispaket – alle Schlüssel hier definiert)
-├── ru.ts       # Russisch (erbt EN, überschreibt Übersetzungen)
-├── de.ts       # Deutsch
-├── fr.ts       # Französisch
-├── es.ts       # Spanisch
-├── ja.ts       # Japanisch
-├── zh.ts       # Chinesisch
-└── index.ts    # Barrel-Export, Registrierung, getLanguagePack()
-```
-
-**Neue Sprache hinzufügen** (z.B. Koreanisch):
-
-1. `src/i18n/ko.ts` erstellen:
-```ts
-import { EN } from "./en";
-import type { LanguagePack } from "./types";
-
-export const KO: LanguagePack = {
-  ...EN,
-  code: "ko",
-  name: "Korean",
-  nativeName: "한국어",
-  systemPrompt: "한국어로만 답변하세요.",
-  uiSettings: "설정",
-  // ... andere Schlüssel überschreiben
-};
-```
-
-2. In `src/i18n/index.ts` registrieren:
-```ts
-import { KO } from "./ko";
-// zum Language-Typ hinzufügen: "ko"
-// zu PACKS hinzufügen: ko: KO
-// zum LANGUAGES-Array hinzufügen
-```
-
-3. `"ko"` zur `Language`-Union in `src/i18n/types.ts` hinzufügen.
-
-### Server-Verbesserungen
-- **PID-Datei-Tracking** (`.server.pid`) – verhindert verwaiste Prozesse
-- **Bereinigung beim Start** – tötet automatisch alte Prozesse
-- **Graceful Shutdown** – 5-Sekunden SIGTERM-Timeout, dann SIGKILL-Fallback
-
----
-
-## Migration von Python
-
-Dieses Projekt ist ein TypeScript + Mojo Port von [BRING](https://github.com/Eva-E1/BRING) — einer Python AI-Fantasy-Welt-Plattform. Wichtige Änderungen:
-
-| Komponente | Python | TypeScript |
-|------------|--------|------------|
-| Web-Framework | FastAPI | Hono (Bun) |
-| Runtime | Python asyncio | Bun native async |
-| Validierung | Pydantic | Zod |
-| Logging | Python logging | Lightweight Logger (Pino-Ersatz) |
-| Graph | NetworkX | Benutzerdefinierte Adjazenzmap |
-| Vektorsuche | FAISS (Python) | Mojo FFI + lokaler Cosine-Fallback |
-| WebSocket | FastAPI WebSocket | Bun native WebSocket |
-| Auth | Keine | Cookie-basierte Sitzungen |
-| Streaming | SSE (starlette) | ReadableStream + SSE |
-
----
-
-## Haftungsausschluss
-
-Dieses Projekt wurde mit **Vibe Coding** entwickelt – einem KI-gestützten Entwicklungsansatz, der von [MiMo Code](https://github.com/XiaomiMiMo/MiMo) unterstützt wird. Die Codebasis wurde durch die Zusammenarbeit von Mensch und KI erstellt, was bedeutet:
-
-- Der Code ist **funktional und getestet** – alle Funktionen wie beschrieben
-- Einige Bereiche können **suboptimale Muster** enthalten oder von Refactoring profitieren
-- Es können **geringe Unterschiede** im Codestil zwischen verschiedenen Modulen auftreten
-- Architektur und Logik wurden **vom Menschen überprüft und validiert**
-
-Beiträge zur Verbesserung sind willkommen.
+- 5 Compute-Kernels von Mojo zu reinem C portiert
+- Zig Cross-Kompilierung für 10 Plattformen
+- Pause/Resume Hintergrundverarbeitung
 
 ---
 
