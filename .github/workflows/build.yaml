@@ -144,16 +144,17 @@ jobs:
           ls -lh "$PKG_DIR/"
           
           cd release
+          VERSION="${GITHUB_REF_NAME:-dev}"
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            7z a ${{ matrix.artifact }}.zip ${{ matrix.artifact }}/
+            7z a ${{ matrix.artifact }}-${VERSION}.zip ${{ matrix.artifact }}/
           else
-            tar -czf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}/
+            tar -czf ${{ matrix.artifact }}-${VERSION}.tar.gz ${{ matrix.artifact }}/
           fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: release/${{ matrix.artifact }}.*
+          path: release/${{ matrix.artifact }}-*
 
   release:
     needs: build

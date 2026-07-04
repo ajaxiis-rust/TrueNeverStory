@@ -542,15 +542,22 @@ function applyLang(lang){document.querySelectorAll('[data-i18n]').forEach(el=>{c
   // Load chat history or show welcome
   async function loadHistory() {
     try {
+      // Fetch version from health endpoint
+      let version = '?';
+      try {
+        const h = await apiFetch('/health');
+        version = h.version || '?';
+      } catch {}
+
       // Check if a character is set
       const session = await apiFetch('/chat/session');
       if (session.active_character) {
-        addMsg('TrueNeverStory v0.12.0 — TypeScript + Mojo', 'msg--accent');
+        addMsg('TrueNeverStory ' + version + ' — TypeScript + Mojo', 'msg--accent');
         addMsg('Character: ' + session.active_character + ' | Location: ' + session.current_location, 'msg--system');
         addMsg('Type a command or describe an action to continue.', 'msg--dim');
         addMsg('', '');
       } else {
-        addMsg('TrueNeverStory v0.12.0 — TypeScript + Mojo', 'msg--accent');
+        addMsg('TrueNeverStory ' + version + ' — TypeScript + Mojo', 'msg--accent');
         addMsg('No character active. Click NEW to create one.', 'msg--dim');
         addMsg('', '');
       }

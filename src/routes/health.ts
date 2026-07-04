@@ -10,6 +10,7 @@ health.get("/health", async (c) => {
     status: "ok",
     engine_ready: true,
     uptime: process.uptime(),
+    version: "v0.16.2",
   });
 });
 
