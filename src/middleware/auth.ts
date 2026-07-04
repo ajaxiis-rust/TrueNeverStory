@@ -17,6 +17,16 @@ const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_KEYLEN = 64;
 const PBKDF2_DIGEST = "sha512";
 
+/** Get client IP from request headers. */
+export function getClientIp(c: Context): string {
+  const forwarded = c.req.header("x-forwarded-for");
+  if (forwarded) {
+    const first = forwarded.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return c.req.header("x-real-ip") ?? "unknown";
+}
+
 /** Get effective password from env (AUTH_PASSWORD) or settings (authPassword). */
 function getEffectivePassword(): { value: string; isHash: boolean } {
   const cfg = getConfig();
@@ -190,7 +200,7 @@ export const loginPage: MiddlewareHandler = async (c) => {
 /** Login form handler — POST /login. */
 export const loginHandler: MiddlewareHandler = async (c) => {
   const effective = getEffectivePassword();
-  const ip = c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown";
+  const ip = getClientIp(c);
   const body = await c.req.parseBody();
   const password = body.password as string;
 

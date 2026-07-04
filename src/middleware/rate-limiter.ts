@@ -2,6 +2,7 @@
  * Rate limiting middleware (simple in-memory token bucket).
  */
 import type { MiddlewareHandler } from "hono";
+import { getClientIp } from "./auth";
 
 interface Bucket {
   tokens: number;
@@ -13,7 +14,7 @@ const RATE_LIMIT = 100; // requests per minute
 const REFILL_INTERVAL = 60_000;
 
 export const rateLimiter: MiddlewareHandler = async (c, next) => {
-  const ip = c.req.header("x-forwarded-for") ?? "unknown";
+  const ip = getClientIp(c);
   const now = Date.now();
 
   let bucket = buckets.get(ip);
