@@ -3,8 +3,8 @@
  */
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { serveStatic } from "hono/bun";
 import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import { errorHandler } from "./middleware/error-handler";
 import { requestLogger } from "./middleware/logger";
 import { rateLimiter } from "./middleware/rate-limiter";
@@ -13,6 +13,16 @@ import { authMiddleware, loginPage, loginHandler, logoutHandler } from "./middle
 import { createRoutes } from "./routes";
 
 const PUBLIC_DIR = join(process.cwd(), "public");
+
+function serveHtml(filePath: string) {
+  const fullPath = join(PUBLIC_DIR, filePath);
+  if (!existsSync(fullPath)) {
+    return new Response("Not Found", { status: 404 });
+  }
+  return new Response(readFileSync(fullPath, "utf-8"), {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
 
 export function createApp(): Hono {
   const app = new Hono();
@@ -37,23 +47,29 @@ export function createApp(): Hono {
   app.post("/login", loginHandler);
   app.post("/logout", logoutHandler);
 
-  // ── Static files (no auth needed) ──
-  app.use("/static/*", serveStatic({ root: PUBLIC_DIR }));
+  // ── Static assets (no auth needed) ──
+  app.get("/static/*", (c) => {
+    const assetPath = join(PUBLIC_DIR, c.req.path.replace(/^\//, ""));
+    const file = Bun.file(assetPath);
+    if (file.size > 0) {
+      return new Response(file);
+    }
+    return new Response("Not Found", { status: 404 });
+  });
 
   // ── WebSocket upgrade (no auth for WS handshake — auth handled in handler) ──
-  // WebSocket is handled in index.ts via Bun.serve's websocket option
 
   // ── Auth gate — everything below requires valid session ──
   app.use("*", authMiddleware);
 
   // ── Serve UI ──
-  app.get("/", serveStatic({ path: join(PUBLIC_DIR, "index.html") }));
-  app.get("/settings", serveStatic({ path: join(PUBLIC_DIR, "settings.html") }));
-  app.get("/models", serveStatic({ path: join(PUBLIC_DIR, "models.html") }));
-  app.get("/providers", serveStatic({ path: join(PUBLIC_DIR, "providers.html") }));
-  app.get("/agents", serveStatic({ path: join(PUBLIC_DIR, "agents.html") }));
-  app.get("/worlds", serveStatic({ path: join(PUBLIC_DIR, "worlds.html") }));
-  app.get("/graph.html", serveStatic({ path: join(PUBLIC_DIR, "graph.html") }));
+  app.get("/", (c) => serveHtml("index.html"));
+  app.get("/settings", (c) => serveHtml("settings.html"));
+  app.get("/models", (c) => serveHtml("models.html"));
+  app.get("/providers", (c) => serveHtml("providers.html"));
+  app.get("/agents", (c) => serveHtml("agents.html"));
+  app.get("/worlds", (c) => serveHtml("worlds.html"));
+  app.get("/graph.html", (c) => serveHtml("graph.html"));
 
   // ── API Routes ──
   const routes = createRoutes();
