@@ -10,6 +10,7 @@ import { sha256Short } from "../utils/hash";
 import { getLogger } from "../utils/logger";
 import { getProviderManager, type LLMProvider } from "./providers";
 import { loadAgentConfig } from "../services/agent-config";
+import { parseJsonWithRetry } from "./json-retry";
 
 const log = getLogger("llm-client");
 
@@ -276,15 +277,13 @@ export class LLMClient {
     options: { temperature?: number; maxTokens?: number; timeout?: number } = {},
   ): Promise<Record<string, unknown>> {
     const text = await this.generateText(prompt, { ...options, jsonMode: true });
-    try {
-      return JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (match?.[1]) {
-        return JSON.parse(match[1].trim()) as Record<string, unknown>;
-      }
-      throw new Error("Failed to parse JSON from LLM response");
-    }
+
+    // Use retry-capable parser: if JSON parse fails, re-prompt with stricter instructions
+    const retryGenerateText = async (retryPrompt: string): Promise<string> => {
+      return this.generateText(retryPrompt, { ...options, jsonMode: true });
+    };
+
+    return parseJsonWithRetry(text, retryGenerateText, prompt, 2);
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
