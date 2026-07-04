@@ -434,7 +434,7 @@ auto_configure
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║      TrueNeverStory v0.12.0 — Game Server        ║${NC}"
+echo -e "${BOLD}║      TrueNeverStory v0.16.0 — Game Server        ║${NC}"
 echo -e "${BOLD}╠══════════════════════════════════════════════════╣${NC}"
 echo -e "${CYAN}║  Mode:     ${MODE}${NC}"
 echo -e "${CYAN}║  URL:      http://${EXT_IP}:${PORT}${NC}"

@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.0 (2026-07-04)
+
+### Pause Race Condition Fix
+
+Fixed a critical bug where character creation (birth) would hang indefinitely when navigating between pages.
+
+**Root cause:** `sendBeacon(pause)` from `beforeunload` on the chat page could race with `fetch(resume)` on the worlds page, leaving the LLM queue paused. User-initiated LLM calls (birth's `generateFamilyTree`, chat messages) got stuck in the paused queue with no timeout, causing a 20+ minute hang.
+
+**Fixed:**
+- Removed `llmQueue.pause()` / `llmQueue.resume()` from `NarrativeService` — the director loop already has its own `_paused` check in `_runTick()`, so pausing the LLM queue was redundant for background tasks but blocked user-initiated actions
+- Added `_narrativeCtx.resume()` at the start of the `/launch` endpoint as a safety net
+- Reset `_paused` flag in `LLMQueue.start()` and `DirectorLoop.start()` to prevent stale pause state after world switch
+- Added `fetch(resume)` in `worlds.html` on page load
+
+### Release Packaging
+
+- All 7 README files now included in release archives (`README*.md` glob)
+- Entire `docs/` folder included in release archives (architecture docs, changelog, compile guide, agents reference)
+- Project link added to all README files
+
+---
+
 ## v0.15.0 (2026-07-04)
 
 ### Security Hardening

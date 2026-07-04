@@ -1,4 +1,4 @@
-# TrueNeverStory v0.15.0
+# TrueNeverStory v0.16.0
 
 ### 玩着写你的书。
 
