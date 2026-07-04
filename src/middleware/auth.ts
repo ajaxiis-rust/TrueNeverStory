@@ -7,10 +7,14 @@ import { getConfig } from "../config/env";
 import { randomBytes, pbkdf2Sync } from "node:crypto";
 import { getLogger } from "../utils/logger";
 import { loadSettings } from "../services/settings";
+import {
+  createSession as dbCreateSession,
+  isSessionValid as dbIsSessionValid,
+  deleteSession as dbDeleteSession,
+} from "../lib/session-store";
 
 const log = getLogger("auth");
 
-const sessions = new Map<string, number>(); // token → createdAt
 const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const PBKDF2_ITERATIONS = 100_000;
@@ -100,18 +104,8 @@ function checkLoginRateLimit(ip: string): { allowed: boolean; retryAfter?: numbe
   return { allowed: true };
 }
 
-function createSessionToken(): string {
-  return randomBytes(32).toString("hex");
-}
-
 export function isSessionValid(token: string): boolean {
-  const created = sessions.get(token);
-  if (!created) return false;
-  if (Date.now() - created > SESSION_TTL) {
-    sessions.delete(token);
-    return false;
-  }
-  return true;
+  return dbIsSessionValid(token);
 }
 
 /** Parse cookie header into a Map. */
@@ -255,9 +249,8 @@ export const loginHandler: MiddlewareHandler = async (c) => {
     return c.html(renderLoginPage("Invalid password"), 401);
   }
 
-  // Create session
-  const token = createSessionToken();
-  sessions.set(token, Date.now());
+  // Create session in SQLite
+  const token = dbCreateSession();
 
   log.info({ ip }, "Successful login");
 
@@ -269,7 +262,7 @@ export const loginHandler: MiddlewareHandler = async (c) => {
 /** Logout handler — POST /logout. */
 export const logoutHandler: MiddlewareHandler = async (c) => {
   const token = getSessionToken(c);
-  if (token) sessions.delete(token);
+  if (token) dbDeleteSession(token);
   c.header("Set-Cookie", "bring_session=; Path=/; HttpOnly; Secure; Max-Age=0");
   return c.redirect("/login");
 };

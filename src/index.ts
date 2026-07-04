@@ -6,6 +6,7 @@ import { loadConfig, getConfig } from "./config/env";
 import { getLogger } from "./utils/logger";
 import { createApp } from "./app";
 import { isSessionValid } from "./middleware/auth";
+import { startSessionCleanup, stopSessionCleanup } from "./lib/session-store";
 import { NarrativeService } from "./services/narrative-service";
 import { setEngine, setWSManager } from "./routes/chat";
 import { setWorldServices } from "./routes/worlds";
@@ -187,6 +188,8 @@ async function main() {
   log.info(`TrueNeverStory server running at http://${externalIp}:${port}`);
   log.info("Ready to accept connections");
 
+  startSessionCleanup();
+
   let shuttingDown = false;
   const shutdown = async () => {
     if (shuttingDown) {
@@ -203,6 +206,7 @@ async function main() {
     forceExit.unref();
 
     wsManager.closeAll();
+    stopSessionCleanup();
     await narrativeCtx.shutdown();
     server.stop();
     process.exit(0);
