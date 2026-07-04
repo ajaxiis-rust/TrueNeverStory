@@ -51,7 +51,7 @@ function getEffectivePassword(): { value: string; isHash: boolean } {
   return { value: cfg.AUTH_PASSWORD, isHash: false };
 }
 
-function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
+export function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
   const s = salt ?? randomBytes(16).toString("hex");
   const hash = pbkdf2Sync(password, s, PBKDF2_ITERATIONS, PBKDF2_KEYLEN, PBKDF2_DIGEST).toString("hex");
   return { hash, salt: s };
