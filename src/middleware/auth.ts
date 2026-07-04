@@ -70,6 +70,16 @@ const LOGIN_LOCKOUT_MS = 300_000; // 5 minutes lockout
 
 function checkLoginRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
+
+  // Periodic cleanup: remove entries older than lockout window
+  if (loginAttempts.size > 100) {
+    for (const [key, entry] of loginAttempts) {
+      if (now > entry.resetAt + LOGIN_LOCKOUT_MS) {
+        loginAttempts.delete(key);
+      }
+    }
+  }
+
   const entry = loginAttempts.get(ip);
 
   if (!entry || now > entry.resetAt) {
