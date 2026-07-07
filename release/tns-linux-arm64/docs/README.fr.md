@@ -1,4 +1,4 @@
-# TrueNeverStory v0.20.3
+# TrueNeverStory v0.20.4
 
 ### Écris ton livre en jouant.
 
@@ -310,7 +310,7 @@ bun run dev
 
 ## Derniers changements
 
-### v0.20.3 — Fix graphe monde + modal statistiques + injection langue + thèmes
+### v0.20.4 — Fix graphe monde + modal statistiques + injection langue + thèmes
 
 - Correction de `buildRelationships()` mort — construction heuristique automatique des relations au démarrage
 - Nouvel endpoint `GET /worlds/:name/detail` pour les statistiques du monde

@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.20.3 (2026-07-07)
+## v0.20.4 (2026-07-07)
 
 ### World Graph Fix + Statistics Modal
 

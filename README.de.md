@@ -1,4 +1,4 @@
-# TrueNeverStory v0.20.3
+# TrueNeverStory v0.20.4
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
@@ -309,7 +309,7 @@ Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automa
 
 ## Letzte Änderungen
 
-### v0.20.3 — World-Graph-Fix + Statistik-Modal + Sprachinjektion + Themes
+### v0.20.4 — World-Graph-Fix + Statistik-Modal + Sprachinjektion + Themes
 
 - Behoben: Totes `buildRelationships()` — heuristische Beziehungen werden beim Start automatisch aufgebaut
 - Neuer Endpunkt `GET /worlds/:name/detail` für Weltstatistiken

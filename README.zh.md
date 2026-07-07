@@ -1,4 +1,4 @@
-# TrueNeverStory v0.20.3
+# TrueNeverStory v0.20.4
 
 ### 玩着写你的书。
 
@@ -283,7 +283,7 @@ bun run dev
 
 ## 最近更改
 
-### v0.20.3 — 世界图修复 + 统计弹窗 + 语言注入 + 主题系统
+### v0.20.4 — 世界图修复 + 统计弹窗 + 语言注入 + 主题系统
 
 - 修复死代码`buildRelationships()` — 启动时自动构建启发式关系
 - 新增`GET /worlds/:name/detail`端点用于世界统计
