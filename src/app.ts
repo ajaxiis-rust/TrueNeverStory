@@ -76,6 +76,7 @@ export function createApp(): Hono {
   app.get("/worlds", (c) => serveHtml("worlds.html"));
   app.get("/graph.html", (c) => serveHtml("graph.html"));
   app.get("/dashboard", (c) => serveHtml("dashboard.html"));
+  app.get("/theme-builder", (c) => serveHtml("theme-builder.html"));
 
   // ── API Routes ──
   const routes = createRoutes();
