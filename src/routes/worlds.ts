@@ -219,7 +219,7 @@ Write a cohesive literary chapter (1000-2000 words). Use第三人称叙事, rich
 
   // Call LLM
   const { LLMClient } = await import("../lib/llm-client");
-  const llm = new LLMClient();
+  const llm = new LLMClient({ agentId: "narrator" });
   const chapter = await llm.generateText(chapterPrompt, { temperature: 0.8, maxTokens: 4096 });
 
   // Save chapter
