@@ -17,6 +17,7 @@ import { getSettings } from "../services/settings";
 import { getLogger } from "../utils/logger";
 import { join } from "node:path";
 import { existsSync, readdirSync, readFileSync, mkdirSync, statSync } from "node:fs";
+import { readJsonFileSync } from "../lib/atomic-io";
 import { readFile, writeFile } from "node:fs/promises";
 import { getConfig } from "../config/env";
 
@@ -282,6 +283,104 @@ worlds.get("/worlds/:name/chapters/:filename", async (c) => {
 
   const content = await readFile(chapterPath, "utf-8");
   return c.json({ filename, content });
+});
+
+/**
+ * GET /worlds/:name/detail — Full world statistics for modal.
+ */
+worlds.get("/worlds/:name/detail", async (c) => {
+  const name = c.req.param("name");
+  if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
+
+  const { getConfig } = await import("../config/env");
+  const worldPath = join(getConfig().WORLDS_ROOT, name);
+  if (!existsSync(worldPath)) return c.json({ error: "World not found" }, 404);
+
+  const frame = getWorldFrame(name) ?? {};
+
+  // Entity counts by type
+  const entitiesPath = join(worldPath, "entities.json");
+  let entities: Array<Record<string, unknown>> = [];
+  if (existsSync(entitiesPath)) {
+    try { entities = readJsonFileSync(entitiesPath) ?? []; } catch {}
+  }
+
+  const byType: Record<string, number> = {};
+  const characters: Array<{ name: string; summary: string; tags: string[]; relationships: unknown[] }> = [];
+  const locations: Array<{ name: string; summary: string }> = [];
+  const factions: Array<{ name: string; summary: string }> = [];
+  const items: Array<{ name: string; summary: string }> = [];
+
+  for (const e of entities) {
+    const t = (e.entity_type as string) ?? "Unknown";
+    byType[t] = (byType[t] ?? 0) + 1;
+
+    const profile = e.profile as Record<string, unknown> | undefined;
+    const l1 = (profile?.l1 ?? {}) as Record<string, unknown>;
+    const summary = (l1.summary as string) ?? "";
+    const tags = (l1.tags as string[]) ?? [];
+    const relationships = (l1.relationships as unknown[]) ?? [];
+
+    if (t === "Character") characters.push({ name: (e.name as string) ?? "", summary, tags, relationships });
+    else if (t === "Location") locations.push({ name: (e.name as string) ?? "", summary });
+    else if (t === "Faction") factions.push({ name: (e.name as string) ?? "", summary });
+    else if (t === "Item") items.push({ name: (e.name as string) ?? "", summary });
+  }
+
+  // Session count
+  const sessionDir = join(worldPath, "session_history");
+  let sessionCount = 0;
+  if (existsSync(sessionDir)) {
+    sessionCount = readdirSync(sessionDir).filter((f) => f.endsWith(".json")).length;
+  }
+
+  // Timeline events
+  const timelinePath = join(worldPath, "timeline.jsonl");
+  let eventCount = 0;
+  if (existsSync(timelinePath)) {
+    try {
+      const content = readFileSync(timelinePath, "utf-8");
+      eventCount = content.split("\n").filter((l) => l.trim()).length;
+    } catch {}
+  }
+
+  // Chapters
+  const chaptersDir = join(worldPath, "chapters");
+  let chapterCount = 0;
+  if (existsSync(chaptersDir)) {
+    chapterCount = readdirSync(chaptersDir).filter((f) => f.endsWith(".md")).length;
+  }
+
+  // Villains
+  const villainsPath = join(worldPath, "villains.json");
+  let villainCount = 0;
+  if (existsSync(villainsPath)) {
+    try {
+      const v = readJsonFileSync(villainsPath);
+      villainCount = Array.isArray(v) ? v.length : 0;
+    } catch {}
+  }
+
+  return c.json({
+    name,
+    title: (frame.title as string) ?? (frame.world_name as string) ?? name,
+    description: (frame.description as string) ?? "",
+    genre: (frame.genre as string) ?? "",
+    language: (frame.language as string) ?? "en",
+    worldRules: (frame.world_rules as Array<{ name: string; description: string }>) ?? [],
+    magicSystem: frame.magic_system,
+    entityCounts: byType,
+    totalEntities: entities.length,
+    characters,
+    locations,
+    factions,
+    items,
+    sessionCount,
+    eventCount,
+    chapterCount,
+    villainCount,
+    hasFrame: existsSync(join(worldPath, "world_frame.json")),
+  });
 });
 
 export { worlds as worldsRouter };
