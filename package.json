@@ -1,6 +1,6 @@
 {
   "name": "tns",
-  "version": "0.20.1",
+  "version": "0.20.3",
   "description": "TrueNeverStory - Building Rich Interactive Narrative Games (TypeScript + Mojo)",
   "type": "module",
   "scripts": {

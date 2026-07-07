@@ -1,8 +1,19 @@
 import type { NPCRuntime } from "./npc-runtime";
 import type { SocialGraph } from "./social-graph";
 import type { MemoryEngine } from "./memory-engine";
+import { getWorldLanguage } from "./agent-config";
 
 const FACTIONS = ["guards", "thieves", "merchants", "nobles", "peasants"];
+
+const LANG_HINT: Record<string, string> = {
+  en: "Always respond in English.",
+  ru: "Всегда отвечай на русском языке.",
+  de: "Antworte immer auf Deutsch.",
+  fr: "Réponds toujours en français.",
+  es: "Responde siempre en español.",
+  ja: "常に日本語で回答してください。",
+  zh: "请始终用中文回复。",
+};
 
 export class DialogueContext {
   private _runtime: NPCRuntime;
@@ -78,6 +89,9 @@ export class DialogueContext {
     parts.push(`\n${playerOrNpc} says: "${line}"`);
     parts.push(`\nRespond as ${npcName}.`);
 
+    const lang = getWorldLanguage();
+    if (LANG_HINT[lang]) parts.push(`\n${LANG_HINT[lang]}`);
+
     return parts.join("\n");
   }
 
@@ -134,6 +148,9 @@ export class DialogueContext {
 
     parts.push(`\nStay in character. Respond naturally in first person.`);
     parts.push(`Include actions in asterisks if appropriate.`);
+
+    const lang = getWorldLanguage();
+    if (LANG_HINT[lang]) parts.push(`\n${LANG_HINT[lang]}`);
 
     return parts.join("\n");
   }

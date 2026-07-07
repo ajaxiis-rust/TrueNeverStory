@@ -7,7 +7,7 @@ import type { LLMQueue } from "../lib/llm-queue";
 import { TaskPriority } from "../models/director";
 import { PromptBuilder } from "./prompt-builder";
 import { resolveTemplate } from "../utils/template-resolver";
-import { loadAgentConfig } from "./agent-config";
+import { loadAgentConfig, getLanguageInstruction } from "./agent-config";
 import type { ServiceMessageContext } from "./roleplay-engine";
 
 export const SCENE_AGENT_ID = "scene";
@@ -66,7 +66,7 @@ ${ctx.recentEvents.slice(-5).map(e => `- ${e}`).join("\n") || "None"}
 
 Private message: "${ctx.message}"
 
-Respond with scene descriptions, atmosphere suggestions, or location details. Keep it concise.`;
+Respond with scene descriptions, atmosphere suggestions, or location details. Keep it concise.${getLanguageInstruction()}`;
 
     const response = await this._llmQueue.generateText(
       prompt, TaskPriority.NORMAL, 0.8, SCENE_AGENT_ID,

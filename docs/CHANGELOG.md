@@ -1,5 +1,74 @@
 # Changelog
 
+## v0.20.3 (2026-07-07)
+
+### World Graph Fix + Statistics Modal
+
+#### Bug Fix: World Graph Not Building
+
+The world relationship graph was always empty — entities existed but no edges appeared.
+
+**Root cause:** `buildRelationships()` in `world-builder.ts` was dead code — never called from any route, service, or startup flow. Additionally, it never called `entityStore.save()` after mutating profiles, so even if called, relationships were lost on restart.
+
+**Fix:**
+- Added `await this._entityStore.save()` after the relationship push loop in `buildRelationships()`
+- Added `buildRelationshipsHeuristic()` — deterministic LLM-free relationship builder using race links, faction membership by tag match, character-to-character fallback, and location proximity
+- `NarrativeFacade.start()` now auto-builds heuristic relationships when entities exist but have no connections, then re-boots the graph store
+
+**Files changed:**
+- `src/services/world-builder.ts` — Added save() call + `buildRelationshipsHeuristic()` method
+- `src/services/narrative-facade.ts` — Auto-build heuristic relationships at startup
+
+---
+
+#### Feature: World Statistics Modal
+
+New modal on the Worlds page showing world details, entity counts, character/location/faction/item lists, session/event/chapter/villain counts, and world rules.
+
+**API:**
+- `GET /api/worlds/:name/detail` — Returns entity counts by type, character/location/faction/item lists with details, session/event/chapter/villain counts, world rules
+
+**UI:**
+- World card click opens statistics modal with stat grid, entity cards with colored dots, and world rules section
+- Full i18n support (en, ru, de, fr, es, ja, zh)
+
+**Files changed:**
+- `src/routes/worlds.ts` — Added `GET /worlds/:name/detail` endpoint
+- `public/worlds.html` — Added detail-modal CSS/HTML/JS + i18n
+
+---
+
+#### Feature: Language Instruction Injection
+
+LLM responses now automatically match the selected UI language. A `getLanguageInstruction()` function appends a language directive to all agent prompts, ensuring the narrator, director, scene generator, and NPC agent respond in the correct language.
+
+**Files changed:**
+- `src/services/agent-config.ts` — Added `getLanguageInstruction()` + `LANG_INSTRUCTION` map
+- `src/services/narrator-agent.ts` — Appended language instruction to prompts
+- `src/services/director-agent.ts` — Appended language instruction to prompts
+- `src/services/scene-agent.ts` — Appended language instruction to prompts
+- `src/services/npc-agent.ts` — Appended language instruction to prompts
+- `src/services/dialogue-context.ts` — Appended language instruction to prompts
+
+---
+
+#### Feature: Theme System
+
+5 built-in themes (Dark, Light, Terminal, Cyberpunk, Custom) with a custom theme constructor in Settings. Theme selector on all HTML pages with persistent selection.
+
+**Files changed:**
+- `public/static/theme.css` — Base theme variables + theme switching logic
+- `public/static/theme-dark.css` — Dark theme (default)
+- `public/static/theme-light.css` — Light theme
+- `public/static/theme-terminal.css` — Terminal/green-on-black theme
+- `public/static/theme-cyberpunk.css` — Neon cyberpunk theme
+- `public/static/theme-custom.css` — User-defined custom theme
+- `public/static/theme.js` — Theme initialization + persistence
+- `public/settings.html` — Theme selector UI + custom theme constructor panel
+- `public/index.html`, `public/agents.html`, `public/dashboard.html`, `public/graph.html`, `public/models.html`, `public/providers.html` — Theme CSS includes + language selector
+
+---
+
 ## v0.20.1 (2026-07-05)
 
 ### Bug Fix: Rules Engine Binary Path Resolution

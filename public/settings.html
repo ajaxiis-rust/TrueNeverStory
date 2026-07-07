@@ -7,8 +7,15 @@
 
 
 <link href="/static/fonts/fonts.css" rel="stylesheet">
+<link href="/static/theme-dark.css" rel="stylesheet">
+<link href="/static/theme-light.css" rel="stylesheet">
+<link href="/static/theme-terminal.css" rel="stylesheet">
+<link href="/static/theme-cyberpunk.css" rel="stylesheet">
+<link href="/static/theme-custom.css" rel="stylesheet">
+<link href="/static/theme.css" rel="stylesheet">
+<script src="/static/theme.js"></script>
 <style>
-:root{--black:#000;--surface:#080808;--surface-raised:#111;--surface-hover:#161616;--border:#1A1A1A;--border-visible:#272727;--border-strong:#353535;--text-disabled:#666;--text-tertiary:#8E8E8E;--text-secondary:#BBB;--text-primary:#E0E0E0;--text-display:#FFF;--accent:#D71921;--success:#4A9E5C;--warning:#D4A843;--interactive:#5B9BF6;--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
+:root{--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{height:100%;background:var(--black);overflow:hidden}
 body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:12px;color:var(--text-primary);display:flex;flex-direction:column;overflow:hidden;user-select:none}
@@ -125,6 +132,134 @@ select.field__input{cursor:pointer;-webkit-appearance:none;appearance:none;backg
           <div class="field">
             <label class="field__label" data-i18n="uiLanguage">Language</label>
             <select class="field__input" id="language" onchange="onLanguageChange(this.value)"></select>
+          </div>
+          <div class="field">
+            <label class="field__label">Theme</label>
+            <div class="theme-selector">
+              <button class="theme-selector__btn" data-theme-value="dark">Dark</button>
+              <button class="theme-selector__btn" data-theme-value="light">Light</button>
+              <button class="theme-selector__btn" data-theme-value="terminal">Terminal</button>
+              <button class="theme-selector__btn" data-theme-value="cyberpunk">Cyber</button>
+              <button class="theme-selector__btn" data-theme-value="custom">Custom</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Theme Constructor -->
+      <div class="section" id="customThemePanel" style="display:none">
+        <div class="section__title">Custom Theme</div>
+        <div class="theme-constructor">
+          <div class="tc-group">
+            <div class="tc-group__title">Backgrounds</div>
+            <div class="tc-row">
+              <label class="tc-label">Background</label>
+              <input type="color" class="tc-color" data-var="black" value="#000000">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Surface</label>
+              <input type="color" class="tc-color" data-var="surface" value="#080808">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Raised</label>
+              <input type="color" class="tc-color" data-var="surface-raised" value="#111111">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Hover</label>
+              <input type="color" class="tc-color" data-var="surface-hover" value="#161616">
+            </div>
+          </div>
+          <div class="tc-group">
+            <div class="tc-group__title">Borders</div>
+            <div class="tc-row">
+              <label class="tc-label">Border</label>
+              <input type="color" class="tc-color" data-var="border" value="#1A1A1A">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Visible</label>
+              <input type="color" class="tc-color" data-var="border-visible" value="#272727">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Strong</label>
+              <input type="color" class="tc-color" data-var="border-strong" value="#353535">
+            </div>
+          </div>
+          <div class="tc-group">
+            <div class="tc-group__title">Text</div>
+            <div class="tc-row">
+              <label class="tc-label">Disabled</label>
+              <input type="color" class="tc-color" data-var="text-disabled" value="#666666">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Tertiary</label>
+              <input type="color" class="tc-color" data-var="text-tertiary" value="#8E8E8E">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Secondary</label>
+              <input type="color" class="tc-color" data-var="text-secondary" value="#BBBBBB">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Primary</label>
+              <input type="color" class="tc-color" data-var="text-primary" value="#E0E0E0">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Display</label>
+              <input type="color" class="tc-color" data-var="text-display" value="#FFFFFF">
+            </div>
+          </div>
+          <div class="tc-group">
+            <div class="tc-group__title">Accents</div>
+            <div class="tc-row">
+              <label class="tc-label">Accent</label>
+              <input type="color" class="tc-color" data-var="accent" value="#D71921">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Success</label>
+              <input type="color" class="tc-color" data-var="success" value="#4A9E5C">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Warning</label>
+              <input type="color" class="tc-color" data-var="warning" value="#D4A843">
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Interactive</label>
+              <input type="color" class="tc-color" data-var="interactive" value="#5B9BF6">
+            </div>
+          </div>
+          <div class="tc-group">
+            <div class="tc-group__title">Fonts</div>
+            <div class="tc-row">
+              <label class="tc-label">Body</label>
+              <select class="tc-select" data-font="font-body">
+                <option value="'Space Grotesk','DM Sans',system-ui,sans-serif">Space Grotesk</option>
+                <option value="'Inter',system-ui,sans-serif">Inter</option>
+                <option value="'Roboto',system-ui,sans-serif">Roboto</option>
+                <option value="'Nunito',system-ui,sans-serif">Nunito</option>
+                <option value="system-ui,sans-serif">System UI</option>
+              </select>
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Mono</label>
+              <select class="tc-select" data-font="font-mono">
+                <option value="'Space Mono',monospace">Space Mono</option>
+                <option value="'Fira Code',monospace">Fira Code</option>
+                <option value="'JetBrains Mono',monospace">JetBrains Mono</option>
+                <option value="'IBM Plex Mono',monospace">IBM Plex Mono</option>
+                <option value="monospace">System Mono</option>
+              </select>
+            </div>
+            <div class="tc-row">
+              <label class="tc-label">Display</label>
+              <select class="tc-select" data-font="font-display">
+                <option value="'Doto','Space Mono',monospace">Doto</option>
+                <option value="'Orbitron',sans-serif">Orbitron</option>
+                <option value="'Rajdhani',sans-serif">Rajdhani</option>
+                <option value="'Space Mono',monospace">Space Mono</option>
+              </select>
+            </div>
+          </div>
+          <div class="tc-actions">
+            <button class="btn" id="customThemeReset">Reset to Default</button>
           </div>
         </div>
       </div>

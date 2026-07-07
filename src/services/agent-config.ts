@@ -114,6 +114,11 @@ export function getWorldLanguage(world?: string): string {
   return "en";
 }
 
+export function getLanguageInstruction(world?: string): string {
+  const lang = getWorldLanguage(world);
+  return LANG_INSTRUCTION[lang] ?? "";
+}
+
 function getStoreForWorld(world?: string): SQLiteStore {
   const dbPath = getWorldDbPath(world);
   return new SQLiteStore(dbPath);
@@ -137,6 +142,16 @@ const DEFAULT_AGENTS = [
   { id: "quest-giver", name: "Quest Giver", description: "Generates contextual quests based on world state", priority: 7 },
   { id: "lorekeeper", name: "Lorekeeper", description: "World facts, magic rules, races, and established canon", priority: 6 },
 ];
+
+const LANG_INSTRUCTION: Record<string, string> = {
+  en: "\n\nIMPORTANT: Always respond in English.",
+  ru: "\n\nВАЖНО: Всегда отвечай на русском языке.",
+  de: "\n\nWICHTIG: Antworte immer auf Deutsch.",
+  fr: "\n\nIMPORTANT: Réponds toujours en français.",
+  es: "\n\nIMPORTANTE: Responde siempre en español.",
+  ja: "\n\n重要：常に日本語で回答してください。",
+  zh: "\n\n重要：请始终用中文回复。",
+};
 
 const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
   narrator: {
@@ -334,7 +349,14 @@ function loadWorldPrompts(agentId: string, world?: string, lang?: string): Agent
   }
 
   // 3. Language-aware defaults
-  return getDefaultPrompts(agentId, l) ?? null;
+  const base = getDefaultPrompts(agentId, l) ?? null;
+  if (base && LANG_INSTRUCTION[l]) {
+    return {
+      ...base,
+      systemPrompt: base.systemPrompt + LANG_INSTRUCTION[l],
+    };
+  }
+  return base;
 }
 
 async function saveWorldPrompts(agentId: string, prompts: AgentPromptConfig, world?: string, lang?: string): Promise<void> {

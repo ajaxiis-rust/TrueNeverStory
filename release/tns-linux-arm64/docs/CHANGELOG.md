@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.20.3 (2026-07-07)
+
+### World Graph Fix + Statistics Modal
+
+- Fixed dead `buildRelationships()` — now auto-builds heuristic relationships at startup
+- Added `GET /api/worlds/:name/detail` endpoint for world statistics
+- New world statistics modal with entity counts, lists, and rules
+- Language instruction injection — LLM responses match UI language
+- Theme system — 5 built-in themes + custom constructor
+
+---
+
 ## v0.16.0 (2026-07-04)
 
 ### Pause Race Condition Fix

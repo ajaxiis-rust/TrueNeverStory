@@ -1,0 +1,95 @@
+/* Custom theme — populated by theme.js from localStorage */
+[data-theme="custom"] {
+  var(--black, #000000);
+  var(--surface, #080808);
+  var(--surface-raised, #111111);
+  var(--surface-hover, #161616);
+  var(--border, #1A1A1A);
+  var(--border-visible, #272727);
+  var(--border-strong, #353535);
+  var(--text-disabled, #666666);
+  var(--text-tertiary, #8E8E8E);
+  var(--text-secondary, #BBBBBB);
+  var(--text-primary, #E0E0E0);
+  var(--text-display, #FFFFFF);
+  var(--accent, #D71921);
+  var(--success, #4A9E5C);
+  var(--warning, #D4A843);
+  var(--interactive, #5B9BF6);
+}
+/* Custom theme component overrides */
+[data-theme="custom"] html,
+[data-theme="custom"] body {
+  background: var(--black);
+}
+[data-theme="custom"] .topbar {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+}
+[data-theme="custom"] .topbar__btn {
+  border-color: var(--border-visible);
+  color: var(--text-tertiary);
+}
+[data-theme="custom"] .topbar__btn:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+[data-theme="custom"] .sidebar {
+  background: var(--surface);
+  border-left-color: var(--border-visible);
+}
+[data-theme="custom"] .input-area {
+  background: var(--surface);
+  border-top-color: var(--border);
+}
+[data-theme="custom"] .input-area__field {
+  color: var(--text-primary);
+  caret-color: var(--text-display);
+}
+[data-theme="custom"] .input-area__act {
+  border-color: var(--border);
+  color: var(--text-disabled);
+}
+[data-theme="custom"] .input-area__act:hover {
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+[data-theme="custom"] .qcmd {
+  border-color: var(--border);
+  color: var(--text-disabled);
+}
+[data-theme="custom"] .qcmd:hover {
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+[data-theme="custom"] .msg--agent {
+  background: rgba(91,155,246,0.06);
+  border-left-color: var(--interactive);
+  color: var(--interactive);
+}
+[data-theme="custom"] .session-modal {
+  background: rgba(0,0,0,0.7);
+}
+[data-theme="custom"] .session-modal__box {
+  background: var(--surface-raised);
+  border-color: var(--border-visible);
+}
+[data-theme="custom"] .wcard {
+  background: var(--surface-raised);
+  border-color: var(--border);
+}
+[data-theme="custom"] .wcard:hover {
+  border-color: var(--border-visible);
+}
+[data-theme="custom"] .mobile-menu {
+  background: var(--surface);
+  border-bottom-color: var(--border-visible);
+}
+[data-theme="custom"] .toast--ok {
+  background: var(--success);
+  color: #FFFFFF;
+}
+[data-theme="custom"] .toast--err {
+  background: var(--accent);
+  color: #FFFFFF;
+}

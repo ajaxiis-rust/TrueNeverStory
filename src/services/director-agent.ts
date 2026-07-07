@@ -7,7 +7,7 @@ import type { LLMQueue } from "../lib/llm-queue";
 import { TaskPriority } from "../models/director";
 import { PromptBuilder } from "./prompt-builder";
 import { resolveTemplate } from "../utils/template-resolver";
-import { loadAgentConfig } from "./agent-config";
+import { loadAgentConfig, getLanguageInstruction } from "./agent-config";
 import type { ServiceMessageContext } from "./roleplay-engine";
 
 export const DIRECTOR_AGENT_ID = "director";
@@ -49,7 +49,7 @@ ${ctx.recentEvents.slice(-5).map(e => `- ${e}`).join("\n") || "None"}
 
 Private message: "${ctx.message}"
 
-Respond with your creative input. You can suggest plot developments, story hooks, dramatic moments, or discuss narrative direction. Keep it concise and actionable.`;
+Respond with your creative input. You can suggest plot developments, story hooks, dramatic moments, or discuss narrative direction. Keep it concise and actionable.${getLanguageInstruction()}`;
 
     const response = await this._llmQueue.generateText(
       prompt, TaskPriority.NORMAL, 0.7, DIRECTOR_AGENT_ID,
