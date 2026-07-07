@@ -1,5 +1,79 @@
 # Changelog
 
+## v0.22.0 (2026-07-07)
+
+### Per-Provider Rate Limiting
+
+Rate limiting for each LLM provider individually with round-robin API key rotation.
+
+**Features:**
+- `ProviderRateLimiter` — per-provider rate limiting with RPM counters and min interval
+- Round-robin rotation across multiple API keys for the same provider
+- Automatic fallback to local model (Ollama) when external provider fails
+- WebSocket notifications for rate limit events
+- Frontend popup with model switching capability
+- Hot-reloadable config via `conf/provider-rate-limits.json`
+
+**Config:**
+```json
+{
+  "providers": {
+    "gemini": { "keys": ["key1", "key2"], "rpm": 50, "minIntervalMs": 3000 },
+    "openai": { "keys": ["sk-..."], "rpm": 60, "minIntervalMs": 1000 },
+    "ollama": { "keys": [], "rpm": 999, "minIntervalMs": 0 }
+  },
+  "fallbackProvider": "ollama"
+}
+```
+
+**API Endpoints:**
+- `GET /api/providers/rate-limit/status` — current counters per provider
+- `POST /api/providers/rate-limit/reset` — reset counters
+- `POST /api/providers/rate-limit/switch` — manual model switching
+
+**Files changed:**
+- `src/lib/provider-rate-limiter.ts` — New rate limiter class
+- `src/lib/llm-queue.ts` — Per-provider rate limiting in queue
+- `src/lib/providers/google-provider.ts` — Rate limiter integration
+- `src/lib/providers/openai-provider.ts` — Rate limiter integration
+- `src/lib/providers/anthropic-provider.ts` — Rate limiter integration
+- `src/lib/providers/provider-manager.ts` — Rate limiter distribution
+- `src/services/narrative-bootstrapper.ts` — Rate limiter initialization
+- `src/services/narrative-service.ts` — Expose rate limiter
+- `src/routes/providers.ts` — Rate limit API endpoints
+- `src/index.ts` — WebSocket notification wiring
+- `conf/provider-rate-limits.json` — New config file
+- `public/static/rate-limit-popup.css` — Popup styles
+- `public/static/rate-limit-popup.js` — Popup logic
+
+---
+
+### Agent ID Propagation
+
+All services now pass `agentId` to LLM calls so each reads its own model/provider config.
+
+**Services updated:**
+- `StoryEngine` — agentId: "director"
+- `VillainManager` — agentId: "villain"
+- `StoryPlanner` — agentId: "story-planner"
+- `NPCGenerator` — agentId: "npc"
+- `WorldBuilder` — agentId: "director"
+- `UserAgent` — agentId: "npc"
+- `StartResolver` — agentId: "director"
+- `RoleplayEngine` — service message agents pass their own agentId
+
+**Impact:** Each agent now uses its individually assigned model/provider instead of the default.
+
+---
+
+### Rate Limiter Improvements
+
+- Rate limiter scoped to `/api/*` only (not global)
+- Gradual token refill instead of full reset per minute
+- Static assets served with proper MIME types
+
+---
+
 ## v0.21.0 (2026-07-07)
 
 ### Theme Builder

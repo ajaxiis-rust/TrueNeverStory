@@ -8,6 +8,7 @@ import { EventBus } from "../lib/event-bus";
 import { HistoryManager } from "../lib/history-manager";
 import { LLMClient } from "../lib/llm-client";
 import { LLMQueue } from "../lib/llm-queue";
+import { ProviderRateLimiter } from "../lib/provider-rate-limiter";
 import { Chronicler } from "./chronicler";
 import { EventSourcingChronicler } from "./event-sourcing-chronicler";
 import { WorldValidator } from "./world-validator";
@@ -50,6 +51,7 @@ export interface BootstrapperResult {
   historyMgr: HistoryManager;
   llm: LLMClient;
   llmQueue: LLMQueue;
+  providerRateLimiter: ProviderRateLimiter;
   sqliteStore: SQLiteStore;
   chronicler: Chronicler;
   eventSourcingChronicler: EventSourcingChronicler;
@@ -84,10 +86,12 @@ export function bootstrapNarrativeServices(
   const llm = new LLMClient();
 
   const rateCfg = loadRateLimitConfig();
+  const providerRateLimiter = new ProviderRateLimiter();
   const llmQueue = new LLMQueue(llm, {
     maxConcurrent: rateCfg.maxConcurrent,
     maxQueueSize: rateCfg.maxQueueSize,
     rateLimit: { rpm: rateCfg.rpm },
+    providerRateLimiter,
   });
 
   const sqliteStore = new SQLiteStore(dbPath);
@@ -126,6 +130,7 @@ export function bootstrapNarrativeServices(
     chronicler,
     llmQueue,
     entityStore,
+    "villain",
   );
 
   const socialSim = new SocialSimulator(entityStore, chronicler, dbPath);
@@ -139,6 +144,7 @@ export function bootstrapNarrativeServices(
     chronicler,
     worldName: (worldFrame.name as string) ?? "Unknown World",
     worldRules: ((worldFrame.rules as Array<{ name: string }>) ?? []).map(r => r.name),
+    agentId: "story-planner",
   });
 
   const storyEngine = new StoryEngine({
@@ -157,6 +163,7 @@ export function bootstrapNarrativeServices(
       name: r.name as string,
       description: r.description as string,
     })),
+    agentId: "director",
   });
 
   const director = new DirectorLoop({
@@ -175,19 +182,21 @@ export function bootstrapNarrativeServices(
     entityStore,
     eventBus,
     dbPath,
+    agentId: "director",
   });
 
   const agentCoordinator = new AgentCoordinator(5);
 
   const storyArcManager = new StoryArcManager(dbPath);
 
-  const userAgent = new UserAgent(entityStore, llmQueue, npcRuntime, chronicler, validator);
+  const userAgent = new UserAgent(entityStore, llmQueue, npcRuntime, chronicler, validator, "npc");
 
   const npcGenerator = new NPCGenerator({
     llmQueue,
     entityStore,
     eventBus,
     worldFrame,
+    agentId: "npc",
   });
 
   const worldEvolver = new WorldEvolver({
@@ -209,6 +218,7 @@ export function bootstrapNarrativeServices(
     historyMgr,
     llm,
     llmQueue,
+    providerRateLimiter,
     sqliteStore,
     chronicler,
     eventSourcingChronicler,

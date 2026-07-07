@@ -5,6 +5,7 @@
  */
 
 import type { LLMProvider, LLMProviderConfig, LLMRequestOptions, ProviderKey } from "./llm-provider";
+import type { ProviderRateLimiter } from "../provider-rate-limiter";
 
 interface OAuthTokenResponse {
   access_token?: string;
@@ -33,11 +34,13 @@ export class OpenAIProvider implements LLMProvider {
   private _config: LLMProviderConfig;
   private _available = false;
   private _currentKeyIndex = 0;
+  private _rateLimiter: ProviderRateLimiter | null = null;
 
-  constructor(config: LLMProviderConfig) {
+  constructor(config: LLMProviderConfig, rateLimiter?: ProviderRateLimiter) {
     this.id = config.id;
     this.name = config.name;
     this._config = config;
+    this._rateLimiter = rateLimiter ?? null;
 
     // Initialize keys array if not present
     if (!this._config.keys) {
@@ -88,7 +91,18 @@ export class OpenAIProvider implements LLMProvider {
       "Content-Type": "application/json",
     };
 
-    const key = this._getNextKey();
+    // If rate limiter is available, use it to get the next key
+    let key: ProviderKey | undefined;
+    if (this._rateLimiter) {
+      const apiKey = this._rateLimiter.acquireKey(this.id);
+      if (apiKey) {
+        // Find the key object by API key value
+        key = this._config.keys?.find(k => k.apiKey === apiKey);
+      }
+    }
+    if (!key) {
+      key = this._getNextKey();
+    }
     if (!key) return headers;
 
     if (key.apiKey) {
@@ -167,6 +181,12 @@ export class OpenAIProvider implements LLMProvider {
 
     if (!response.ok) {
       const text = await response.text();
+      // Mark key as unavailable on rate limit
+      if (response.status === 429 && this._rateLimiter) {
+        const retryAfter = parseInt(response.headers.get("retry-after") ?? "60", 10);
+        const apiKey = headers["Authorization"]?.replace("Bearer ", "") ?? "";
+        this._rateLimiter.markUnavailable(this.id, apiKey, retryAfter * 1000);
+      }
       throw new Error(`OpenAI API error ${response.status}: ${text}`);
     }
 

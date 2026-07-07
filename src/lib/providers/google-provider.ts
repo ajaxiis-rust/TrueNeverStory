@@ -5,6 +5,7 @@
  */
 
 import type { LLMProvider, LLMProviderConfig, LLMRequestOptions, ProviderKey } from "./llm-provider";
+import type { ProviderRateLimiter } from "../provider-rate-limiter";
 
 interface ChatCompletionResponse {
   choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
@@ -32,11 +33,13 @@ export class GoogleProvider implements LLMProvider {
   private _config: LLMProviderConfig;
   private _available = false;
   private _currentKeyIndex = 0;
+  private _rateLimiter: ProviderRateLimiter | null = null;
 
-  constructor(config: LLMProviderConfig) {
+  constructor(config: LLMProviderConfig, rateLimiter?: ProviderRateLimiter) {
     this.id = config.id;
     this.name = config.name;
     this._config = config;
+    this._rateLimiter = rateLimiter ?? null;
 
     if (!this._config.keys) {
       this._config.keys = [];
@@ -76,6 +79,12 @@ export class GoogleProvider implements LLMProvider {
   }
 
   private _getApiKey(): string {
+    // If rate limiter is available, use it to get the next key
+    if (this._rateLimiter) {
+      const key = this._rateLimiter.acquireKey(this.id);
+      if (key) return key;
+    }
+    // Fallback to local round-robin
     const key = this._getNextKey();
     return key?.apiKey ?? this._config.apiKey ?? "";
   }
@@ -116,6 +125,11 @@ export class GoogleProvider implements LLMProvider {
 
     if (!response.ok) {
       const text = await response.text();
+      // Mark key as unavailable on rate limit
+      if (response.status === 429 && this._rateLimiter) {
+        const retryAfter = parseInt(response.headers.get("retry-after") ?? "60", 10);
+        this._rateLimiter.markUnavailable(this.id, apiKey, retryAfter * 1000);
+      }
       throw new Error(`Google Gemini API error ${response.status}: ${text}`);
     }
 

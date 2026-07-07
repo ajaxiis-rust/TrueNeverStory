@@ -21,10 +21,12 @@ export interface StartingPoint {
 export class StartResolver {
   private _entityStore: UnifiedEntityStore;
   private _llmQueue: LLMQueue;
+  private _agentId: string | undefined;
 
-  constructor(entityStore: UnifiedEntityStore, llmQueue: LLMQueue) {
+  constructor(entityStore: UnifiedEntityStore, llmQueue: LLMQueue, agentId?: string) {
     this._entityStore = entityStore;
     this._llmQueue = llmQueue;
+    this._agentId = agentId;
   }
 
   private _findClosestEntity(name: string, entityType: string): string | null {
@@ -108,7 +110,7 @@ If not present, leave null.
 User input: "${userSpec}"`;
 
     try {
-      const result = await this._llmQueue.generateJson(prompt, TaskPriority.HIGH, 0.3);
+      const result = await this._llmQueue.generateJson(prompt, TaskPriority.HIGH, 0.3, this._agentId);
       return {
         character: (result.character as string) ?? null,
         location: (result.location as string) ?? null,

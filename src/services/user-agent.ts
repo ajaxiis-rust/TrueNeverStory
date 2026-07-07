@@ -23,6 +23,7 @@ export class UserAgent {
   private _chronicler: Chronicler;
   private _validator: WorldValidator;
   private _party: string[] = [];
+  private _agentId: string | undefined;
 
   constructor(
     entityStore: UnifiedEntityStore,
@@ -30,12 +31,14 @@ export class UserAgent {
     npcRuntime: NPCRuntime,
     chronicler: Chronicler,
     validator: WorldValidator,
+    agentId?: string,
   ) {
     this._entityStore = entityStore;
     this._llmQueue = llmQueue;
     this._npcRuntime = npcRuntime;
     this._chronicler = chronicler;
     this._validator = validator;
+    this._agentId = agentId;
   }
 
   get party(): readonly string[] {
@@ -99,7 +102,7 @@ Provide a brief narrative outcome (2-3 sentences) and indicate if anyone was inj
 Return JSON: {"outcome": "narrative text", "damage_taken": 0, "damage_dealt": 0, "victory": false}`;
 
     try {
-      const result = await this._llmQueue.generateJson(prompt, 1, 0.7) as Record<string, unknown>;
+      const result = await this._llmQueue.generateJson(prompt, 1, 0.7, this._agentId) as Record<string, unknown>;
       const outcome = (result.outcome as string) ?? "The fight concluded.";
       const damageTaken = Number(result.damage_taken) || 0;
       const damageDealt = Number(result.damage_dealt) || 0;

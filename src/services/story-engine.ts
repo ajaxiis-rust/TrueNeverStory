@@ -59,6 +59,7 @@ export interface StoryEngineDeps {
   eventBus: EventBus;
   worldName: string;
   worldRules: Array<{ name: string; description: string }>;
+  agentId?: string;
 }
 
 export class StoryEngine {
@@ -73,6 +74,7 @@ export class StoryEngine {
   private _eventBus: EventBus;
   private _worldName: string;
   private _worldRules: Array<{ name: string; description: string }>;
+  private _agentId: string | undefined;
 
   constructor(deps: StoryEngineDeps) {
     this._llmQueue = deps.llmQueue;
@@ -86,6 +88,7 @@ export class StoryEngine {
     this._eventBus = deps.eventBus;
     this._worldName = deps.worldName;
     this._worldRules = deps.worldRules;
+    this._agentId = deps.agentId;
   }
 
   async generateEvent(
@@ -109,7 +112,7 @@ export class StoryEngine {
       .replace("{rules}", rulesText || "No world rules defined.");
 
     try {
-      const result = await this._llmQueue.generateJson(prompt, TaskPriority.LOW, 0.8);
+      const result = await this._llmQueue.generateJson(prompt, TaskPriority.LOW, 0.8, this._agentId);
       if (!result.involved_entities) {
         result.involved_entities = involvedEntities;
       }

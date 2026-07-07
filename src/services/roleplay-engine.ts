@@ -179,7 +179,7 @@ export class RoleplayEngine {
       return lorekeeperRaw.generate({ query: ctx.message, worldFacts: facts, magicSystem, races });
     }};
 
-    this.startResolver = new StartResolver(deps.entityStore, deps.llmQueue);
+    this.startResolver = new StartResolver(deps.entityStore, deps.llmQueue, "director");
     this.chronicler = deps.chronicler ?? new Chronicler(join(deps.dbPath, "timeline.jsonl"));
     this.memory = new MemoryManager(join(deps.dbPath, "roleplay_memory.json"));
   }
@@ -311,7 +311,7 @@ Your task: Analyze the current narrative state and respond to the player's reque
 Provide story arc suggestions, beat recommendations, or plot analysis.
 
 Player request: "${ctx.message}"`;
-        return this._llmQueue.generateText(planPrompt, 1, 0.7);
+        return this._llmQueue.generateText(planPrompt, 1, 0.7, "story-planner");
       }},
       "social-sim": { name: "Social Simulator", generateServiceMessage: async (ctx) => {
         const simPrompt = `You are a Social Dynamics Simulator for a living narrative world.
@@ -324,7 +324,7 @@ Your task: Analyze social dynamics, simulate NPC interactions, or respond to the
 Consider relationships, moods, and recent events.
 
 Player request: "${ctx.message}"`;
-        return this._llmQueue.generateText(simPrompt, 1, 0.7);
+        return this._llmQueue.generateText(simPrompt, 1, 0.7, "social-sim");
       }},
       villain: { name: "Villain Manager", generateServiceMessage: async (ctx) => {
         const villainPrompt = `You are a Villain Manager for a living narrative world.
@@ -337,7 +337,7 @@ Your task: Plan antagonist actions, analyze villain schemes, or respond to the p
 Consider the villain's goals, resources, and opportunities.
 
 Player request: "${ctx.message}"`;
-        return this._llmQueue.generateText(villainPrompt, 1, 0.7);
+        return this._llmQueue.generateText(villainPrompt, 1, 0.7, "villain");
       }},
       researcher: this.researcher,
       historian: this.historian,

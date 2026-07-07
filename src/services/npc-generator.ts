@@ -37,6 +37,7 @@ export interface NPCGeneratorDeps {
   entityStore: UnifiedEntityStore;
   eventBus: EventBus;
   worldFrame: Record<string, unknown> | null;
+  agentId?: string;
 }
 
 export interface GeneratedNPC {
@@ -54,12 +55,14 @@ export class NPCGenerator {
   private _entityStore: UnifiedEntityStore;
   private _eventBus: EventBus;
   private _worldFrame: Record<string, unknown> | null;
+  private _agentId: string | undefined;
 
   constructor(deps: NPCGeneratorDeps) {
     this._llmQueue = deps.llmQueue;
     this._entityStore = deps.entityStore;
     this._eventBus = deps.eventBus;
     this._worldFrame = deps.worldFrame;
+    this._agentId = deps.agentId;
   }
 
   private _getArchetypes(): ArchetypeConfig[] {
@@ -171,7 +174,7 @@ Rules:
 - Profession MUST be logical for the faction
 - Keep it concise and vivid`;
 
-    const result = await this._llmQueue.generateJson(prompt, TaskPriority.NORMAL, 0.8);
+    const result = await this._llmQueue.generateJson(prompt, TaskPriority.NORMAL, 0.8, this._agentId);
     return {
       name: (result.name as string) ?? `Unknown_${arch}`,
       personality: (result.personality as string) ?? "",

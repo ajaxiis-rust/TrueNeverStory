@@ -247,4 +247,48 @@ providers.put("/providers/rate-limit", async (c) => {
   return c.json({ status: "saved", rateLimit: merged });
 });
 
+// ── Per-Provider Rate Limit Status ──
+
+providers.get("/providers/rate-limit/status", async (c) => {
+  const { NarrativeService } = await import("../services/narrative-service");
+  // Access providerRateLimiter from the global narrative service instance
+  // This is set during server startup in index.ts
+  const providerRateLimiter = (globalThis as any).__narrativeService?.providerRateLimiter;
+  if (!providerRateLimiter) return c.json({ error: "Provider rate limiter not initialized" }, 500);
+  return c.json(providerRateLimiter.getStatus());
+});
+
+providers.post("/providers/rate-limit/reset", async (c) => {
+  const providerRateLimiter = (globalThis as any).__narrativeService?.providerRateLimiter;
+  if (!providerRateLimiter) return c.json({ error: "Provider rate limiter not initialized" }, 500);
+  const body = await c.req.json().catch(() => ({})) as { providerId?: string };
+  if (body.providerId) {
+    providerRateLimiter.resetProvider(body.providerId);
+  } else {
+    providerRateLimiter.resetAll();
+  }
+  return c.json({ status: "reset" });
+});
+
+providers.post("/providers/rate-limit/switch", async (c) => {
+  const body = await c.req.json().catch(() => ({})) as {
+    agentId: string;
+    providerId: string;
+    modelId: string;
+  };
+  if (!body.agentId || !body.providerId) return c.json({ error: "agentId and providerId are required" }, 400);
+
+  try {
+    const current = loadAgentConfig(body.agentId);
+    await saveAgentConfig(body.agentId, {
+      ...current,
+      providerId: body.providerId,
+      modelId: body.modelId ?? current.modelId,
+    });
+    return c.json({ status: "switched", agentId: body.agentId, providerId: body.providerId, modelId: body.modelId });
+  } catch (err) {
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
+  }
+});
+
 export { providers as providersRouter };

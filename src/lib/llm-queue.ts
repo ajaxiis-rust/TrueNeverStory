@@ -1,10 +1,13 @@
 /**
  * Global LLM Queue for prioritized request handling.
  * Rate limiting, concurrency control, queue cap with priority eviction.
+ * Per-provider rate limiting with round-robin API key rotation.
  */
 
 import { LLMClient, type LLMClientOptions } from "./llm-client";
 import { RateLimiter, type RateLimiterConfig } from "./rate-limiter";
+import { ProviderRateLimiter } from "./provider-rate-limiter";
+import { loadAgentConfig } from "../services/agent-config";
 import { TaskPriority, DirectorTask } from "../models/director";
 import { getLogger } from "../utils/logger";
 
@@ -14,6 +17,15 @@ export interface LLMQueueConfig {
   maxConcurrent?: number;
   maxQueueSize?: number;
   rateLimit?: RateLimiterConfig;
+  providerRateLimiter?: ProviderRateLimiter;
+}
+
+export interface RateLimitNotification {
+  providerId: string;
+  key: string;
+  error: string;
+  fallbackProvider: string;
+  fallbackModel: string;
 }
 
 interface QueuedTask {
@@ -33,12 +45,15 @@ export class LLMQueue {
   private _processing = false;
   private _paused = false;
   private _rateLimiter: RateLimiter | null = null;
-  private _stats = { totalProcessed: 0, totalDropped: 0, totalErrors: 0 };
+  private _providerRateLimiter: ProviderRateLimiter | null = null;
+  private _stats = { totalProcessed: 0, totalDropped: 0, totalErrors: 0, fallbacks: 0 };
+  private _onNotification: ((notification: RateLimitNotification) => void) | null = null;
 
   constructor(llm: LLMClient, config?: LLMQueueConfig) {
     this._llm = llm;
     this._maxConcurrent = config?.maxConcurrent ?? 3;
     this._maxQueueSize = config?.maxQueueSize ?? 50;
+    this._providerRateLimiter = config?.providerRateLimiter ?? null;
 
     if (config?.rateLimit) {
       this._rateLimiter = new RateLimiter(config.rateLimit);
@@ -47,9 +62,18 @@ export class LLMQueue {
   }
 
   get rateLimiter(): RateLimiter | null { return this._rateLimiter; }
+  get providerRateLimiter(): ProviderRateLimiter | null { return this._providerRateLimiter; }
   get queueLength(): number { return this._queue.length; }
   get running(): number { return this._running; }
   get stats() { return { ...this._stats, queueLength: this._queue.length, running: this._running }; }
+
+  setProviderRateLimiter(limiter: ProviderRateLimiter): void {
+    this._providerRateLimiter = limiter;
+  }
+
+  setRateLimitNotification(handler: (notification: RateLimitNotification) => void): void {
+    this._onNotification = handler;
+  }
 
   setRateLimit(config: RateLimiterConfig): void {
     if (this._rateLimiter) {
@@ -175,11 +199,103 @@ export class LLMQueue {
     }
   }
 
+  /**
+   * Resolve provider ID from agentId.
+   */
+  private _resolveProviderId(agentId?: string): string {
+    if (!agentId) return "ollama";
+    try {
+      const agentCfg = loadAgentConfig(agentId);
+      if (agentCfg.providerId) return agentCfg.providerId;
+    } catch {
+      // ignore
+    }
+    return "ollama";
+  }
+
+  /**
+   * Get wait time for a provider before next request.
+   */
+  private async _waitForProvider(providerId: string): Promise<void> {
+    if (!this._providerRateLimiter) return;
+
+    const waitMs = this._providerRateLimiter.getWaitTime(providerId);
+    if (waitMs > 0) {
+      log.debug({ providerId, waitMs }, "Waiting for provider rate limit");
+      await Bun.sleep(waitMs);
+    }
+  }
+
+  /**
+   * Handle provider error (rate limit, quota, etc.).
+   * Returns true if fallback was used.
+   */
+  private async _handleProviderError(
+    providerId: string,
+    key: string,
+    error: Error,
+    task: DirectorTask,
+    agentId?: string,
+  ): Promise<string | Record<string, unknown> | null> {
+    const isRateLimit = error.message.includes("429") || error.message.toLowerCase().includes("rate limit");
+    const isQuota = error.message.includes("402") || error.message.includes("403") || error.message.toLowerCase().includes("quota");
+
+    if (!isRateLimit && !isQuota) return null;
+
+    // Mark key as unavailable
+    if (this._providerRateLimiter && isRateLimit) {
+      const retryAfterMs = 60_000; // Default 1 minute
+      this._providerRateLimiter.markUnavailable(providerId, key, retryAfterMs);
+    }
+
+    // Try fallback provider
+    const fallbackProvider = this._providerRateLimiter?.fallbackProvider ?? "ollama";
+    if (fallbackProvider === providerId) return null; // Already on fallback
+
+    log.warn({ providerId, key: key.slice(0, 10) + "...", fallbackProvider }, "Provider failed, falling back");
+
+    this._stats.fallbacks++;
+
+    // Send notification
+    if (this._onNotification) {
+      const fallbackConfig = this._providerRateLimiter?.getProviderConfig(fallbackProvider);
+      this._onNotification({
+        providerId,
+        key: key.slice(0, 10) + "...",
+        error: error.message,
+        fallbackProvider,
+        fallbackModel: fallbackConfig?.models?.[0] ?? "unknown",
+      });
+    }
+
+    // Execute with fallback provider
+    const fallbackClient = this.getAgentClient(agentId ?? "fallback", { providerId: fallbackProvider });
+    try {
+      if (task.type === "llm_text") {
+        return await fallbackClient.generateText(
+          task.data.prompt as string,
+          { temperature: task.data.temperature as number, timeout: task.data.timeout as number | undefined },
+        );
+      } else {
+        return await fallbackClient.generateJson(
+          task.data.prompt as string,
+          { temperature: task.data.temperature as number, timeout: task.data.timeout as number | undefined },
+        );
+      }
+    } catch {
+      return null;
+    }
+  }
+
   private async _processNext(): Promise<void> {
     if (this._paused || this._running >= this._maxConcurrent || this._queue.length === 0) return;
 
     const item = this._queue.shift();
     if (!item) return;
+
+    // Per-provider rate limiting
+    const providerId = this._resolveProviderId(item.agentId);
+    await this._waitForProvider(providerId);
 
     if (this._rateLimiter) {
       await this._rateLimiter.acquire();
@@ -206,8 +322,22 @@ export class LLMQueue {
         this._stats.totalProcessed++;
         resolve(result);
       } catch (err) {
-        this._stats.totalErrors++;
-        reject(err);
+        // Try fallback on provider error
+        const fallbackResult = await this._handleProviderError(
+          providerId,
+          "current",
+          err instanceof Error ? err : new Error(String(err)),
+          task,
+          agentId,
+        );
+
+        if (fallbackResult !== null) {
+          this._stats.totalProcessed++;
+          resolve(fallbackResult);
+        } else {
+          this._stats.totalErrors++;
+          reject(err);
+        }
       }
     } finally {
       this._running--;

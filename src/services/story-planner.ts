@@ -57,6 +57,7 @@ export interface StoryPlannerDeps {
   chronicler?: Chronicler | null;
   worldName?: string;
   worldRules?: string[];
+  agentId?: string;
 }
 
 export class StoryPlanner {
@@ -72,6 +73,7 @@ export class StoryPlanner {
   private _beats: Map<string, BeatData> = new Map();
   private _arcTitle: string | null = null;
   private _lastPlanTime: Date | null = null;
+  private _agentId: string | undefined;
   currentChapterId: string | null = null;
 
   constructor(deps: StoryPlannerDeps) {
@@ -83,6 +85,7 @@ export class StoryPlanner {
     this._chronicler = deps.chronicler ?? null;
     this._worldName = deps.worldName ?? "Unknown World";
     this._worldRules = deps.worldRules ?? [];
+    this._agentId = deps.agentId;
     this._load();
     if (this._chapters.size === 0) {
       this._createFallbackPlan();
@@ -317,7 +320,7 @@ Rules:
 - Keep titles evocative but concise`;
 
     try {
-      const result = await this._llmQueue!.generateJson(prompt, TaskPriority.LOW, 0.8);
+      const result = await this._llmQueue!.generateJson(prompt, TaskPriority.LOW, 0.8, this._agentId);
       if (result.arc_title && Array.isArray(result.chapters) && result.chapters.length > 0) {
         return result as unknown as { arc_title: string; chapters: Array<{ title: string; summary: string; beat_count: number }> };
       }
@@ -416,7 +419,7 @@ Rules:
 - Make consequences specific and actionable`;
 
     try {
-      const result = await this._llmQueue.generateJson(prompt, TaskPriority.LOW, 0.8);
+      const result = await this._llmQueue.generateJson(prompt, TaskPriority.LOW, 0.8, this._agentId);
       if (Array.isArray(result) && result.length > 0) {
         return result as unknown as Array<{ type: string; description: string; involved: string[]; location?: string; consequences?: string[] }>;
       }

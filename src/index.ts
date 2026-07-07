@@ -93,9 +93,27 @@ async function main() {
   const narrativeCtx = new NarrativeService({ dbPath, worldFrame });
   await narrativeCtx.start();
 
+  // Expose narrative service globally for routes
+  (globalThis as any).__narrativeService = narrativeCtx;
+
+  // Set rate limiter on provider manager
+  const { getProviderManager } = await import("./lib/providers");
+  const providerManager = await getProviderManager();
+  providerManager.setRateLimiter(narrativeCtx.providerRateLimiter);
+
   // WebSocket manager
   const wsManager = new WebSocketManager();
   setWSManager(wsManager);
+
+  // Wire rate limit notifications to WebSocket
+  if (narrativeCtx.llmQueue) {
+    narrativeCtx.llmQueue.setRateLimitNotification((notification) => {
+      wsManager.broadcast({
+        type: "rate_limit_notification",
+        ...notification,
+      });
+    });
+  }
 
   // Roleplay engine
   const engine = narrativeCtx.createRoleplayEngine();

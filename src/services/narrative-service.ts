@@ -49,6 +49,7 @@ export class NarrativeService {
   readonly graphValidator: BootstrapperResult["graphValidator"];
   readonly sqliteStore: BootstrapperResult["sqliteStore"];
   readonly eventSourcingChronicler: EventSourcingChronicler;
+  readonly providerRateLimiter: BootstrapperResult["providerRateLimiter"];
 
   private _services: BootstrapperResult;
   private _facade: NarrativeFacade;
@@ -92,6 +93,7 @@ export class NarrativeService {
     this.graphValidator = this._services.graphValidator;
     this.sqliteStore = this._services.sqliteStore;
     this.eventSourcingChronicler = this._services.eventSourcingChronicler;
+    this.providerRateLimiter = this._services.providerRateLimiter;
 
     this._booted = true;
   }

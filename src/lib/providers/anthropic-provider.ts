@@ -4,6 +4,7 @@
  */
 
 import type { LLMProvider, LLMProviderConfig, LLMRequestOptions, ProviderKey } from "./llm-provider";
+import type { ProviderRateLimiter } from "../provider-rate-limiter";
 
 export class AnthropicProvider implements LLMProvider {
   readonly id: string;
@@ -13,11 +14,13 @@ export class AnthropicProvider implements LLMProvider {
   private _config: LLMProviderConfig;
   private _available = false;
   private _currentKeyIndex = 0;
+  private _rateLimiter: ProviderRateLimiter | null = null;
 
-  constructor(config: LLMProviderConfig) {
+  constructor(config: LLMProviderConfig, rateLimiter?: ProviderRateLimiter) {
     this.id = config.id;
     this.name = config.name;
     this._config = config;
+    this._rateLimiter = rateLimiter ?? null;
 
     // Initialize keys array if not present
     if (!this._config.keys) {
@@ -50,10 +53,19 @@ export class AnthropicProvider implements LLMProvider {
   }
 
   private _getHeaders(): Record<string, string> {
-    const key = this._getNextKey();
+    // If rate limiter is available, use it to get the next key
+    let apiKey = "";
+    if (this._rateLimiter) {
+      const key = this._rateLimiter.acquireKey(this.id);
+      if (key) apiKey = key;
+    }
+    if (!apiKey) {
+      const key = this._getNextKey();
+      apiKey = key?.apiKey ?? this._config.apiKey ?? "";
+    }
     return {
       "Content-Type": "application/json",
-      "x-api-key": key?.apiKey ?? this._config.apiKey ?? "",
+      "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     };
   }
@@ -81,6 +93,12 @@ export class AnthropicProvider implements LLMProvider {
 
     if (!response.ok) {
       const text = await response.text();
+      // Mark key as unavailable on rate limit
+      if (response.status === 429 && this._rateLimiter) {
+        const retryAfter = parseInt(response.headers.get("retry-after") ?? "60", 10);
+        const apiKey = response.headers.get("x-api-key") ?? "";
+        this._rateLimiter.markUnavailable(this.id, apiKey, retryAfter * 1000);
+      }
       throw new Error(`Anthropic API error ${response.status}: ${text}`);
     }
 

@@ -4,6 +4,7 @@
  */
 
 import type { LLMProvider, LLMProviderConfig, ProviderKey } from "./llm-provider";
+import type { ProviderRateLimiter } from "../provider-rate-limiter";
 import { OpenAIProvider } from "./openai-provider";
 import { AnthropicProvider } from "./anthropic-provider";
 import { GoogleProvider } from "./google-provider";
@@ -51,6 +52,15 @@ class ProviderManager {
   private _defaultProviderId = "";
   private _statePath = "";
   private _initialized = false;
+  private _rateLimiter: ProviderRateLimiter | null = null;
+
+  setRateLimiter(limiter: ProviderRateLimiter): void {
+    this._rateLimiter = limiter;
+    // Re-create existing providers with the rate limiter
+    for (const [id, config] of this._providerConfigs) {
+      this._createProvider(config);
+    }
+  }
 
   async init(): Promise<void> {
     if (this._initialized) return;
@@ -120,10 +130,10 @@ class ProviderManager {
 
     switch (config.type) {
       case "anthropic":
-        provider = new AnthropicProvider(config);
+        provider = new AnthropicProvider(config, this._rateLimiter ?? undefined);
         break;
       case "google":
-        provider = new GoogleProvider(config);
+        provider = new GoogleProvider(config, this._rateLimiter ?? undefined);
         break;
       case "ollama":
         provider = new OllamaProvider(config);
@@ -133,7 +143,7 @@ class ProviderManager {
         break;
       case "openai":
       default:
-        provider = new OpenAIProvider(config);
+        provider = new OpenAIProvider(config, this._rateLimiter ?? undefined);
         break;
     }
 

@@ -30,6 +30,7 @@ export interface WorldBuilderDeps {
   entityStore: UnifiedEntityStore;
   eventBus: EventBus;
   dbPath: string;
+  agentId?: string;
 }
 
 export class WorldBuilder {
@@ -37,6 +38,7 @@ export class WorldBuilder {
   private _entityStore: UnifiedEntityStore;
   private _eventBus: EventBus;
   private _dbPath: string;
+  private _agentId: string | undefined;
   worldFrame: Record<string, unknown> | null = null;
 
   constructor(deps: WorldBuilderDeps) {
@@ -44,6 +46,7 @@ export class WorldBuilder {
     this._entityStore = deps.entityStore;
     this._eventBus = deps.eventBus;
     this._dbPath = deps.dbPath;
+    this._agentId = deps.agentId;
   }
 
   async loadWorldFrame(): Promise<Record<string, unknown>> {
@@ -57,7 +60,7 @@ export class WorldBuilder {
   async createWorld(): Promise<Record<string, unknown>> {
     const prompt = PromptBuilder.WORLD_FRAME_PROMPT;
     try {
-      this.worldFrame = await this._llmQueue.generateJson(prompt, TaskPriority.NORMAL, 0.8);
+      this.worldFrame = await this._llmQueue.generateJson(prompt, TaskPriority.NORMAL, 0.8, this._agentId);
     } catch (err) {
       throw new Error(`Failed to generate world frame: ${err}`);
     }
@@ -182,7 +185,7 @@ export class WorldBuilder {
       existingNames,
     );
     try {
-      return await this._llmQueue.generateJson(prompt, TaskPriority.NORMAL, 0.7);
+      return await this._llmQueue.generateJson(prompt, TaskPriority.NORMAL, 0.7, this._agentId);
     } catch {
       return {};
     }
@@ -200,7 +203,7 @@ export class WorldBuilder {
     const prompt = PromptBuilder.buildRelationshipPrompt(entityDescriptions);
 
     try {
-      const response = await this._llmQueue.generateJson(prompt, TaskPriority.NORMAL, 0.7);
+      const response = await this._llmQueue.generateJson(prompt, TaskPriority.NORMAL, 0.7, this._agentId);
       const rels = Array.isArray(response) ? response : [];
       for (const rel of rels) {
         const srcUid = rel.source as string;

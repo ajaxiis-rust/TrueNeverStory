@@ -73,17 +73,20 @@ export class VillainManager {
   private _chronicler: Chronicler | null;
   private _llmQueue: LLMQueue | null;
   private _entityStore: UnifiedEntityStore | null;
+  private _agentId: string | undefined;
 
   constructor(
     statePath: string,
     chronicler?: Chronicler | null,
     llmQueue?: LLMQueue | null,
     entityStore?: UnifiedEntityStore | null,
+    agentId?: string,
   ) {
     this._statePath = statePath;
     this._chronicler = chronicler ?? null;
     this._llmQueue = llmQueue ?? null;
     this._entityStore = entityStore ?? null;
+    this._agentId = agentId;
     this._load();
     if (this._villains.size === 0) this._createDefault();
   }
@@ -192,7 +195,7 @@ export class VillainManager {
           .replace("{ultimate_goal}", villain.ultimate_goal)
           .replace("{world_state}", `Entities:\n${worldState.entities}\n\nRules:\n${worldState.rules}`);
 
-        const llmResponse = await this._llmQueue.generateText(prompt, TaskPriority.NORMAL, 0.7);
+        const llmResponse = await this._llmQueue.generateText(prompt, TaskPriority.NORMAL, 0.7, this._agentId);
         if (llmResponse && llmResponse.trim().length > 10) {
           description = llmResponse.trim();
         }
@@ -244,7 +247,7 @@ export class VillainManager {
           .replace("{entities}", worldContext.entities)
           .replace("{rules}", worldContext.rules);
 
-        const response = await this._llmQueue.generateText(prompt, TaskPriority.HIGH, 0.8);
+        const response = await this._llmQueue.generateText(prompt, TaskPriority.HIGH, 0.8, this._agentId);
 
         const parsed = this._parseJsonResponse(response);
         if (parsed) {
