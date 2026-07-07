@@ -368,6 +368,22 @@ CREATE TABLE agent_prompts (
 
 **Dual-write strategy:** During migration, writes go to both SQLite and JSON. Reads prioritize SQLite, falling back to JSON if not found.
 
+### Language Instruction Injection
+
+LLM responses automatically match the selected UI language. `getLanguageInstruction()` in `src/services/agent-config.ts` appends a language directive to all agent prompts:
+
+| Language | Injected text |
+|----------|--------------|
+| en | `IMPORTANT: Always respond in English.` |
+| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
+| de | `WICHTIG: Antworte immer auf Deutsch.` |
+| fr | `IMPORTANT: Réponds toujours en français.` |
+| es | `IMPORTANTE: Responde siempre en español.` |
+| ja | `重要：常に日本語で回答してください。` |
+| zh | `重要：请始终用中文回复。` |
+
+Injected into: narrator, director, scene, NPC, dialogue-context. The instruction is appended to the end of the resolved userTemplate before sending to LLM.
+
 ### API Endpoints for Prompts
 
 | Method | Path | Description |

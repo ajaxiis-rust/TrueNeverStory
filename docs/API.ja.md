@@ -137,6 +137,33 @@ World Frame フィールドを更新。
 ### `GET /worlds/:name/chapters/:filename`
 章の内容を取得。
 
+### `GET /worlds/:name/detail`
+統計モーダル用の完全なワールド統計。
+
+**レスポンス:**
+```json
+{
+  "name": "default",
+  "title": "マイワールド",
+  "description": "...",
+  "genre": "fantasy",
+  "language": "ja",
+  "worldRules": [{ "name": "...", "description": "..." }],
+  "magicSystem": "...",
+  "entityCounts": { "Character": 5, "Location": 3, "Faction": 2, "Item": 8 },
+  "totalEntities": 18,
+  "characters": [{ "name": "...", "summary": "...", "tags": [], "relationships": [] }],
+  "locations": [{ "name": "...", "summary": "..." }],
+  "factions": [{ "name": "...", "summary": "..." }],
+  "items": [{ "name": "...", "summary": "..." }],
+  "sessionCount": 4,
+  "eventCount": 42,
+  "chapterCount": 3,
+  "villainCount": 1,
+  "hasFrame": true
+}
+```
+
 ---
 
 ## エンティティ＆グラフ

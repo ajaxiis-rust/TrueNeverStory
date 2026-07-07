@@ -137,6 +137,33 @@ Listar capítulos generados.
 ### `GET /worlds/:name/chapters/:filename`
 Contenido de un capítulo.
 
+### `GET /worlds/:name/detail`
+Estadísticas completas del mundo para el modal de estadísticas.
+
+**Respuesta:**
+```json
+{
+  "name": "default",
+  "title": "Mi mundo",
+  "description": "...",
+  "genre": "fantasy",
+  "language": "es",
+  "worldRules": [{ "name": "...", "description": "..." }],
+  "magicSystem": "...",
+  "entityCounts": { "Character": 5, "Location": 3, "Faction": 2, "Item": 8 },
+  "totalEntities": 18,
+  "characters": [{ "name": "...", "summary": "...", "tags": [], "relationships": [] }],
+  "locations": [{ "name": "...", "summary": "..." }],
+  "factions": [{ "name": "...", "summary": "..." }],
+  "items": [{ "name": "...", "summary": "..." }],
+  "sessionCount": 4,
+  "eventCount": 42,
+  "chapterCount": 3,
+  "villainCount": 1,
+  "hasFrame": true
+}
+```
+
 ---
 
 ## Entidades y Grafo

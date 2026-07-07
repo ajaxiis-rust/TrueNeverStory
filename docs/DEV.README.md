@@ -327,7 +327,7 @@ NarrativeService
 
 **Lifecycle:**
 1. `new NarrativeService({dbPath, worldFrame})` — constructor wires everything
-2. `start()` — boots LLM queue, syncs entities to SQLite, starts director loop
+2. `start()` — boots LLM queue, syncs entities to SQLite, auto-builds heuristic relationships (if entities exist but have no connections), starts director loop
 3. `stop()` — stops director + LLM queue
 4. `pause()` / `resume()` — for when user leaves chat view
 5. `reset(newDbPath, worldFrame)` — hot-swap to a different world
@@ -556,6 +556,8 @@ worlds/
 
 Switch worlds via `POST /api/worlds/:name/switch`. Hot-swaps the DI container.
 
+World statistics available via `GET /api/worlds/:name/detail` — returns entity counts by type, character/location/faction/item lists, session/event/chapter/villain counts, and world rules.
+
 ---
 
 ## Key Patterns
@@ -566,3 +568,4 @@ Switch worlds via `POST /api/worlds/:name/switch`. Hot-swaps the DI container.
 - **Prompt injection defense**: `sanitizeInput()` strips common injection patterns before LLM
 - **Atomic JSON writes**: `atomicWriteJson()` uses temp file + rename for crash safety
 - **Event-driven**: `EventBus` decouples services (entity creation, memory events, etc.)
+- **Language instruction injection**: `getLanguageInstruction()` appends a language directive to agent prompts so LLM responses match the UI language

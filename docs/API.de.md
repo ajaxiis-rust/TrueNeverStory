@@ -137,6 +137,33 @@ Generierte Kapitel auflisten.
 ### `GET /worlds/:name/chapters/:filename`
 Kapitelinhalt abrufen.
 
+### `GET /worlds/:name/detail`
+Vollständige Weltstatistiken für das Statistik-Modal.
+
+**Antwort:**
+```json
+{
+  "name": "default",
+  "title": "Meine Welt",
+  "description": "...",
+  "genre": "fantasy",
+  "language": "de",
+  "worldRules": [{ "name": "...", "description": "..." }],
+  "magicSystem": "...",
+  "entityCounts": { "Character": 5, "Location": 3, "Faction": 2, "Item": 8 },
+  "totalEntities": 18,
+  "characters": [{ "name": "...", "summary": "...", "tags": [], "relationships": [] }],
+  "locations": [{ "name": "...", "summary": "..." }],
+  "factions": [{ "name": "...", "summary": "..." }],
+  "items": [{ "name": "...", "summary": "..." }],
+  "sessionCount": 4,
+  "eventCount": 42,
+  "chapterCount": 3,
+  "villainCount": 1,
+  "hasFrame": true
+}
+```
+
 ---
 
 ## Entitäten & Graf

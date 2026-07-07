@@ -248,7 +248,7 @@ NarrativeService
 
 **Lebenszyklus:**
 1. `new NarrativeService({dbPath, worldFrame})` — alles verdrahten
-2. `start()` — LLM-Warteschlange starten, Entities synchen, Director starten
+2. `start()` — LLM-Warteschlange starten, Entities synchen, heuristische Beziehungen aufbauen (wenn Entities vorhanden aber unverbunden), Director starten
 3. `stop()` — Director + LLM stoppen
 4. `pause()` / `resume()` — wenn der Nutzer den Chat verlässt
 5. `reset(newDbPath, worldFrame)` — Wechsel zu anderem Dungeon
@@ -382,3 +382,4 @@ bun test tests/probability-engine.test.ts  # Wahrscheinlichkeits-Tests
 - **Sicherer Eval**: Formeln via rekursivem Abstieg (kein eval)
 - **Prompt-Injection-Verteidigung**: `sanitizeInput()` vor LLM
 - **Atomare JSON-Schreibvorgänge**: via Temp-File + Rename
+- **Sprach-Injektion**: `getLanguageInstruction()` fügt Agent-Prompts eine Sprachdirektive hinzu, damit LLM-Antworten der UI-Sprache entsprechen
