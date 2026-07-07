@@ -32,7 +32,16 @@ export class NarrativeFacade {
     await this.services.llmQueue.start();
     await this.services.graphStore.boot();
 
-    for (const node of this.services.entityStore.allNodes()) {
+    // Auto-build relationships if entities exist but have none
+    const allNodes = this.services.entityStore.allNodes();
+    const hasRelationships = allNodes.some((n) => n.profile.relationships.length > 0);
+    if (allNodes.length > 0 && !hasRelationships) {
+      log.info("No relationships found — building heuristic relationships");
+      this.services.worldBuilder.buildRelationshipsHeuristic();
+      await this.services.graphStore.boot();
+    }
+
+    for (const node of allNodes) {
       this.services.sqliteStore.upsertEntity({
         uid: node.uid,
         name: node.name,
