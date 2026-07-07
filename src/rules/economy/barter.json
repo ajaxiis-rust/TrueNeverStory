@@ -1,0 +1,17 @@
+{
+  "id": "barter",
+  "name": "Бартер",
+  "description": "Обмен товарами без единой валюты",
+  "economy": {
+    "currency": "barter",
+    "tax_rate": 0,
+    "trade": "free",
+    "property": "possession",
+    "labor": "voluntary",
+    "inflation": 0
+  },
+  "enforced_rules": [
+    {"rule": "no_currency", "penalty": "none"},
+    {"rule": "fair_exchange_expected", "penalty": "reputation_loss"}
+  ]
+}

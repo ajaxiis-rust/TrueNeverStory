@@ -1,4 +1,4 @@
-# TrueNeverStory v0.16.3
+# TrueNeverStory v0.20.1
 
 ### Escribe tu libro solo jugando.
 
@@ -16,20 +16,28 @@ Construido en TypeScript (Bun + Hono) con kernels de cómputo C FFI para operaci
 |----------------|-------------|
 | **Mundo vivo** | Personajes, lugares, objetos, facciones — todo conectado en un grafo de conocimiento O(1) |
 | **14 agentes IA** | Narrador, Director, NPC, Escena, Cronista, Planificador, Villano, Investigador, Historiador, Cartógrafo, Mercader, Depositar quests, Guardián del saber, Sim. social |
-| **Memoria y RAG** | Búsqueda vectorial (BGE-M3 + SQLite híbrido FTS5/d denso/RRF) |
+| **Memoria y RAG** | Búsqueda vectorial (BGE-M3 + SQLite híbrido FTS5/denso/RRF) |
 | **Sistema de probabilidad** | Resultados deterministas para combate, persuasión, sigilo, romance |
 | **Romance y social** | Gestión de relaciones, facciones, alianzas, jerarquía feudal, diálogos NPC |
 | **Sistema de quests** | Generación dinámica, objetivos, recompensas, cadenas, límites de tiempo |
 | **Inventario y comercio** | Objetos con rareza, estadísticas, equipamiento, oro, comercio con NPC |
 | **Economía NPC** | Jerarquía feudal (10 rangos), impuestos, producción de alimentos, sistema familiar, 34 arquetipos |
+| **Motor de reglas** | 14 sistemas sociales/económicos predefinidos (feudalismo, democracia, anarquía, etc.) con matriz de sinergia |
+| **Multi-mundos** | Ejecución aislada de mundos con monitoreo de recursos (memoria, CPU, tokens) |
+| **Inter-mundos** | Comunicación de eventos entre mundos con portales y memoria compartida |
+| **Sistema de plugins** | Arquitectura extensible con gestor de plugins, hooks de ciclo de vida y API |
+| **Feature flags** | Pruebas A/B, despliegue gradual, orientación por porcentaje |
+| **Versionado API** | Endpoints v1/v2 con encabezados de deprecación |
 | **Streaming en tiempo real** | WebSocket + SSE para entrega de narrativa |
 | **i18n (7 idiomas)** | EN, RU, DE, FR, ES, JA, ZH |
-| **Auth por contraseña** | Sesiones con HttpOnly cookies, protección CSRF |
+| **Auth por contraseña** | Sesiones con HttpOnly cookies, protección CSRF, sesiones SQLite |
 | **Almacenamiento SQLite** | Entidades, embeddings, memoria, prompts, traducciones |
+| **Circuit Breaker** | Failover automático de proveedores LLM con cadena de respaldo |
+| **Registro estructurado** | IDs de trazado, IDs de correlación, métricas para depuración multi-agente |
 
 ---
 
-## Plataformas compatibles
+## Plataformas soportadas
 
 | Plataforma | Estado | Notas |
 |------------|:------:|-------|
@@ -43,11 +51,11 @@ Construido en TypeScript (Bun + Hono) con kernels de cómputo C FFI para operaci
 
 ## Inicio rápido
 
-**No necesitas Bun, Node.js ni ningún runtime.** Solo descarga y ejecuta.
+**No necesitas Bun, Node.js ni otro runtime.** Solo descarga y ejecuta.
 
 ### 1. Descargar
 
-Última release para tu plataforma en [GitHub Releases](https://github.com/ajaxiis-rust/TrueNeverStory/releases/latest):
+Última versión en [GitHub Releases](https://github.com/ajaxiis-rust/TrueNeverStory/releases/latest):
 
 | Plataforma | Archivo |
 |------------|---------|
@@ -72,17 +80,15 @@ tns-server.exe
 
 ### 3. Abrir
 
-Ir a **http://localhost:8000** — contraseña: **`changeme`**
+**http://localhost:8000** — contraseña: **`changeme`**
 
-Cambia la contraseña en Ajustes después del primer inicio de sesión.
-
-Eso es todo. Sin base de datos, sin instalar paquetes, sin editar archivos de configuración.
+Cambia la contraseña después del primer inicio de sesión.
 
 ---
 
 ## Configurar LLM
 
-Abrir la página de **Ajustes** o editar `.env`:
+Abre **Configuración** o edita `.env`:
 
 ### Ollama (local, gratis)
 
@@ -105,14 +111,6 @@ WORLD_LLM_API_KEY=sk-your-key-here
 WORLD_LLM_MODEL=gpt-4o-mini
 ```
 
-### LM Studio
-
-```
-WORLD_LLM_BASE_URL=http://localhost:1234/v1
-WORLD_LLM_API_KEY=lm-studio
-WORLD_LLM_MODEL=your-model
-```
-
 También funciona con vLLM, Anthropic, Google y cualquier API compatible con OpenAI.
 
 ---
@@ -122,22 +120,24 @@ También funciona con vLLM, Anthropic, Google y cualquier API compatible con Ope
 ```
 TrueNeverStory/
 ├── src/
-│   ├── config/           # Configuración validada con Zod
-│   ├── lib/              # Cliente LLM, SQLite store, operaciones vectoriales
+│   ├── config/           # Configuración validada por Zod
+│   ├── lib/              # Cliente LLM, SQLite, operaciones vectoriales, circuit breaker, feature flags
 │   ├── memory/           # WorldMemory, pipeline cognitivo
-│   ├── middleware/        # Auth, rate limiter, cabeceras de seguridad
+│   ├── middleware/        # Auth, rate limiter, cabeceras de seguridad, logger
 │   ├── models/           # Entity, chat, probability, romance, quest, item
-│   ├── routes/           # Rutas API (chat, entities, agents, settings)
-│   ├── services/         # 52 servicios (motor de juego, agentes, economía)
-│   ├── intelligence/     # Análisis de grafo, detección de duplicados
+│   ├── plugins/          # Interfaz y gestor de plugins
+│   ├── routes/           # Rutas API (chat, entities, agents, settings, v1, v2, cross-world, plugins)
+│   ├── rules/            # Motor de reglas (14 reglas, matriz sinergia, dependencias tech)
+│   ├── services/         # 55+ servicios (motor de juego, agentes, economía, aislamiento mundos, bus inter-mundos)
+│   ├── intelligence/     # Análisis grafo, detección duplicados
 │   ├── i18n/             # Paquetes de idiomas (7 idiomas)
-│   ├── store/            # EntityStore con índice O(1)
-│   └── utils/            # Logger, hash, sanitizar, plantillas
-├── mojo/kernels/         # Kernels de cómputo C FFI (compilados via Zig)
+│   ├── store/            # EntityStore con NameIndex O(1), WorldStore
+│   └── utils/            # Logger, hash, sanitizer, template resolver
+├── mojo/kernels/         # Kernles C FFI (compilados via Zig)
 ├── public/               # Interfaz web (estilo terminal)
-├── worlds/               # Datos del mundo (SQLite, entidades, sesiones)
+├── worlds/               # Datos mundos (SQLite, entidades, sesiones)
 ├── conf/                 # Configuración
-└── tests/                # Suite de tests
+└── tests/                # Suite de pruebas
 ```
 
 ---
@@ -148,8 +148,8 @@ TrueNeverStory/
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| GET | `/login` | Página de login |
-| POST | `/login` | Autenticar |
+| GET | `/login` | Página de inicio de sesión |
+| POST | `/login` | Autenticación |
 | POST | `/logout` | Cerrar sesión |
 
 ### Chat y juego de rol
@@ -166,35 +166,72 @@ TrueNeverStory/
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| GET | `/api/entity/:uid` | Detalles de entidad |
-| GET | `/api/neighbors/:uid` | Vecinos con profundidad |
-| GET | `/api/search?q=` | Buscar por nombre o semántica |
-| GET | `/api/graph/summary` | Estadísticas del grafo |
+| GET | `/api/entity/:uid` | Detalles entidad |
+| GET | `/api/neighbors/:uid` | Vecinos con recorrido |
+| GET | `/api/search?q=` | Búsqueda |
+| GET | `/api/graph/summary` | Estadísticas grafo |
 
 ### Agentes e i18n
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| GET | `/api/agents` | Configuraciones de agentes |
+| GET | `/api/agents` | Configuraciones agentes |
 | PUT | `/api/agents/:id` | Actualizar agente |
 | PUT | `/api/agents/:id/prompts/:lang` | Prompts por idioma |
 | GET | `/api/i18n/translations/:lang/:page` | Traducciones |
+
+### Motor de reglas
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/rules` | Reglas disponibles |
+| GET | `/api/rules/:id` | Detalles regla |
+| POST | `/api/rules/validate` | Validar JSON regla |
+
+### Inter-mundos
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/cross-world/status` | Estado inter-mundos |
+| POST | `/api/cross-world/enable` | Activar |
+| POST | `/api/cross-world/disable` | Desactivar |
+| GET | `/api/cross-world/portals` | Listar portales |
+| POST | `/api/cross-world/portals` | Crear portal |
+| DELETE | `/api/cross-world/portals/:id` | Eliminar portal |
+| GET | `/api/cross-world/events` | Registro eventos |
+
+### Plugins
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/plugins` | Plugins registrados |
+| GET | `/api/plugins/:id` | Detalles plugin |
+| GET | `/api/plugins/:id/capabilities` | Capacidades plugin |
+
+### Feature Flags
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/feature-flags` | Feature flags |
+| PUT | `/api/feature-flags/:id` | Actualizar flag |
 
 ### WebSocket
 
 | Endpoint | Descripción |
 |----------|-------------|
-| `ws://host:8000/ws/roleplay/:sessionId` | Streaming de juego de rol en tiempo real |
+| `ws://host:8000/ws/roleplay/:sessionId` | Streaming juego de rol tiempo real |
 
 ---
 
 ## Ejemplos
 
+### API
+
 ```bash
-# Login
+# Iniciar sesión
 curl -c cookies.txt -X POST http://localhost:8000/login -d "password=changeme"
 
-# Configurar sesión
+# Inicializar sesión
 curl -b cookies.txt -X POST http://localhost:8000/api/chat/setup \
   -H "Content-Type: application/json" \
   -d '{"character": "Aragorn", "role": "protagonist"}'
@@ -203,15 +240,23 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/setup \
 curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
   -H "Content-Type: application/json" \
   -d '{"content": "Desenvaino mi espada y me enfrento al dragón"}'
+
+# Reglas disponibles
+curl -b cookies.txt "http://localhost:8000/api/rules"
+
+# Crear portal inter-mundos
+curl -b cookies.txt -X POST http://localhost:8000/api/cross-world/portals \
+  -H "Content-Type: application/json" \
+  -d '{"world1": "world-a", "world2": "world-b"}'
 ```
 
 ---
 
 ## Para desarrolladores
 
-Documentación completa de arquitectura, referencia del contenedor DI y guía de contribución: [DEV.README.es.md](docs/DEV.README.es.md)
+Documentación completa: [DEV.README.es.md](docs/DEV.README.es.md)
 
-### Requisitos
+### Prerrequisitos
 
 - [Bun](https://bun.sh) v1.0+
 
@@ -231,45 +276,59 @@ bun run dev
 | `bun run dev` | Desarrollo con hot reload |
 | `bun run start` | Modo producción |
 | `bun run lint` | Verificación de tipos |
-| `bun test` | Ejecutar tests |
-| `bun run build` | Construir bundle |
+| `bun test` | Pruebas |
+| `bun run build` | Build |
 
 ---
 
-## Compilación de binarios
+## Últimos cambios
 
-Cross-compilation via Zig:
+### v0.20.1 — Corrección del motor de reglas para binario
 
-```bash
-cd mojo/kernels
-./build.sh native           # Plataforma actual
-./build.sh aarch64-linux    # ARM64 Linux
-./build.sh x86_64-windows   # Windows x64
-./build.sh list             # Todos los targets
-```
+- Corrección del crash de `/api/rules` en el binario Bun compilado
+- Reemplazo de `import.meta.dir` por `process.cwd()` para la resolución de directorios de reglas
+- Resolución del error ENOENT (`/$bunfs/root/../rules/social`) en el binario compilado
+- Archivos afectados: `src/routes/rules.ts` y `src/rules/rules-engine.ts`
 
-Ver [COMPILE.md](docs/COMPILE.md). GitHub Actions compila todas las plataformas automáticamente.
+### v0.20.0 — Mejoras arquitectónicas
 
----
+Revisión arquitectónica completa en 5 etapas:
 
-## Cambios recientes
+**Etapa 1-2:**
+- División NarrativeService (Bootstrapper + Facade + Service)
+- Modelo unificado de agentes con interfaz y clase base
+- Event Sourcing con eventos de dominio y snapshots
+- Circuit Breaker para LLM con failover automático
+- Registro de agentes con 4 tipos de fuente
+- Registro estructurado con trace IDs y correlación
+
+**Etapa 3:**
+- Motor de reglas — 14 sistemas predefinidos
+- Matriz de sinergia, dependencias tecnológicas, modificadores de felicidad
+- Validador de reglas y modelado de deriva cultural
+- Feature flags con pruebas A/B y despliegue gradual
+- Versionado API (v1/v2)
+- WorldStore — migración SQLite
+
+**Etapa 4:**
+- Aislamiento multi-mundos con monitoreo de recursos
+- Comunicación inter-mundos con portales y eventos
+- Sistema de plugins con gestor y hooks
+
+**Etapa 5:**
+- Actualización de documentación
+
+→ [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [PLUGIN-GUIDE.md](docs/PLUGIN-GUIDE.md) | [MIGRATION.md](docs/MIGRATION.md)
 
 ### v0.15.0 — Refuerzo de seguridad
 
-- Sesiones en SQLite (sobreviven reinicios)
-- Validación de token WebSocket
-- Protección contra path traversal
-- Protección CSRF en formulario de login
-- Cookie Secure, CSP reforzado
-- Mensajes de error sanitizados
+- Sesiones SQLite
+- Validación token WebSocket
+- Protección path traversal
+- Protección CSRF
+- Secure cookie, CSP reforzado
 
 → [security.md](security.md) | [SECURITY-log.md](SECURITY-log.md)
-
-### v0.14.1 — Kernels C FFI y Cross-Compilation
-
-- 5 kernels portados de Mojo a C puro
-- Cross-compilation Zig para 10 plataformas
-- Pausa/reanudación de procesamiento en segundo plano
 
 ---
 

@@ -1,0 +1,17 @@
+{
+  "id": "gold-standard",
+  "name": "Золотой стандарт",
+  "description": "Валюта привязана к золоту, стабильные цены",
+  "economy": {
+    "currency": "gold",
+    "tax_rate": 0.15,
+    "trade": "regulated",
+    "property": "private_ownership",
+    "labor": "wage_labor",
+    "inflation": 0.02
+  },
+  "enforced_rules": [
+    {"rule": "gold_backs_currency", "penalty": "none"},
+    {"rule": "price_controls_allowed", "penalty": "fine"}
+  ]
+}

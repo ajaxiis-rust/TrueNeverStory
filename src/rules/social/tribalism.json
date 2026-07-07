@@ -1,0 +1,33 @@
+{
+  "id": "tribalism",
+  "name": "Племенной строй",
+  "description": "Общество, основанное на племенных кланах и родовых связях",
+  "social": {
+    "hierarchy": ["elder", "warrior", "hunter", "gatherer", "youth"],
+    "mobility": "through_deeds",
+    "education": "oral_tradition",
+    "military_service": "all_able_bodied",
+    "marriage": "clan_approved",
+    "law": "elder_council"
+  },
+  "economy": {
+    "currency": "barter",
+    "tax_rate": 0,
+    "tax_collector": "none",
+    "trade": "inter_tribal",
+    "property": "communal",
+    "labor": "shared"
+  },
+  "politics": {
+    "succession": "elder_elected",
+    "council": "elder_council",
+    "justice": "tribal_custom",
+    "rebellion": "schism"
+  },
+  "enforced_rules": [
+    {"rule": "clan_loyalty_required", "penalty": "exile"},
+    {"rule": "share_with_tribe", "penalty": "ostracism"},
+    {"rule": "respect_elders", "penalty": "punishment"},
+    {"rule": "hunt_for_group", "penalty": "reduced_rations"}
+  ]
+}

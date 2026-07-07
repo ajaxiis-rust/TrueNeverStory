@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import type { HistoryManager } from "../lib/history-manager";
 import { getConfig } from "../config/env";
+import { getActiveWorld } from "../services/agent-config";
 
 const sessions = new Hono();
 
@@ -15,6 +16,12 @@ let _historyMgr: HistoryManager | null = null;
 
 export function initSessions(historyMgr: HistoryManager): void {
   _historyMgr = historyMgr;
+}
+
+function getExportsDir(): string {
+  const cfg = getConfig();
+  const world = getActiveWorld();
+  return join(cfg.WORLDS_ROOT, world, "exports");
 }
 
 /**
@@ -78,8 +85,7 @@ sessions.post("/sessions/export", async (c) => {
     return c.json({ error: "No messages to export" }, 400);
   }
 
-  const cfg = getConfig();
-  const exportsDir = join(cfg.WORLD_DB_PATH, "exports");
+  const exportsDir = getExportsDir();
   if (!existsSync(exportsDir)) mkdirSync(exportsDir, { recursive: true });
 
   const date = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -114,8 +120,7 @@ sessions.post("/sessions/export", async (c) => {
  * GET /sessions/exports — List all exported markdown files.
  */
 sessions.get("/sessions/exports", async (c) => {
-  const cfg = getConfig();
-  const exportsDir = join(cfg.WORLD_DB_PATH, "exports");
+  const exportsDir = getExportsDir();
   if (!existsSync(exportsDir)) return c.json({ files: [] });
 
   const files = readdirSync(exportsDir)
@@ -131,8 +136,8 @@ sessions.get("/sessions/exports", async (c) => {
  */
 sessions.get("/sessions/exports/:filename", async (c) => {
   const filename = c.req.param("filename");
-  const cfg = getConfig();
-  const filePath = join(cfg.WORLD_DB_PATH, "exports", filename);
+  const exportsDir = getExportsDir();
+  const filePath = join(exportsDir, filename);
 
   if (!existsSync(filePath)) return c.json({ error: "File not found" }, 404);
 

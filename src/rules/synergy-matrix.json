@@ -1,0 +1,95 @@
+{
+  "synergies": [
+    {
+      "rules": ["feudalism", "mercantilism"],
+      "type": "positive",
+      "effect": "Wealthy merchants gain political influence, creating a rising middle class",
+      "modifiers": {
+        "social_mobility": 0.2,
+        "trade_efficiency": 0.15,
+        "tax_revenue": 0.1
+      }
+    },
+    {
+      "rules": ["feudalism", "theocracy"],
+      "type": "positive",
+      "effect": "Church and nobility form a powerful alliance, stabilizing society",
+      "modifiers": {
+        "stability": 0.25,
+        "education": 0.1,
+        "rebellion_chance": -0.15
+      }
+    },
+    {
+      "rules": ["democracy", "capitalism"],
+      "type": "positive",
+      "effect": "Free markets thrive under democratic governance",
+      "modifiers": {
+        "trade_efficiency": 0.2,
+        "innovation": 0.15,
+        "social_mobility": 0.1
+      }
+    },
+    {
+      "rules": ["feudalism", "communism"],
+      "type": "negative",
+      "effect": "Class conflict between nobles and peasants intensifies",
+      "modifiers": {
+        "stability": -0.2,
+        "rebellion_chance": 0.3,
+        "social_mobility": -0.1
+      }
+    },
+    {
+      "rules": ["anarchy", "any"],
+      "type": "negative",
+      "effect": "Anarchy conflicts with organized systems",
+      "modifiers": {
+        "stability": -0.3,
+        "trade_efficiency": -0.2
+      }
+    },
+    {
+      "rules": ["capitalism", "socialism"],
+      "type": "negative",
+      "effect": "Mixed economy creates tensions between private and state control",
+      "modifiers": {
+        "stability": -0.15,
+        "trade_efficiency": -0.1,
+        "social_mobility": 0.05
+      }
+    },
+    {
+      "rules": ["tribalism", "anarchy"],
+      "type": "positive",
+      "effect": "Tribal self-governance aligns with anarchist principles",
+      "modifiers": {
+        "stability": 0.1,
+        "social_mobility": 0.1
+      }
+    },
+    {
+      "rules": ["theocracy", "communism"],
+      "type": "positive",
+      "effect": "Religious communalism creates strong social bonds",
+      "modifiers": {
+        "stability": 0.2,
+        "tax_revenue": 0.1
+      }
+    }
+  ],
+  "resistances": [
+    {
+      "rules": ["feudalism", "democracy"],
+      "type": "strong_resistance",
+      "effect": "Democratic ideals clash with feudal hierarchy",
+      "drift_speed": 0.1
+    },
+    {
+      "rules": ["theocracy", "anarchy"],
+      "type": "strong_resistance",
+      "effect": "Religious authority opposes lawlessness",
+      "drift_speed": 0.15
+    }
+  ]
+}

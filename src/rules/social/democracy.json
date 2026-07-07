@@ -1,0 +1,32 @@
+{
+  "id": "democracy",
+  "name": "Демократия",
+  "description": "Равенство граждан, выборы, свобода слова",
+  "social": {
+    "hierarchy": ["citizen"],
+    "mobility": "full",
+    "education": "universal",
+    "military_service": "volunteer",
+    "marriage": "free_choice",
+    "law": "voted_by_citizens"
+  },
+  "economy": {
+    "currency": "coin",
+    "tax_rate": 0.15,
+    "tax_collector": "state",
+    "trade": "free_market",
+    "property": "private_ownership",
+    "labor": "wage_labor"
+  },
+  "politics": {
+    "succession": "elected",
+    "council": "democratic_assembly",
+    "justice": "trial_by_peers",
+    "rebellion": "right_to_protest"
+  },
+  "enforced_rules": [
+    {"rule": "freedom_of_speech", "penalty": "none"},
+    {"rule": "equal_treatment", "penalty": "fine"},
+    {"rule": "tax_payment_mandatory", "penalty": "fine"}
+  ]
+}

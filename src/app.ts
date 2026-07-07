@@ -35,8 +35,8 @@ export function createApp(): Hono {
   app.use(
     "*",
     cors({
-      origin: ["http://localhost:8000", "http://127.0.0.1:8000"],
-      allowMethods: ["GET", "POST", "PUT", "DELETE"],
+      origin: process.env.TNS_CORS_ORIGIN || "*",
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
       credentials: true,
     }),
@@ -75,6 +75,7 @@ export function createApp(): Hono {
   app.get("/agents", (c) => serveHtml("agents.html"));
   app.get("/worlds", (c) => serveHtml("worlds.html"));
   app.get("/graph.html", (c) => serveHtml("graph.html"));
+  app.get("/dashboard", (c) => serveHtml("dashboard.html"));
 
   // ── API Routes ──
   const routes = createRoutes();

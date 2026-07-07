@@ -1,5 +1,177 @@
 # Changelog
 
+## v0.20.1 (2026-07-05)
+
+### Bug Fix: Rules Engine Binary Path Resolution
+
+Fixed `/api/rules` endpoint crash when running as compiled Bun binary.
+
+**Problem:**
+- `import.meta.dir` resolves to `/$bunfs/root/...` in compiled Bun binary
+- Rules directory path `/$bunfs/root/../rules/social` does not exist
+- Caused ENOENT error on `/api/rules` endpoint
+
+**Solution:**
+- Changed `import.meta.dir` to `process.cwd()` for rules directory resolution
+- Added `existsSync()` checks for graceful handling when directories are missing
+
+**Files changed:**
+- `src/routes/rules.ts` — Lines 15-26: Fixed directory path resolution
+- `src/rules/rules-engine.ts` — Lines 53-54: Fixed RULES_DIR and ECONOMY_DIR paths
+
+---
+
+## v0.20.0 (2026-07-05)
+
+### Architectural Improvements — Complete Overhaul
+
+Full architectural refactoring across 5 etapes, adding 12 new components and 809 tests.
+
+---
+
+#### Etape 1-2: Core Architecture
+
+**NarrativeService Split:**
+- `src/services/narrative-bootstrapper.ts` — Composition root, instantiates all services
+- `src/services/narrative-facade.ts` — Lifecycle management (reset, dispose)
+- `src/services/narrative-service.ts` — Backward-compatible wrapper
+
+**Unified Agent Model:**
+- `src/services/agent-interface.ts` — `Agent` interface, `BaseAgent` abstract class, `AGENT_CONFIGS` registry
+- Two agent generations identified: Gen 1 (template-based) and Gen 2 (inline prompts)
+
+**Event Sourcing:**
+- `src/lib/event-store.ts` — EventStore with replay and snapshot support
+- `src/services/event-sourcing-chronicler.ts` — Wraps Chronicler with domain events + snapshots
+- Domain events stored in `domain_events.jsonl`, snapshots in `snapshot.json`
+
+**Circuit Breaker for LLM:**
+- `src/lib/circuit-breaker.ts` — CircuitBreaker class (CLOSED→OPEN→HALF_OPEN states)
+- Failure threshold: 5, recovery timeout: 30s, half-open max attempts: 3
+- Each LLM provider gets its own circuit breaker
+
+**FallbackChain:**
+- `src/lib/fallback-chain.ts` — Tries providers by priority order, automatic failover
+- Falls back to direct API if all chain providers fail
+
+**Agent Registry:**
+- `src/services/agent-registry.ts` — AgentRegistry with 4 source types (builtin, config, api, plugin)
+- API endpoints: GET/POST/PUT/DELETE `/api/agents`
+- Persists to `conf/registry.json`
+
+**Structured Logging:**
+- `src/utils/logger.ts` — TraceContext (traceId, spanId, parentSpanId, baggage)
+- CorrelationID via `setCorrelationId()`, `withTrace()` creates child logger
+- Middleware in `src/middleware/logger.ts` propagates correlation ID
+
+---
+
+#### Etape 3: Rules, Flags, Versioning, Storage
+
+**Social Rules Engine:**
+- `src/rules/rules-engine.ts` — RulesEngine class loads primary rules + modifiers
+- **14 predefined rules**: 10 social (feudalism, democracy, anarchy, capitalism, socialism, slavery, mercantilism, tribalism, theocracy, communism) + 4 economy (gold-standard, silver-economy, barter, command-economy)
+- API: GET/POST `/api/rules`
+
+**Rule Validator:**
+- `src/rules/rule-validator.ts` — validateRule(), validateRuleFile(), validateAllRules()
+- Checks required fields, type constraints, value ranges
+
+**Cultural Drift:**
+- `src/rules/cultural-drift.ts` — CulturalDrift class models resistance to rule change
+- Per-rule resistance coefficients (feudalism=0.8, theocracy=0.9, anarchy=0.3)
+
+**Synergy Matrix:**
+- `src/rules/synergy-matrix.json` — 8 synergies + 2 resistances between rule combinations
+
+**Tech Dependencies:**
+- `src/rules/tech-dependency.json` — 10 rule prerequisites + 16-node technology tree
+
+**Happiness Modifiers:**
+- `src/rules/happiness-modifiers.json` — Happiness per system with class-based modifiers
+
+**Feature Flags:**
+- `src/lib/feature-flags.ts` — FeatureFlagManager with hash-based percentage rollout
+- Condition evaluation (eq/neq/gt/lt/contains), variant weight distribution
+- API: GET/PUT `/api/feature-flags`
+
+**API Versioning:**
+- `src/routes/v1/index.ts` — Wraps existing routes
+- `src/routes/v2/index.ts` — Enhanced endpoints
+- Legacy routes get deprecation headers (`Deprecation: true`, `Sunset: 2026-12-31`)
+
+**WorldStore (JSON → SQLite Migration):**
+- `src/store/world-store.ts` — WorldStore class with CRUD operations
+- Transaction support (beginTransaction, commit, rollback)
+- API: GET/POST/PUT/DELETE `/api/world-store/entities`
+
+---
+
+#### Etape 4: Multi-World, Cross-World, Plugins
+
+**Multi-World Isolation:**
+- `src/services/world-isolator.ts` — WorldIsolator class with resource monitoring
+- Configurable memory limits, CPU percentages, token budgets
+- Tracks usage and enforces limits
+
+**Cross-World Communication:**
+- `src/services/cross-world-bus.ts` — CrossWorldBus class with portal routing
+- Publish, broadcast, and portal-based delivery
+- Configurable isolation levels (full, portals_only, read_only, disabled)
+- API: GET/POST/DELETE `/api/cross-world/*`
+
+**Plugin System:**
+- `src/plugins/plugin-interface.ts` — Plugin type definitions
+- `src/plugins/plugin-manager.ts` — Plugin lifecycle management (register, unregister, capabilities)
+- API: GET `/api/plugins/*`
+
+---
+
+#### Etape 5: Documentation
+
+**New documentation:**
+- `docs/PLUGIN-GUIDE.md` — Plugin development guide
+- `docs/MIGRATION.md` — JSON to SQLite migration guide
+- `docs/ARCHITECTURE.md` — Updated with new components
+- `docs/API.md` — Updated with new endpoints
+- All 7 README files updated to v0.20.0
+
+---
+
+**New files:**
+- `src/services/narrative-bootstrapper.ts`
+- `src/services/narrative-facade.ts`
+- `src/services/agent-interface.ts`
+- `src/lib/event-store.ts`
+- `src/services/event-sourcing-chronicler.ts`
+- `src/lib/circuit-breaker.ts`
+- `src/lib/fallback-chain.ts`
+- `src/services/agent-registry.ts`
+- `src/rules/rules-engine.ts`
+- `src/rules/rule-validator.ts`
+- `src/rules/cultural-drift.ts`
+- `src/rules/synergy-matrix.json`
+- `src/rules/tech-dependency.json`
+- `src/rules/happiness-modifiers.json`
+- `src/rules/social/*.json` (10 files)
+- `src/rules/economy/*.json` (4 files)
+- `src/lib/feature-flags.ts`
+- `src/routes/v1/index.ts`
+- `src/routes/v2/index.ts`
+- `src/store/world-store.ts`
+- `src/services/world-isolator.ts`
+- `src/services/cross-world-bus.ts`
+- `src/plugins/plugin-interface.ts`
+- `src/plugins/plugin-manager.ts`
+- `src/routes/cross-world.ts`
+- `src/routes/plugins.ts`
+- `docs/PLUGIN-GUIDE.md`
+- `docs/MIGRATION.md`
+
+**Tests:** 809 total (24 new for rules, 26 new for Etape 4)
+
+---
+
 ## v0.16.3 (2026-07-04)
 
 ### Fix: Ollama Streaming Response Parsing

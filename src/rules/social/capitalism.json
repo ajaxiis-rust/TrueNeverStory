@@ -1,0 +1,35 @@
+{
+  "id": "capitalism",
+  "name": "Капитализм",
+  "description": "Свободный рынок, частная собственность, конкуренция",
+  "social": {
+    "hierarchy": ["bourgeoisie", "middle_class", "working_class", "poor"],
+    "mobility": "full_with_capital",
+    "education": "paid",
+    "military_service": "volunteer_or_hired",
+    "marriage": "free_choice",
+    "law": "property_rights_protected"
+  },
+  "economy": {
+    "currency": "gold",
+    "tax_rate": 0.10,
+    "tax_collector": "state",
+    "trade": "free_market",
+    "property": "private_ownership",
+    "labor": "wage_labor"
+  },
+  "politics": {
+    "succession": "elected_or_bought",
+    "council": "merchant_council",
+    "justice": "trial_by_jury",
+    "rebellion": "right_to_revolution"
+  },
+  "enforced_rules": [
+    {"rule": "property_is_sacred", "penalty": "imprisonment"},
+    {"rule": "contracts_are_binding", "penalty": "fine"},
+    {"rule": "competition_is_allowed", "penalty": "none"},
+    {"rule": "monopoly_requires_license", "penalty": "fine"},
+    {"rule": "worker_can_strike", "penalty": "none"},
+    {"rule": "bankruptcy_discharges_debt", "penalty": "reputation_loss"}
+  ]
+}

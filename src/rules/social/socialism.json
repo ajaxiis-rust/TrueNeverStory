@@ -1,0 +1,35 @@
+{
+  "id": "socialism",
+  "name": "Социализм",
+  "description": "Государственная собственность, равенство, социальная защита",
+  "social": {
+    "hierarchy": ["party_official", "citizen"],
+    "mobility": "party_membership",
+    "education": "universal",
+    "military_service": "mandatory",
+    "marriage": "free_choice",
+    "law": "state_decides"
+  },
+  "economy": {
+    "currency": "coin",
+    "tax_rate": 0.40,
+    "tax_collector": "state",
+    "trade": "state_controlled",
+    "property": "state_ownership",
+    "labor": "assigned_by_state"
+  },
+  "politics": {
+    "succession": "party_election",
+    "council": "people_council",
+    "justice": "state_tribunal",
+    "rebellion": "counter_revolution"
+  },
+  "enforced_rules": [
+    {"rule": "private_property_restricted", "penalty": "confiscation"},
+    {"rule": "state_assigns_work", "penalty": "reassignment"},
+    {"rule": "equal_distribution", "penalty": "fine"},
+    {"rule": "party_loyalty_required", "penalty": "re-education"},
+    {"rule": "no_exploitation", "penalty": "imprisonment"},
+    {"rule": "collective_farming", "penalty": "fine"}
+  ]
+}

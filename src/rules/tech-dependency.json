@@ -1,0 +1,72 @@
+{
+  "dependencies": {
+    "feudalism": {
+      "prerequisites": [],
+      "unlocks": ["castle_construction", "serfdom", "guild_system"],
+      "description": "Basic hierarchical society"
+    },
+    "democracy": {
+      "prerequisites": ["literacy_rate_above_50"],
+      "unlocks": ["voting_system", "constitutional_law", "public_education"],
+      "description": "Requires educated populace"
+    },
+    "capitalism": {
+      "prerequisites": ["banking_system", "currency_standard"],
+      "unlocks": ["stock_market", "corporations", "insurance"],
+      "description": "Requires financial infrastructure"
+    },
+    "socialism": {
+      "prerequisites": ["industrial_base", "bureaucracy"],
+      "unlocks": ["state_planning", "welfare_system", "public_healthcare"],
+      "description": "Requires industrial capacity"
+    },
+    "communism": {
+      "prerequisites": ["industrial_base", "class_consciousness"],
+      "unlocks": ["collective_ownership", "planned_economy"],
+      "description": "Requires class conflict"
+    },
+    "theocracy": {
+      "prerequisites": ["organized_religion"],
+      "unlocks": ["religious_law", "holy_wars", "temple_economy"],
+      "description": "Requires established religion"
+    },
+    "mercantilism": {
+      "prerequisites": ["maritime_capability", "trade_routes"],
+      "unlocks": ["colonialism", "trade_monopolies", "naval_power"],
+      "description": "Requires trade infrastructure"
+    },
+    "tribalism": {
+      "prerequisites": [],
+      "unlocks": ["clan_system", "oral_tradition", "hunt_cooperation"],
+      "description": "Basic tribal organization"
+    },
+    "anarchy": {
+      "prerequisites": [],
+      "unlocks": ["mutual_aid", "direct_action", "voluntary_association"],
+      "description": "No state organization"
+    },
+    "slavery": {
+      "prerequisites": ["military_superiority"],
+      "unlocks": ["slave_labor", "plantation_economy", "slave_trade"],
+      "description": "Requires ability to subjugate"
+    }
+  },
+  "technology_tree": {
+    "agriculture": [],
+    "bronze_working": ["agriculture"],
+    "iron_working": ["bronze_working"],
+    "currency": ["agriculture"],
+    "banking": ["currency", "writing"],
+    "writing": ["agriculture"],
+    "literacy": ["writing"],
+    "maritime": ["agriculture", "woodworking"],
+    "gunpowder": ["alchemy", "metalworking"],
+    "industrial_base": ["iron_working", "coal_mining", "steam_engine"],
+    "steam_engine": ["iron_working"],
+    "coal_mining": ["iron_working"],
+    "electricity": ["industrial_base"],
+    "organized_religion": ["writing", "agriculture"],
+    "class_consciousness": ["industrial_base", "literacy"],
+    "bureaucracy": ["writing", "literacy"]
+  }
+}

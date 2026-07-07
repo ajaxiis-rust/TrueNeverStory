@@ -1,0 +1,33 @@
+{
+  "id": "mercantilism",
+  "name": "Меркантилизм",
+  "description": "Экономическая система, основанная на накоплении золота и контроле торговли",
+  "social": {
+    "hierarchy": ["merchant_prince", "guildmaster", "merchant", "artisan", "laborer"],
+    "mobility": "through_wealth",
+    "education": "merchant_only",
+    "military_service": "hired_mercenaries",
+    "marriage": "strategic_alliances",
+    "law": "merchant_council"
+  },
+  "economy": {
+    "currency": "gold",
+    "tax_rate": 0.20,
+    "tax_collector": "merchant_prince",
+    "trade": "state_controlled",
+    "property": "merchant_ownership",
+    "labor": "wage_labor"
+  },
+  "politics": {
+    "succession": "wealth_based",
+    "council": "merchant_council",
+    "justice": "merchant_court",
+    "rebellion": "merchant_uprising"
+  },
+  "enforced_rules": [
+    {"rule": "trade_requires_license", "penalty": "fine"},
+    {"rule": "gold_accumulation_mandatory", "penalty": "confiscation"},
+    {"rule": "foreign_trade_state_controlled", "penalty": "imprisonment"},
+    {"rule": "guild_membership_required", "penalty": "exile"}
+  ]
+}

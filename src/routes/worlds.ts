@@ -79,9 +79,12 @@ worlds.post("/worlds", async (c) => {
       title: body.title ?? name,
       description: body.description ?? "",
       genre: body.genre ?? "fantasy",
+      genres: body.genres,
       language: body.language ?? "en",
       worldRules: body.worldRules ?? [],
       magicSystem: body.magicSystem ?? "",
+      primaryRule: body.primaryRule,
+      ruleModifiers: body.ruleModifiers,
     });
     return c.json({ status: "created", world });
   } catch (err) {

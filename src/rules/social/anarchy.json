@@ -1,0 +1,32 @@
+{
+  "id": "anarchy",
+  "name": "Анархия",
+  "description": "Нет государственной власти, сила решает",
+  "social": {
+    "hierarchy": [],
+    "mobility": "none",
+    "education": "none",
+    "military_service": "volunteer",
+    "marriage": "free_choice",
+    "law": "none"
+  },
+  "economy": {
+    "currency": "barter",
+    "tax_rate": 0,
+    "tax_collector": "none",
+    "trade": "free",
+    "property": "might_makes_right",
+    "labor": "voluntary"
+  },
+  "politics": {
+    "succession": "none",
+    "council": "none",
+    "justice": "personal_justice",
+    "rebellion": "always_allowed"
+  },
+  "enforced_rules": [
+    {"rule": "no_central_authority", "penalty": "none"},
+    {"rule": "self_defense_allowed", "penalty": "none"},
+    {"rule": "theft_punished_by_group", "penalty": "exile"}
+  ]
+}

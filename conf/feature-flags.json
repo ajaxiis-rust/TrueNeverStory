@@ -1,0 +1,132 @@
+{
+  "flags": [
+    {
+      "id": "narrative-v2",
+      "name": "Narrative V2",
+      "description": "New narrative generation algorithm",
+      "enabled": false,
+      "percentage": 0,
+      "conditions": [],
+      "variants": [
+        {
+          "id": "control",
+          "name": "Control",
+          "weight": 50
+        },
+        {
+          "id": "treatment",
+          "name": "Treatment",
+          "weight": 50
+        }
+      ],
+      "createdAt": "2026-07-05T18:56:36.395Z",
+      "updatedAt": "2026-07-05T18:56:36.395Z"
+    },
+    {
+      "id": "npc-memory-v2",
+      "name": "NPC Memory V2",
+      "description": "Enhanced NPC memory system",
+      "enabled": false,
+      "percentage": 0,
+      "conditions": [],
+      "variants": [
+        {
+          "id": "basic",
+          "name": "Basic Memory",
+          "weight": 50
+        },
+        {
+          "id": "enhanced",
+          "name": "Enhanced Memory",
+          "weight": 50
+        }
+      ],
+      "createdAt": "2026-07-05T18:56:36.395Z",
+      "updatedAt": "2026-07-05T18:56:36.395Z"
+    },
+    {
+      "id": "variant-test",
+      "name": "Variant Test",
+      "description": "",
+      "enabled": true,
+      "percentage": 100,
+      "conditions": [],
+      "variants": [
+        {
+          "id": "a",
+          "name": "A",
+          "weight": 100
+        }
+      ],
+      "createdAt": "2026-07-05T18:56:36.399Z",
+      "updatedAt": "2026-07-05T18:56:36.399Z"
+    },
+    {
+      "id": "disabled-variant",
+      "name": "Disabled Variant",
+      "description": "",
+      "enabled": false,
+      "percentage": 100,
+      "conditions": [],
+      "variants": [
+        {
+          "id": "a",
+          "name": "A",
+          "weight": 100
+        }
+      ],
+      "createdAt": "2026-07-05T19:48:46.690Z",
+      "updatedAt": "2026-07-05T19:48:46.690Z"
+    },
+    {
+      "id": "test-flag",
+      "name": "Test Flag",
+      "description": "A test flag",
+      "enabled": true,
+      "percentage": 100,
+      "conditions": [],
+      "variants": [
+        {
+          "id": "v1",
+          "name": "V1",
+          "weight": 100
+        }
+      ],
+      "createdAt": "2026-07-05T19:12:46.849Z",
+      "updatedAt": "2026-07-05T19:12:46.849Z"
+    },
+    {
+      "id": "enabled-flag",
+      "name": "Enabled",
+      "description": "",
+      "enabled": true,
+      "percentage": 100,
+      "conditions": [],
+      "variants": [],
+      "createdAt": "2026-07-05T19:48:16.512Z",
+      "updatedAt": "2026-07-05T19:48:16.512Z"
+    },
+    {
+      "id": "delete-test",
+      "name": "Delete Test",
+      "description": "",
+      "enabled": true,
+      "percentage": 100,
+      "conditions": [],
+      "variants": [],
+      "createdAt": "2026-07-05T19:47:41.882Z",
+      "updatedAt": "2026-07-05T19:47:41.882Z"
+    },
+    {
+      "id": "disabled-flag",
+      "name": "Disabled",
+      "description": "",
+      "enabled": false,
+      "percentage": 100,
+      "conditions": [],
+      "variants": [],
+      "createdAt": "2026-07-05T19:47:31.115Z",
+      "updatedAt": "2026-07-05T19:47:31.115Z"
+    }
+  ]
+}

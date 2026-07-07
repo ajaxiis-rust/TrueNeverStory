@@ -1,0 +1,184 @@
+{
+  "chapters": {
+    "ch1": {
+      "id": "ch1",
+      "title": "The Awakening",
+      "summary": "The protagonist discovers the central conflict.",
+      "start_time": "2026-07-04T12:58:15.154Z",
+      "completed": false,
+      "beats": [
+        "ch1_inciting_incident",
+        "ch1_revelation",
+        "ch1_setback",
+        "ch1_victory",
+        "ch1_cliffhanger"
+      ]
+    },
+    "ch2": {
+      "id": "ch2",
+      "title": "Trials and Tribulations",
+      "summary": "The hero faces challenges.",
+      "start_time": "2026-07-07T12:58:15.154Z",
+      "completed": false,
+      "beats": [
+        "ch2_inciting_incident",
+        "ch2_revelation",
+        "ch2_setback",
+        "ch2_victory",
+        "ch2_cliffhanger"
+      ]
+    },
+    "ch3": {
+      "id": "ch3",
+      "title": "Climax",
+      "summary": "Final confrontation.",
+      "start_time": "2026-07-11T12:58:15.154Z",
+      "completed": false,
+      "beats": [
+        "ch3_inciting_incident",
+        "ch3_revelation",
+        "ch3_setback",
+        "ch3_victory",
+        "ch3_cliffhanger"
+      ]
+    }
+  },
+  "beats": {
+    "ch1_inciting_incident": {
+      "id": "ch1_inciting_incident",
+      "chapter_id": "ch1",
+      "type": "inciting_incident",
+      "description": "A surprising event pushes the story forward.",
+      "scheduled_time": "2026-07-05T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch1_revelation": {
+      "id": "ch1_revelation",
+      "chapter_id": "ch1",
+      "type": "revelation",
+      "description": "New information changes understanding.",
+      "scheduled_time": "2026-07-05T12:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch1_setback": {
+      "id": "ch1_setback",
+      "chapter_id": "ch1",
+      "type": "setback",
+      "description": "The heroes suffer a defeat.",
+      "scheduled_time": "2026-07-06T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch1_victory": {
+      "id": "ch1_victory",
+      "chapter_id": "ch1",
+      "type": "victory",
+      "description": "A small triumph builds hope.",
+      "scheduled_time": "2026-07-06T12:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch1_cliffhanger": {
+      "id": "ch1_cliffhanger",
+      "chapter_id": "ch1",
+      "type": "cliffhanger",
+      "description": "The chapter ends with a tense moment.",
+      "scheduled_time": "2026-07-07T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch2_inciting_incident": {
+      "id": "ch2_inciting_incident",
+      "chapter_id": "ch2",
+      "type": "inciting_incident",
+      "description": "A surprising event pushes the story forward.",
+      "scheduled_time": "2026-07-08T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch2_revelation": {
+      "id": "ch2_revelation",
+      "chapter_id": "ch2",
+      "type": "revelation",
+      "description": "New information changes understanding.",
+      "scheduled_time": "2026-07-08T12:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch2_setback": {
+      "id": "ch2_setback",
+      "chapter_id": "ch2",
+      "type": "setback",
+      "description": "The heroes suffer a defeat.",
+      "scheduled_time": "2026-07-09T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch2_victory": {
+      "id": "ch2_victory",
+      "chapter_id": "ch2",
+      "type": "victory",
+      "description": "A small triumph builds hope.",
+      "scheduled_time": "2026-07-09T12:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch2_cliffhanger": {
+      "id": "ch2_cliffhanger",
+      "chapter_id": "ch2",
+      "type": "cliffhanger",
+      "description": "The chapter ends with a tense moment.",
+      "scheduled_time": "2026-07-10T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch3_inciting_incident": {
+      "id": "ch3_inciting_incident",
+      "chapter_id": "ch3",
+      "type": "inciting_incident",
+      "description": "A surprising event pushes the story forward.",
+      "scheduled_time": "2026-07-12T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch3_revelation": {
+      "id": "ch3_revelation",
+      "chapter_id": "ch3",
+      "type": "revelation",
+      "description": "New information changes understanding.",
+      "scheduled_time": "2026-07-12T12:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch3_setback": {
+      "id": "ch3_setback",
+      "chapter_id": "ch3",
+      "type": "setback",
+      "description": "The heroes suffer a defeat.",
+      "scheduled_time": "2026-07-13T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch3_victory": {
+      "id": "ch3_victory",
+      "chapter_id": "ch3",
+      "type": "victory",
+      "description": "A small triumph builds hope.",
+      "scheduled_time": "2026-07-13T12:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    },
+    "ch3_cliffhanger": {
+      "id": "ch3_cliffhanger",
+      "chapter_id": "ch3",
+      "type": "cliffhanger",
+      "description": "The chapter ends with a tense moment.",
+      "scheduled_time": "2026-07-14T00:58:15.154Z",
+      "triggered": false,
+      "involved_entities": []
+    }
+  },
+  "current_chapter_id": "ch1"
+}

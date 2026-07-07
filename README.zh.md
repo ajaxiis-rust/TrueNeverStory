@@ -1,4 +1,4 @@
-# TrueNeverStory v0.16.3
+# TrueNeverStory v0.20.1
 
 ### 玩着写你的书。
 
@@ -22,10 +22,18 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，
 | **任务系统** | 动态任务生成、目标、奖励、链条、时间限制 |
 | **物品与交易** | 稀有度、属性、装备、金币、NPC交易 |
 | **NPC经济** | 封建等级（10级）、税收、食物生产、家族系统、34个原型 |
+| **规则引擎** | 14个预定义社会/经济系统（封建制、民主制、无政府状态等）与协同矩阵 |
+| **多世界** | 带资源监控（内存、CPU、令牌）的隔离世界执行 |
+| **跨世界** | 通过门户和共享内存进行世界间事件通信 |
+| **插件系统** | 可扩展架构，包含插件管理器、生命周期钩子和API |
+| **功能标志** | A/B测试、渐进式发布、百分比定向 |
+| **API版本控制** | v1/v2端点，带弃用头 |
 | **实时流式传输** | WebSocket + SSE 实时叙事推送 |
 | **i18n (7种语言)** | EN, RU, DE, FR, ES, JA, ZH |
-| **密码认证** | HttpOnly cookie会话、CSRF保护 |
+| **密码认证** | HttpOnly cookie会话、CSRF保护、SQLite备份会话 |
 | **SQLite存储** | 实体、嵌入、记忆、提示词、翻译 |
+| **断路器** | LLM提供商自动故障转移与备用链 |
+| **结构化日志** | Trace ID、关联ID、多代理工作流调试指标 |
 
 ---
 
@@ -43,7 +51,7 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，
 
 ## 快速开始
 
-**无需安装 Bun、Node.js 或任何运行时。** 下载即用。
+**不需要Bun、Node.js或其他运行时。** 只需下载并运行。
 
 ### 1. 下载
 
@@ -72,19 +80,17 @@ tns-server.exe
 
 ### 3. 打开
 
-访问 **http://localhost:8000** — 密码：**`changeme`**
+**http://localhost:8000** — 密码: **`changeme``**
 
-首次登录后请在设置中更改密码。
-
-就这样。无需数据库设置、无需安装包、无需编辑配置文件。
+首次登录后请在设置中修改密码。
 
 ---
 
-## 配置 LLM
+## 配置LLM
 
-打开 **设置** 页面或编辑 `.env`：
+打开**设置**页面或编辑`.env`：
 
-### Ollama（本地，免费）
+### Ollama (本地，免费)
 
 ```bash
 ollama pull llama3
@@ -105,15 +111,7 @@ WORLD_LLM_API_KEY=sk-your-key-here
 WORLD_LLM_MODEL=gpt-4o-mini
 ```
 
-### LM Studio
-
-```
-WORLD_LLM_BASE_URL=http://localhost:1234/v1
-WORLD_LLM_API_KEY=lm-studio
-WORLD_LLM_MODEL=your-model
-```
-
-同样支持 vLLM、Anthropic、Google 和所有 OpenAI 兼容 API。
+也支持vLLM、Anthropic、Google和任何OpenAI兼容API。
 
 ---
 
@@ -122,20 +120,22 @@ WORLD_LLM_MODEL=your-model
 ```
 TrueNeverStory/
 ├── src/
-│   ├── config/           # Zod 验证的环境配置
-│   ├── lib/              # LLM 客户端、SQLite 存储、向量操作
+│   ├── config/           # Zod验证的环境配置
+│   ├── lib/              # LLM客户端、SQLite存储、向量运算、断路器、功能标志
 │   ├── memory/           # WorldMemory、认知管道
-│   ├── middleware/        # 认证、限流、安全头
+│   ├── middleware/        # 认证、限流器、安全头、日志器
 │   ├── models/           # Entity, chat, probability, romance, quest, item
-│   ├── routes/           # API 路由 (chat, entities, agents, settings)
-│   ├── services/         # 52个服务（角色扮演引擎、代理、经济系统）
+│   ├── plugins/          # 插件接口和管理器
+│   ├── routes/           # API路由 (chat, entities, agents, settings, v1, v2, cross-world, plugins)
+│   ├── rules/            # 规则引擎 (14条规则、协同矩阵、技术依赖)
+│   ├── services/         # 55+服务 (角色扮演引擎、代理、经济、世界隔离、跨世界总线)
 │   ├── intelligence/     # 图分析、重复检测
-│   ├── i18n/             # 语言包（7种语言）
-│   ├── store/            # O(1) 索引的 EntityStore
-│   └── utils/            # 日志、哈希、清理、模板
-├── mojo/kernels/         # C FFI 计算内核（Zig 编译）
-├── public/               # Web UI（终端风格界面）
-├── worlds/               # 世界数据（SQLite 数据库、实体、会话）
+│   ├── i18n/             # 语言包 (7种语言)
+│   ├── store/            # EntityStore (O(1) NameIndex)、WorldStore
+│   └── utils/            # 日志器、哈希、清理器、模板解析器
+├── mojo/kernels/         # C FFI内核 (通过Zig编译)
+├── public/               # Web界面 (终端风格)
+├── worlds/               # 世界数据 (SQLite数据库、实体、会话)
 ├── conf/                 # 配置
 └── tests/                # 测试套件
 ```
@@ -150,7 +150,7 @@ TrueNeverStory/
 |------|------|------|
 | GET | `/login` | 登录页面 |
 | POST | `/login` | 认证 |
-| POST | `/logout` | 清除会话 |
+| POST | `/logout` | 登出 |
 
 ### 聊天与角色扮演
 
@@ -158,27 +158,62 @@ TrueNeverStory/
 |------|------|------|
 | POST | `/api/chat/setup` | 初始化会话 |
 | POST | `/api/chat/message` | 发送消息 |
-| POST | `/api/chat/stream` | SSE 流式传输 |
-| GET | `/api/chat/session` | 当前会话状态 |
+| POST | `/api/chat/stream` | SSE流式传输 |
+| GET | `/api/chat/session` | 会话状态 |
 | GET | `/api/chat/history` | 对话历史 |
 
-### 实体与图谱
+### 实体与图
 
 | 方法 | 端点 | 描述 |
 |------|------|------|
 | GET | `/api/entity/:uid` | 实体详情 |
-| GET | `/api/neighbors/:uid` | 邻居节点 |
-| GET | `/api/search?q=` | 按名称或语义搜索 |
-| GET | `/api/graph/summary` | 图谱统计 |
+| GET | `/api/neighbors/:uid` | 邻居遍历 |
+| GET | `/api/search?q=` | 搜索 |
+| GET | `/api/graph/summary` | 图统计 |
 
-### 代理与 i18n
+### 代理与i18n
 
 | 方法 | 端点 | 描述 |
 |------|------|------|
-| GET | `/api/agents` | 代理配置列表 |
+| GET | `/api/agents` | 代理配置 |
 | PUT | `/api/agents/:id` | 更新代理 |
-| PUT | `/api/agents/:id/prompts/:lang` | 按语言设置提示词 |
-| GET | `/api/i18n/translations/:lang/:page` | 获取翻译 |
+| PUT | `/api/agents/:id/prompts/:lang` | 语言提示词 |
+| GET | `/api/i18n/translations/:lang/:page` | 翻译 |
+
+### 规则引擎
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| GET | `/api/rules` | 可用规则 |
+| GET | `/api/rules/:id` | 规则详情 |
+| POST | `/api/rules/validate` | 验证规则JSON |
+
+### 跨世界
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| GET | `/api/cross-world/status` | 跨世界状态 |
+| POST | `/api/cross-world/enable` | 启用 |
+| POST | `/api/cross-world/disable` | 禁用 |
+| GET | `/api/cross-world/portals` | 列出门户 |
+| POST | `/api/cross-world/portals` | 创建门户 |
+| DELETE | `/api/cross-world/portals/:id` | 删除门户 |
+| GET | `/api/cross-world/events` | 事件日志 |
+
+### 插件
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| GET | `/api/plugins` | 已注册插件 |
+| GET | `/api/plugins/:id` | 插件详情 |
+| GET | `/api/plugins/:id/capabilities` | 插件能力 |
+
+### 功能标志
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| GET | `/api/feature-flags` | 功能标志 |
+| PUT | `/api/feature-flags/:id` | 更新标志 |
 
 ### WebSocket
 
@@ -190,11 +225,13 @@ TrueNeverStory/
 
 ## 示例
 
+### API
+
 ```bash
 # 登录
 curl -c cookies.txt -X POST http://localhost:8000/login -d "password=changeme"
 
-# 设置会话
+# 初始化会话
 curl -b cookies.txt -X POST http://localhost:8000/api/chat/setup \
   -H "Content-Type: application/json" \
   -d '{"character": "Aragorn", "role": "protagonist"}'
@@ -202,14 +239,22 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/setup \
 # 发送消息
 curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
   -H "Content-Type: application/json" \
-  -d '{"content": "我拔出剑，面对巨龙"}'
+  -d '{"content": "我拔出剑面对巨龙"}'
+
+# 可用规则
+curl -b cookies.txt "http://localhost:8000/api/rules"
+
+# 创建跨世界门户
+curl -b cookies.txt -X POST http://localhost:8000/api/cross-world/portals \
+  -H "Content-Type: application/json" \
+  -d '{"world1": "world-a", "world2": "world-b"}'
 ```
 
 ---
 
-## 开发者指南
+## 开发者
 
-完整架构文档、DI容器参考和贡献指南：[DEV.README.zh.md](docs/DEV.README.zh.md)
+完整文档：[DEV.README.zh.md](docs/DEV.README.zh.md)
 
 ### 前提条件
 
@@ -228,48 +273,62 @@ bun run dev
 
 | 命令 | 描述 |
 |------|------|
-| `bun run dev` | 开发模式（热重载） |
+| `bun run dev` | 开发热重载 |
 | `bun run start` | 生产模式 |
 | `bun run lint` | 类型检查 |
 | `bun test` | 运行测试 |
-| `bun run build` | 构建包 |
+| `bun run build` | 构建 |
 
 ---
 
-## 编译二进制文件
+## 最近更改
 
-通过 Zig 进行跨平台编译：
+### v0.20.1 — 规则引擎二进制文件修复
 
-```bash
-cd mojo/kernels
-./build.sh native           # 当前平台
-./build.sh aarch64-linux    # ARM64 Linux
-./build.sh x86_64-windows   # Windows x64
-./build.sh list             # 所有目标平台
-```
+- 修复编译后的Bun二进制文件中`/api/rules`端点崩溃问题
+- 将`import.meta.dir`改为`process.cwd()`用于规则目录路径解析
+- 解决编译后二进制文件中的ENOENT错误（`/$bunfs/root/../rules/social`）
+- 影响文件: `src/routes/rules.ts` 和 `src/rules/rules-engine.ts`
 
-详见 [COMPILE.md](docs/COMPILE.md)。GitHub Actions 在推送标签时自动构建所有平台。
+### v0.20.0 — 架构改进
 
----
+5个阶段的完整架构重构：
 
-## 近期更新
+**阶段1-2:**
+- NarrativeService拆分 (Bootstrapper + Facade + Service)
+- 统一代理模型 (接口 + 基类)
+- Event Sourcing (领域事件 + 快照)
+- Circuit Breaker (LLM自动故障转移)
+- 代理注册表 (4种源类型)
+- 结构化日志 (Trace ID + 关联ID)
+
+**阶段3:**
+- 规则引擎 — 14个预定义系统
+- 协同矩阵、技术依赖、幸福度修饰符
+- 规则验证器、文化漂移建模
+- 功能标志 (A/B测试 + 渐进式发布)
+- API版本控制 (v1/v2)
+- WorldStore — SQLite迁移
+
+**阶段4:**
+- 多世界隔离 (资源监控)
+- 跨世界通信 (门户 + 事件)
+- 插件系统 (管理器 + 生命周期钩子)
+
+**阶段5:**
+- 文档更新
+
+→ [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [PLUGIN-GUIDE.md](docs/PLUGIN-GUIDE.md) | [MIGRATION.md](docs/MIGRATION.md)
 
 ### v0.15.0 — 安全加固
 
-- SQLite 会话存储（重启后保留）
-- WebSocket 令牌验证
+- SQLite会话
+- WebSocket令牌验证
 - 路径遍历保护
-- 登录表单 CSRF 保护
-- Secure Cookie 标志、强化 CSP
-- 错误消息清理
+- CSRF保护
+- Secure cookie、CSP强化
 
 → [security.md](security.md) | [SECURITY-log.md](SECURITY-log.md)
-
-### v0.14.1 — C FFI 内核与交叉编译
-
-- 5个计算内核从 Mojo 移植到纯 C
-- Zig 交叉编译支持 10 个平台
-- 后台处理暂停/恢复
 
 ---
 

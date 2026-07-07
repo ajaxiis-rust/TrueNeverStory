@@ -1,4 +1,4 @@
-# TrueNeverStory v0.16.3
+# TrueNeverStory v0.20.1
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
@@ -22,10 +22,18 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels für leistungskriti
 | **Quest-System** | Dynamische Quest-Generierung, Ziele, Belohnungen, Ketten, Zeitlimits |
 | **Inventar & Handel** | Gegenstände mit Seltenheit, Statistiken, Ausrüstung, Gold, NPC-Handel |
 | **NPC-Ökonomie** | Feudale Hierarchie (10 Ränge), Steuern, Nahrungsproduktion, Familiensystem, 34 Archetypen |
+| **Regel-Engine** | 14 vordefinierte soziale/ökonomische Systeme (Feudalismus, Demokratie, Anarchie usw.) mit Synergie-Matrix |
+| **Multi-Welten** | Isolierte Weltenausführung mit Ressourcen-Monitoring (Speicher, CPU, Token) |
+| **Cross-Welt** | Event-Kommunikation zwischen Welten mit Portalen und geteilter Erinnerung |
+| **Plugin-System** | Erweiterbare Architektur mit Plugin-Manager, Lifecycle-Hooks und API |
+| **Feature-Flags** | A/B-Testing, schrittweiser Rollout, Hash-basiertes Targeting |
+| **API-Versionierung** | v1/v2 Endpunkte mit Deprecation-Headern |
 | **Echtzeit-Streaming** | WebSocket + SSE für Live-Erzählung |
 | **i18n (7 Sprachen)** | EN, RU, DE, FR, ES, JA, ZH |
-| **Passwort-Auth** | Sitzungsbasiert mit HttpOnly Cookies, CSRF-Schutz |
+| **Passwort-Auth** | Sitzungsbasiert mit HttpOnly Cookies, CSRF-Schutz, SQLite-gestützte Sitzungen |
 | **SQLite-Speicher** | Entitäten, Embeddings, Erinnerungen, Prompts, Übersetzungen |
+| **Circuit Breaker** | Automatischer LLM-Provider-Failover mit Fallback-Kette |
+| **Strukturiertes Logging** | Trace-IDs, Correlation-IDs, Metriken für Multi-Agent-Workflows |
 
 ---
 
@@ -123,20 +131,22 @@ Funktioniert auch mit vLLM, Anthropic, Google und jeder OpenAI-kompatiblen API.
 TrueNeverStory/
 ├── src/
 │   ├── config/           # Zod-validierte Umgebungskonfiguration
-│   ├── lib/              # LLM-Client, SQLite Store, Vektoroperationen
+│   ├── lib/              # LLM-Client, SQLite Store, Vektoroperationen, Circuit Breaker, Feature-Flags
 │   ├── memory/           # WorldMemory, kognitiver Pipeline
-│   ├── middleware/        # Auth, Rate Limiter, Sicherheitsheader
+│   ├── middleware/        # Auth, Rate Limiter, Sicherheitsheader, Logger
 │   ├── models/           # Entity, chat, probability, romance, quest, item
-│   ├── routes/           # API-Routen (chat, entities, agents, settings)
-│   ├── services/         # 52 Dienste (Rollenspiel-Engine, Agenten, Ökonomie)
+│   ├── plugins/          # Plugin-Schnittstelle und Manager
+│   ├── routes/           # API-Routen (chat, entities, agents, settings, v1, v2, cross-world, plugins)
+│   ├── rules/            # Regel-Engine (14 Regeln, Synergie-Matrix, Technologie-Abhängigkeiten)
+│   ├── services/         # 55+ Dienste (Rollenspiel-Engine, Agenten, Ökonomie, Welt-Isolierung, Cross-Welt-Bus)
 │   ├── intelligence/     # Graph-Analyse, Duplikaterkennung
 │   ├── i18n/             # Sprachpakete (7 Sprachen)
-│   ├── store/            # EntityStore mit O(1) NameIndex
+│   ├── store/            # EntityStore mit O(1) NameIndex, WorldStore
 │   └── utils/            # Logger, Hash, Sanitizer, Template-Resolver
 ├── mojo/kernels/         # C FFI Compute-Kernels (compiliert via Zig)
 ├── public/               # Web-UI (Terminal-Stil)
 ├── worlds/               # Weltdaten (SQLite DB, Entitäten, Sitzungen)
-├── conf/                 # Konfiguration
+├── conf/                 # Konfiguration (Einstellungen, Agenten, Provider, Registry)
 └── tests/                # Test-Suite
 ```
 
@@ -180,6 +190,41 @@ TrueNeverStory/
 | PUT | `/api/agents/:id/prompts/:lang` | Prompts pro Sprache |
 | GET | `/api/i18n/translations/:lang/:page` | Übersetzungen |
 
+### Regel-Engine
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| GET | `/api/rules` | Verfügbare Regeln |
+| GET | `/api/rules/:id` | Regeldetails |
+| POST | `/api/rules/validate` | Regel-JSON validieren |
+
+### Cross-Welt
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| GET | `/api/cross-world/status` | Cross-Welt-Status |
+| POST | `/api/cross-world/enable` | Cross-Welt aktivieren |
+| POST | `/api/cross-world/disable` | Cross-Welt deaktivieren |
+| GET | `/api/cross-world/portals` | Portale auflisten |
+| POST | `/api/cross-world/portals` | Portal erstellen |
+| DELETE | `/api/cross-world/portals/:id` | Portal löschen |
+| GET | `/api/cross-world/events` | Event-Log |
+
+### Plugins
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| GET | `/api/plugins` | Registrierte Plugins |
+| GET | `/api/plugins/:id` | Plugin-Details |
+| GET | `/api/plugins/:id/capabilities` | Plugin-Fähigkeiten |
+
+### Feature-Flags
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| GET | `/api/feature-flags` | Feature-Flags |
+| PUT | `/api/feature-flags/:id` | Feature-Flag aktualisieren |
+
 ### WebSocket
 
 | Endpunkt | Beschreibung |
@@ -205,6 +250,14 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/setup \
 curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
   -H "Content-Type: application/json" \
   -d '{"content": "Ich ziehe mein Schwert und stelle dem Drachen entgegen"}'
+
+# Verfügbare Regeln
+curl -b cookies.txt "http://localhost:8000/api/rules"
+
+# Cross-Welt-Portal erstellen
+curl -b cookies.txt -X POST http://localhost:8000/api/cross-world/portals \
+  -H "Content-Type: application/json" \
+  -d '{"world1": "world-a", "world2": "world-b"}'
 ```
 
 ---
@@ -256,12 +309,49 @@ Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automa
 
 ## Letzte Änderungen
 
+### v0.20.1 — Regel-Engine Binary Fix
+
+- Behoben: `/api/rules` Absturz im kompilierten Bun-Binary
+- `import.meta.dir` durch `process.cwd()` für die Verzeichnisauflösung ersetzt
+- Behebt ENOENT-Fehler (`/$bunfs/root/../rules/social`) im kompilierten Binary
+- Betroffene Dateien: `src/routes/rules.ts` und `src/rules/rules-engine.ts`
+
+### v0.20.0 — Architekturverbesserungen
+
+Komplette architektonische Überarbeitung in 5 Etappen:
+
+**Etappe 1-2:**
+- NarrativeService Aufteilung (Bootstrapper + Facade + Service)
+- Einheitliches Agenten-Modell mit Schnittstelle und Basisklasse
+- Event Sourcing mit Domänen-Events und Snapshots
+- Circuit Breaker für LLM mit automatischem Failover
+- Agenten-Registry mit 4 Quelltypen (builtin, config, api, plugin)
+- Strukturiertes Logging mit Trace- und Correlation-IDs
+
+**Etappe 3:**
+- Regel-Engine — 14 vordefinierte Systeme (Feudalismus, Demokratie, Anarchie usw.)
+- Synergie-Matrix, Technologie-Abhängigkeiten, Glück-Modifikatoren
+- Regel-Validator und kulturelle Drift-Modellierung
+- Feature-Flags mit A/B-Testing und schrittweisem Rollout
+- API-Versionierung (v1/v2) mit Deprecation-Headern
+- WorldStore — SQLite-Migration für Weltdaten
+
+**Etappe 4:**
+- Multi-Welten-Isolierung mit Ressourcen-Monitoring
+- Cross-Welt-Kommunikation mit Portalen und Events
+- Plugin-System mit Manager und Lifecycle-Hooks
+
+**Etappe 5:**
+- Dokumentationsaktualisierungen (ARCHITECTURE, API, PLUGIN-GUIDE, MIGRATION)
+
+→ [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [PLUGIN-GUIDE.md](docs/PLUGIN-GUIDE.md) | [MIGRATION.md](docs/MIGRATION.md)
+
 ### v0.15.0 — Sicherheitsverbesserungen
 
 - SQLite-gestützte Sitzungen
 - WebSocket-Token-Validierung
 - Path-Traversal-Schutz
- CSRF-Schutz beim Login
+- CSRF-Schutz beim Login
 - Secure Cookie-Flag, hartes CSP
 - Fehlermeldungen sanitisiert
 

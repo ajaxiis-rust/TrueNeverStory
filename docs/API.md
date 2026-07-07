@@ -23,6 +23,8 @@ REST API for the TrueNeverStory world-building and roleplay platform. All endpoi
 - [Providers & Models](#providers--models)
 - [Settings](#settings)
 - [Launch](#launch)
+- [Cross-World](#cross-world)
+- [Plugins](#plugins)
 
 ---
 
@@ -440,4 +442,74 @@ When password auth is enabled, sessions use HttpOnly cookies. Include `credentia
 
 ---
 
-*Generated: 2026-06-27 | TrueNeverStory v0.12.0*
+## Cross-World
+
+### `GET /api/cross-world/status`
+Get cross-world communication status.
+
+**Response:** `{ enabled: boolean, portals: number, eventLog: number }`
+
+### `POST /api/cross-world/enable`
+Enable cross-world communication.
+
+**Response:** `{ enabled: true }`
+
+### `POST /api/cross-world/disable`
+Disable cross-world communication.
+
+**Response:** `{ enabled: false }`
+
+### `GET /api/cross-world/portals`
+List active portals between worlds.
+
+**Response:** Array of `{ id, world1, world2, createdAt, active }`
+
+### `POST /api/cross-world/portals`
+Create a portal between two worlds.
+
+**Request:** `{ world1: string, world2: string }`
+
+**Response:** `{ id, world1, world2, createdAt, active }`
+
+### `DELETE /api/cross-world/portals/:id`
+Destroy a portal.
+
+**Response:** `{ deleted: true }`
+
+### `GET /api/cross-world/events?limit=50`
+Get cross-world event log.
+
+**Response:** Array of `{ type, data, source, timestamp }`
+
+---
+
+## Plugins
+
+### `GET /api/plugins`
+List all registered plugins.
+
+**Response:** Array of `{ id, name, version, description, agents, routes, hooks }`
+
+### `GET /api/plugins/:id`
+Get plugin details.
+
+**Response:** Plugin object with full details.
+
+### `GET /api/plugins/:id/capabilities`
+Get plugin capabilities (counts of agents, routes, hooks).
+
+**Response:** `{ agents: number, routes: number, hooks: number }`
+
+### `GET /api/plugins/agents/all`
+Get all agents registered by plugins.
+
+**Response:** Array of `{ id, name, description, config }`
+
+### `GET /api/plugins/routes/all`
+Get all routes registered by plugins.
+
+**Response:** Array of `{ path, method, handler }`
+
+---
+
+*Generated: 2026-07-05 | TrueNeverStory v0.14.0*

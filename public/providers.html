@@ -146,6 +146,7 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
   <a href="/models" class="topbar__btn" data-i18n="models">MODELS</a>
   <a href="/worlds" class="topbar__btn">WORLDS</a>
   <a href="/agents" class="topbar__btn" data-i18n="agents">AGENTS</a>
+  <a href="/dashboard" class="topbar__btn">DASHBOARD</a>
   <a href="/settings" class="topbar__btn" data-i18n="settings">SETTINGS</a>
   <a href="/" class="topbar__btn" data-i18n="back">BACK</a>
 </div>
@@ -386,7 +387,12 @@ const LANG_EN = {
   save:"Save", delete:"Delete", setDefault:"Set Default", testConnection:"Test Connection",
   open:"open", agentCol:"Agent", providerCol:"Provider", modelCol:"Model",
   temperatureCol:"Temperature", maxTokensCol:"Max Tokens", statusCol:"Status",
-  syncFromAgents:"Sync from Agents",
+  syncFromAgents:"Sync from Agents", throttle:"Throttle",
+  rateLimitTitle:"Rate Limit Settings", rpmLimit:"RPM Limit",
+  rpmHint:"Max requests per minute to external LLM providers. Local llama.cpp ignores this.",
+  maxConcurrent:"Max Concurrent", concurrentHint:"How many LLM requests run simultaneously.",
+  queueMaxSize:"Queue Max Size", queueHint:"Max queued requests. Low-priority tasks are evicted when full.",
+  cancel:"Cancel",
 };
 const LANG_RU = {...LANG_EN,
   title:"Менеджер провайдеров", models:"МОДЕЛИ", settings:"НАСТРОЙКИ", back:"НАЗАД", agents:"АГЕНТЫ",
@@ -398,7 +404,12 @@ const LANG_RU = {...LANG_EN,
   save:"Сохранить", delete:"Удалить", setDefault:"По умолчанию", testConnection:"Проверить",
   open:"открыть", agentCol:"Агент", providerCol:"Провайдер", modelCol:"Модель",
   temperatureCol:"Температура", maxTokensCol:"Макс. токенов", statusCol:"Статус",
-  syncFromAgents:"Синхронизировать из агентов",
+  syncFromAgents:"Синхронизировать из агентов", throttle:"Ограничения",
+  rateLimitTitle:"Настройки ограничений", rpmLimit:"Лимит RPM",
+  rpmHint:"Макс. запросов в минуту к внешним LLM провайдерам. Для локального llama.cpp не действует.",
+  maxConcurrent:"Макс. параллельных", concurrentHint:"Сколько LLM-запросов выполняется одновременно.",
+  queueMaxSize:"Макс. в очереди", queueHint:"Макс. запросов в очереди. Задачи с низким приоритетом отбрасываются.",
+  cancel:"Отмена",
 };
 const LANGS = { en: LANG_EN, ru: LANG_RU, de: LANG_EN, fr: LANG_EN, es: LANG_EN, ja: LANG_EN, zh: LANG_EN };
 let L = LANG_EN;
@@ -588,6 +599,7 @@ function renderProviders() {
         </div>
         <div class="provider-card__actions">
           <button class="btn btn--sm" onclick="viewProviderKeys('${esc(p.id)}')">Keys</button>
+          <button class="btn btn--sm" onclick="openRateLimitModal()" title="Rate Limit Settings">${L.throttle}</button>
           ${!isDefault ? `<button class="btn btn--sm btn--success" onclick="setDefault('${esc(p.id)}')">Set Default</button>` : ''}
           <button class="btn btn--sm btn--danger" onclick="removeProvider('${esc(p.id)}')">Remove</button>
         </div>
@@ -975,9 +987,83 @@ async function rotateKey(providerId) {
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+// ── Rate Limit Modal ──
+let currentRateLimit = { rpm: 45, maxConcurrent: 3, maxQueueSize: 50 };
+
+async function loadRateLimit() {
+  try {
+    const res = await fetch(API + '/providers/rate-limit', { credentials: 'include' });
+    if (res.ok) currentRateLimit = await res.json();
+  } catch {}
+}
+
+function openRateLimitModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal__box">
+      <div class="modal__head">
+        <span class="modal__title">${L.rateLimitTitle}</span>
+        <button class="modal__close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="modal__row">
+          <span class="modal__label">${L.rpmLimit}</span>
+          <input class="form__input modal__input" id="rlRpm" type="number" min="1" max="500" value="${esc(String(currentRateLimit.rpm))}">
+        </div>
+        <div class="modal__hint">${L.rpmHint}</div>
+
+        <div class="modal__row">
+          <span class="modal__label">${L.maxConcurrent}</span>
+          <input class="form__input modal__input" id="rlConcurrent" type="number" min="1" max="16" value="${esc(String(currentRateLimit.maxConcurrent))}">
+        </div>
+        <div class="modal__hint">${L.concurrentHint}</div>
+
+        <div class="modal__row">
+          <span class="modal__label">${L.queueMaxSize}</span>
+          <input class="form__input modal__input" id="rlQueueSize" type="number" min="5" max="200" value="${esc(String(currentRateLimit.maxQueueSize))}">
+        </div>
+        <div class="modal__hint">${L.queueHint}</div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn" onclick="this.closest('.modal').remove()">${L.cancel}</button>
+        <button class="btn btn--primary" onclick="saveRateLimit()">${L.save}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelector('.modal__close').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+}
+
+async function saveRateLimit() {
+  const rpm = parseInt(document.getElementById('rlRpm').value) || 45;
+  const maxConcurrent = parseInt(document.getElementById('rlConcurrent').value) || 3;
+  const maxQueueSize = parseInt(document.getElementById('rlQueueSize').value) || 50;
+
+  try {
+    const res = await fetch(API + '/providers/rate-limit', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ rpm, maxConcurrent, maxQueueSize }),
+    });
+    if (!res.ok) throw new Error('Failed');
+    currentRateLimit = { rpm, maxConcurrent, maxQueueSize };
+    document.querySelector('.modal__close')?.click();
+    toast('Rate limit saved', true);
+  } catch (e) {
+    toast('Failed: ' + e.message, false);
+  }
+}
+
 // ── Init ──
-loadLang();
-loadProviders().then(() => loadAssignments());
+(async () => {
+  await loadLang();
+  await loadProviders();
+  await loadAssignments();
+  loadRateLimit();
+})();
 setInterval(async () => { await loadProviders(); await loadAssignments(); }, 30000);
 </script>
 </body>

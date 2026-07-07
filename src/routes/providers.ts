@@ -206,4 +206,45 @@ providers.delete("/providers/:id/keys/:keyId", async (c) => {
   return c.json({ status: "removed" });
 });
 
+// ── Rate Limit Settings ──
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+function getRateLimitPath(): string {
+  const confPath = join(process.cwd(), "conf", "providers.json");
+  return confPath;
+}
+
+function loadRateLimitFromProviders(): Record<string, unknown> {
+  try {
+    const data = JSON.parse(readFileSync(getRateLimitPath(), "utf-8"));
+    return data.rateLimit ?? { rpm: 45, maxConcurrent: 3, maxQueueSize: 50 };
+  } catch { return { rpm: 45, maxConcurrent: 3, maxQueueSize: 50 }; }
+}
+
+function saveRateLimitToProviders(rateLimit: Record<string, unknown>): void {
+  const path = getRateLimitPath();
+  let data: Record<string, unknown> = {};
+  try { data = JSON.parse(readFileSync(path, "utf-8")); } catch {}
+  data.rateLimit = rateLimit;
+  writeFileSync(path, JSON.stringify(data, null, 2));
+}
+
+providers.get("/providers/rate-limit", async (c) => {
+  return c.json(loadRateLimitFromProviders());
+});
+
+providers.put("/providers/rate-limit", async (c) => {
+  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const current = loadRateLimitFromProviders();
+  const merged = { ...current, ...body };
+
+  if (typeof merged.rpm === "number") merged.rpm = Math.max(1, Math.min(500, merged.rpm));
+  if (typeof merged.maxConcurrent === "number") merged.maxConcurrent = Math.max(1, Math.min(16, merged.maxConcurrent));
+  if (typeof merged.maxQueueSize === "number") merged.maxQueueSize = Math.max(5, Math.min(200, merged.maxQueueSize));
+
+  saveRateLimitToProviders(merged);
+  return c.json({ status: "saved", rateLimit: merged });
+});
+
 export { providers as providersRouter };

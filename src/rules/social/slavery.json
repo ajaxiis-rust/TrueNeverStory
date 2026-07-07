@@ -1,0 +1,35 @@
+{
+  "id": "slavery",
+  "name": "Рабовладение",
+  "description": "Собственность на людей, работорговля, принудительный труд",
+  "social": {
+    "hierarchy": ["master", "overseer", "freed", "slave"],
+    "mobility": "none_for_slaves",
+    "education": "master_only",
+    "military_service": "slaves_as_soldiers",
+    "marriage": "master_approves",
+    "law": "master_decides"
+  },
+  "economy": {
+    "currency": "gold",
+    "tax_rate": 0.10,
+    "tax_collector": "master",
+    "trade": "slave_trade_allowed",
+    "property": "master_owns_slaves",
+    "labor": "forced"
+  },
+  "politics": {
+    "succession": "hereditary",
+    "council": "master_council",
+    "justice": "master_judges_slave",
+    "rebellion": "punished_by_death"
+  },
+  "enforced_rules": [
+    {"rule": "slave_must_obey_master", "penalty": "punishment"},
+    {"rule": "slave_cannot_own_property", "penalty": "confiscation"},
+    {"rule": "slave_cannot_refuse_work", "penalty": "punishment"},
+    {"rule": "freed_slave_status_uncertain", "penalty": "re-enslavement"},
+    {"rule": "master_can_free_slave", "penalty": "none"},
+    {"rule": "slave_trade_requires_license", "penalty": "fine"}
+  ]
+}

@@ -1,13 +1,20 @@
 /**
  * Global LLM Queue for prioritized request handling.
- * Supports agent-specific LLM clients with provider routing.
+ * Rate limiting, concurrency control, queue cap with priority eviction.
  */
 
 import { LLMClient, type LLMClientOptions } from "./llm-client";
+import { RateLimiter, type RateLimiterConfig } from "./rate-limiter";
 import { TaskPriority, DirectorTask } from "../models/director";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("llm-queue");
+
+export interface LLMQueueConfig {
+  maxConcurrent?: number;
+  maxQueueSize?: number;
+  rateLimit?: RateLimiterConfig;
+}
 
 interface QueuedTask {
   task: DirectorTask;
@@ -20,14 +27,41 @@ export class LLMQueue {
   private _llm: LLMClient;
   private _agentClients: Map<string, LLMClient> = new Map();
   private _maxConcurrent: number;
+  private _maxQueueSize: number;
   private _running = 0;
   private _queue: QueuedTask[] = [];
   private _processing = false;
   private _paused = false;
+  private _rateLimiter: RateLimiter | null = null;
+  private _stats = { totalProcessed: 0, totalDropped: 0, totalErrors: 0 };
 
-  constructor(llm: LLMClient, maxConcurrent = 3) {
+  constructor(llm: LLMClient, config?: LLMQueueConfig) {
     this._llm = llm;
-    this._maxConcurrent = maxConcurrent;
+    this._maxConcurrent = config?.maxConcurrent ?? 3;
+    this._maxQueueSize = config?.maxQueueSize ?? 50;
+
+    if (config?.rateLimit) {
+      this._rateLimiter = new RateLimiter(config.rateLimit);
+      this._rateLimiter.startAutoRefill();
+    }
+  }
+
+  get rateLimiter(): RateLimiter | null { return this._rateLimiter; }
+  get queueLength(): number { return this._queue.length; }
+  get running(): number { return this._running; }
+  get stats() { return { ...this._stats, queueLength: this._queue.length, running: this._running }; }
+
+  setRateLimit(config: RateLimiterConfig): void {
+    if (this._rateLimiter) {
+      this._rateLimiter.rpm = config.rpm;
+    } else {
+      this._rateLimiter = new RateLimiter(config);
+      this._rateLimiter.startAutoRefill();
+    }
+  }
+
+  setMaxQueueSize(size: number): void {
+    this._maxQueueSize = size;
   }
 
   getAgentClient(agentId: string, options?: LLMClientOptions): LLMClient {
@@ -44,7 +78,7 @@ export class LLMQueue {
 
   async stop(): Promise<void> {
     this._processing = false;
-    // Wait max 3 seconds for running tasks
+    if (this._rateLimiter) this._rateLimiter.stopAutoRefill();
     const deadline = Date.now() + 3000;
     while (this._running > 0 && Date.now() < deadline) {
       await Bun.sleep(50);
@@ -112,6 +146,15 @@ export class LLMQueue {
   }
 
   private _submit(task: DirectorTask, agentId?: string): Promise<string | Record<string, unknown>> {
+    if (this._queue.length >= this._maxQueueSize) {
+      if (task.priority <= TaskPriority.LOW) {
+        this._stats.totalDropped++;
+        log.warn({ taskId: task.id, priority: task.priority }, "Queue full, dropping low-priority task");
+        return Promise.reject(new Error("Queue full — low priority task dropped"));
+      }
+      this._evictLowest();
+    }
+
     return new Promise((resolve, reject) => {
       this._queue.push({ task, agentId, resolve, reject });
       this._queue.sort((a, b) => b.task.priority - a.task.priority);
@@ -119,11 +162,28 @@ export class LLMQueue {
     });
   }
 
+  private _evictLowest(): void {
+    for (let i = this._queue.length - 1; i >= 0; i--) {
+      const item = this._queue[i]!;
+      if (item.task.priority <= TaskPriority.LOW) {
+        this._queue.splice(i, 1);
+        item.reject(new Error("Evicted by higher priority task"));
+        this._stats.totalDropped++;
+        log.debug({ taskId: item.task.id }, "Evicted low-priority task from queue");
+        return;
+      }
+    }
+  }
+
   private async _processNext(): Promise<void> {
     if (this._paused || this._running >= this._maxConcurrent || this._queue.length === 0) return;
 
     const item = this._queue.shift();
     if (!item) return;
+
+    if (this._rateLimiter) {
+      await this._rateLimiter.acquire();
+    }
 
     this._running++;
     try {
@@ -142,8 +202,11 @@ export class LLMQueue {
             { temperature: task.data.temperature as number, timeout: task.data.timeout as number | undefined },
           );
         }
+        this._rateLimiter?.recordSuccess();
+        this._stats.totalProcessed++;
         resolve(result);
       } catch (err) {
+        this._stats.totalErrors++;
         reject(err);
       }
     } finally {
@@ -152,5 +215,3 @@ export class LLMQueue {
     }
   }
 }
-
-

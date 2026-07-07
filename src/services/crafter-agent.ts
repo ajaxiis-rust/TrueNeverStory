@@ -9,6 +9,7 @@ import { join } from "node:path";
 import type { UnifiedEntityStore } from "../store/entity-store";
 import { EntityNode } from "../models/entity";
 import type { LLMQueue } from "../lib/llm-queue";
+import { TaskPriority } from "../models/director";
 import { PromptBuilder } from "./prompt-builder";
 import { ItemEvaluationService } from "./item-evaluation";
 import type { ItemBoost } from "../models/item";
@@ -210,7 +211,7 @@ export class CrafterAgent {
   /** Use LLM to suggest creative recipe from two items */
   async suggestRecipe(item1: string, item2: string, worldContext: string): Promise<string> {
     const prompt = PromptBuilder.buildCrafterPrompt(item1, item2, worldContext);
-    const response = await this._llmQueue.generateText(prompt, 0, 0.9, "scene");
+    const response = await this._llmQueue.generateText(prompt, TaskPriority.LOW, 0.9, "crafter");
     return response.trim();
   }
 

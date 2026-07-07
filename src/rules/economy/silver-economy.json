@@ -1,0 +1,33 @@
+{
+  "id": "silver-economy",
+  "name": "Серебряная экономика",
+  "description": "Экономика на основе серебра, двухметаллическая система",
+  "social": {
+    "hierarchy": ["silver_lord", "merchant", "artisan", "laborer"],
+    "mobility": "through_wealth",
+    "education": "merchant_only",
+    "military_service": "hired_mercenaries",
+    "marriage": "strategic_alliances",
+    "law": "merchant_council"
+  },
+  "economy": {
+    "currency": "silver",
+    "tax_rate": 0.15,
+    "tax_collector": "silver_lord",
+    "trade": "free_market",
+    "property": "private_ownership",
+    "labor": "wage_labor",
+    "inflation": 0.02
+  },
+  "politics": {
+    "succession": "wealth_based",
+    "council": "silver_council",
+    "justice": "merchant_court",
+    "rebellion": "merchant_uprising"
+  },
+  "enforced_rules": [
+    {"rule": "silver_payment_mandatory", "penalty": "fine"},
+    {"rule": "trade_recording_required", "penalty": "confiscation"},
+    {"rule": "no_silver_hoarding", "penalty": "fine"}
+  ]
+}

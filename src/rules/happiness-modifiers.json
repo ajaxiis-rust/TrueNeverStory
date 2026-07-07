@@ -1,0 +1,140 @@
+{
+  "base_happiness": 50,
+  "modifiers": {
+    "feudalism": {
+      "nobles": 70,
+      "peasants": 30,
+      "modifiers": {
+        "tax_rate_high": -20,
+        "tax_rate_low": 10,
+        "military_victory": 15,
+        "military_defeat": -25,
+        "harvest_good": 20,
+        "harvest_bad": -30
+      }
+    },
+    "democracy": {
+      "citizens": 50,
+      "modifiers": {
+        "freedom_of_speech": 10,
+        "election_won": 15,
+        "election_lost": -5,
+        "economic_prosperity": 20,
+        "economic_recession": -20,
+        "public_services": 10
+      }
+    },
+    "anarchy": {
+      "default": 40,
+      "modifiers": {
+        "personal_freedom": 20,
+        "violence_nearby": -30,
+        "community_support": 15,
+        "isolation": -10
+      }
+    },
+    "theocracy": {
+      "faithful": 60,
+      "heathen": 20,
+      "modifiers": {
+        "religious_festival": 15,
+        "heresy_punished": 10,
+        "religious_persecution": -20,
+        "tithe_burden": -10
+      }
+    },
+    "communism": {
+      "party_member": 55,
+      "citizen": 45,
+      "modifiers": {
+        "equality_achieved": 15,
+        "resource_shortage": -25,
+        "propaganda_success": 10,
+        "repression": -20
+      }
+    },
+    "tribalism": {
+      "default": 50,
+      "modifiers": {
+        "successful_hunt": 20,
+        "famine": -30,
+        "tribal_victory": 15,
+        "tribal_defeat": -20,
+        "elder_approval": 10
+      }
+    },
+    "capitalism": {
+      "bourgeoisie": 70,
+      "working_class": 35,
+      "modifiers": {
+        "economic_boom": 20,
+        "economic_bust": -25,
+        "social_mobility": 10,
+        "inequality_high": -15
+      }
+    },
+    "socialism": {
+      "party_official": 60,
+      "citizen": 45,
+      "modifiers": {
+        "welfare_provided": 15,
+        "shortage": -20,
+        "propaganda_success": 10,
+        "repression": -25
+      }
+    },
+    "mercantilism": {
+      "merchant_prince": 75,
+      "merchant": 55,
+      "artisan": 40,
+      "laborer": 30,
+      "modifiers": {
+        "trade_profit": 15,
+        "trade_embargo": -20,
+        "gold_accumulated": 10,
+        "inflation": -15
+      }
+    },
+    "slavery": {
+      "master": 80,
+      "slave": 10,
+      "modifiers": {
+        "slave_revolt": -40,
+        "successful_trade": 15,
+        "abolition_movement": -10
+      }
+    }
+  },
+  "happiness_effects": {
+    "above_80": {
+      "productivity": 1.2,
+      "rebellion_chance": 0.01,
+      "birth_rate": 1.1,
+      "description": "Prosperous society"
+    },
+    "above_60": {
+      "productivity": 1.0,
+      "rebellion_chance": 0.05,
+      "birth_rate": 1.0,
+      "description": "Stable society"
+    },
+    "above_40": {
+      "productivity": 0.9,
+      "rebellion_chance": 0.15,
+      "birth_rate": 0.95,
+      "description": "Content society"
+    },
+    "above_20": {
+      "productivity": 0.7,
+      "rebellion_chance": 0.30,
+      "birth_rate": 0.85,
+      "description": "Unhappy society"
+    },
+    "below_20": {
+      "productivity": 0.5,
+      "rebellion_chance": 0.60,
+      "birth_rate": 0.70,
+      "description": "Desperate society"
+    }
+  }
+}

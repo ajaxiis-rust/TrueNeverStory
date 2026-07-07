@@ -8,6 +8,7 @@ import { readJsonFileSync, atomicWriteJson } from "../lib/atomic-io";
 import { getConfig } from "../config/env";
 import { getLogger } from "../utils/logger";
 import { getSettings, updateSettings } from "./settings";
+import { RulesEngine } from "../rules/rules-engine";
 
 const log = getLogger("world-manager");
 
@@ -27,10 +28,13 @@ export interface WorldCreateParams {
   name: string;
   title: string;
   description: string;
-  genre: string;
+  genre?: string;
+  genres?: string[];
   language: string;
   worldRules: string[];
   magicSystem: string;
+  primaryRule?: string;
+  ruleModifiers?: string[];
 }
 
 function slugify(name: string): string {
@@ -143,7 +147,8 @@ export async function createWorld(params: WorldCreateParams): Promise<WorldSumma
     world_name: params.title,
     title: params.title,
     description: params.description,
-    genre: params.genre,
+    genre: params.genres?.join(", ") ?? params.genre ?? "fantasy",
+    genres: params.genres ?? [params.genre ?? "fantasy"],
     language: params.language,
     world_rules: params.worldRules.map((r) => ({
       name: r.split(":")[0]?.trim() ?? r,
@@ -163,6 +168,28 @@ export async function createWorld(params: WorldCreateParams): Promise<WorldSumma
     items: [],
     historical_events: [],
   };
+
+  if (params.primaryRule) {
+    try {
+      const engine = new RulesEngine({
+        primary: params.primaryRule,
+        modifiers: params.ruleModifiers,
+      });
+      const merged = engine.getRules();
+      frame.social_system = {
+        primary: params.primaryRule,
+        modifiers: params.ruleModifiers ?? [],
+        hierarchy: merged.social.hierarchy,
+        mobility: merged.social.mobility,
+        education: merged.social.education,
+        economy: merged.economy,
+        politics: merged.politics,
+        enforced_rules: merged.enforced_rules,
+      };
+    } catch (err) {
+      log.warn({ err, rule: params.primaryRule }, "Failed to load social system, skipping");
+    }
+  }
 
   await atomicWriteJson(join(path, "world_frame.json"), frame);
 

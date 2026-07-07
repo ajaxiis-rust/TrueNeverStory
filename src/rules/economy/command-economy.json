@@ -1,0 +1,18 @@
+{
+  "id": "command-economy",
+  "name": "Плановая экономика",
+  "description": "Государство контролирует производство и распределение",
+  "economy": {
+    "currency": "coin",
+    "tax_rate": 0.50,
+    "trade": "state_only",
+    "property": "state_ownership",
+    "labor": "assigned_by_state",
+    "inflation": 0.05
+  },
+  "enforced_rules": [
+    {"rule": "state_controls_production", "penalty": "reassignment"},
+    {"rule": "rationing_may_apply", "penalty": "confiscation"},
+    {"rule": "private_trade_prohibited", "penalty": "imprisonment"}
+  ]
+}

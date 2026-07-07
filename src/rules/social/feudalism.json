@@ -1,0 +1,32 @@
+{
+  "id": "feudalism",
+  "name": "Феодальный строй",
+  "description": "Иерархическая система с королём, лордами и крестьянами",
+  "social": {
+    "hierarchy": ["king", "duke", "lord", "knight", "peasant"],
+    "mobility": "minimal",
+    "education": "noble_only",
+    "military_service": "mandatory_for_nobles",
+    "marriage": "arranged_common",
+    "law": "lord_decides"
+  },
+  "economy": {
+    "currency": "gold",
+    "tax_rate": 0.25,
+    "tax_collector": "lord",
+    "trade": "controlled",
+    "property": "noble_ownership",
+    "labor": "serfdom"
+  },
+  "politics": {
+    "succession": "hereditary",
+    "council": "noble_advisors",
+    "justice": "lord_trial",
+    "rebellion": "possible_with_consequences"
+  },
+  "enforced_rules": [
+    {"rule": "peasant_cannot_refuse_lord", "penalty": "imprisonment"},
+    {"rule": "noble_must_provide_military", "penalty": "loss_of_land"},
+    {"rule": "tax_payment_mandatory", "penalty": "confiscation"}
+  ]
+}

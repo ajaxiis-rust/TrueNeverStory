@@ -1,0 +1,34 @@
+{
+  "id": "theocracy",
+  "name": "Теократия",
+  "description": "Религиозная власть, закон = религиозные тексты",
+  "social": {
+    "hierarchy": ["high_priest", "priest", "acolyte", "faithful", "heathen"],
+    "mobility": "religious_dedication",
+    "education": "religious_only",
+    "military_service": "holy_warriors",
+    "marriage": "church_approved",
+    "law": "religious_law"
+  },
+  "economy": {
+    "currency": "gold",
+    "tax_rate": 0.30,
+    "tax_collector": "church",
+    "trade": "temple_controlled",
+    "property": "church_ownership",
+    "labor": "tithe_based"
+  },
+  "politics": {
+    "succession": "divine_selection",
+    "council": "council_of_priests",
+    "justice": "religious_trial",
+    "rebellion": "heresy"
+  },
+  "enforced_rules": [
+    {"rule": "tithe_payment_mandatory", "penalty": "excommunication"},
+    {"rule": "obey_priesthood", "penalty": "punishment"},
+    {"rule": "no_heresy", "penalty": "execution"},
+    {"rule": "holy_days_observed", "penalty": "fine"},
+    {"rule": "church_property_sacred", "penalty": "excommunication"}
+  ]
+}

@@ -20,9 +20,29 @@ import { agentsRouter } from "./agents";
 import { worldsRouter } from "./worlds";
 import { i18nRouter } from "./i18n";
 import { systemRouter } from "./system";
+import { monitoringRouter } from "./monitoring";
+import { rulesRouter } from "./rules";
+import { featureFlagsRouter } from "./feature-flags";
+import { worldStoreRouter } from "./world-store";
+import { v1Router } from "./v1";
+import { v2Router } from "./v2";
+import crossWorldRoutes from "./cross-world";
+import pluginRoutes from "./plugins";
 
 export function createRoutes(): Hono {
   const routes = new Hono();
+
+  // API Versioning
+  routes.route("/api/v1", v1Router);
+  routes.route("/api/v2", v2Router);
+
+  // Legacy routes (deprecated, use /api/v2)
+  routes.use("/api/*", async (c, next) => {
+    c.header("X-API-Version", "legacy");
+    c.header("Deprecation", "true");
+    c.header("Sunset", "2026-12-31");
+    await next();
+  });
 
   // Chat (includes /chat/stream SSE)
   routes.route("/chat", chatRouter);
@@ -77,6 +97,24 @@ export function createRoutes(): Hono {
 
   // System (pause/resume)
   routes.route("/", systemRouter);
+
+  // Monitoring dashboard
+  routes.route("/", monitoringRouter);
+
+  // Rules Engine (social/economic rules)
+  routes.route("/", rulesRouter);
+
+  // Feature Flags (A/B testing, gradual rollout)
+  routes.route("/", featureFlagsRouter);
+
+  // World Store (JSON → SQLite migration)
+  routes.route("/", worldStoreRouter);
+
+  // Cross-World Communication
+  routes.route("/api/cross-world", crossWorldRoutes);
+
+  // Plugin System
+  routes.route("/api/plugins", pluginRoutes);
 
   return routes;
 }

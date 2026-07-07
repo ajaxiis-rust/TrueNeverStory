@@ -70,6 +70,11 @@ export interface AppSettings {
 
   // MAX Serve
   maxServeUrl: string;
+
+  // Cross-World
+  crossWorldEnabled: boolean;
+  crossWorldAllowPortals: boolean;
+  crossWorldIsolationLevel: "full" | "portals_only" | "read_only" | "disabled";
 }
 
 const SETTINGS_FILE = "settings.json";
@@ -123,6 +128,9 @@ function defaults(): AppSettings {
     autoHeal: cfg.WORLD_AUTO_HEAL,
     activeWorld: "default",
     maxServeUrl: cfg.MAX_SERVE_URL,
+    crossWorldEnabled: false,
+    crossWorldAllowPortals: true,
+    crossWorldIsolationLevel: "full",
   };
 }
 

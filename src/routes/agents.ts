@@ -14,6 +14,7 @@ import {
   type AgentConfig,
 } from "../services/agent-config";
 import { getProviderManager } from "../lib/providers";
+import { getAgentRegistry } from "../services/agent-registry";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("agents-route");
@@ -172,6 +173,78 @@ agents.post("/agents/:id/reset", async (c) => {
   } catch (err) {
     return c.json({ error: err instanceof Error ? err.message : String(err) }, 404);
   }
+});
+
+/**
+ * GET /api/agents/registry — List all registered agents.
+ */
+agents.get("/agents/registry", async (c) => {
+  const registry = await getAgentRegistry();
+  return c.json({ agents: registry.list(), stats: registry.getStats() });
+});
+
+/**
+ * GET /api/agents/registry/stats — Get registry statistics.
+ */
+agents.get("/agents/registry/stats", async (c) => {
+  const registry = await getAgentRegistry();
+  return c.json(registry.getStats());
+});
+
+/**
+ * GET /api/agents/registry/:id — Get single registered agent.
+ */
+agents.get("/agents/registry/:id", async (c) => {
+  const registry = await getAgentRegistry();
+  const agent = registry.get(c.req.param("id"));
+  if (!agent) return c.json({ error: "Agent not found" }, 404);
+  return c.json({ agent });
+});
+
+/**
+ * PUT /api/agents/registry/:id — Update registered agent.
+ */
+agents.put("/agents/registry/:id", async (c) => {
+  const ip = c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown";
+  if (!checkWriteLimit(ip)) {
+    return c.json({ error: "Rate limit exceeded" }, 429);
+  }
+
+  const body = await c.req.json().catch(() => ({})) as { name?: string; description?: string; priority?: number; enabled?: boolean };
+  const registry = await getAgentRegistry();
+  const updated = registry.update(c.req.param("id"), body);
+  if (!updated) return c.json({ error: "Agent not found" }, 404);
+  return c.json({ status: "updated", agent: registry.get(c.req.param("id")) });
+});
+
+/**
+ * POST /api/agents/registry/:id/enable — Enable an agent.
+ */
+agents.post("/agents/registry/:id/enable", async (c) => {
+  const registry = await getAgentRegistry();
+  const enabled = registry.enable(c.req.param("id"));
+  if (!enabled) return c.json({ error: "Agent not found" }, 404);
+  return c.json({ status: "enabled" });
+});
+
+/**
+ * POST /api/agents/registry/:id/disable — Disable an agent.
+ */
+agents.post("/agents/registry/:id/disable", async (c) => {
+  const registry = await getAgentRegistry();
+  const disabled = registry.disable(c.req.param("id"));
+  if (!disabled) return c.json({ error: "Agent not found" }, 404);
+  return c.json({ status: "disabled" });
+});
+
+/**
+ * DELETE /api/agents/registry/:id — Unregister an agent.
+ */
+agents.delete("/agents/registry/:id", async (c) => {
+  const registry = await getAgentRegistry();
+  const removed = registry.unregister(c.req.param("id"));
+  if (!removed) return c.json({ error: "Agent not found" }, 404);
+  return c.json({ status: "removed" });
 });
 
 export { agents as agentsRouter };

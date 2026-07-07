@@ -1,0 +1,34 @@
+{
+  "id": "communism",
+  "name": "Коммунизм",
+  "description": "Общественная собственность, равенство, отсутствие классов",
+  "social": {
+    "hierarchy": ["party_secretary", "cadre", "citizen"],
+    "mobility": "party_loyalty",
+    "education": "universal",
+    "military_service": "mandatory",
+    "marriage": "free_choice",
+    "law": "party_decides"
+  },
+  "economy": {
+    "currency": "none",
+    "tax_rate": 1.0,
+    "tax_collector": "collective",
+    "trade": "none",
+    "property": "collective_ownership",
+    "labor": "assigned_by_need"
+  },
+  "politics": {
+    "succession": "party_election",
+    "council": "workers_council",
+    "justice": "people_tribunal",
+    "rebellion": "counter_revolution"
+  },
+  "enforced_rules": [
+    {"rule": "no_private_property", "penalty": "confiscation"},
+    {"rule": "contribute_to_collective", "penalty": "reassignment"},
+    {"rule": "share_equally", "penalty": "punishment"},
+    {"rule": "party_loyalty_required", "penalty": "re_education"},
+    {"rule": "no_exploitation", "penalty": "imprisonment"}
+  ]
+}
