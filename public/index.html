@@ -472,7 +472,7 @@ function applyLang(lang){document.querySelectorAll('[data-i18n]').forEach(el=>{c
   });
 
   toggleSidebarBtn.addEventListener('click', function() {
-    sidebar.classList.toggle('sidebar--visible');
+    document.getElementById('app').classList.toggle('app--sidebar-open');
     var mm = document.getElementById('mobileMenu');
     if (mm) mm.classList.remove('mobile-menu--open');
   });
@@ -487,7 +487,7 @@ function applyLang(lang){document.querySelectorAll('[data-i18n]').forEach(el=>{c
     if (mobileSidebarBtn) {
       mobileSidebarBtn.addEventListener('click', function() {
         mobileMenu.classList.remove('mobile-menu--open');
-        sidebar.classList.toggle('sidebar--visible');
+        document.getElementById('app').classList.toggle('app--sidebar-open');
       });
     }
     mobileMenu.querySelectorAll('a').forEach(function(a) {

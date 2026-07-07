@@ -209,15 +209,15 @@
     keys.forEach(function(key) {
       var p = PRESETS[key];
       var btn = document.createElement('button');
-      btn.className = 'preset-card' + (key === activePreset ? ' preset-card--active' : '');
+      btn.className = 'preset' + (key === activePreset ? ' preset--active' : '');
       btn.setAttribute('data-preset', key);
 
       var colors = document.createElement('div');
-      colors.className = 'preset-card__colors';
+      colors.className = 'preset__colors';
       var swatchKeys = ['black', 'accent', 'success', 'warning', 'interactive', 'text-primary'];
       swatchKeys.forEach(function(sk) {
         var sw = document.createElement('div');
-        sw.className = 'preset-card__swatch';
+        sw.className = 'preset__swatch';
         var val = (p.vars && p.vars[sk]) || DEFAULTS[sk] || '#000';
         if (p.swatch && p.swatch.indexOf('gradient') !== -1 && sk === 'black') {
           sw.style.background = p.swatch;
@@ -228,7 +228,7 @@
       });
 
       var name = document.createElement('span');
-      name.className = 'preset-card__name';
+      name.className = 'preset__name';
       name.textContent = p.label;
 
       btn.appendChild(colors);

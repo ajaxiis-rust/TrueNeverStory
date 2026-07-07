@@ -156,7 +156,8 @@
     var btns = document.querySelectorAll('.theme-selector__btn');
     for (var i = 0; i < btns.length; i++) {
       btns[i].addEventListener('click', function() {
-        setTheme(this.getAttribute('data-theme-value'));
+        var t = this.getAttribute('data-theme-value');
+        if (t) setTheme(t);
       });
     }
     updateSelectors(getTheme());

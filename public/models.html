@@ -593,6 +593,7 @@ async function installCatalog(id) {
     document.getElementById('installName').value = id;
     document.getElementById('installBackend').value = 'ollama';
     document.getElementById('installUrl').value = '';
+    document.getElementById('urlField').style.display = 'none';
   }
   await installModel();
 }
