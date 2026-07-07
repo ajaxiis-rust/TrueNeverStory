@@ -361,6 +361,12 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 - Export/import themes as JSON files
 - Navigation link from settings page
 
+### v0.21.0 — Theme System Fix
+
+- Fixed `theme-custom.css` — corrected CSS variable syntax (was using `var()` instead of `--name: value`)
+- Added missing `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--interactive-subtle` variables to custom theme
+- All 5 themes (Dark, Light, Terminal, Cyberpunk, Custom) now work correctly via selector buttons
+
 ### v0.20.4 — World Graph Fix + Statistics Modal + Language Injection + Themes
 
 - Fixed dead `buildRelationships()` — auto-builds heuristic relationships at startup

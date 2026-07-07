@@ -283,6 +283,12 @@ bun run dev
 
 ## Últimos cambios
 
+### v0.21.0 — Corrección sistema temas
+
+- Corrección de `theme-custom.css` — sintaxis de variables CSS corregida (usaba `var()` en lugar de `--name: value`)
+- Variables faltantes `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--interactive-subtle` agregadas al tema personalizado
+- Los 5 temas (Oscuro, Claro, Terminal, Cyberpunk, Personalizado) ahora funcionan correctamente a través de los botones selectores
+
 ### v0.20.4 — Corrección grafo mundo + modal estadísticas + inyección idioma + temas
 
 - Corrección de `buildRelationships()` muerto — construcción heurística automática de relaciones al inicio

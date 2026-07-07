@@ -283,6 +283,12 @@ bun run dev
 
 ## 最近の変更
 
+### v0.21.0 — テーマシステム修正
+
+- `theme-custom.css`を修正 — CSS変数の構文を修正（`var()`ではなく`--name: value`を使用）
+- カスタムテーマに不足していた変数`--accent-subtle`、`--success-subtle`、`--warning-subtle`、`--interactive-subtle`を追加
+- 5つのテーマ（ダーク、ライト、ターミナル、サイバーパンク、カスタム）がセレクターボタンで正しく動作するように
+
 ### v0.20.4 — ワールドグラフ修正 + 統計モーダル + 言語注入 + テーマ
 
 - 死んだ`buildRelationships()`を修正 — 起動時にヒューリスティック関係を自動構築

@@ -283,6 +283,12 @@ bun run dev
 
 ## 最近更改
 
+### v0.21.0 — 主题系统修复
+
+- 修复`theme-custom.css` — 修正CSS变量语法（之前使用`var()`而非`--name: value`）
+- 为自定义主题添加缺失的变量`--accent-subtle`、`--success-subtle`、`--warning-subtle`、`--interactive-subtle`
+- 5个主题（暗色、亮色、终端、赛博朋克、自定义）现在通过选择器按钮正常工作
+
 ### v0.20.4 — 世界图修复 + 统计弹窗 + 语言注入 + 主题系统
 
 - 修复死代码`buildRelationships()` — 启动时自动构建启发式关系
