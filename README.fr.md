@@ -1,4 +1,4 @@
-# TrueNeverStory v0.20.1
+# TrueNeverStory v0.20.3
 
 ### Écris ton livre en jouant.
 
@@ -309,6 +309,14 @@ bun run dev
 ---
 
 ## Derniers changements
+
+### v0.20.3 — Fix graphe monde + modal statistiques + injection langue + thèmes
+
+- Correction de `buildRelationships()` mort — construction heuristique automatique des relations au démarrage
+- Nouvel endpoint `GET /worlds/:name/detail` pour les statistiques du monde
+- Nouvelle modal de statistiques avec listes d'entités, règles et détails de personnages
+- Injection de langue — les réponses LLM correspondent à la langue de l'interface (7 langues)
+- Système de thèmes — 5 thèmes intégrés (Sombre, Clair, Terminal, Cyberpunk, Personnalisé) + constructeur
 
 ### v0.20.1 — Correction du moteur de règles pour binaire
 

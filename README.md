@@ -1,4 +1,4 @@
-# TrueNeverStory v0.20.1
+# TrueNeverStory v0.20.3
 
 ### Write your book just by playing.
 
@@ -350,6 +350,14 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 ---
 
 ## Recent Changes
+
+### v0.20.3 — World Graph Fix + Statistics Modal + Language Injection + Themes
+
+- Fixed dead `buildRelationships()` — auto-builds heuristic relationships at startup
+- Added `GET /api/worlds/:name/detail` endpoint for world statistics
+- New world statistics modal with entity lists, rules, and character details
+- Language instruction injection — LLM responses match UI language (7 languages)
+- Theme system — 5 built-in themes (Dark, Light, Terminal, Cyberpunk, Custom) + constructor
 
 ### v0.20.1 — Rules Engine Binary Fix
 
