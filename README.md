@@ -1,4 +1,4 @@
-# TrueNeverStory v0.20.4
+# TrueNeverStory v0.21.0
 
 ### Write your book just by playing.
 
@@ -350,6 +350,16 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 ---
 
 ## Recent Changes
+
+### v0.21.0 — Theme Builder
+
+- Standalone theme builder page at `/theme-builder`
+- 8 preset themes: Dracula, Nord, Monokai, Solarized, Gruvbox, Tokyo Night, One Dark, Catppuccin
+- Color picker controls for 14 CSS variables (backgrounds, borders, text, accents)
+- Font selectors for mono, body, and display fonts
+- Live preview panel with all UI components
+- Export/import themes as JSON files
+- Navigation link from settings page
 
 ### v0.20.4 — World Graph Fix + Statistics Modal + Language Injection + Themes
 

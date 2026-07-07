@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.21.0 (2026-07-07)
+
+### Theme Builder
+
+- Standalone theme builder page at `/theme-builder`
+- 8 preset themes: Dracula, Nord, Monokai, Solarized, Gruvbox, Tokyo Night, One Dark, Catppuccin
+- Color picker controls for 14 CSS variables (backgrounds, borders, text, accents)
+- Font selectors for mono, body, and display fonts
+- Live preview panel with typography, buttons, input, badges, color palette, and narrative sample
+- Export/import themes as JSON files
+- Reset and clear actions
+- Navigation link from settings page
+
+**Files changed:**
+- `public/theme-builder.html` — New theme builder page
+- `public/static/theme-builder.js` — Builder logic (528 lines)
+- `public/static/theme-builder.css` — Builder styles (724 lines)
+- `public/settings.html` — Added Builder link
+- `src/app.ts` — Added /theme-builder route
+
+---
+
 ## v0.20.4 (2026-07-07)
 
 ### World Graph Fix + Statistics Modal
