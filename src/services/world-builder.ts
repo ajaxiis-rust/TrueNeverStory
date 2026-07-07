@@ -224,6 +224,67 @@ export class WorldBuilder {
     }
   }
 
+  buildRelationshipsHeuristic(): number {
+    if (!this.worldFrame) return 0;
+    log.info("Building heuristic relationships...");
+
+    const allNodes = this._entityStore.allNodes();
+    const chars = allNodes.filter((n) => n.entityType === "Character");
+    const factions = allNodes.filter((n) => n.entityType === "Faction");
+    const locations = allNodes.filter((n) => n.entityType === "Location");
+    let added = 0;
+
+    for (const char of chars) {
+      if (char.profile.relationships.length > 0) continue;
+
+      const charRace = (char.profile.l1.tags as string[] | undefined)?.find((t) =>
+        allNodes.some((n) => n.entityType === "Race" && n.name.toLowerCase() === t.toLowerCase()),
+      );
+      if (charRace) {
+        const raceNode = allNodes.find((n) => n.entityType === "Race" && n.name.toLowerCase() === charRace.toLowerCase());
+        if (raceNode) {
+          char.profile.relationships.push({ target: raceNode.uid, type: "race" });
+          added++;
+        }
+      }
+
+      for (const faction of factions) {
+        const fGoal = ((faction.profile.l1.summary as string) ?? "").toLowerCase();
+        const cTags = ((char.profile.l1.tags as string[]) ?? []).map((t) => t.toLowerCase());
+        if (cTags.some((t) => fGoal.includes(t))) {
+          char.profile.relationships.push({ target: faction.uid, type: "member_of" });
+          added++;
+          break;
+        }
+      }
+
+      if (char.profile.relationships.length === 0 && chars.length > 1) {
+        const other = chars.find((c) => c.uid !== char.uid);
+        if (other) {
+          char.profile.relationships.push({ target: other.uid, type: "knows" });
+          added++;
+        }
+      }
+    }
+
+    for (const loc of locations) {
+      const locTags = ((loc.profile.l1.tags as string[]) ?? []).map((t) => t.toLowerCase());
+      for (const char of chars) {
+        const cTags = ((char.profile.l1.tags as string[]) ?? []).map((t) => t.toLowerCase());
+        if (cTags.some((t) => locTags.includes(t)) || cTags.some((t) => loc.name.toLowerCase().includes(t))) {
+          char.profile.relationships.push({ target: loc.uid, type: "located_in" });
+          added++;
+        }
+      }
+    }
+
+    if (added > 0) {
+      this._entityStore.save();
+      log.info({ count: added }, "Heuristic relationships built");
+    }
+    return added;
+  }
+
   private async _saveWorldFrame(): Promise<void> {
     if (this.worldFrame) {
       await atomicWriteJson(join(this._dbPath, "world_frame.json"), this.worldFrame);
