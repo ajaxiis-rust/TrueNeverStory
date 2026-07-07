@@ -7,8 +7,15 @@
 
 
 <link href="/static/fonts/fonts.css" rel="stylesheet">
+<link href="/static/theme-dark.css" rel="stylesheet">
+<link href="/static/theme-light.css" rel="stylesheet">
+<link href="/static/theme-terminal.css" rel="stylesheet">
+<link href="/static/theme-cyberpunk.css" rel="stylesheet">
+<link href="/static/theme-custom.css" rel="stylesheet">
+<link href="/static/theme.css" rel="stylesheet">
+<script src="/static/theme.js"></script>
 <style>
-:root{--black:#000;--surface:#080808;--surface-raised:#111;--surface-hover:#161616;--border:#1A1A1A;--border-visible:#272727;--border-strong:#353535;--text-disabled:#666;--text-tertiary:#8E8E8E;--text-secondary:#BBB;--text-primary:#E0E0E0;--text-display:#FFF;--accent:#D71921;--success:#4A9E5C;--success-subtle:rgba(74,158,92,.12);--warning:#D4A843;--interactive:#5B9BF6;--interactive-subtle:rgba(91,155,246,.1);--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
+:root{--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{height:100%;background:var(--black);overflow:hidden}
 body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:14px;color:var(--text-primary);display:flex;flex-direction:column;overflow:hidden;user-select:none}
@@ -104,6 +111,43 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 .birth-wizard__loading{text-align:center;padding:40px;color:var(--text-disabled);font-size:13px}
 .birth-wizard__loading::after{content:'';display:block;width:20px;height:20px;border:2px solid var(--border-visible);border-top-color:var(--text-secondary);border-radius:50%;animation:spin .6s linear infinite;margin:12px auto 0}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* World Detail Modal */
+.detail-modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;animation:fadeIn 150ms var(--ease-out)}
+.detail-modal--open{display:flex}
+.detail-modal__box{background:var(--surface-raised);border:1px solid var(--border-visible);border-radius:var(--radius-lg);width:640px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+.detail-modal__head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.detail-modal__title{font-family:var(--font-mono);font-size:14px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-display)}
+.detail-modal__close{background:transparent;border:none;color:var(--text-disabled);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px}
+.detail-modal__close:hover{color:var(--text-primary)}
+.detail-modal__body{flex:1;overflow-y:auto;padding:16px 20px}
+.detail-modal__section{margin-bottom:16px}
+.detail-modal__section-title{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.detail-modal__section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.detail-modal__stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.detail-modal__stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;text-align:center}
+.detail-modal__stat-val{font-family:var(--font-body);font-size:22px;color:var(--text-display);font-weight:600}
+.detail-modal__stat-label{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-disabled);margin-top:2px}
+.detail-modal__entity-list{display:flex;flex-direction:column;gap:6px}
+.detail-modal__entity{display:flex;align-items:start;gap:10px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);transition:border-color var(--dur-fast)}
+.detail-modal__entity:hover{border-color:var(--border-visible)}
+.detail-modal__entity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.detail-modal__entity-dot--char{background:var(--interactive)}
+.detail-modal__entity-dot--loc{background:var(--success)}
+.detail-modal__entity-dot--faction{background:var(--accent)}
+.detail-modal__entity-dot--item{background:var(--warning)}
+.detail-modal__entity-info{flex:1;min-width:0}
+.detail-modal__entity-name{font-family:var(--font-body);font-size:13px;color:var(--text-display);font-weight:500}
+.detail-modal__entity-summary{font-size:11px;color:var(--text-tertiary);line-height:1.4;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.detail-modal__entity-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.detail-modal__entity-tag{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border:1px solid var(--border);border-radius:var(--radius-pill);color:var(--text-disabled)}
+.detail-modal__rule{padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-secondary)}
+.detail-modal__rule:last-child{border-bottom:none}
+.detail-modal__rule-name{color:var(--text-display);font-weight:500}
+.detail-modal__rule-desc{color:var(--text-tertiary);font-size:11px;margin-top:2px}
+.detail-modal__empty{text-align:center;padding:24px;color:var(--text-disabled);font-size:12px}
+@media(max-width:768px){.detail-modal__box{width:calc(100vw - 32px)}}
+
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 .toggle{display:flex;align-items:center;gap:8px;cursor:pointer}
@@ -143,7 +187,7 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div class="form__row">
         <div class="form__field">
           <label class="form__label" data-i18n="uiWorldName">World Name</label>
-          <input class="form__input" id="fName" placeholder="dark-realm, starwars, etc.">
+          <input class="form__input" id="fName" placeholder="dark-realm, starwars (Latin only, auto-transliterated)" oninput="transliterateSlug(this)">
           <span class="form__tip" data-i18n-tip="tipWorldName"></span>
         </div>
         <div class="form__field">
@@ -265,6 +309,16 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
   </div>
 </div>
 
+<div class="detail-modal" id="detailModal">
+  <div class="detail-modal__box">
+    <div class="detail-modal__head">
+      <span class="detail-modal__title" id="detailModalTitle">World Details</span>
+      <button class="detail-modal__close" onclick="closeDetailModal()">&times;</button>
+    </div>
+    <div class="detail-modal__body" id="detailModalBody"></div>
+  </div>
+</div>
+
 <script>
 const API = '/api';
 
@@ -291,7 +345,11 @@ const I18N = {
     uiGenreFantasy:"Fantasy",uiGenreScifi:"Sci-Fi",uiGenreFiction:"Fiction",uiGenreLitRPG:"LitRPG",uiGenreHorror:"Horror",uiGenrePostapoc:"Post-Apocalyptic",
     uiGenreHistorical:"Historical",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythology",
     uiEntities:"entities",uiSessions:"sessions",uiActive:"ACTIVE",
-    tipWorldName:"Internal slug ID. Used in file paths and API calls.",
+    uiWorldDetails:"World Details",
+    uiCharacters:"Characters",uiLocations:"Locations",uiFactions:"Factions",uiItems:"Items",
+    uiEvents:"Events",uiChapters:"Chapters",uiVillains:"Villains",
+    uiNoEntities:"No entities yet. Start a new game to populate the world.",
+    tipWorldName:"Internal slug ID — Latin letters, numbers, hyphens only. Non-Latin characters are auto-transliterated.",
     tipTitle:"Display name shown in the UI and narratives.",
     tipDescription:"World lore summary. Helps LLM agents understand the setting.",
     tipGenre:"Select all that apply. Affects NPC dialogue, events, and narrative tone.",
@@ -320,7 +378,11 @@ const I18N = {
     uiGenreFantasy:"Фэнтези",uiGenreScifi:"Научная фантастика",uiGenreFiction:"Фантастика",uiGenreLitRPG:"ЛитРПГ",uiGenreHorror:"Ужасы",uiGenrePostapoc:"Постапокалипсис",
     uiGenreHistorical:"Историческое",uiGenreCyberpunk:"Киберпанк",uiGenreSteampunk:"Стимпанк",uiGenreMythology:"Мифология",
     uiEntities:"сущностей",uiSessions:"сессий",uiActive:"АКТИВЕН",
-    tipWorldName:"Внутренний ID. Используется в путях файлов и API-запросах.",
+    uiWorldDetails:"Детали мира",
+    uiCharacters:"Персонажи",uiLocations:"Локации",uiFactions:"Фракции",uiItems:"Предметы",
+    uiEvents:"События",uiChapters:"Главы",uiVillains:"Злодеи",
+    uiNoEntities:"Пока нет сущностей. Начните новую игру, чтобы заселить мир.",
+    tipWorldName:"Внутренний ID — только латиница, цифры, дефисы. Нелатинские символы автоматически транслитерируются.",
     tipTitle:"Отображаемое имя в UI и нарративах.",
     tipDescription:"Описание мира. Помогает LLM-агентам понять сеттинг.",
     tipGenre:"Выберите все подходящие. Влияет на диалоги NPC, события и тон повествования.",
@@ -349,7 +411,11 @@ const I18N = {
     uiGenreFantasy:"Fantasy",uiGenreScifi:"Sci-Fi",uiGenreFiction:"Fiktion",uiGenreLitRPG:"LitRPG",uiGenreHorror:"Horror",uiGenrePostapoc:"Post-Apokalypse",
     uiGenreHistorical:"Historisch",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythologie",
     uiEntities:"Einheiten",uiSessions:"Sitzungen",uiActive:"AKTIV",
-    tipWorldName:"Interne ID. Wird in Dateipfaden und API-Aufrufen verwendet.",
+    uiWorldDetails:"Weltdetails",
+    uiCharacters:"Charaktere",uiLocations:"Orte",uiFactions:"Fraktionen",uiItems:"Gegenstände",
+    uiEvents:"Ereignisse",uiChapters:"Kapitel",uiVillains:"Schurken",
+    uiNoEntities:"Noch keine Einheiten. Starten Sie ein neues Spiel, um die Welt zu bevölkern.",
+    tipWorldName:"Interne ID — nur lateinische Buchstaben, Zahlen, Bindestriche. Nicht-latinische Zeichen werden automatisch transliteriert.",
     tipTitle:"Anzeigename in der UI und in Erzählungen.",
     tipDescription:"Kurzbeschreibung der Welt. Helft LLM-Agenten, die Welt zu verstehen.",
     tipGenre:"Alle zutreffenden auswählen. Beeinflusst NPC-Dialoge, Ereignisse und Erzählton.",
@@ -378,7 +444,11 @@ const I18N = {
     uiGenreFantasy:"Fantaisie",uiGenreScifi:"Sci-Fi",uiGenreFiction:"Fiction",uiGenreLitRPG:"LitRPG",uiGenreHorror:"Horreur",uiGenrePostapoc:"Post-apocalyptique",
     uiGenreHistorical:"Historique",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythologie",
     uiEntities:"entités",uiSessions:"sessions",uiActive:"ACTIF",
-    tipWorldName:"ID interne. Utilisé dans les chemins de fichiers et les appels API.",
+    uiWorldDetails:"Détails du monde",
+    uiCharacters:"Personnages",uiLocations:"Lieux",uiFactions:"Factions",uiItems:"Objets",
+    uiEvents:"Événements",uiChapters:"Chapitres",uiVillains:"Vilains",
+    uiNoEntities:"Pas encore d'entités. Lancez une nouvelle partie pour peupler le monde.",
+    tipWorldName:"ID interne — lettres latines, chiffres, tirets uniquement. Les caractères non latins sont translittérés automatiquement.",
     tipTitle:"Nom affiché dans l'UI et les récits.",
     tipDescription:"Résumé du lore. Aide les agents LLM à comprendre le setting.",
     tipGenre:"Sélectionnez tous les applicables. Affecte les dialogues NPC, événements et ton narratif.",
@@ -407,7 +477,11 @@ const I18N = {
     uiGenreFantasy:"Fantasía",uiGenreScifi:"Ciencia ficción",uiGenreFiction:"Ficción",uiGenreLitRPG:"LitRPG",uiGenreHorror:"Terror",uiGenrePostapoc:"Post-apocalíptico",
     uiGenreHistorical:"Histórico",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mitología",
     uiEntities:"entidades",uiSessions:"sesiones",uiActive:"ACTIVO",
-    tipWorldName:"ID interno. Se usa en rutas de archivos y llamadas API.",
+    uiWorldDetails:"Detalles del mundo",
+    uiCharacters:"Personajes",uiLocations:"Ubicaciones",uiFactions:"Facciones",uiItems:"Objetos",
+    uiEvents:"Eventos",uiChapters:"Capítulos",uiVillains:"Villanos",
+    uiNoEntities:"Aún no hay entidades. Inicie una nueva partida para poblar el mundo.",
+    tipWorldName:"ID interno — solo letras latinas, números, guiones. Los caracteres no latinos se transliteran automáticamente.",
     tipTitle:"Nombre mostrado en la UI y en las narrativas.",
     tipDescription:"Resumen del lore. Ayuda a los agentes LLM a entender la ambientación.",
     tipGenre:"Seleccione todos los aplicables. Afecta diálogos de NPC, eventos y tono narrativo.",
@@ -436,7 +510,11 @@ const I18N = {
     uiGenreFantasy:"ファンタジー",uiGenreScifi:"SF",uiGenreFiction:"フィクション",uiGenreLitRPG:"LitRPG",uiGenreHorror:"ホラー",uiGenrePostapoc:"ポストアポカリプス",
     uiGenreHistorical:"歴史",uiGenreCyberpunk:"サイバーパンク",uiGenreSteampunk:"スチームパンク",uiGenreMythology:"神話",
     uiEntities:"エンティティ",uiSessions:"セッション",uiActive:"アクティブ",
-    tipWorldName:"内部ID。ファイルパスとAPI呼び出しで使用。",
+    uiWorldDetails:"ワールド詳細",
+    uiCharacters:"キャラクター",uiLocations:"ロケーション",uiFactions:"派閥",uiItems:"アイテム",
+    uiEvents:"イベント",uiChapters:"章",uiVillains:"悪役",
+    uiNoEntities:"まだエンティティがありません。新しいゲームを開始してワールドを構築してください。",
+    tipWorldName:"内部ID — ラテン文字、数字、ハイフンのみ。非ラテン文字は自動変換されます。",
     tipTitle:"UIと物語に表示される名前。",
     tipDescription:"世界の背景概要。LLMエージェントが設定を理解するのに役立ちます。",
     tipGenre:"該当するものをすべて選択。NPCの会話、イベント、物語のトーンに影響します。",
@@ -465,7 +543,11 @@ const I18N = {
     uiGenreFantasy:"奇幻",uiGenreScifi:"科幻",uiGenreFiction:"小说",uiGenreLitRPG:"LitRPG",uiGenreHorror:"恐怖",uiGenrePostapoc:"后末日",
     uiGenreHistorical:"历史",uiGenreCyberpunk:"赛博朋克",uiGenreSteampunk:"蒸汽朋克",uiGenreMythology:"神话",
     uiEntities:"实体",uiSessions:"会话",uiActive:"活跃",
-    tipWorldName:"内部ID。用于文件路径和API调用。",
+    uiWorldDetails:"世界详情",
+    uiCharacters:"角色",uiLocations:"地点",uiFactions:"派系",uiItems:"物品",
+    uiEvents:"事件",uiChapters:"章节",uiVillains:"反派",
+    uiNoEntities:"还没有实体。开始新游戏来填充世界。",
+    tipWorldName:"内部ID — 仅限拉丁字母、数字、连字符。非拉丁字符会自动转写。",
     tipTitle:"UI和叙事中显示的名称。",
     tipDescription:"世界背景概要。帮助LLM智能体理解设定。",
     tipGenre:"选择所有适用项。影响NPC对话、事件和叙事风格。",
@@ -529,7 +611,7 @@ async function loadWorlds() {
       return;
     }
     grid.innerHTML = data.worlds.map(w => `
-      <div class="world-card ${w.name === activeWorld ? 'world-card--active' : ''}" onclick="selectWorld('${w.name}')">
+      <div class="world-card ${w.name === activeWorld ? 'world-card--active' : ''}" onclick="openDetailModal('${w.name}', event)">
         ${w.name === activeWorld ? '<div class="world-card__active">' + t('uiActive') + '</div>' : ''}
         <div class="world-card__header">
           <div class="world-card__name">${esc(w.title || w.name)}</div>
@@ -579,9 +661,24 @@ async function deleteWorld(name) {
   }
 }
 
+const TRANSLIT_MAP = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',ä:'ae',ö:'oe',ü:'ue',ñ:'n',é:'e',è:'e',ê:'e',à:'a',â:'a',ç:'c',ø:'o',å:'a',æ:'ae'};
+function transliterateSlug(el) {
+  let v = el.value;
+  let out = '';
+  for (const ch of v.toLowerCase()) {
+    out += TRANSLIT_MAP[ch] ?? ch;
+  }
+  el.value = out.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 async function createWorld() {
-  const name = document.getElementById('fName').value.trim();
+  let name = document.getElementById('fName').value.trim();
   if (!name) { toast(t('uiWorldName'), false); return; }
+
+  // Auto-transliterate and validate Latin-only
+  name = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (!name) { toast('Name must contain Latin letters or numbers', false); return; }
+  document.getElementById('fName').value = name;
 
   const genres = [...document.querySelectorAll('.fGenre:checked')].map(c => c.value);
   if (!genres.length) genres.push('fantasy');
@@ -731,6 +828,140 @@ async function startBirth() {
     `;
   }
 }
+
+// ── World Detail Modal ──
+async function openDetailModal(worldName, e) {
+  if (e) e.stopPropagation();
+  const modal = document.getElementById('detailModal');
+  const body = document.getElementById('detailModalBody');
+  const title = document.getElementById('detailModalTitle');
+
+  title.textContent = worldName;
+  body.innerHTML = '<div class="detail-modal__empty">Loading...</div>';
+  modal.classList.add('detail-modal--open');
+
+  try {
+    const data = await apiFetch('/worlds/' + worldName + '/detail');
+    title.textContent = data.title || data.name;
+
+    let html = '';
+
+    // Stats grid
+    html += '<div class="detail-modal__stats">';
+    html += statBlock(data.totalEntities, t('uiEntities'));
+    html += statBlock(data.entityCounts?.Character ?? 0, 'Characters');
+    html += statBlock(data.entityCounts?.Location ?? 0, 'Locations');
+    html += statBlock(data.entityCounts?.Faction ?? 0, 'Factions');
+    html += statBlock(data.entityCounts?.Item ?? 0, 'Items');
+    html += statBlock(data.entityCounts?.WorldRule ?? 0, 'Rules');
+    html += statBlock(data.sessionCount, t('uiSessions'));
+    html += statBlock(data.eventCount, 'Events');
+    html += statBlock(data.chapterCount, 'Chapters');
+    html += statBlock(data.villainCount, 'Villains');
+    html += '</div>';
+
+    // Description
+    if (data.description) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Description</div>';
+      html += '<div style="font-size:12px;color:var(--text-secondary);line-height:1.6">' + esc(data.description) + '</div>';
+      html += '</div>';
+    }
+
+    // World Rules
+    if (data.worldRules && data.worldRules.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">World Rules</div>';
+      for (const rule of data.worldRules) {
+        html += '<div class="detail-modal__rule"><span class="detail-modal__rule-name">' + esc(rule.name) + '</span>';
+        if (rule.description) html += '<div class="detail-modal__rule-desc">' + esc(rule.description) + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // Characters
+    if (data.characters && data.characters.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Characters (' + data.characters.length + ')</div>';
+      html += '<div class="detail-modal__entity-list">';
+      for (const c of data.characters) {
+        html += entityCard(c.name, c.summary, c.tags, 'char');
+      }
+      html += '</div></div>';
+    }
+
+    // Locations
+    if (data.locations && data.locations.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Locations (' + data.locations.length + ')</div>';
+      html += '<div class="detail-modal__entity-list">';
+      for (const l of data.locations) {
+        html += entityCard(l.name, l.summary, [], 'loc');
+      }
+      html += '</div></div>';
+    }
+
+    // Factions
+    if (data.factions && data.factions.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Factions (' + data.factions.length + ')</div>';
+      html += '<div class="detail-modal__entity-list">';
+      for (const f of data.factions) {
+        html += entityCard(f.name, f.summary, [], 'faction');
+      }
+      html += '</div></div>';
+    }
+
+    // Items
+    if (data.items && data.items.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Items (' + data.items.length + ')</div>';
+      html += '<div class="detail-modal__entity-list">';
+      for (const i of data.items) {
+        html += entityCard(i.name, i.summary, [], 'item');
+      }
+      html += '</div></div>';
+    }
+
+    if (!html.includes('detail-modal__entity')) {
+      html += '<div class="detail-modal__empty">No entities yet. Start a new game to populate the world.</div>';
+    }
+
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = '<div class="detail-modal__empty" style="color:var(--accent)">' + esc(e.message) + '</div>';
+  }
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.remove('detail-modal--open');
+}
+
+function statBlock(val, label) {
+  return '<div class="detail-modal__stat"><div class="detail-modal__stat-val">' + val + '</div><div class="detail-modal__stat-label">' + esc(label) + '</div></div>';
+}
+
+function entityCard(name, summary, tags, type) {
+  let html = '<div class="detail-modal__entity">';
+  html += '<span class="detail-modal__entity-dot detail-modal__entity-dot--' + type + '"></span>';
+  html += '<div class="detail-modal__entity-info">';
+  html += '<div class="detail-modal__entity-name">' + esc(name) + '</div>';
+  if (summary) html += '<div class="detail-modal__entity-summary">' + esc(summary) + '</div>';
+  if (tags && tags.length > 0) {
+    html += '<div class="detail-modal__entity-tags">';
+    for (const tag of tags.filter(Boolean)) {
+      html += '<span class="detail-modal__entity-tag">' + esc(tag) + '</span>';
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+document.getElementById('detailModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDetailModal();
+});
 
 loadLang().then(() => loadWorlds());
 </script>
