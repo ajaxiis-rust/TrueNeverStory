@@ -212,6 +212,7 @@ export class WorldBuilder {
           srcNode.profile.relationships.push({ target: tgtUid, type: relType });
         }
       }
+      await this._entityStore.save();
       await this._eventBus.publishSimple(
         EventTopic.RELATIONSHIP_ADDED,
         { count: rels.length },
