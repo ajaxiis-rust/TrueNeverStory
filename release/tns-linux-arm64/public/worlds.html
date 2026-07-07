@@ -7,8 +7,15 @@
 
 
 <link href="/static/fonts/fonts.css" rel="stylesheet">
+<link href="/static/theme-dark.css" rel="stylesheet">
+<link href="/static/theme-light.css" rel="stylesheet">
+<link href="/static/theme-terminal.css" rel="stylesheet">
+<link href="/static/theme-cyberpunk.css" rel="stylesheet">
+<link href="/static/theme-custom.css" rel="stylesheet">
+<link href="/static/theme.css" rel="stylesheet">
+<script src="/static/theme.js"></script>
 <style>
-:root{--black:#000;--surface:#080808;--surface-raised:#111;--surface-hover:#161616;--border:#1A1A1A;--border-visible:#272727;--border-strong:#353535;--text-disabled:#666;--text-tertiary:#8E8E8E;--text-secondary:#BBB;--text-primary:#E0E0E0;--text-display:#FFF;--accent:#D71921;--success:#4A9E5C;--success-subtle:rgba(74,158,92,.12);--warning:#D4A843;--interactive:#5B9BF6;--interactive-subtle:rgba(91,155,246,.1);--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
+:root{--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{height:100%;background:var(--black);overflow:hidden}
 body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:14px;color:var(--text-primary);display:flex;flex-direction:column;overflow:hidden;user-select:none}
@@ -55,6 +62,11 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 .form__input::placeholder,.form__textarea::placeholder{color:var(--text-disabled)}
 .form__textarea{min-height:80px;resize:vertical;line-height:1.5;font-size:12px}
 .form__select{appearance:none;cursor:pointer}
+.form__check{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;color:var(--text-secondary)}
+.form__check input{accent-color:var(--interactive)}
+.form__tip{font-size:11px;color:var(--text-disabled);line-height:1.3;margin-top:2px;min-height:0;transition:color var(--dur-fast)}
+.form__tip:not(:empty){color:var(--text-tertiary)}
+.form__field:hover .form__tip{color:var(--interactive)}
 
 .btn{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;padding:7px 16px;border-radius:var(--radius-pill);cursor:pointer;transition:all var(--dur-fast);border:1px solid var(--border-visible);background:transparent;color:var(--text-secondary)}
 .btn:hover{border-color:var(--text-secondary);color:var(--text-primary)}
@@ -99,6 +111,43 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 .birth-wizard__loading{text-align:center;padding:40px;color:var(--text-disabled);font-size:13px}
 .birth-wizard__loading::after{content:'';display:block;width:20px;height:20px;border:2px solid var(--border-visible);border-top-color:var(--text-secondary);border-radius:50%;animation:spin .6s linear infinite;margin:12px auto 0}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* World Detail Modal */
+.detail-modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;animation:fadeIn 150ms var(--ease-out)}
+.detail-modal--open{display:flex}
+.detail-modal__box{background:var(--surface-raised);border:1px solid var(--border-visible);border-radius:var(--radius-lg);width:640px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+.detail-modal__head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.detail-modal__title{font-family:var(--font-mono);font-size:14px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-display)}
+.detail-modal__close{background:transparent;border:none;color:var(--text-disabled);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px}
+.detail-modal__close:hover{color:var(--text-primary)}
+.detail-modal__body{flex:1;overflow-y:auto;padding:16px 20px}
+.detail-modal__section{margin-bottom:16px}
+.detail-modal__section-title{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.detail-modal__section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.detail-modal__stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.detail-modal__stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;text-align:center}
+.detail-modal__stat-val{font-family:var(--font-body);font-size:22px;color:var(--text-display);font-weight:600}
+.detail-modal__stat-label{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-disabled);margin-top:2px}
+.detail-modal__entity-list{display:flex;flex-direction:column;gap:6px}
+.detail-modal__entity{display:flex;align-items:start;gap:10px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);transition:border-color var(--dur-fast)}
+.detail-modal__entity:hover{border-color:var(--border-visible)}
+.detail-modal__entity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.detail-modal__entity-dot--char{background:var(--interactive)}
+.detail-modal__entity-dot--loc{background:var(--success)}
+.detail-modal__entity-dot--faction{background:var(--accent)}
+.detail-modal__entity-dot--item{background:var(--warning)}
+.detail-modal__entity-info{flex:1;min-width:0}
+.detail-modal__entity-name{font-family:var(--font-body);font-size:13px;color:var(--text-display);font-weight:500}
+.detail-modal__entity-summary{font-size:11px;color:var(--text-tertiary);line-height:1.4;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.detail-modal__entity-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.detail-modal__entity-tag{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border:1px solid var(--border);border-radius:var(--radius-pill);color:var(--text-disabled)}
+.detail-modal__rule{padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-secondary)}
+.detail-modal__rule:last-child{border-bottom:none}
+.detail-modal__rule-name{color:var(--text-display);font-weight:500}
+.detail-modal__rule-desc{color:var(--text-tertiary);font-size:11px;margin-top:2px}
+.detail-modal__empty{text-align:center;padding:24px;color:var(--text-disabled);font-size:12px}
+@media(max-width:768px){.detail-modal__box{width:calc(100vw - 32px)}}
+
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 .toggle{display:flex;align-items:center;gap:8px;cursor:pointer}
@@ -138,51 +187,85 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div class="form__row">
         <div class="form__field">
           <label class="form__label" data-i18n="uiWorldName">World Name</label>
-          <input class="form__input" id="fName" placeholder="dark-realm, starwars, etc.">
+          <input class="form__input" id="fName" placeholder="dark-realm, starwars (Latin only, auto-transliterated)" oninput="transliterateSlug(this)">
+          <span class="form__tip" data-i18n-tip="tipWorldName"></span>
         </div>
         <div class="form__field">
           <label class="form__label" data-i18n="uiTitle">Title</label>
           <input class="form__input" id="fTitle" placeholder="The Dark Realm">
+          <span class="form__tip" data-i18n-tip="tipTitle"></span>
         </div>
       </div>
       <div class="form__field form__field--full">
         <label class="form__label" data-i18n="uiDescription">Description</label>
         <textarea class="form__textarea" id="fDesc" placeholder="A world of eternal twilight where ancient magic..."></textarea>
+        <span class="form__tip" data-i18n-tip="tipDescription"></span>
       </div>
-      <div class="form__row">
-        <div class="form__field">
-          <label class="form__label" data-i18n="uiGenre">Genre</label>
-          <select class="form__select" id="fGenre">
-            <option value="fantasy" data-i18n="uiGenreFantasy">Fantasy</option>
-            <option value="sci-fi" data-i18n="uiGenreScifi">Sci-Fi</option>
-            <option value="horror" data-i18n="uiGenreHorror">Horror</option>
-            <option value="post-apocalyptic" data-i18n="uiGenrePostapoc">Post-Apocalyptic</option>
-            <option value="historical" data-i18n="uiGenreHistorical">Historical</option>
-            <option value="cyberpunk" data-i18n="uiGenreCyberpunk">Cyberpunk</option>
-            <option value="steampunk" data-i18n="uiGenreSteampunk">Steampunk</option>
-            <option value="mythology" data-i18n="uiGenreMythology">Mythology</option>
-          </select>
+      <div class="form__field form__field--full">
+        <label class="form__label" data-i18n="uiGenre">Genres</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+          <label class="form__check"><input type="checkbox" class="fGenre" value="fantasy"> <span data-i18n="uiGenreFantasy">Fantasy</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="scifi"> <span data-i18n="uiGenreScifi">Sci-Fi</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="fiction"> <span data-i18n="uiGenreFiction">Fiction</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="litrpg"> <span data-i18n="uiGenreLitRPG">LitRPG</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="horror"> <span data-i18n="uiGenreHorror">Horror</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="post-apocalyptic"> <span data-i18n="uiGenrePostapoc">Post-Apocalyptic</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="historical"> <span data-i18n="uiGenreHistorical">Historical</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="cyberpunk"> <span data-i18n="uiGenreCyberpunk">Cyberpunk</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="steampunk"> <span data-i18n="uiGenreSteampunk">Steampunk</span></label>
+          <label class="form__check"><input type="checkbox" class="fGenre" value="mythology"> <span data-i18n="uiGenreMythology">Mythology</span></label>
         </div>
-        <div class="form__field">
-          <label class="form__label" data-i18n="uiLanguage">Language</label>
-          <select class="form__select" id="fLang">
-            <option value="en">English</option>
-            <option value="ru">Русский</option>
-            <option value="de">Deutsch</option>
-            <option value="fr">Français</option>
-            <option value="es">Español</option>
-            <option value="ja">日本語</option>
-            <option value="zh">中文</option>
-          </select>
-        </div>
+        <span class="form__tip" data-i18n-tip="tipGenre"></span>
+      </div>
+      <div class="form__field form__field--full">
+        <label class="form__label" data-i18n="uiLanguage">Language</label>
+        <select class="form__select" id="fLang">
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+          <option value="de">Deutsch</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="ja">日本語</option>
+          <option value="zh">中文</option>
+        </select>
+        <span class="form__tip" data-i18n-tip="tipLanguage"></span>
       </div>
       <div class="form__field form__field--full">
         <label class="form__label" data-i18n="uiWorldRules">World Rules (one per line)</label>
         <textarea class="form__textarea" id="fRules" placeholder="Magic requires blood sacrifice&#10;The dead cannot be resurrected&#10;Dragons are extinct"></textarea>
+        <span class="form__tip" data-i18n-tip="tipWorldRules"></span>
+      </div>
+      <div class="form__field form__field--full">
+        <label class="form__label" data-i18n="uiSocialSystem">Social System</label>
+        <select class="form__select" id="fSocial">
+          <option value="" data-i18n="uiSocialNone">— None —</option>
+          <option value="feudalism" data-i18n="uiSocialFeudalism">Feudalism</option>
+          <option value="democracy" data-i18n="uiSocialDemocracy">Democracy</option>
+          <option value="anarchy" data-i18n="uiSocialAnarchy">Anarchy</option>
+          <option value="theocracy" data-i18n="uiSocialTheocracy">Theocracy</option>
+          <option value="communism" data-i18n="uiSocialCommunism">Communism</option>
+          <option value="capitalism" data-i18n="uiSocialCapitalism">Capitalism</option>
+          <option value="socialism" data-i18n="uiSocialSocialism">Socialism</option>
+          <option value="tribalism" data-i18n="uiSocialTribalism">Tribalism</option>
+          <option value="slavery" data-i18n="uiSocialSlavery">Slavery</option>
+          <option value="mercantilism" data-i18n="uiSocialMercantilism">Mercantilism</option>
+        </select>
+        <span class="form__tip" data-i18n-tip="tipSocialSystem"></span>
+      </div>
+      <div class="form__field form__field--full">
+        <label class="form__label" data-i18n="uiEconomyModifiers">Economy Modifiers</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+          <label class="form__check"><input type="checkbox" id="fEcoGold" value="gold-standard"> Gold Standard</label>
+          <label class="form__check"><input type="checkbox" id="fEcoSilver" value="silver-economy"> Silver Economy</label>
+          <label class="form__check"><input type="checkbox" id="fEcoBarter" value="barter"> Barter</label>
+          <label class="form__check"><input type="checkbox" id="fEcoCommand" value="command-economy"> Command Economy</label>
+        </div>
+        <span class="form__tip" data-i18n-tip="tipEconomy"></span>
       </div>
       <div class="form__field form__field--full">
         <label class="form__label" data-i18n="uiMagicSystem">Magic System (optional)</label>
         <textarea class="form__textarea" id="fMagic" placeholder="Elemental magic drawn from ley lines..."></textarea>
+        <span class="form__tip" data-i18n-tip="tipMagic"></span>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn" onclick="resetForm()" data-i18n="uiClear">CLEAR</button>
@@ -226,6 +309,16 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
   </div>
 </div>
 
+<div class="detail-modal" id="detailModal">
+  <div class="detail-modal__box">
+    <div class="detail-modal__head">
+      <span class="detail-modal__title" id="detailModalTitle">World Details</span>
+      <button class="detail-modal__close" onclick="closeDetailModal()">&times;</button>
+    </div>
+    <div class="detail-modal__body" id="detailModalBody"></div>
+  </div>
+</div>
+
 <script>
 const API = '/api';
 
@@ -238,105 +331,231 @@ const I18N = {
     uiYourWorlds:"Your Worlds",uiCreateWorld:"Create New World",uiLoading:"Loading...",
     uiWorldName:"World Name",uiTitle:"Title",uiDescription:"Description",uiGenre:"Genre",uiLanguage:"Language",
     uiWorldRules:"World Rules (one per line)",uiMagicSystem:"Magic System (optional)",
+    uiSocialSystem:"Social System",uiSocialNone:"— None —",
+    uiSocialFeudalism:"Feudalism",uiSocialDemocracy:"Democracy",uiSocialAnarchy:"Anarchy",
+    uiSocialTheocracy:"Theocracy",uiSocialCommunism:"Communism",uiSocialCapitalism:"Capitalism",
+    uiSocialSocialism:"Socialism",uiSocialTribalism:"Tribalism",uiSocialSlavery:"Slavery",
+    uiSocialMercantilism:"Mercantilism",uiEconomyModifiers:"Economy Modifiers",
     uiClear:"CLEAR",uiCreateWorldBtn:"CREATE WORLD",uiNewGame:"NEW GAME",uiSwitch:"SWITCH",uiDelete:"DELETE",
     uiBirthWizard:"Birth Wizard",uiBirthHints:"Character Hints (optional)",uiStartingAge:"Starting Age",
     uiIsekaiMode:"Isekai Mode",uiReincarnation:"Reincarnation",uiCancel:"CANCEL",uiStartNewLife:"START NEW LIFE",
     uiPlayNow:"PLAY NOW",uiRetry:"RETRY",uiClose:"CLOSE",
     uiCreating:"Creating your character...",uiGenerating:"GENERATING...",uiFailed:"Failed:",uiNoWorlds:"No worlds yet. Create one below.",
     uiBirthHintsPlaceholder:"e.g. female elf, mage, noble family, name: Aria...\nLeave empty for random generation",
-    uiGenreFantasy:"Fantasy",uiGenreScifi:"Sci-Fi",uiGenreHorror:"Horror",uiGenrePostapoc:"Post-Apocalyptic",
+    uiGenreFantasy:"Fantasy",uiGenreScifi:"Sci-Fi",uiGenreFiction:"Fiction",uiGenreLitRPG:"LitRPG",uiGenreHorror:"Horror",uiGenrePostapoc:"Post-Apocalyptic",
     uiGenreHistorical:"Historical",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythology",
     uiEntities:"entities",uiSessions:"sessions",uiActive:"ACTIVE",
+    uiWorldDetails:"World Details",
+    uiCharacters:"Characters",uiLocations:"Locations",uiFactions:"Factions",uiItems:"Items",
+    uiEvents:"Events",uiChapters:"Chapters",uiVillains:"Villains",
+    uiNoEntities:"No entities yet. Start a new game to populate the world.",
+    tipWorldName:"Internal slug ID — Latin letters, numbers, hyphens only. Non-Latin characters are auto-transliterated.",
+    tipTitle:"Display name shown in the UI and narratives.",
+    tipDescription:"World lore summary. Helps LLM agents understand the setting.",
+    tipGenre:"Select all that apply. Affects NPC dialogue, events, and narrative tone.",
+    tipLanguage:"Primary language for LLM generation and NPC speech.",
+    tipWorldRules:"Freeform rules (one per line). Injected into every LLM prompt as world constraints.",
+    tipSocialSystem:"Defines hierarchy, laws, economy, and class system. Shapes NPC behavior and social interactions.",
+    tipEconomy:"Additional economic modifiers. Affects trade, pricing, and NPC wealth.",
+    tipMagic:"Magic rules and limitations. Influences combat, crafting, and special abilities.",
   },
   ru: {
     uiWorlds:"Миры",uiProviders:"ПРОВАЙДЕРЫ",uiModels:"МОДЕЛИ",uiAgents:"АГЕНТЫ",uiConfig:"НАСТРОЙКИ",uiBack:"НАЗАД",
     uiYourWorlds:"Ваши миры",uiCreateWorld:"Создать новый мир",uiLoading:"Загрузка...",
     uiWorldName:"Название мира",uiTitle:"Заголовок",uiDescription:"Описание",uiGenre:"Жанр",uiLanguage:"Язык",
     uiWorldRules:"Правила мира (по одному на строку)",uiMagicSystem:"Система магии (необязательно)",
+    uiSocialSystem:"Социальный строй",uiSocialNone:"— Нет —",
+    uiSocialFeudalism:"Феодализм",uiSocialDemocracy:"Демократия",uiSocialAnarchy:"Анархия",
+    uiSocialTheocracy:"Теократия",uiSocialCommunism:"Коммунизм",uiSocialCapitalism:"Капитализм",
+    uiSocialSocialism:"Социализм",uiSocialTribalism:"Трайбализм",uiSocialSlavery:"Рабовладение",
+    uiSocialMercantilism:"Меркантилизм",uiEconomyModifiers:"Модификаторы экономики",
     uiClear:"ОЧИСТИТЬ",uiCreateWorldBtn:"СОЗДАТЬ МИР",uiNewGame:"НОВАЯ ИГРА",uiSwitch:"ПЕРЕКЛЮЧИТЬ",uiDelete:"УДАЛИТЬ",
     uiBirthWizard:"Мастер рождения",uiBirthHints:"Подсказки персонажа (необязательно)",uiStartingAge:"Начальный возраст",
     uiIsekaiMode:"Режим исekai",uiReincarnation:"Перерождение",uiCancel:"ОТМЕНА",uiStartNewLife:"НАЧАТЬ НОВУЮ ЖИЗНЬ",
     uiPlayNow:"ИГРАТЬ",uiRetry:"ПОВТОРИТЬ",uiClose:"ЗАКРЫТЬ",
     uiCreating:"Создаём вашего персонажа...",uiGenerating:"ГЕНЕРАЦИЯ...",uiFailed:"Ошибка:",uiNoWorlds:"Пока нет миров. Создайте ниже.",
     uiBirthHintsPlaceholder:"например: эльфийка, маг, дворянская семья, имя: Ария...\nОставьте пустым для случайной генерации",
-    uiGenreFantasy:"Фэнтези",uiGenreScifi:"Научная фантастика",uiGenreHorror:"Ужасы",uiGenrePostapoc:"Постапокалипсис",
+    uiGenreFantasy:"Фэнтези",uiGenreScifi:"Научная фантастика",uiGenreFiction:"Фантастика",uiGenreLitRPG:"ЛитРПГ",uiGenreHorror:"Ужасы",uiGenrePostapoc:"Постапокалипсис",
     uiGenreHistorical:"Историческое",uiGenreCyberpunk:"Киберпанк",uiGenreSteampunk:"Стимпанк",uiGenreMythology:"Мифология",
     uiEntities:"сущностей",uiSessions:"сессий",uiActive:"АКТИВЕН",
+    uiWorldDetails:"Детали мира",
+    uiCharacters:"Персонажи",uiLocations:"Локации",uiFactions:"Фракции",uiItems:"Предметы",
+    uiEvents:"События",uiChapters:"Главы",uiVillains:"Злодеи",
+    uiNoEntities:"Пока нет сущностей. Начните новую игру, чтобы заселить мир.",
+    tipWorldName:"Внутренний ID — только латиница, цифры, дефисы. Нелатинские символы автоматически транслитерируются.",
+    tipTitle:"Отображаемое имя в UI и нарративах.",
+    tipDescription:"Описание мира. Помогает LLM-агентам понять сеттинг.",
+    tipGenre:"Выберите все подходящие. Влияет на диалоги NPC, события и тон повествования.",
+    tipLanguage:"Основной язык для генерации LLM и речи NPC.",
+    tipWorldRules:"Произвольные правила (по одному на строку). Добавляются в каждый промпт LLM как ограничения мира.",
+    tipSocialSystem:"Определяет иерархию, законы, экономику и классовую систему. Формирует поведение NPC и социальные взаимодействия.",
+    tipEconomy:"Дополнительные экономические модификаторы. Влияет на торговлю, цены и состояние NPC.",
+    tipMagic:"Правила и ограничения магии. Влияет на бой, крафт и особые способности.",
   },
   de: {
     uiWorlds:"Welten",uiProviders:"ANBIETER",uiModels:"MODELLE",uiAgents:"AGENTEN",uiConfig:"KONFIG",uiBack:"ZURÜCK",
     uiYourWorlds:"Ihre Welten",uiCreateWorld:"Neue Welt erstellen",uiLoading:"Laden...",
     uiWorldName:"Weltenname",uiTitle:"Titel",uiDescription:"Beschreibung",uiGenre:"Genre",uiLanguage:"Sprache",
     uiWorldRules:"Weltenregeln (eine pro Zeile)",uiMagicSystem:"Magiesystem (optional)",
+    uiSocialSystem:"Soziales System",uiSocialNone:"— Keins —",
+    uiSocialFeudalism:"Feudalismus",uiSocialDemocracy:"Demokratie",uiSocialAnarchy:"Anarchie",
+    uiSocialTheocracy:"Theokratie",uiSocialCommunism:"Kommunismus",uiSocialCapitalism:"Kapitalismus",
+    uiSocialSocialism:"Sozialismus",uiSocialTribalism:"Tribalismus",uiSocialSlavery:"Sklaverei",
+    uiSocialMercantilism:"Merkantilismus",uiEconomyModifiers:"Wirtschaftsmodifikatoren",
     uiClear:"LÖSCHEN",uiCreateWorldBtn:"WELT ERSTELLEN",uiNewGame:"NEUES SPIEL",uiSwitch:"WECHSELN",uiDelete:"LÖSCHEN",
     uiBirthWizard:"Geburts-Assistent",uiBirthHints:"Charakter-Hinweise (optional)",uiStartingAge:"Startalter",
     uiIsekaiMode:"Isekai-Modus",uiReincarnation:"Reinkarnation",uiCancel:"ABBRECHEN",uiStartNewLife:"NEUES LEBEN STARTEN",
     uiPlayNow:"SPIELEN",uiRetry:"ERNEUT VERSUCHEN",uiClose:"SCHLIEßEN",
     uiCreating:"Charakter wird erstellt...",uiGenerating:"GENERIEREN...",uiFailed:"Fehler:",uiNoWorlds:"Noch keine Welten. Erstellen Sie eine unten.",
     uiBirthHintsPlaceholder:"z.B. weiblicher Elfe, Mager, Adelsfamilie, Name: Aria...\nLeer lassen für zufällige Generierung",
-    uiGenreFantasy:"Fantasy",uiGenreScifi:"Sci-Fi",uiGenreHorror:"Horror",uiGenrePostapoc:"Post-Apokalypse",
+    uiGenreFantasy:"Fantasy",uiGenreScifi:"Sci-Fi",uiGenreFiction:"Fiktion",uiGenreLitRPG:"LitRPG",uiGenreHorror:"Horror",uiGenrePostapoc:"Post-Apokalypse",
     uiGenreHistorical:"Historisch",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythologie",
     uiEntities:"Einheiten",uiSessions:"Sitzungen",uiActive:"AKTIV",
+    uiWorldDetails:"Weltdetails",
+    uiCharacters:"Charaktere",uiLocations:"Orte",uiFactions:"Fraktionen",uiItems:"Gegenstände",
+    uiEvents:"Ereignisse",uiChapters:"Kapitel",uiVillains:"Schurken",
+    uiNoEntities:"Noch keine Einheiten. Starten Sie ein neues Spiel, um die Welt zu bevölkern.",
+    tipWorldName:"Interne ID — nur lateinische Buchstaben, Zahlen, Bindestriche. Nicht-latinische Zeichen werden automatisch transliteriert.",
+    tipTitle:"Anzeigename in der UI und in Erzählungen.",
+    tipDescription:"Kurzbeschreibung der Welt. Helft LLM-Agenten, die Welt zu verstehen.",
+    tipGenre:"Alle zutreffenden auswählen. Beeinflusst NPC-Dialoge, Ereignisse und Erzählton.",
+    tipLanguage:"Hauptsprache für LLM-Generierung und NPC-Sprache.",
+    tipWorldRules:"Beliebige Regeln (eine pro Zeile). Werden in jeden LLM-Prompt als Weltbeschränkungen eingefügt.",
+    tipSocialSystem:"Definiert Hierarchie, Gesetze, Wirtschaft und Klassensystem. Formt NPC-Verhalten und soziale Interaktionen.",
+    tipEconomy:"Zusätzliche Wirtschaftsmodifikatoren. Beeinflusst Handel, Preise und NPC-Vermögen.",
+    tipMagic:"Magieregeln und -beschränkungen. Beeinflusst Kampf, Handwerk und Fähigkeiten.",
   },
   fr: {
     uiWorlds:"Mondes",uiProviders:"FOURNISSEURS",uiModels:"MODÈLES",uiAgents:"AGENTS",uiConfig:"CONFIG",uiBack:"RETOUR",
     uiYourWorlds:"Vos mondes",uiCreateWorld:"Créer un nouveau monde",uiLoading:"Chargement...",
     uiWorldName:"Nom du monde",uiTitle:"Titre",uiDescription:"Description",uiGenre:"Genre",uiLanguage:"Langue",
     uiWorldRules:"Règles du monde (une par ligne)",uiMagicSystem:"Système de magie (optionnel)",
+    uiSocialSystem:"Système social",uiSocialNone:"— Aucun —",
+    uiSocialFeudalism:"Féodalisme",uiSocialDemocracy:"Démocratie",uiSocialAnarchy:"Anarchie",
+    uiSocialTheocracy:"Théocratie",uiSocialCommunism:"Communisme",uiSocialCapitalism:"Capitalisme",
+    uiSocialSocialism:"Socialisme",uiSocialTribalism:"Tribalisme",uiSocialSlavery:"Esclavage",
+    uiSocialMercantilism:"Mercantilisme",uiEconomyModifiers:"Modificateurs économiques",
     uiClear:"EFFACER",uiCreateWorldBtn:"CRÉER LE MONDE",uiNewGame:"NOUVELLE PARTIE",uiSwitch:"CHANGER",uiDelete:"SUPPRIMER",
     uiBirthWizard:"Assistant de naissance",uiBirthHints:"Indices du personnage (optionnel)",uiStartingAge:"Âge de départ",
     uiIsekaiMode:"Mode Isekai",uiReincarnation:"Réincarnation",uiCancel:"ANNULER",uiStartNewLife:"COMMENCER UNE NOUVELLE VIE",
     uiPlayNow:"JOUER",uiRetry:"RÉESSAYER",uiClose:"FERMER",
     uiCreating:"Création de votre personnage...",uiGenerating:"GÉNÉRATION...",uiFailed:"Erreur:",uiNoWorlds:"Aucun monde pour le moment. Créez-en un ci-dessous.",
     uiBirthHintsPlaceholder:"ex: elfe femme, mage, famille noble, nom: Aria...\nLaisser vide pour génération aléatoire",
-    uiGenreFantasy:"Fantaisie",uiGenreScifi:"Sci-Fi",uiGenreHorror:"Horreur",uiGenrePostapoc:"Post-apocalyptique",
+    uiGenreFantasy:"Fantaisie",uiGenreScifi:"Sci-Fi",uiGenreFiction:"Fiction",uiGenreLitRPG:"LitRPG",uiGenreHorror:"Horreur",uiGenrePostapoc:"Post-apocalyptique",
     uiGenreHistorical:"Historique",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mythologie",
     uiEntities:"entités",uiSessions:"sessions",uiActive:"ACTIF",
+    uiWorldDetails:"Détails du monde",
+    uiCharacters:"Personnages",uiLocations:"Lieux",uiFactions:"Factions",uiItems:"Objets",
+    uiEvents:"Événements",uiChapters:"Chapitres",uiVillains:"Vilains",
+    uiNoEntities:"Pas encore d'entités. Lancez une nouvelle partie pour peupler le monde.",
+    tipWorldName:"ID interne — lettres latines, chiffres, tirets uniquement. Les caractères non latins sont translittérés automatiquement.",
+    tipTitle:"Nom affiché dans l'UI et les récits.",
+    tipDescription:"Résumé du lore. Aide les agents LLM à comprendre le setting.",
+    tipGenre:"Sélectionnez tous les applicables. Affecte les dialogues NPC, événements et ton narratif.",
+    tipLanguage:"Langue principale pour la génération LLM et la parole des NPC.",
+    tipWorldRules:"Règles libres (une par ligne). Injectées dans chaque prompt LLM comme contraintes du monde.",
+    tipSocialSystem:"Définit la hiérarchie, les lois, l'économie et le système de classes. Façonne le comportement NPC.",
+    tipEconomy:"Modificateurs économiques supplémentaires. Affecte le commerce, les prix et la richesse des NPC.",
+    tipMagic:"Règles et limites de la magie. Influence le combat, l'artisanat et les capacités spéciales.",
   },
   es: {
     uiWorlds:"Mundos",uiProviders:"PROVEEDORES",uiModels:"MODELOS",uiAgents:"AGENTES",uiConfig:"CONFIG",uiBack:"VOLVER",
     uiYourWorlds:"Tus mundos",uiCreateWorld:"Crear nuevo mundo",uiLoading:"Cargando...",
     uiWorldName:"Nombre del mundo",uiTitle:"Título",uiDescription:"Descripción",uiGenre:"Género",uiLanguage:"Idioma",
     uiWorldRules:"Reglas del mundo (una por línea)",uiMagicSystem:"Sistema de magia (opcional)",
+    uiSocialSystem:"Sistema social",uiSocialNone:"— Ninguno —",
+    uiSocialFeudalism:"Feudalismo",uiSocialDemocracy:"Democracia",uiSocialAnarchy:"Anarquía",
+    uiSocialTheocracy:"Teocracia",uiSocialCommunism:"Comunismo",uiSocialCapitalism:"Capitalismo",
+    uiSocialSocialism:"Socialismo",uiSocialTribalism:"Tribalismo",uiSocialSlavery:"Esclavitud",
+    uiSocialMercantilism:"Mercantilismo",uiEconomyModifiers:"Modificadores económicos",
     uiClear:"LIMPIAR",uiCreateWorldBtn:"CREAR MUNDO",uiNewGame:"NUEVA PARTIDA",uiSwitch:"CAMBIAR",uiDelete:"ELIMINAR",
     uiBirthWizard:"Asistente de nacimiento",uiBirthHints:"Pistas del personaje (opcional)",uiStartingAge:"Edad inicial",
     uiIsekaiMode:"Modo Isekai",uiReincarnation:"Reencarnación",uiCancel:"CANCELAR",uiStartNewLife:"EMPEZAR NUEVA VIDA",
     uiPlayNow:"JUGAR",uiRetry:"REINTENTAR",uiClose:"CERRAR",
     uiCreating:"Creando tu personaje...",uiGenerating:"GENERANDO...",uiFailed:"Error:",uiNoWorlds:"Aún no hay mundos. Crea uno abajo.",
     uiBirthHintsPlaceholder:"ej: elfa femenina, maga, familia noble, nombre: Aria...\nDejar vacío para generación aleatoria",
-    uiGenreFantasy:"Fantasía",uiGenreScifi:"Ciencia ficción",uiGenreHorror:"Terror",uiGenrePostapoc:"Post-apocalíptico",
+    uiGenreFantasy:"Fantasía",uiGenreScifi:"Ciencia ficción",uiGenreFiction:"Ficción",uiGenreLitRPG:"LitRPG",uiGenreHorror:"Terror",uiGenrePostapoc:"Post-apocalíptico",
     uiGenreHistorical:"Histórico",uiGenreCyberpunk:"Cyberpunk",uiGenreSteampunk:"Steampunk",uiGenreMythology:"Mitología",
     uiEntities:"entidades",uiSessions:"sesiones",uiActive:"ACTIVO",
+    uiWorldDetails:"Detalles del mundo",
+    uiCharacters:"Personajes",uiLocations:"Ubicaciones",uiFactions:"Facciones",uiItems:"Objetos",
+    uiEvents:"Eventos",uiChapters:"Capítulos",uiVillains:"Villanos",
+    uiNoEntities:"Aún no hay entidades. Inicie una nueva partida para poblar el mundo.",
+    tipWorldName:"ID interno — solo letras latinas, números, guiones. Los caracteres no latinos se transliteran automáticamente.",
+    tipTitle:"Nombre mostrado en la UI y en las narrativas.",
+    tipDescription:"Resumen del lore. Ayuda a los agentes LLM a entender la ambientación.",
+    tipGenre:"Seleccione todos los aplicables. Afecta diálogos de NPC, eventos y tono narrativo.",
+    tipLanguage:"Idioma principal para generación LLM y habla de NPC.",
+    tipWorldRules:"Reglas libres (una por línea). Se inyectan en cada prompt LLM como restricciones del mundo.",
+    tipSocialSystem:"Define jerarquía, leyes, economía y sistema de clases. Moldea el comportamiento de NPC.",
+    tipEconomy:"Modificadores económicos adicionales. Afecta comercio, precios y riqueza de NPC.",
+    tipMagic:"Reglas y limitaciones de magia. Influye en combate, artesanía y habilidades especiales.",
   },
   ja: {
     uiWorlds:"ワールド",uiProviders:"プロバイダー",uiModels:"モデル",uiAgents:"エージェント",uiConfig:"設定",uiBack:"戻る",
     uiYourWorlds:"あなたのワールド",uiCreateWorld:"新しいワールドを作成",uiLoading:"読み込み中...",
     uiWorldName:"ワールド名",uiTitle:"タイトル",uiDescription:"説明",uiGenre:"ジャンル",uiLanguage:"言語",
     uiWorldRules:"ワールドのルール（1行に1つ）",uiMagicSystem:"魔法システム（オプション）",
+    uiSocialSystem:"社会制度",uiSocialNone:"— なし —",
+    uiSocialFeudalism:"封建主義",uiSocialDemocracy:"民主主義",uiSocialAnarchy:"無政府主義",
+    uiSocialTheocracy:"神権政治",uiSocialCommunism:"共産主義",uiSocialCapitalism:"資本主義",
+    uiSocialSocialism:"社会主義",uiSocialTribalism:"部族主義",uiSocialSlavery:"奴隷制",
+    uiSocialMercantilism:"重商主義",uiEconomyModifiers:"経済修正子",
     uiClear:"クリア",uiCreateWorldBtn:"ワールドを作成",uiNewGame:"新規ゲーム",uiSwitch:"切替",uiDelete:"削除",
     uiBirthWizard:"出生ウィザード",uiBirthHints:"キャラクターのヒント（オプション）",uiStartingAge:"開始年齢",
     uiIsekaiMode:"異世界モード",uiReincarnation:"転生",uiCancel:"キャンセル",uiStartNewLife:"新しい人生を始める",
     uiPlayNow:"プレイ",uiRetry:"再試行",uiClose:"閉じる",
     uiCreating:"キャラクターを作成中...",uiGenerating:"生成中...",uiFailed:"エラー:",uiNoWorlds:"まだワールドがありません。下で作成してください。",
     uiBirthHintsPlaceholder:"例: 女性エルフ、魔法使い、貴族の家、名前: アリア...\n空欄にするとランダム生成",
-    uiGenreFantasy:"ファンタジー",uiGenreScifi:"SF",uiGenreHorror:"ホラー",uiGenrePostapoc:"ポストアポカリプス",
+    uiGenreFantasy:"ファンタジー",uiGenreScifi:"SF",uiGenreFiction:"フィクション",uiGenreLitRPG:"LitRPG",uiGenreHorror:"ホラー",uiGenrePostapoc:"ポストアポカリプス",
     uiGenreHistorical:"歴史",uiGenreCyberpunk:"サイバーパンク",uiGenreSteampunk:"スチームパンク",uiGenreMythology:"神話",
     uiEntities:"エンティティ",uiSessions:"セッション",uiActive:"アクティブ",
+    uiWorldDetails:"ワールド詳細",
+    uiCharacters:"キャラクター",uiLocations:"ロケーション",uiFactions:"派閥",uiItems:"アイテム",
+    uiEvents:"イベント",uiChapters:"章",uiVillains:"悪役",
+    uiNoEntities:"まだエンティティがありません。新しいゲームを開始してワールドを構築してください。",
+    tipWorldName:"内部ID — ラテン文字、数字、ハイフンのみ。非ラテン文字は自動変換されます。",
+    tipTitle:"UIと物語に表示される名前。",
+    tipDescription:"世界の背景概要。LLMエージェントが設定を理解するのに役立ちます。",
+    tipGenre:"該当するものをすべて選択。NPCの会話、イベント、物語のトーンに影響します。",
+    tipLanguage:"LLM生成とNPCの発話の主要言語。",
+    tipWorldRules:"自由形式のルール（1行に1つ）。各LLMプロンプトに世界の制約として注入されます。",
+    tipSocialSystem:"階級制度、法律、経済、階層を定義。NPCの行動と社会的相互作用を形成します。",
+    tipEconomy:"追加の経済修正子。貿易、価格、NPCの富に影響します。",
+    tipMagic:"魔法のルールと制限。戦闘、クラフト、特殊能力に影響します。",
   },
   zh: {
     uiWorlds:"世界",uiProviders:"供应商",uiModels:"模型",uiAgents:"智能体",uiConfig:"配置",uiBack:"返回",
     uiYourWorlds:"你的世界",uiCreateWorld:"创建新世界",uiLoading:"加载中...",
     uiWorldName:"世界名称",uiTitle:"标题",uiDescription:"描述",uiGenre:"类型",uiLanguage:"语言",
     uiWorldRules:"世界规则（每行一条）",uiMagicSystem:"魔法系统（可选）",
+    uiSocialSystem:"社会制度",uiSocialNone:"— なし —",
+    uiSocialFeudalism:"封建主义",uiSocialDemocracy:"民主主义",uiSocialAnarchy:"无政府主义",
+    uiSocialTheocracy:"神权政治",uiSocialCommunism:"共产主义",uiSocialCapitalism:"资本主义",
+    uiSocialSocialism:"社会主义",uiSocialTribalism:"部落主义",uiSocialSlavery:"奴隶制",
+    uiSocialMercantilism:"重商主义",uiEconomyModifiers:"经济修正子",
     uiClear:"清除",uiCreateWorldBtn:"创建世界",uiNewGame:"新游戏",uiSwitch:"切换",uiDelete:"删除",
     uiBirthWizard:"出生向导",uiBirthHints:"角色提示（可选）",uiStartingAge:"起始年龄",
     uiIsekaiMode:"异世界模式",uiReincarnation:"转生",uiCancel:"取消",uiStartNewLife:"开始新生活",
     uiPlayNow:"开始游戏",uiRetry:"重试",uiClose:"关闭",
     uiCreating:"正在创建角色...",uiGenerating:"生成中...",uiFailed:"错误:",uiNoWorlds:"还没有世界。在下方创建一个。",
     uiBirthHintsPlaceholder:"例如：女性精灵、法师、贵族家庭、名字：艾莉亚...\n留空则随机生成",
-    uiGenreFantasy:"奇幻",uiGenreScifi:"科幻",uiGenreHorror:"恐怖",uiGenrePostapoc:"后末日",
+    uiGenreFantasy:"奇幻",uiGenreScifi:"科幻",uiGenreFiction:"小说",uiGenreLitRPG:"LitRPG",uiGenreHorror:"恐怖",uiGenrePostapoc:"后末日",
     uiGenreHistorical:"历史",uiGenreCyberpunk:"赛博朋克",uiGenreSteampunk:"蒸汽朋克",uiGenreMythology:"神话",
     uiEntities:"实体",uiSessions:"会话",uiActive:"活跃",
+    uiWorldDetails:"世界详情",
+    uiCharacters:"角色",uiLocations:"地点",uiFactions:"派系",uiItems:"物品",
+    uiEvents:"事件",uiChapters:"章节",uiVillains:"反派",
+    uiNoEntities:"还没有实体。开始新游戏来填充世界。",
+    tipWorldName:"内部ID — 仅限拉丁字母、数字、连字符。非拉丁字符会自动转写。",
+    tipTitle:"UI和叙事中显示的名称。",
+    tipDescription:"世界背景概要。帮助LLM智能体理解设定。",
+    tipGenre:"选择所有适用项。影响NPC对话、事件和叙事风格。",
+    tipLanguage:"LLM生成和NPC语音的主要语言。",
+    tipWorldRules:"自由格式规则（每行一条）。作为世界约束注入每个LLM提示。",
+    tipSocialSystem:"定义等级制度、法律、经济和阶级体系。塑造NPC行为和社交互动。",
+    tipEconomy:"额外经济修正子。影响贸易、价格和NPC财富。",
+    tipMagic:"魔法规则和限制。影响战斗、制作和特殊能力。",
   },
 };
 
@@ -348,6 +567,10 @@ function applyLang(lang) {
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     const k = el.getAttribute('data-i18n-placeholder');
     if (lang[k]) el.placeholder = lang[k];
+  });
+  document.querySelectorAll('[data-i18n-tip]').forEach(el => {
+    const k = el.getAttribute('data-i18n-tip');
+    if (lang[k]) el.textContent = lang[k];
   });
 }
 
@@ -388,7 +611,7 @@ async function loadWorlds() {
       return;
     }
     grid.innerHTML = data.worlds.map(w => `
-      <div class="world-card ${w.name === activeWorld ? 'world-card--active' : ''}" onclick="selectWorld('${w.name}')">
+      <div class="world-card ${w.name === activeWorld ? 'world-card--active' : ''}" onclick="openDetailModal('${w.name}', event)">
         ${w.name === activeWorld ? '<div class="world-card__active">' + t('uiActive') + '</div>' : ''}
         <div class="world-card__header">
           <div class="world-card__name">${esc(w.title || w.name)}</div>
@@ -438,18 +661,44 @@ async function deleteWorld(name) {
   }
 }
 
+const TRANSLIT_MAP = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',ä:'ae',ö:'oe',ü:'ue',ñ:'n',é:'e',è:'e',ê:'e',à:'a',â:'a',ç:'c',ø:'o',å:'a',æ:'ae'};
+function transliterateSlug(el) {
+  let v = el.value;
+  let out = '';
+  for (const ch of v.toLowerCase()) {
+    out += TRANSLIT_MAP[ch] ?? ch;
+  }
+  el.value = out.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 async function createWorld() {
-  const name = document.getElementById('fName').value.trim();
+  let name = document.getElementById('fName').value.trim();
   if (!name) { toast(t('uiWorldName'), false); return; }
+
+  // Auto-transliterate and validate Latin-only
+  name = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (!name) { toast('Name must contain Latin letters or numbers', false); return; }
+  document.getElementById('fName').value = name;
+
+  const genres = [...document.querySelectorAll('.fGenre:checked')].map(c => c.value);
+  if (!genres.length) genres.push('fantasy');
+
+  const modifiers = [];
+  if (document.getElementById('fEcoGold').checked) modifiers.push('gold-standard');
+  if (document.getElementById('fEcoSilver').checked) modifiers.push('silver-economy');
+  if (document.getElementById('fEcoBarter').checked) modifiers.push('barter');
+  if (document.getElementById('fEcoCommand').checked) modifiers.push('command-economy');
 
   const body = {
     name,
     title: document.getElementById('fTitle').value.trim() || name,
     description: document.getElementById('fDesc').value.trim(),
-    genre: document.getElementById('fGenre').value,
-    language: document.getElementById('fLang').value,
+    genres,
+    language: document.getElementById('fLang')?.value || 'en',
     worldRules: document.getElementById('fRules').value.split('\n').filter(l => l.trim()),
     magicSystem: document.getElementById('fMagic').value.trim(),
+    primaryRule: document.getElementById('fSocial').value || undefined,
+    ruleModifiers: modifiers.length ? modifiers : undefined,
   };
 
   try {
@@ -470,10 +719,14 @@ function resetForm() {
   document.getElementById('fName').value = '';
   document.getElementById('fTitle').value = '';
   document.getElementById('fDesc').value = '';
-  document.getElementById('fGenre').value = 'fantasy';
-  document.getElementById('fLang').value = 'en';
+  document.querySelectorAll('.fGenre').forEach(c => c.checked = false);
   document.getElementById('fRules').value = '';
   document.getElementById('fMagic').value = '';
+  document.getElementById('fSocial').value = '';
+  document.getElementById('fEcoGold').checked = false;
+  document.getElementById('fEcoSilver').checked = false;
+  document.getElementById('fEcoBarter').checked = false;
+  document.getElementById('fEcoCommand').checked = false;
 }
 
 function esc(s) {
@@ -488,11 +741,29 @@ let birthWorldName = '';
 function openBirthWizard(worldName) {
   birthWorldName = worldName;
   document.getElementById('birthWizard').classList.add('birth-wizard--open');
-  document.getElementById('birthHints').value = '';
-  document.getElementById('birthAge').value = '5';
-  document.getElementById('birthIsekai').classList.remove('toggle--on');
-  document.getElementById('birthStartBtn').disabled = false;
-  document.getElementById('birthStartBtn').textContent = t('uiStartNewLife');
+  const body = document.getElementById('birthWizardBody');
+  const footer = document.getElementById('birthWizardFooter');
+  body.innerHTML = `
+    <div class="form">
+      <div class="form__field form__field--full">
+        <label class="form__label" data-i18n="uiBirthHints">Character Hints (optional)</label>
+        <textarea class="form__textarea" id="birthHints" data-i18n-placeholder="uiBirthHintsPlaceholder" placeholder="e.g. female elf, mage, noble family, name: Aria...\nLeave empty for random generation"></textarea>
+      </div>
+      <div class="form__row">
+        <div class="form__field">
+          <label class="form__label" data-i18n="uiStartingAge">Starting Age</label>
+          <input class="form__input" id="birthAge" type="number" min="0" max="100" value="5">
+        </div>
+        <div class="form__field" style="flex:0 0 auto">
+          <label class="form__label" data-i18n="uiIsekaiMode">Isekai Mode</label>
+          <div class="toggle" id="birthIsekai" onclick="this.classList.toggle('toggle--on')">
+            <div class="toggle__track"><div class="toggle__thumb"></div></div>
+            <span class="toggle__label" data-i18n="uiReincarnation">Reincarnation</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  footer.innerHTML = `<button class="btn btn--primary" id="birthStartBtn" onclick="startBirth()" data-i18n="uiStartNewLife">START NEW LIFE</button>`;
 }
 
 function closeBirthWizard() {
@@ -557,6 +828,140 @@ async function startBirth() {
     `;
   }
 }
+
+// ── World Detail Modal ──
+async function openDetailModal(worldName, e) {
+  if (e) e.stopPropagation();
+  const modal = document.getElementById('detailModal');
+  const body = document.getElementById('detailModalBody');
+  const title = document.getElementById('detailModalTitle');
+
+  title.textContent = worldName;
+  body.innerHTML = '<div class="detail-modal__empty">Loading...</div>';
+  modal.classList.add('detail-modal--open');
+
+  try {
+    const data = await apiFetch('/worlds/' + worldName + '/detail');
+    title.textContent = data.title || data.name;
+
+    let html = '';
+
+    // Stats grid
+    html += '<div class="detail-modal__stats">';
+    html += statBlock(data.totalEntities, t('uiEntities'));
+    html += statBlock(data.entityCounts?.Character ?? 0, 'Characters');
+    html += statBlock(data.entityCounts?.Location ?? 0, 'Locations');
+    html += statBlock(data.entityCounts?.Faction ?? 0, 'Factions');
+    html += statBlock(data.entityCounts?.Item ?? 0, 'Items');
+    html += statBlock(data.entityCounts?.WorldRule ?? 0, 'Rules');
+    html += statBlock(data.sessionCount, t('uiSessions'));
+    html += statBlock(data.eventCount, 'Events');
+    html += statBlock(data.chapterCount, 'Chapters');
+    html += statBlock(data.villainCount, 'Villains');
+    html += '</div>';
+
+    // Description
+    if (data.description) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Description</div>';
+      html += '<div style="font-size:12px;color:var(--text-secondary);line-height:1.6">' + esc(data.description) + '</div>';
+      html += '</div>';
+    }
+
+    // World Rules
+    if (data.worldRules && data.worldRules.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">World Rules</div>';
+      for (const rule of data.worldRules) {
+        html += '<div class="detail-modal__rule"><span class="detail-modal__rule-name">' + esc(rule.name) + '</span>';
+        if (rule.description) html += '<div class="detail-modal__rule-desc">' + esc(rule.description) + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // Characters
+    if (data.characters && data.characters.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Characters (' + data.characters.length + ')</div>';
+      html += '<div class="detail-modal__entity-list">';
+      for (const c of data.characters) {
+        html += entityCard(c.name, c.summary, c.tags, 'char');
+      }
+      html += '</div></div>';
+    }
+
+    // Locations
+    if (data.locations && data.locations.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Locations (' + data.locations.length + ')</div>';
+      html += '<div class="detail-modal__entity-list">';
+      for (const l of data.locations) {
+        html += entityCard(l.name, l.summary, [], 'loc');
+      }
+      html += '</div></div>';
+    }
+
+    // Factions
+    if (data.factions && data.factions.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Factions (' + data.factions.length + ')</div>';
+      html += '<div class="detail-modal__entity-list">';
+      for (const f of data.factions) {
+        html += entityCard(f.name, f.summary, [], 'faction');
+      }
+      html += '</div></div>';
+    }
+
+    // Items
+    if (data.items && data.items.length > 0) {
+      html += '<div class="detail-modal__section">';
+      html += '<div class="detail-modal__section-title">Items (' + data.items.length + ')</div>';
+      html += '<div class="detail-modal__entity-list">';
+      for (const i of data.items) {
+        html += entityCard(i.name, i.summary, [], 'item');
+      }
+      html += '</div></div>';
+    }
+
+    if (!html.includes('detail-modal__entity')) {
+      html += '<div class="detail-modal__empty">No entities yet. Start a new game to populate the world.</div>';
+    }
+
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = '<div class="detail-modal__empty" style="color:var(--accent)">' + esc(e.message) + '</div>';
+  }
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.remove('detail-modal--open');
+}
+
+function statBlock(val, label) {
+  return '<div class="detail-modal__stat"><div class="detail-modal__stat-val">' + val + '</div><div class="detail-modal__stat-label">' + esc(label) + '</div></div>';
+}
+
+function entityCard(name, summary, tags, type) {
+  let html = '<div class="detail-modal__entity">';
+  html += '<span class="detail-modal__entity-dot detail-modal__entity-dot--' + type + '"></span>';
+  html += '<div class="detail-modal__entity-info">';
+  html += '<div class="detail-modal__entity-name">' + esc(name) + '</div>';
+  if (summary) html += '<div class="detail-modal__entity-summary">' + esc(summary) + '</div>';
+  if (tags && tags.length > 0) {
+    html += '<div class="detail-modal__entity-tags">';
+    for (const tag of tags.filter(Boolean)) {
+      html += '<span class="detail-modal__entity-tag">' + esc(tag) + '</span>';
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+document.getElementById('detailModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDetailModal();
+});
 
 loadLang().then(() => loadWorlds());
 </script>

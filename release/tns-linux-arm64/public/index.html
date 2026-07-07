@@ -5,30 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TrueNeverStory — World Engine</title>
 <link href="/static/fonts/fonts.css" rel="stylesheet">
+<link href="/static/theme-dark.css" rel="stylesheet">
+<link href="/static/theme-light.css" rel="stylesheet">
+<link href="/static/theme-terminal.css" rel="stylesheet">
+<link href="/static/theme-cyberpunk.css" rel="stylesheet">
+<link href="/static/theme-custom.css" rel="stylesheet">
+<link href="/static/theme.css" rel="stylesheet">
 <script src="/static/vendor/purify.min.js"></script>
+<script src="/static/theme.js"></script>
 <style>
 :root {
-  --black: #000000;
-  --surface: #080808;
-  --surface-raised: #111111;
-  --surface-hover: #161616;
-  --border: #1A1A1A;
-  --border-visible: #272727;
-  --border-strong: #353535;
-  --text-disabled: #666666;
-  --text-tertiary: #8E8E8E;
-  --text-secondary: #BBBBBB;
-  --text-primary: #E0E0E0;
-  --text-display: #FFFFFF;
-  --accent: #D71921;
-  --accent-subtle: rgba(215,25,33,0.10);
-  --accent-glow: rgba(215,25,33,0.20);
-  --success: #4A9E5C;
-  --success-subtle: rgba(74,158,92,0.12);
-  --warning: #D4A843;
-  --warning-subtle: rgba(212,168,67,0.12);
-  --interactive: #5B9BF6;
-  --interactive-subtle: rgba(91,155,246,0.10);
   --font-display: 'Doto', 'Space Mono', monospace;
   --font-body: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
   --font-mono: 'Space Mono', monospace;
@@ -218,6 +204,7 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <a class="topbar__btn" href="/providers" style="text-decoration:none"><span class="topbar__btn-dot" style="background:var(--warning)"></span><span data-i18n="uiProviders">PROVIDERS</span></a>
       <a class="topbar__btn" href="/worlds" style="text-decoration:none">WORLDS</a>
       <a class="topbar__btn" href="/agents" style="text-decoration:none"><span class="topbar__btn-dot" style="background:var(--success)"></span><span data-i18n="uiAgents">AGENTS</span></a>
+      <a class="topbar__btn" href="/dashboard" style="text-decoration:none"><span class="topbar__btn-dot" style="background:var(--interactive)"></span><span>MONITOR</span></a>
       <a class="topbar__btn" href="/models" style="text-decoration:none"><span class="topbar__btn-dot" style="background:var(--interactive)"></span><span data-i18n="uiModels">MODELS</span></a>
       <a class="topbar__btn" href="/settings" style="text-decoration:none"><span class="topbar__btn-dot" style="background:var(--success)"></span><span data-i18n="uiConfig">CONFIG</span></a>
       <button class="topbar__btn" id="toggleSidebarBtn"><span class="topbar__btn-dot"></span><span data-i18n="uiServer">SERVER</span></button>
@@ -485,7 +472,7 @@ function applyLang(lang){document.querySelectorAll('[data-i18n]').forEach(el=>{c
   });
 
   toggleSidebarBtn.addEventListener('click', function() {
-    sidebar.classList.toggle('sidebar--visible');
+    document.getElementById('app').classList.toggle('app--sidebar-open');
     var mm = document.getElementById('mobileMenu');
     if (mm) mm.classList.remove('mobile-menu--open');
   });
@@ -500,7 +487,7 @@ function applyLang(lang){document.querySelectorAll('[data-i18n]').forEach(el=>{c
     if (mobileSidebarBtn) {
       mobileSidebarBtn.addEventListener('click', function() {
         mobileMenu.classList.remove('mobile-menu--open');
-        sidebar.classList.toggle('sidebar--visible');
+        document.getElementById('app').classList.toggle('app--sidebar-open');
       });
     }
     mobileMenu.querySelectorAll('a').forEach(function(a) {
@@ -542,15 +529,22 @@ function applyLang(lang){document.querySelectorAll('[data-i18n]').forEach(el=>{c
   // Load chat history or show welcome
   async function loadHistory() {
     try {
+      // Fetch version from health endpoint
+      let version = '?';
+      try {
+        const h = await apiFetch('/health');
+        version = h.version || '?';
+      } catch {}
+
       // Check if a character is set
       const session = await apiFetch('/chat/session');
       if (session.active_character) {
-        addMsg('TrueNeverStory v0.12.0 — TypeScript + Mojo', 'msg--accent');
+        addMsg('TrueNeverStory ' + version + ' — TypeScript + Mojo', 'msg--accent');
         addMsg('Character: ' + session.active_character + ' | Location: ' + session.current_location, 'msg--system');
         addMsg('Type a command or describe an action to continue.', 'msg--dim');
         addMsg('', '');
       } else {
-        addMsg('TrueNeverStory v0.12.0 — TypeScript + Mojo', 'msg--accent');
+        addMsg('TrueNeverStory ' + version + ' — TypeScript + Mojo', 'msg--accent');
         addMsg('No character active. Click NEW to create one.', 'msg--dim');
         addMsg('', '');
       }
