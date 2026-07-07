@@ -192,7 +192,7 @@
       previewStyleEl.id = 'preview-override';
       document.head.appendChild(previewStyleEl);
     }
-    previewStyleEl.textContent = '.panel-right{' + css + '}';
+    previewStyleEl.textContent = '[data-theme="custom"]{' + css + '}';
   }
 
   function getComputed(varName) {
@@ -240,22 +240,27 @@
 
   function onPresetClick(key) {
     var preset = PRESETS[key];
-    if (key === 'custom') {
-      if (typeof TNSTheme !== 'undefined') TNSTheme.set('custom');
-      currentVars = getVars();
-      activePreset = detectActivePreset();
-    } else if (preset && preset.vars) {
+    if (!preset) return;
+
+    if (preset.vars) {
       Object.keys(preset.vars).forEach(function(k) { currentVars[k] = preset.vars[k]; });
-      if (typeof TNSTheme !== 'undefined') TNSTheme.set(key);
-      activePreset = key;
     }
+
+    var builtinThemes = ['dark', 'light', 'terminal', 'cyberpunk'];
+    if (builtinThemes.indexOf(key) !== -1) {
+      if (typeof TNSTheme !== 'undefined') TNSTheme.set(key);
+    } else {
+      saveVars(currentVars);
+      if (typeof TNSTheme !== 'undefined') TNSTheme.set('custom');
+    }
+
+    activePreset = key;
     saveVars(currentVars);
     updateColorInputs();
     updateFontInputs();
-    applyVars(currentVars);
     renderPreview();
     renderPresets();
-    toast('Preset: ' + (preset ? preset.label : 'Custom'), true);
+    toast('Preset: ' + preset.label, true);
   }
 
   function detectActivePreset() {
@@ -326,7 +331,7 @@
     if (valEl) valEl.textContent = value;
     activePreset = null;
     saveVars(currentVars);
-    applyVars(currentVars);
+    if (typeof TNSTheme !== 'undefined') TNSTheme.set('custom');
     renderPreview();
     renderPresets();
   }
@@ -372,7 +377,7 @@
     currentVars[fontKey] = value;
     activePreset = null;
     saveVars(currentVars);
-    applyVars(currentVars);
+    if (typeof TNSTheme !== 'undefined') TNSTheme.set('custom');
     renderPreview();
     renderPresets();
   }
@@ -442,9 +447,9 @@
         Object.keys(vars).forEach(function(k) { currentVars[k] = vars[k]; });
         activePreset = detectActivePreset();
         saveVars(currentVars);
+        if (typeof TNSTheme !== 'undefined') TNSTheme.set('custom');
         updateColorInputs();
         updateFontInputs();
-        applyVars(currentVars);
         renderPreview();
         renderPresets();
         toast('Theme imported', true);
@@ -470,9 +475,9 @@
     FONT_OPTIONS.forEach(function(f) { currentVars[f.key] = f.options[0][0]; });
     activePreset = 'dark';
     saveVars(currentVars);
+    if (typeof TNSTheme !== 'undefined') TNSTheme.set('dark');
     updateColorInputs();
     updateFontInputs();
-    applyVars(currentVars);
     renderPreview();
     renderPresets();
     toast('Reset to dark defaults', true);
