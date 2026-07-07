@@ -30,7 +30,6 @@ export function createApp(): Hono {
   // ── Global Middleware ──
   app.use("*", errorHandler);
   app.use("*", requestLogger);
-  app.use("*", rateLimiter);
   app.use("*", securityHeaders);
   app.use(
     "*",
@@ -48,6 +47,25 @@ export function createApp(): Hono {
   app.post("/logout", logoutHandler);
 
   // ── Static assets (no auth needed) ──
+  const MIME: Record<string, string> = {
+    ".css": "text/css; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+    ".ttf": "font/ttf",
+    ".eot": "application/vnd.ms-fontobject",
+    ".map": "application/json; charset=utf-8",
+    ".wasm": "application/wasm",
+  };
+
   app.get("/static/*", (c) => {
     const assetPath = join(PUBLIC_DIR, c.req.path.replace(/^\//, ""));
     const normalizedPub = PUBLIC_DIR.replace(/\\/g, "/");
@@ -57,7 +75,9 @@ export function createApp(): Hono {
     }
     const file = Bun.file(assetPath);
     if (file.size > 0) {
-      return new Response(file);
+      const ext = assetPath.substring(assetPath.lastIndexOf(".")).toLowerCase();
+      const ct = MIME[ext] || "application/octet-stream";
+      return new Response(file, { headers: { "Content-Type": ct } });
     }
     return new Response("Not Found", { status: 404 });
   });
@@ -78,7 +98,8 @@ export function createApp(): Hono {
   app.get("/dashboard", (c) => serveHtml("dashboard.html"));
   app.get("/theme-builder", (c) => serveHtml("theme-builder.html"));
 
-  // ── API Routes ──
+  // ── API Routes (rate limited) ──
+  app.use("/api/*", rateLimiter);
   const routes = createRoutes();
   app.route("/api", routes);
 

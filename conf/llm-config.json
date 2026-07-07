@@ -1,9 +1,9 @@
 {
   "llmPort": 5001,
-  "llmModel": "Gemma 3 1B (Q4_K_M)",
-  "llmThreads": 2,
-  "llmParallel": 2,
-  "llmCtxSize": 8192,
+  "llmModel": "",
+  "llmThreads": 3,
+  "llmParallel": 1,
+  "llmCtxSize": 11264,
   "embedPort": 5002,
   "embedModel": "BGE M3",
   "embedThreads": 1,

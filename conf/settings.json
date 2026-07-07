@@ -1,5 +1,5 @@
 {
-  "language": "en",
+  "language": "ru",
   "llmBaseUrl": "",
   "llmApiKey": "",
   "llmModel": "",
@@ -17,7 +17,7 @@
   "modelTopK": 40,
   "modelRepeatPenalty": 1.1,
   "modelMirostat": 0,
-  "modelMirostatTau": 5.0,
+  "modelMirostatTau": 5,
   "modelMirostatEta": 0.1,
   "embeddingModel": "",
   "embeddingBaseUrl": "",
@@ -29,9 +29,12 @@
   "maxMemoryEntries": 10000,
   "embeddingDimension": 384,
   "similarityThreshold": 0.7,
-  "halfLifeDays": 7.0,
+  "halfLifeDays": 7,
   "globalLuck": 0.5,
   "autoHeal": true,
   "activeWorld": "default",
-  "maxServeUrl": ""
+  "maxServeUrl": "http://localhost:8000",
+  "crossWorldEnabled": false,
+  "crossWorldAllowPortals": true,
+  "crossWorldIsolationLevel": "full"
 }
