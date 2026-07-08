@@ -11,8 +11,8 @@ import { existsSync, readdirSync } from "node:fs";
 const log = getLogger("rules-route");
 const rules = new Hono();
 
-const SOCIAL_DIR = join(process.cwd(), "src", "rules", "social");
-const ECONOMY_DIR = join(process.cwd(), "src", "rules", "economy");
+const SOCIAL_DIR = join(import.meta.dir, "..", "rules", "social");
+const ECONOMY_DIR = join(import.meta.dir, "..", "rules", "economy");
 
 /**
  * GET /api/rules — List available rules.

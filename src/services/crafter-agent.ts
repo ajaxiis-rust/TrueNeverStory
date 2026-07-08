@@ -51,7 +51,7 @@ export class CrafterAgent {
   private _loadRecipes(dataDir?: string): void {
     const paths = [
       dataDir ? join(dataDir, "recipes.json") : null,
-      join(process.cwd(), "src", "data", "recipes.json"),
+      join(import.meta.dir, "..", "data", "recipes.json"),
       join(process.cwd(), "data", "recipes.json"),
     ].filter(Boolean) as string[];
 

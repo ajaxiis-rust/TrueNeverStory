@@ -102,7 +102,7 @@ entities.get("/graph/d3", async (c) => {
     const mode = c.req.query("mode") ?? "relationships";
 
     if (mode === "crafting") {
-      const recipesPath = join(process.cwd(), "src", "data", "recipes.json");
+      const recipesPath = join(import.meta.dir, "..", "data", "recipes.json");
       if (!existsSync(recipesPath)) return c.json({ nodes: [], links: [] });
 
       const raw = JSON.parse(readFileSync(recipesPath, "utf-8"));

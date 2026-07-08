@@ -179,6 +179,7 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 
   <!-- Tab 2: Agents -->
   <div class="tab-panel" id="panel-agents">
+    <div id="quickAssign" style="margin-bottom:12px"></div>
     <div class="agent-tabs" id="agentTabs"></div>
     <div id="agentPanels"></div>
   </div>
@@ -499,6 +500,18 @@ async function loadAgents() {
 
 function renderAgentTabs() {
   const tabs = document.getElementById('agentTabs');
+  const quickDiv = document.getElementById('quickAssign');
+  if (providerOptions.length > 0) {
+    quickDiv.innerHTML = providerOptions.map(p => {
+      const modelBtns = (p.models || []).map(m =>
+        `<button class="btn btn--sm" onclick="assignAll('${esc(p.id)}','${esc(m)}')" title="Assign all to ${esc(p.name)} / ${esc(m)}">${esc(m)}</button>`
+      ).join('');
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text-secondary);min-width:80px;font-weight:500">${esc(p.name)}</span>
+        ${modelBtns || '<span style="font-size:11px;color:var(--text-disabled)">no models</span>'}
+      </div>`;
+    }).join('');
+  }
   tabs.innerHTML = agents.map(a => `
     <button class="agent-tab ${a.id === activeAgent ? 'agent-tab--active' : ''}" onclick="selectAgent('${esc(a.id)}')">
       <span class="agent-tab__dot ${a.enabled ? 'agent-tab__dot--on' : 'agent-tab__dot--off'}"></span>
@@ -589,6 +602,26 @@ function onProviderChange(id) {
   const models = providerOptions.find(p => p.id === prov)?.models || [];
   const sel = document.getElementById('model-' + id);
   sel.innerHTML = models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+}
+
+async function assignAll(providerId, modelId) {
+  if (!confirm(`Assign ALL agents to ${providerId} / ${modelId}?`)) return;
+  const results = [];
+  for (const agent of agents) {
+    try {
+      await apiFetch('/agents/' + agent.id + '?world=' + encodeURIComponent(worldName), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ providerId, modelId }),
+      });
+      results.push({ agentId: agent.id, ok: true });
+    } catch {
+      results.push({ agentId: agent.id, ok: false });
+    }
+  }
+  const success = results.filter(r => r.ok).length;
+  toast(`Assigned ${success}/${results.length} agents`, success === results.length);
+  loadAgents();
 }
 
 async function saveAgentSettings(id) {

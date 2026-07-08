@@ -20,8 +20,8 @@ describe("rateLimiter middleware", () => {
     app.get("/test", (c) => c.text("ok"));
 
     const ip = "test-rate-limit-ip";
-    // Exhaust the bucket (100 requests)
-    for (let i = 0; i < 100; i++) {
+    // Exhaust the bucket (200 requests, matching RATE_LIMIT)
+    for (let i = 0; i < 200; i++) {
       await app.request("/test", { headers: { "x-forwarded-for": ip } });
     }
     // This should hit 429

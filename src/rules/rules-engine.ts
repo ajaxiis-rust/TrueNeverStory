@@ -50,8 +50,8 @@ export interface RulesConfig {
   modifiers?: string[];
 }
 
-const RULES_DIR = join(process.cwd(), "src", "rules", "social");
-const ECONOMY_DIR = join(process.cwd(), "src", "rules", "economy");
+const RULES_DIR = join(import.meta.dir, "social");
+const ECONOMY_DIR = join(import.meta.dir, "economy");
 
 const _rulesCache = new Map<string, SocialRules>();
 
