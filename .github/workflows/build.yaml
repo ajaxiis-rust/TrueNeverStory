@@ -135,10 +135,16 @@ jobs:
           cp -r public/ "$PKG_DIR/" 2>/dev/null || true
           cp -r docs/ "$PKG_DIR/" 2>/dev/null || true
           cp .env.example "$PKG_DIR/" 2>/dev/null || true
-          cp startgame.sh "$PKG_DIR/" 2>/dev/null || true
           cp README*.md "$PKG_DIR/" 2>/dev/null || true
           chmod +x "$PKG_DIR"/tns-server* 2>/dev/null || true
-          chmod +x "$PKG_DIR"/startgame.sh 2>/dev/null || true
+          
+          # Copy platform-specific launch script
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp startgame.ps1 "$PKG_DIR/" 2>/dev/null || true
+          else
+            cp startgame.sh "$PKG_DIR/" 2>/dev/null || true
+            chmod +x "$PKG_DIR"/startgame.sh 2>/dev/null || true
+          fi
           
           echo "=== Package contents ==="
           ls -lh "$PKG_DIR/"

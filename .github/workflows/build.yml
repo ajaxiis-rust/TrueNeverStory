@@ -199,6 +199,7 @@ jobs:
           cp -r docs/ release/tns-windows-x64/
           cp .env.example release/tns-windows-x64/
           cp README*.md release/tns-windows-x64/
+          cp startgame.ps1 release/tns-windows-x64/ 2>/dev/null || true
           cd release && 7z a tns-windows-x64.zip tns-windows-x64/
 
       - uses: actions/upload-artifact@v7
