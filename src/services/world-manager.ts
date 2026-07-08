@@ -9,6 +9,7 @@ import { getConfig } from "../config/env";
 import { getLogger } from "../utils/logger";
 import { getSettings, updateSettings } from "./settings";
 import { RulesEngine } from "../rules/rules-engine";
+import { seedWorldAgents } from "./agent-config";
 
 const log = getLogger("world-manager");
 
@@ -192,6 +193,8 @@ export async function createWorld(params: WorldCreateParams): Promise<WorldSumma
   }
 
   await atomicWriteJson(join(path, "world_frame.json"), frame);
+
+  await seedWorldAgents(name);
 
   log.info({ name, path }, "World created");
   return summarizeWorld(name)!;

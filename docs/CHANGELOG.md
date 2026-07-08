@@ -1,5 +1,81 @@
 # Changelog
 
+## v0.22.1 (2026-07-08)
+
+### World Agent Isolation — Seed Prompts on Creation
+
+Agent prompts are now copied from defaults when creating a new world, with language-appropriate translations. Previously all worlds fell back to shared hardcoded defaults, breaking per-world isolation.
+
+**Changes:**
+- New `seedWorldAgents(worldName)` function seeds all 14 agents into SQLite on world creation
+- `DEFAULT_AGENTS` exported for reuse
+- `createWorld()` calls `seedWorldAgents()` after writing `world_frame.json`
+
+**Files:** `src/services/agent-config.ts`, `src/services/world-manager.ts`
+
+---
+
+### Language Instruction Deduplication
+
+Removed redundant `+ getLanguageInstruction()` appends from 4 agent files and replaced the private `LANG_HINT` map in `dialogue-context.ts` with the shared `getLanguageInstruction()`. Prompts now contain the language instruction baked in at seed time.
+
+**Files:** `src/services/narrator-agent.ts`, `src/services/npc-agent.ts`, `src/services/scene-agent.ts`, `src/services/director-agent.ts`, `src/services/dialogue-context.ts`
+
+---
+
+### World-Aware Agent API
+
+All agent config endpoints now accept `?world=` query param to read/write prompts for a specific world without switching the active world.
+
+**Endpoints updated:**
+- `GET /api/agents?world=X`
+- `GET /api/agents/:id?world=X`
+- `PUT /api/agents/:id?world=X`
+- `PUT /api/agents/:id/prompts?world=X`
+- `POST /api/agents/:id/reset?world=X`
+
+**`loadAllAgentConfigs(world?, lang?)`** now accepts optional world/lang params.
+
+**Files:** `src/routes/agents.ts`, `src/services/agent-config.ts`
+
+---
+
+### JSON Fallback Language Fix
+
+`loadWorldPrompts()` tier 2 (JSON fallback) now skips when a non-active world is requested, preventing cross-world prompt contamination. SQLite is the source of truth for seeded worlds.
+
+**File:** `src/services/agent-config.ts`
+
+---
+
+### Per-World Config UI — `/worlds/:name/config`
+
+New 5-tab configuration page for each world:
+
+| Tab | Content |
+|-----|---------|
+| Description | Edit world title, description, language, genres, rules, magic system |
+| Agents | 14 agent tabs with settings + per-world prompts (scoped via `?world=`) |
+| Statistics | Entity counts, character/location/faction/item lists, session/event/chapter counts |
+| Graph | D3 entity graph visualization (iframe) |
+| Audit | Coming soon — world consistency checking via external God agent |
+
+World cards in `/worlds` now navigate to the config page on click.
+
+**Files:** `public/world-config.html` (new), `src/app.ts`, `public/worlds.html`
+
+---
+
+### Birth Wizard — Character Name Field
+
+Dedicated "Character Name" input field in the birth wizard form. Previously name had to be embedded in hints as `name: Aria`. The regex for hint-based names was also fixed to support non-Latin characters (Cyrillic, accented, etc.) via `/name[:\s]+([\p{L}]+)/iu`.
+
+**Backend:** `POST /launch` now accepts `name` field, passed through `BirthScenario.generateAndApply()` → `generateBirthParams()` → `generateName()`.
+
+**Files:** `src/routes/launch.ts`, `src/services/birth.ts`, `public/worlds.html`
+
+---
+
 ## v0.22.0 (2026-07-07)
 
 ### Per-Provider Rate Limiting

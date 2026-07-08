@@ -1,4 +1,4 @@
-# TrueNeverStory v0.21.0
+# TrueNeverStory v0.22.1
 
 ### 遊ぶだけで、自分の物語を書こう。
 

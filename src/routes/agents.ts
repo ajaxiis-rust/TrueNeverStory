@@ -10,7 +10,6 @@ import {
   loadAllAgentConfigs,
   resetAgentConfig,
   getActiveWorld,
-  getWorldLanguage,
   type AgentConfig,
 } from "../services/agent-config";
 import { getProviderManager } from "../lib/providers";
@@ -41,7 +40,8 @@ function checkWriteLimit(ip: string): boolean {
  * GET /api/agents — List all agents with configs.
  */
 agents.get("/agents", async (c) => {
-  const configs = loadAllAgentConfigs();
+  const world = c.req.query("world") ?? undefined;
+  const configs = loadAllAgentConfigs(world);
   return c.json({ agents: configs });
 });
 
@@ -67,7 +67,8 @@ agents.get("/agents/providers/options", async (c) => {
  * GET /api/agents/:id — Get single agent config.
  */
 agents.get("/agents/:id", async (c) => {
-  const config = loadAgentConfig(c.req.param("id"));
+  const world = c.req.query("world") ?? undefined;
+  const config = loadAgentConfig(c.req.param("id"), world);
   return c.json({ agent: config });
 });
 
@@ -83,7 +84,8 @@ agents.put("/agents/:id", async (c) => {
 
   const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig>;
   const agentId = c.req.param("id");
-  const current = loadAgentConfig(agentId);
+  const world = c.req.query("world") ?? undefined;
+  const current = loadAgentConfig(agentId, world);
   const updated = { ...current, ...body };
 
   // Merge prompts separately to avoid overwriting
@@ -92,7 +94,7 @@ agents.put("/agents/:id", async (c) => {
     log.info({ agentId, ip, promptKeys: Object.keys(body.prompts) }, "Agent prompts updated");
   }
 
-  await saveAgentConfig(agentId, updated);
+  await saveAgentConfig(agentId, updated, world);
 
   // Sync to provider-manager assignments
   if (updated.providerId || updated.modelId) {
@@ -122,10 +124,11 @@ agents.put("/agents/:id/prompts", async (c) => {
 
   const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig["prompts"]>;
   const agentId = c.req.param("id");
-  const current = loadAgentConfig(agentId);
+  const world = c.req.query("world") ?? undefined;
+  const current = loadAgentConfig(agentId, world);
   current.prompts = { ...current.prompts, ...body };
   log.info({ agentId, ip, promptKeys: Object.keys(body) }, "Agent prompts updated directly");
-  await saveAgentConfig(agentId, current);
+  await saveAgentConfig(agentId, current, world);
   return c.json({ status: "saved", prompts: current.prompts });
 });
 

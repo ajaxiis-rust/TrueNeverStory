@@ -1,4 +1,4 @@
-# TrueNeverStory v0.21.0
+# TrueNeverStory v0.22.1
 
 ### Write your book just by playing.
 
@@ -351,7 +351,7 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 
 ## Recent Changes
 
-### v0.21.0 — Theme Builder
+### v0.22.1 — Theme Builder
 
 - Standalone theme builder page at `/theme-builder`
 - 8 preset themes: Dracula, Nord, Monokai, Solarized, Gruvbox, Tokyo Night, One Dark, Catppuccin
@@ -361,7 +361,7 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 - Export/import themes as JSON files
 - Navigation link from settings page
 
-### v0.21.0 — Theme System Fix
+### v0.22.1 — Theme System Fix
 
 - Fixed `theme-custom.css` — corrected CSS variable syntax (was using `var()` instead of `--name: value`)
 - Added missing `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--interactive-subtle` variables to custom theme

@@ -322,4 +322,4 @@ bun test tests/probability-engine.test.ts  # 概率测试
 - **安全eval**: 公式通过递归下降求值（不用eval）
 - **提示词注入防御**: LLM前调用 `sanitizeInput()`
 - **原子JSON写入**: 临时文件 + rename
-- **语言指令注入**: `getLanguageInstruction()` 向代理提示词添加语言指令，使LLM响应与界面语言匹配
+- **语言指令注入**: 语言指令在创建世界时通过`seedWorldAgents()`嵌入代理提示词中，运行时通过`getLanguageInstruction()`为动态NPC对话追加

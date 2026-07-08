@@ -199,6 +199,36 @@ Senden Sie eine private Nachricht an einen beliebigen Agenten aus dem Chat:
 
 Antworten werden mit einem blauen linken Rand und dem Agentennamen in Klammern markiert.
 
+### Sprachanweisungs-Injektion
+
+LLM-Antworten passen sich automatisch der ausgewählten UI-Sprache an. Die Sprachanweisung wird bei der Welt-Erstellung via `seedWorldAgents()` in die Agenten-Prompts eingebettet und zur Laufzeit durch `getLanguageInstruction()` angehängt:
+
+| Sprache | Eingefügter Text |
+|---------|-----------------|
+| en | `IMPORTANT: Always respond in English.` |
+| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
+| de | `WICHTIG: Antworte immer auf Deutsch.` |
+| fr | `IMPORTANT: Réponds toujours en français.` |
+| es | `IMPORTANTE: Responde siempre en español.` |
+| ja | `重要：常に日本語で回答してください。` |
+| zh | `重要：请始终用中文回复。` |
+
+Bei der World-Erstellung schreibt `seedWorldAgents()` alle 14 Agenten mit der Sprachanweisung, die an den System-Prompt angehängt wird. Dies stellt sicher, dass neue Welten mit ordnungsgemäßer Sprachisolation starten. Die Laufzeit-Funktion `getLanguageInstruction()` wird von `dialogue-context.ts` für dynamische NPC-Dialoge verwendet.
+
+### API-Endpunkte für Prompts
+
+| Methode | Pfad | Beschreibung |
+|---------|------|-------------|
+| `GET` | `/api/agents` | Alle Agenten auflisten (akzeptiert `?world=`) |
+| `GET` | `/api/agents/:id` | Einzelne Agenten-Konfiguration abrufen (akzeptiert `?world=`) |
+| `PUT` | `/api/agents/:id` | Agenten-Konfiguration aktualisieren (akzeptiert `?world=`) |
+| `PUT` | `/api/agents/:id/prompts` | Prompts aktualisieren (akzeptiert `?world=`) |
+| `GET` | `/api/agents/:id/prompts/:lang` | Prompts für eine bestimmte Sprache abrufen |
+| `PUT` | `/api/agents/:id/prompts/:lang` | Prompts für eine bestimmte Sprache erstellen/aktualisieren |
+
+**Abfrageparameter:**
+- `world` — optional, Standard ist die aktive Welt aus den Einstellungen. Alle Agenten-Endpunkte unterstützen `?world=` für weltweite Operationen ohne Umschaltung der aktiven Welt.
+
 ## Priorität
 
 Agenten mit höherer Priorität werden zuerst verarbeitet, wenn mehrere LLM-Anfragen in der Warteschlange stehen.

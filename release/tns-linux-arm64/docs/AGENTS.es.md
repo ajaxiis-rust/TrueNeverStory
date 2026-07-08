@@ -214,3 +214,47 @@ Los agentes con mayor prioridad se procesan primero cuando hay múltiples solici
 | chronicler | 5 |
 | social-sim | 4 |
 | researcher | 3 (la más baja) |
+
+### Inyección de instrucción de idioma
+
+Las respuestas del LLM coinciden automáticamente con el idioma seleccionado de la interfaz de usuario. La instrucción de idioma se integra en los prompts de los agentes durante la inicialización a través de `seedWorldAgents()`, y también se agrega en tiempo de ejecución por `getLanguageInstruction()`:
+
+| Idioma | Texto inyectado |
+|--------|-----------------|
+| en | `IMPORTANT: Always respond in English.` |
+| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
+| de | `WICHTIG: Antworte immer auf Deutsch.` |
+| fr | `IMPORTANT: Réponds toujours en français.` |
+| es | `IMPORTANTE: Responde siempre en español.` |
+| ja | `重要：常に日本語で回答してください。` |
+| zh | `重要：请始终用中文回复。` |
+
+En la creación del mundo, `seedWorldAgents()` escribe los 14 agentes con la instrucción de idioma agregada al prompt del sistema. Esto asegura que los nuevos mundos comiencen con un aislamiento de idioma adecuado. La función de ejecución `getLanguageInstruction()` es utilizada por `dialogue-context.ts` para diálogos dinámicos de NPC.
+
+### Puntos de extremidad API para prompts
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/agents` | Listar todos los agentes (acepta `?world=`) |
+| `GET` | `/api/agents/:id` | Obtener configuración de un agente (acepta `?world=`) |
+| `PUT` | `/api/agents/:id` | Actualizar configuración de un agente (acepta `?world=`) |
+| `PUT` | `/api/agents/:id/prompts` | Actualizar prompts (acepta `?world=`) |
+| `GET` | `/api/agents/:id/prompts/:lang` | Obtener prompts para un idioma específico |
+| `PUT` | `/api/agents/:id/prompts/:lang` | Insertar/actualizar prompts para un idioma específico |
+
+**Parámetros de consulta:**
+- `world` — opcional, por defecto toma el mundo activo de la configuración. Todos los puntos de extremidad de agentes soportan `?world=` para operaciones por mundo sin cambiar el mundo activo.
+
+**Ejemplo de respuesta:**
+```json
+{
+  "agentId": "narrator",
+  "language": "ru",
+  "world": "levant",
+  "prompts": {
+    "systemPrompt": "...",
+    "userTemplate": "...",
+    "outputFormat": "..."
+  }
+}
+```

@@ -1,4 +1,4 @@
-# TrueNeverStory v0.21.0
+# TrueNeverStory v0.22.1
 
 ### Пиши свою книгу просто играя.
 
@@ -351,7 +351,7 @@ bun build --compile --outfile tns-server src/index.ts
 
 ## Недавние изменения
 
-### v0.21.0 — Исправление системы тем
+### v0.22.1 — Исправление системы тем
 
 - Исправлен `theme-custom.css` — корректный синтаксис CSS-переменных (было `var()` вместо `--name: value`)
 - Добавлены недостающие переменные `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--interactive-subtle` в пользовательскую тему

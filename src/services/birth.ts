@@ -494,8 +494,20 @@ async function generateName(
   socialClass: SocialClass,
   family: FamilyTree,
   hints: string,
+  explicitName?: string,
 ): Promise<string> {
-  const nameMatch = hints.match(/name[:\s]+([A-Za-z]+)/i);
+  if (explicitName) {
+    let base = explicitName;
+    let counter = 1;
+    let name = base;
+    while (entityStore.getByNameAndType(name, "Character")) {
+      name = `${base}_${counter}`;
+      counter++;
+    }
+    return name;
+  }
+
+  const nameMatch = hints.match(/name[:\s]+([\p{L}]+)/iu);
   if (nameMatch?.[1]) {
     let base = nameMatch[1];
     let counter = 1;
@@ -622,6 +634,7 @@ async function generateBirthParams(
   userHints: string,
   isekai: boolean,
   startingAge: number,
+  characterName?: string,
 ): Promise<BirthParameters> {
   const { race, probability: raceProb } = rollRace(deps.worldFrame, userHints);
   const raceRoll = Math.random();
@@ -646,7 +659,7 @@ async function generateBirthParams(
     reincarnation = await generateReincarnation(deps.llmQueue, deps.worldFrame, userHints);
   }
 
-  const name = await generateName(deps.llmQueue, deps.entityStore, race, socialClass, family, userHints);
+  const name = await generateName(deps.llmQueue, deps.entityStore, race, socialClass, family, userHints, characterName);
   const { birthplace, initialLocation } = determineLocations(deps.worldFrame);
   const gender = pickGender(userHints);
 
@@ -920,9 +933,10 @@ export class BirthScenario {
     userHints = "",
     isekai = false,
     startingAge = 5,
+    characterName?: string,
   ): Promise<{ openingNarrative: string; params: BirthParameters }> {
     // Generate
-    const params = await generateBirthParams(this._deps, userHints, isekai, startingAge);
+    const params = await generateBirthParams(this._deps, userHints, isekai, startingAge, characterName);
 
     // Apply to world
     log.info("Applying birth for %s", params.character_name);

@@ -7,7 +7,7 @@ import type { LLMQueue } from "../lib/llm-queue";
 import { TaskPriority } from "../models/director";
 import { PromptBuilder } from "./prompt-builder";
 import { resolveTemplate } from "../utils/template-resolver";
-import { loadAgentConfig, getLanguageInstruction } from "./agent-config";
+import { loadAgentConfig } from "./agent-config";
 import type { ServiceMessageContext } from "./roleplay-engine";
 import { MemoryEngine } from "./memory-engine";
 import { BehaviorEngine } from "./behavior-engine";
@@ -96,7 +96,7 @@ ${ctx.recentEvents.slice(-5).map(e => `- ${e}`).join("\n") || "None"}
 
 Private message: "${ctx.message}"
 
-Respond with your expertise on NPC behavior, dialogue suggestions, or character interaction advice. Keep it concise.${getLanguageInstruction()}`;
+Respond with your expertise on NPC behavior, dialogue suggestions, or character interaction advice. Keep it concise.`;
 
     const response = await this._llmQueue.generateText(
       prompt, TaskPriority.NORMAL, 0.7, NPC_AGENT_ID,

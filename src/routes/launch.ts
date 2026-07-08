@@ -36,6 +36,7 @@ launch.post("/launch", async (c) => {
   const hints = (body.hints as string) ?? "";
   const isekai = (body.isekai as boolean) ?? false;
   const startingAge = (body.starting_age as number) ?? 5;
+  const characterName = (body.name as string)?.trim() ?? "";
 
   try {
     const birthScenario = _narrativeCtx.createBirthScenario();
@@ -43,6 +44,7 @@ launch.post("/launch", async (c) => {
       hints,
       isekai,
       startingAge,
+      characterName,
     );
 
     const sessionId = `newgame_${params.character_name.toLowerCase().replace(/\s+/g, "_")}`;

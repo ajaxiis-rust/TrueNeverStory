@@ -322,4 +322,4 @@ bun test tests/probability-engine.test.ts  # Tests de probabilidades
 - **Eval seguro**: Fórmulas vía descenso recursivo (sin eval)
 - **Defensa anti inyección**: `sanitizeInput()` antes del LLM
 - **Escritura JSON atómica**: via archivo temp + rename
-- **Inyección de idioma**: `getLanguageInstruction()` agrega una directiva de idioma a los prompts de agentes para que las respuestas LLM coincidan con el idioma de la interfaz
+- **Inyección de idioma**: Las directivas de idioma se incrustan en los prompts de agentes al crear el mundo mediante `seedWorldAgents()`, y también se agregan en tiempo de ejecución mediante `getLanguageInstruction()` para diálogos NPC dinámicos

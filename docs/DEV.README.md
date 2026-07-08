@@ -568,4 +568,4 @@ World statistics available via `GET /api/worlds/:name/detail` — returns entity
 - **Prompt injection defense**: `sanitizeInput()` strips common injection patterns before LLM
 - **Atomic JSON writes**: `atomicWriteJson()` uses temp file + rename for crash safety
 - **Event-driven**: `EventBus` decouples services (entity creation, memory events, etc.)
-- **Language instruction injection**: `getLanguageInstruction()` appends a language directive to agent prompts so LLM responses match the UI language
+- **Language instruction injection**: Language directives are baked into agent prompts at world creation via `seedWorldAgents()`, and also appended at runtime by `getLanguageInstruction()` for dynamic NPC dialogue

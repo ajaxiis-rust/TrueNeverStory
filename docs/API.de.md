@@ -338,14 +338,22 @@ Verwaiste Embeddings bereinigen.
 ### `GET /agents`
 Alle konfigurierten Agenten auflisten.
 
+Abfrageparameter: `world` — optional, Filterung nach bestimmter Welt
+
 ### `GET /agents/:id`
 Einzelne Agentenkonfiguration abrufen.
+
+Abfrageparameter: `world` — optional, Laden aus bestimmter Welt
 
 ### `PUT /agents/:id`
 Agentenkonfiguration aktualisieren (Modell, Temperatur, Prompts usw.). Rate-Limit: 30/Min/IP.
 
+Abfrageparameter: `world` — optional, Speichern in bestimmter Welt
+
 ### `PUT /agents/:id/prompts`
 Nur Prompts des Agenten aktualisieren.
+
+Abfrageparameter: `world` — optional, Speichern in bestimmter Welt
 
 ### `POST /agents/:id/reset`
 Agenten auf Standardwerte zurücksetzen.
@@ -438,7 +446,9 @@ Verfügbare UI-Sprachen auflisten (EN, RU, DE, FR, ES, JA, ZH).
 ### `POST /launch`
 Neue Spielsitzung mit Charaktergenerierung erstellen.
 
-**Anfrage:** `{ hints?: string, isekai?: boolean, starting_age?: number }`
+**Anfrage:** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
+
+`name` — expliziter Charaktername (optional). Wenn angegeben, wird die LLM-Namensgenerierung übersprungen. Unterstützt nicht-lateinische Zeichen.
 
 **Antwort:** `{ status: "success", session_id, character_name, opening_narrative, url }`
 

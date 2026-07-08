@@ -382,4 +382,4 @@ bun test tests/probability-engine.test.ts  # Wahrscheinlichkeits-Tests
 - **Sicherer Eval**: Formeln via rekursivem Abstieg (kein eval)
 - **Prompt-Injection-Verteidigung**: `sanitizeInput()` vor LLM
 - **Atomare JSON-Schreibvorgänge**: via Temp-File + Rename
-- **Sprach-Injektion**: `getLanguageInstruction()` fügt Agent-Prompts eine Sprachdirektive hinzu, damit LLM-Antworten der UI-Sprache entsprechen
+- **Sprach-Injektion**: Sprachdirektiven werden bei der Welterschreibung via `seedWorldAgents()` in Agent-Prompts eingebrannt und zur Laufzeit durch `getLanguageInstruction()` für dynamische NPC-Dialoge angehängt

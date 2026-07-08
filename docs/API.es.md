@@ -338,14 +338,22 @@ Limpiar embeddings huérfanos.
 ### `GET /agents`
 Listar todos los agentes configurados.
 
+Parámetros de consulta: `world` — opcional, filtrado por mundo específico
+
 ### `GET /agents/:id`
 Configuración de un agente.
+
+Parámetros de consulta: `world` — opcional, carga desde mundo específico
 
 ### `PUT /agents/:id`
 Actualizar configuración de un agente (modelo, temperatura, prompts, etc.). Límite: 30 req/min/IP.
 
+Parámetros de consulta: `world` — opcional, guardado en mundo específico
+
 ### `PUT /agents/:id/prompts`
 Actualizar solo los prompts de un agente.
+
+Parámetros de consulta: `world` — opcional, guardado en mundo específico
 
 ### `POST /agents/:id/reset`
 Restablecer un agente a valores predeterminados.
@@ -438,7 +446,9 @@ Listar idiomas de interfaz disponibles (EN, RU, DE, FR, ES, JA, ZH).
 ### `POST /launch`
 Crear una nueva sesión de juego con generación de personaje.
 
-**Solicitud:** `{ hints?: string, isekai?: boolean, starting_age?: number }`
+**Solicitud:** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
+
+`name` — nombre explícito del personaje (opcional). Si se proporciona, omite la generación de nombre por LLM. Soporta caracteres no latinos.
 
 **Respuesta:** `{ status: "success", session_id, character_name, opening_narrative, url }`
 

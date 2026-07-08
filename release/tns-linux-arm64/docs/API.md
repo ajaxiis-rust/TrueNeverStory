@@ -311,14 +311,22 @@ Clean orphaned embeddings.
 ### `GET /agents`
 List all configured agents.
 
+**Query params:** `world` — optional, filter by specific world
+
 ### `GET /agents/:id`
 Get single agent configuration.
+
+**Query params:** `world` — optional, filter by specific world
 
 ### `PUT /agents/:id`
 Update agent config (model, temperature, prompts, etc.). Rate-limited: 30/min/IP.
 
+**Query params:** `world` — optional, filter by specific world
+
 ### `PUT /agents/:id/prompts`
 Update only prompts for an agent.
+
+**Query params:** `world` — optional, filter by specific world
 
 ### `POST /agents/:id/reset`
 Reset agent to defaults.
@@ -411,7 +419,9 @@ List available UI languages (EN, RU, DE, FR, ES, JA, ZH).
 ### `POST /launch`
 Create a new game session with character generation.
 
-**Request:** `{ hints?: string, isekai?: boolean, starting_age?: number }`
+**Request:** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
+
+- `name` — optional, name for the game session
 
 **Response:** `{ status: "success", session_id, character_name, opening_narrative, url }`
 

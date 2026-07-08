@@ -7,7 +7,7 @@ import type { LLMQueue } from "../lib/llm-queue";
 import { TaskPriority } from "../models/director";
 import { PromptBuilder } from "./prompt-builder";
 import { resolveTemplate } from "../utils/template-resolver";
-import { loadAgentConfig, getLanguageInstruction } from "./agent-config";
+import { loadAgentConfig } from "./agent-config";
 import type { StoryContext } from "../models/story";
 import type { ServiceMessageContext } from "./roleplay-engine";
 
@@ -160,7 +160,7 @@ ${history}
 
 Private message from the user: "${ctx.message}"
 
-Respond to their request. You may provide narrative context, answer questions about the world, or discuss story direction. Keep your response concise.${getLanguageInstruction()}`;
+Respond to their request. You may provide narrative context, answer questions about the world, or discuss story direction. Keep your response concise.`;
 
     const response = await this._llmQueue.generateText(
       prompt, TaskPriority.NORMAL, 0.7, NARRATOR_AGENT_ID,

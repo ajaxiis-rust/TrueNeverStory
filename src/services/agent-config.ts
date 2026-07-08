@@ -126,7 +126,7 @@ function getStoreForWorld(world?: string): SQLiteStore {
 
 // ── Default agent list ──
 
-const DEFAULT_AGENTS = [
+export const DEFAULT_AGENTS = [
   { id: "narrator", name: "Narrator", description: "Generates world narrative from story context", priority: 10 },
   { id: "director", name: "Director", description: "Integrates story beats and plot hooks into narrative", priority: 8 },
   { id: "scene", name: "Scene Generator", description: "Generates scene transition narratives when characters move", priority: 7 },
@@ -309,6 +309,26 @@ function getDefaultPrompts(agentId: string, lang?: string): AgentPromptConfig | 
   return ALL_PROMPTS[l]?.[agentId] ?? DEFAULT_PROMPTS[agentId];
 }
 
+// ── Seed agents for new world ──
+
+export async function seedWorldAgents(worldName: string): Promise<void> {
+  const lang = getWorldLanguage(worldName);
+  const store = getStoreForWorld(worldName);
+  try {
+    for (const agent of DEFAULT_AGENTS) {
+      const base = getDefaultPrompts(agent.id, lang);
+      if (!base) continue;
+      const prompts: AgentPromptConfig = LANG_INSTRUCTION[lang]
+        ? { ...base, systemPrompt: base.systemPrompt + LANG_INSTRUCTION[lang] }
+        : { ...base };
+      store.upsertAgentPrompts(worldName, agent.id, lang, prompts);
+    }
+    log.info({ worldName, lang, count: DEFAULT_AGENTS.length }, "Seeded agent prompts");
+  } finally {
+    store.close();
+  }
+}
+
 // ── Global assignments ──
 
 function loadGlobalAssignments(): AgentAssignment[] {
@@ -341,11 +361,14 @@ function loadWorldPrompts(agentId: string, world?: string, lang?: string): Agent
     log.warn({ agentId, world, lang, error: e }, "SQLite read failed, falling back to JSON");
   }
 
-  // 2. Fallback: existing JSON file
-  const path = getWorldAgentPath(agentId);
-  if (existsSync(path)) {
-    const data = readJsonFileSync<{ prompts?: AgentPromptConfig }>(path);
-    if (data?.prompts) return data.prompts;
+  // 2. Fallback: existing JSON file (only for active world)
+  const activeWorld = getActiveWorld();
+  if (!world || world === activeWorld) {
+    const path = getWorldAgentPath(agentId);
+    if (existsSync(path)) {
+      const data = readJsonFileSync<{ prompts?: AgentPromptConfig }>(path);
+      if (data?.prompts) return data.prompts;
+    }
   }
 
   // 3. Language-aware defaults
@@ -429,8 +452,8 @@ export async function saveAgentConfig(agentId: string, config: AgentConfig, worl
   log.info({ agentId }, "Agent config saved");
 }
 
-export function loadAllAgentConfigs(): AgentConfig[] {
-  return DEFAULT_AGENTS.map(a => loadAgentConfig(a.id));
+export function loadAllAgentConfigs(world?: string, lang?: string): AgentConfig[] {
+  return DEFAULT_AGENTS.map(a => loadAgentConfig(a.id, world, lang));
 }
 
 export async function resetAgentConfig(agentId: string): Promise<AgentConfig> {

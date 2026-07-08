@@ -311,14 +311,22 @@ FAISS ベクトルインデックスを再構築。
 ### `GET /agents`
 設定されたすべてのエージェントを一覧表示。
 
+**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
+
 ### `GET /agents/:id`
 個々のエージェントの設定を取得。
+
+**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
 
 ### `PUT /agents/:id`
 エージェントの設定を更新（モデル、温度、プロンプトなど）。レート制限: 30件/分/IP。
 
+**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
+
 ### `PUT /agents/:id/prompts`
 エージェントのプロンプトのみを更新。
+
+**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
 
 ### `POST /agents/:id/reset`
 エージェントをデフォルト設定にリセット。
@@ -411,7 +419,9 @@ API キーを削除。
 ### `POST /launch`
 キャラクター生成付きの新しいゲームセッションを作成。
 
-**リクエスト:** `{ hints?: string, isekai?: boolean, starting_age?: number }`
+**リクエスト:** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
+
+- `name` — オプション、ゲームセッションの名前
 
 **レスポンス:** `{ status: "success", session_id, character_name, opening_narrative, url }`
 

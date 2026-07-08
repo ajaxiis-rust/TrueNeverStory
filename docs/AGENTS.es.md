@@ -199,6 +199,36 @@ Envíe un mensaje privado a cualquier agente desde el chat:
 
 Las respuestas se marcan con un borde azul a la izquierda y el nombre del agente entre corchetes.
 
+### Inyección de instrucción de idioma
+
+Las respuestas del LLM coinciden automáticamente con el idioma de la interfaz seleccionado. La instrucción de idioma se incorpora a los prompts de los agentes en el momento de la creación del mundo mediante `seedWorldAgents()`, y también se agrega en tiempo de ejecución mediante `getLanguageInstruction()`:
+
+| Idioma | Texto inyectado |
+|--------|-----------------|
+| en | `IMPORTANT: Always respond in English.` |
+| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
+| de | `WICHTIG: Antworte immer auf Deutsch.` |
+| fr | `IMPORTANT: Réponds toujours en français.` |
+| es | `IMPORTANTE: Responde siempre en español.` |
+| ja | `重要：常に日本語で回答してください。` |
+| zh | `重要：请始终用中文回复。` |
+
+Al crear el mundo, `seedWorldAgents()` escribe los 14 agentes con la instrucción de idioma añadida al prompt del sistema. Esto asegura que los nuevos mundos comiencen con un aislamiento de idioma adecuado. La función de ejecución `getLanguageInstruction()` es utilizada por `dialogue-context.ts` para diálogos dinámicos de NPCs.
+
+### Puntos finales de API para prompts
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/agents` | Listar todos los agentes (acepta `?world=`) |
+| `GET` | `/api/agents/:id` | Obtener configuración de un agente (acepta `?world=`) |
+| `PUT` | `/api/agents/:id` | Actualizar configuración de un agente (acepta `?world=`) |
+| `PUT` | `/api/agents/:id/prompts` | Actualizar prompts (acepta `?world=`) |
+| `GET` | `/api/agents/:id/prompts/:lang` | Obtener prompts para un idioma específico |
+| `PUT` | `/api/agents/:id/prompts/:lang` | Crear o actualizar prompts para un idioma específico |
+
+**Parámetros de consulta:**
+- `world` — opcional, por defecto el mundo activo de la configuración. Todos los puntos finales de agentes soportan `?world=` para operaciones por mundo sin cambiar el mundo activo.
+
 ## Prioridad
 
 Los agentes con mayor prioridad se procesan primero cuando hay múltiples solicitudes LLM en cola.

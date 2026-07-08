@@ -370,7 +370,7 @@ CREATE TABLE agent_prompts (
 
 ### Language Instruction Injection
 
-LLM responses automatically match the selected UI language. `getLanguageInstruction()` in `src/services/agent-config.ts` appends a language directive to all agent prompts:
+LLM responses automatically match the selected UI language. The language instruction is baked into agent prompts at seed time via `seedWorldAgents()`, and also appended at runtime by `getLanguageInstruction()`:
 
 | Language | Injected text |
 |----------|--------------|
@@ -382,18 +382,21 @@ LLM responses automatically match the selected UI language. `getLanguageInstruct
 | ja | `重要：常に日本語で回答してください。` |
 | zh | `重要：请始终用中文回复。` |
 
-Injected into: narrator, director, scene, NPC, dialogue-context. The instruction is appended to the end of the resolved userTemplate before sending to LLM.
+At world creation, `seedWorldAgents()` writes all 14 agents with the language instruction appended to the system prompt. This ensures new worlds start with proper language isolation. The runtime `getLanguageInstruction()` is used by `dialogue-context.ts` for dynamic NPC dialogue.
 
 ### API Endpoints for Prompts
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/agents/:id/prompts` | Get prompts for active world + world language |
+| `GET` | `/api/agents` | List all agents (accepts `?world=`) |
+| `GET` | `/api/agents/:id` | Get single agent config (accepts `?world=`) |
+| `PUT` | `/api/agents/:id` | Update agent config (accepts `?world=`) |
+| `PUT` | `/api/agents/:id/prompts` | Update prompts (accepts `?world=`) |
 | `GET` | `/api/agents/:id/prompts/:lang` | Get prompts for a specific language |
 | `PUT` | `/api/agents/:id/prompts/:lang` | Upsert prompts for a specific language |
 
 **Query parameters:**
-- `world` — optional, defaults to active world from settings
+- `world` — optional, defaults to active world from settings. All agent endpoints support `?world=` for per-world operations without switching the active world.
 
 **Example response:**
 ```json
