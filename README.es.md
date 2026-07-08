@@ -1,4 +1,4 @@
-# TrueNeverStory v0.22.1
+# TrueNeverStory v0.22.2
 
 ### Escribe tu libro solo jugando.
 
@@ -301,7 +301,7 @@ bun run dev
 
 ## Últimos cambios
 
-### v0.22.1 — Corrección sistema temas
+### v0.22.2 — Corrección sistema temas
 
 - Corrección de `theme-custom.css` — sintaxis de variables CSS corregida (usaba `var()` en lugar de `--name: value`)
 - Variables faltantes `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--interactive-subtle` agregadas al tema personalizado

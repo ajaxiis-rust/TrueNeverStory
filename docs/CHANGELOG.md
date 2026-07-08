@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.22.2 (2026-07-08)
+
+### Birth Tab in World Config
+
+New "Birth" tab in `/worlds/:name/config` page with full birth wizard form: Character Name, Hints, Starting Age, Isekai Mode. Creates hero directly from the world config page.
+
+### Cross-Platform Launch Scripts
+
+- `startgame.ps1` — new PowerShell launcher for Windows with auto-detection of Ollama/LM Studio/vLLM/OpenAI
+- `startgame.sh` updated for macOS (sysctl, lsof, ipconfig fallbacks)
+- Release archives now contain platform-specific scripts: `.sh` for Linux/macOS, `.ps1` for Windows
+
+### CI Fix
+
+- `build.yaml`: platform-specific launch script packaging (startgame.sh for Linux/macOS, startgame.ps1 for Windows)
+- `build.yml`: added startgame.ps1 to Windows package
+
+---
+
 ## v0.22.1 (2026-07-08)
 
 ### World Agent Isolation — Seed Prompts on Creation

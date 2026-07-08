@@ -1,4 +1,4 @@
-# TrueNeverStory v0.22.1
+# TrueNeverStory v0.22.2
 
 ### 玩着写你的书。
 
@@ -301,7 +301,7 @@ bun run dev
 
 ## 最近更改
 
-### v0.22.1 — 主题系统修复
+### v0.22.2 — 主题系统修复
 
 - 修复`theme-custom.css` — 修正CSS变量语法（之前使用`var()`而非`--name: value`）
 - 为自定义主题添加缺失的变量`--accent-subtle`、`--success-subtle`、`--warning-subtle`、`--interactive-subtle`

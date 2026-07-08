@@ -1,4 +1,4 @@
-# TrueNeverStory v0.22.1
+# TrueNeverStory v0.22.2
 
 ### Write your book just by playing.
 
@@ -367,7 +367,7 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 
 ## Recent Changes
 
-### v0.22.1 — Theme System Fix
+### v0.22.2 — Theme System Fix
 
 - Fixed `theme-custom.css` — corrected CSS variable syntax (was using `var()` instead of `--name: value`)
 - Added missing `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--interactive-subtle` variables to custom theme
