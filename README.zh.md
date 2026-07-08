@@ -67,15 +67,33 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，
 
 ### 2. 运行
 
+启动器会自动检测您的LLM提供商（Ollama、LM Studio、OpenAI、llama.cpp），配置`.env`并启动服务器。
+
 ```bash
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh
 
-# Windows
-tns-server.exe
+# Windows (PowerShell)
+# 解压 tns-windows-x64.zip 后：
+.\startgame.ps1
+```
+
+**启动选项:**
+```bash
+./startgame.sh --local    # CORS=localhost 仅限（开发安全）
+./startgame.sh --remote   # CORS=*（默认，允许外部访问）
+```
+
+**从源码构建（需要Bun）:**
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+./startgame.sh            # Linux/macOS
+.\startgame.ps1           # Windows PowerShell
 ```
 
 ### 3. 打开

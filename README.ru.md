@@ -69,16 +69,33 @@ TrueNeverStory — ИИ-движок интерактивных нарратив
 
 ### 2. Запустить
 
+Лаунчер автоматически определяет вашего LLM-провайдера (Ollama, LM Studio, OpenAI, llama.cpp), настраивает `.env` и запускает сервер.
+
 ```bash
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh
 
-# Windows
+# Windows (PowerShell)
 # Распаковать tns-windows-x64.zip, затем:
-tns-server.exe
+.\startgame.ps1
+```
+
+**Параметры запуска:**
+```bash
+./startgame.sh --local    # CORS=localhost только (безопасно для разработки)
+./startgame.sh --remote   # CORS=* (по умолчанию, разрешает внешний доступ)
+```
+
+**Из исходников (требуется Bun):**
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+./startgame.sh            # Linux/macOS
+.\startgame.ps1           # Windows PowerShell
 ```
 
 ### 3. Открыть

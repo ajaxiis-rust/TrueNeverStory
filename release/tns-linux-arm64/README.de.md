@@ -63,12 +63,29 @@ Das neueste Release für deine Plattform von [GitHub Releases](https://github.co
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh          # Standard: --remote
 
-# Windows
-tns-server.exe
+# Windows PowerShell
+tar xzf tns-windows-x64.zip
+cd tns-windows-x64
+.\startgame.ps1         # Standard: --remote
 ```
+
+Startoptionen:
+- `--local` — mit lokaler Ollama-Instanz verbinden
+- `--remote` — Remote-LLM-API verwenden (Standard)
+
+#### Aus dem Quellcode
+
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+bun run dev
+```
+
+Öffne **http://localhost:8000**
 
 ### 3. Öffnen
 

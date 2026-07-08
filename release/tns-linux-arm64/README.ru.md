@@ -65,13 +65,29 @@ TrueNeverStory — ИИ-движок интерактивных нарратив
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh          # по умолчанию: --remote
 
-# Windows
-# Распаковать tns-windows-x64.zip, затем:
-tns-server.exe
+# Windows PowerShell
+tar xzf tns-windows-x64.zip
+cd tns-windows-x64
+.\startgame.ps1         # по умолчанию: --remote
 ```
+
+Параметры запуска:
+- `--local` — подключиться к локальному экземпляру Ollama
+- `--remote` — использовать удалённый API LLM (по умолчанию)
+
+#### Из исходного кода
+
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+bun run dev
+```
+
+Откройте **http://localhost:8000**
 
 ### 3. Открыть
 

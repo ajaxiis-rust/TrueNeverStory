@@ -71,12 +71,29 @@ Construido en TypeScript (Bun + Hono) con kernels de cómputo C FFI para operaci
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh          # por defecto: --remote
 
-# Windows
-tns-server.exe
+# Windows PowerShell
+tar xzf tns-windows-x64.zip
+cd tns-windows-x64
+.\startgame.ps1         # por defecto: --remote
 ```
+
+Opciones de lanzamiento:
+- `--local` — conectar a una instancia local de Ollama
+- `--remote` — usar la API LLM remota (por defecto)
+
+#### Desde código fuente
+
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+bun run dev
+```
+
+Abre **http://localhost:8000**
 
 ### 3. Abrir
 

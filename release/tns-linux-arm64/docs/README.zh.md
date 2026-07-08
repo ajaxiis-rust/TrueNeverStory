@@ -71,12 +71,29 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh          # 默认: --remote
 
-# Windows
-tns-server.exe
+# Windows PowerShell
+tar xzf tns-windows-x64.zip
+cd tns-windows-x64
+.\startgame.ps1         # 默认: --remote
 ```
+
+启动选项:
+- `--local` — 连接到本地 Ollama 实例
+- `--remote` — 使用远程 LLM API（默认）
+
+#### 从源码运行
+
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+bun run dev
+```
+
+打开 **http://localhost:8000**
 
 ### 3. 打开
 

@@ -67,15 +67,33 @@ TypeScript (Bun + Hono) とC FFIカーネルによるハイブリッド構成。
 
 ### 2. 実行
 
+ランチャーはLLMプロバイダー（Ollama、LM Studio、OpenAI、llama.cpp）を自動検出し、`.env`を設定してサーバーを起動します。
+
 ```bash
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh
 
-# Windows
-tns-server.exe
+# Windows (PowerShell)
+# tns-windows-x64.zipを展開後：
+.\startgame.ps1
+```
+
+**起動オプション:**
+```bash
+./startgame.sh --local    # CORS=localhost のみ（開発向け）
+./startgame.sh --remote   # CORS=*（デフォルト、外部アクセスを許可）
+```
+
+**ソースから（Bunが必要）:**
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+./startgame.sh            # Linux/macOS
+.\startgame.ps1           # Windows PowerShell
 ```
 
 ### 3. オープン

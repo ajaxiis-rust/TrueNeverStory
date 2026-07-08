@@ -71,12 +71,29 @@ TypeScript (Bun + Hono) とC FFIカーネルによるハイブリッド構成。
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh          # デフォルト: --remote
 
-# Windows
-tns-server.exe
+# Windows PowerShell
+tar xzf tns-windows-x64.zip
+cd tns-windows-x64
+.\startgame.ps1         # デフォルト: --remote
 ```
+
+起動オプション:
+- `--local` — ローカルの Ollama インスタンスに接続
+- `--remote` — リモート LLM API を使用（デフォルト）
+
+#### ソースから実行
+
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+bun run dev
+```
+
+**http://localhost:8000** を開く
 
 ### 3. オープン
 

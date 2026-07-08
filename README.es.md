@@ -67,15 +67,33 @@ Construido en TypeScript (Bun + Hono) con kernels de cómputo C FFI para operaci
 
 ### 2. Ejecutar
 
+El launcher detecta automáticamente tu proveedor LLM (Ollama, LM Studio, OpenAI, llama.cpp), configura `.env` e inicia el servidor.
+
 ```bash
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh
 
-# Windows
-tns-server.exe
+# Windows (PowerShell)
+# Descomprimir tns-windows-x64.zip, luego:
+.\startgame.ps1
+```
+
+**Opciones de inicio:**
+```bash
+./startgame.sh --local    # CORS=localhost solo (seguro para desarrollo)
+./startgame.sh --remote   # CORS=* (por defecto, permite acceso externo)
+```
+
+**Desde código fuente (requiere Bun):**
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+./startgame.sh            # Linux/macOS
+.\startgame.ps1           # Windows PowerShell
 ```
 
 ### 3. Abrir

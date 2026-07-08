@@ -94,15 +94,33 @@ Dernière release sur [GitHub Releases](https://github.com/ajaxiis-rust/TrueNeve
 
 ### 2. Lancer
 
+Le lanceur détecte automatiquement votre fournisseur LLM (Ollama, LM Studio, OpenAI, llama.cpp), configure `.env` et lance le serveur.
+
 ```bash
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh
 
-# Windows
-tns-server.exe
+# Windows (PowerShell)
+# Extraire tns-windows-x64.zip, puis :
+.\startgame.ps1
+```
+
+**Options de lancement :**
+```bash
+./startgame.sh --local    # CORS=localhost uniquement (sécurisé pour le dev)
+./startgame.sh --remote   # CORS=* (par défaut, accès externe autorisé)
+```
+
+**Depuis les sources (requis Bun) :**
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+./startgame.sh            # Linux/macOS
+.\startgame.ps1           # Windows PowerShell
 ```
 
 ### 3. Ouvrir

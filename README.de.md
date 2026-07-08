@@ -67,15 +67,33 @@ Das neueste Release für deine Plattform von [GitHub Releases](https://github.co
 
 ### 2. Starten
 
+Der Launcher erkennt automatisch deinen LLM-Provider (Ollama, LM Studio, OpenAI, llama.cpp), konfiguriert `.env` und startet den Server.
+
 ```bash
 # Linux / macOS
 tar xzf tns-linux-x64.tar.gz
 cd tns-linux-x64
-chmod +x tns-server
-./tns-server
+chmod +x startgame.sh
+./startgame.sh
 
-# Windows
-tns-server.exe
+# Windows (PowerShell)
+# tns-windows-x64.zip entpacken, dann:
+.\startgame.ps1
+```
+
+**Startoptionen:**
+```bash
+./startgame.sh --local    # CORS=localhost only (sicher für Entwicklung)
+./startgame.sh --remote   # CORS=* (Standard, erlaubt externen Zugriff)
+```
+
+**Aus Quellcode (benötigt Bun):**
+```bash
+git clone https://github.com/ajaxiis-rust/TrueNeverStory.git
+cd TrueNeverStory
+bun install
+./startgame.sh            # Linux/macOS
+.\startgame.ps1           # Windows PowerShell
 ```
 
 ### 3. Öffnen
