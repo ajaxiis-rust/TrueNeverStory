@@ -20,6 +20,37 @@ NC='\033[0m'
 
 PID_FILE="$SCRIPT_DIR/.server.pid"
 ARCH=$(uname -m | sed 's/x86_64/linux-x64/;s/aarch64/linux-arm64/')
+OS_TYPE=$(uname -s)
+
+# macOS arch mapping
+if [[ "$OS_TYPE" == "Darwin" ]]; then
+    ARCH=$(uname -m | sed 's/x86_64/macos-x64/;s/arm64/macos-arm64/')
+fi
+
+# ── Cross-platform helpers ─────────────────────────────────────
+port_in_use() {
+    local port="$1"
+    if command -v ss &>/dev/null; then
+        ss -tlnp 2>/dev/null | grep -q ":${port} "
+    elif command -v lsof &>/dev/null; then
+        lsof -i :"$port" -P -n 2>/dev/null | grep -q LISTEN
+    elif command -v netstat &>/dev/null; then
+        netstat -an 2>/dev/null | grep -q ":${port}.*LISTEN"
+    else
+        false
+    fi
+}
+
+file_size() {
+    local path="$1"
+    if stat -c%s "$path" 2>/dev/null; then
+        return
+    fi
+    if stat -f%z "$path" 2>/dev/null; then
+        return
+    fi
+    echo 0
+}
 
 # ── Parse flags ────────────────────────────────────────────────
 MODE_FLAGS="remote"
@@ -57,6 +88,8 @@ detect_hardware() {
         CPU_CORES=$(nproc)
     elif [[ -f /proc/cpuinfo ]]; then
         CPU_CORES=$(grep -c ^processor /proc/cpuinfo)
+    elif command -v sysctl &>/dev/null && sysctl -n hw.ncpu &>/dev/null 2>&1; then
+        CPU_CORES=$(sysctl -n hw.ncpu)
     else
         CPU_CORES=2
     fi
@@ -64,6 +97,9 @@ detect_hardware() {
     if [[ -f /proc/meminfo ]]; then
         RAM_KB=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
         RAM_GB=$(( RAM_KB / 1024 / 1024 ))
+    elif command -v sysctl &>/dev/null && sysctl -n hw.memsize &>/dev/null 2>&1; then
+        RAM_BYTES=$(sysctl -n hw.memsize)
+        RAM_GB=$(( RAM_BYTES / 1024 / 1024 / 1024 ))
     else
         RAM_GB=8
     fi
@@ -76,6 +112,10 @@ detect_hardware() {
         GPU_TYPE="nvidia"
         GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 || echo "NVIDIA GPU")
         GPU_VRAM_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 || echo 0)
+    elif [[ "$OS_TYPE" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
+        GPU_TYPE="apple"
+        GPU_NAME="Apple Silicon (Metal)"
+        GPU_VRAM_MB=0
     elif command -v rocm-smi &>/dev/null; then
         GPU_TYPE="amd"
         GPU_NAME="AMD GPU"
@@ -244,7 +284,7 @@ except: pass
                     continue
                 fi
                 local fsize
-                fsize=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)
+                fsize=$(file_size "$f")
                 if [[ "$fsize" -gt "$best_bytes" ]]; then
                     best_bytes="$fsize"
                     best_file="$f"
@@ -432,7 +472,11 @@ EMBED_PORT=5002
 
 EXT_IP="$HOST"
 if [[ "$HOST" == "0.0.0.0" ]]; then
-    EXT_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+    if [[ "$OS_TYPE" == "Darwin" ]]; then
+        EXT_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "localhost")
+    else
+        EXT_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+    fi
 fi
 
 # ═══════════════════════════════════════════════════════════════
@@ -472,7 +516,7 @@ auto_configure_env
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║      TrueNeverStory v0.21.0 — Game Server        ║${NC}"
+echo -e "${BOLD}║      TrueNeverStory v0.22.1 — Game Server        ║${NC}"
 echo -e "${BOLD}╠══════════════════════════════════════════════════╣${NC}"
 echo -e "${CYAN}║  Mode:     ${MODE}${NC}"
 echo -e "${CYAN}║  URL:      http://${EXT_IP}:${PORT}${NC}"
@@ -560,7 +604,7 @@ PIDS=()
 
 if [[ "$BEST_PROVIDER" == "llamacpp" && -n "$LLAMA_BIN" ]]; then
     # Check port not already in use
-    if ss -tlnp 2>/dev/null | grep -q ":${LLM_PORT} " 2>/dev/null; then
+    if port_in_use "$LLM_PORT"; then
         echo -e "${DIM}Port ${LLM_PORT} already in use, skipping llama-server start${NC}"
     else
         local_model_path=""
@@ -576,7 +620,7 @@ if [[ "$BEST_PROVIDER" == "llamacpp" && -n "$LLAMA_BIN" ]]; then
                         continue
                     fi
                     local fsize
-                    fsize=$(stat -c%s "$f" 2>/dev/null || echo 0)
+                    fsize=$(file_size "$f")
                     if [[ "$fsize" -gt "$best_size" ]]; then
                         best_size="$fsize"
                         local_model_path="$f"
@@ -622,7 +666,7 @@ fi
 
 EMBED_URL=$(env_get "WORLD_EMBEDDING_BASE_URL" "")
 if [[ "$BEST_PROVIDER" == "llamacpp" && -z "$EMBED_URL" && -n "$LLAMA_BIN" ]]; then
-    if ! ss -tlnp 2>/dev/null | grep -q ":${EMBED_PORT} " 2>/dev/null; then
+    if ! port_in_use "$EMBED_PORT"; then
         EMBED_PATH=""
         if [[ -d "./local-models" ]]; then
             EMBED_PATH=$(find ./local-models -maxdepth 1 \( -iname "*bge*" -o -iname "*embed*" \) -name "*.gguf" -type f 2>/dev/null | head -1 || true)
