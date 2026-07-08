@@ -100,6 +100,13 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 .toast--ok{background:var(--success);color:var(--black)}
 .toast--err{background:var(--accent);color:var(--black)}
 @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.toggle{display:flex;align-items:center;gap:10px;cursor:pointer}
+.toggle__track{width:36px;height:20px;border-radius:var(--radius-pill);background:var(--border-visible);position:relative;transition:background var(--dur-fast);flex-shrink:0}
+.toggle__track::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-disabled);transition:all var(--dur-fast)}
+.toggle--on .toggle__track{background:var(--text-display)}
+.toggle--on .toggle__track::after{transform:translateX(16px);background:var(--black)}
+.toggle__label{font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em}
 </style>
 </head>
 <body>
@@ -117,6 +124,7 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
   <button class="tab tab--active" data-tab="description" data-i18n="uiTabDescription">Description</button>
   <button class="tab" data-tab="agents" data-i18n="uiTabAgents">Agents</button>
   <button class="tab" data-tab="statistics" data-i18n="uiTabStatistics">Statistics</button>
+  <button class="tab" data-tab="birth" data-i18n="uiTabBirth">Birth</button>
   <button class="tab" data-tab="graph" data-i18n="uiTabGraph">Graph</button>
   <button class="tab" data-tab="audit" data-i18n="uiTabAudit">Audit</button>
 </div>
@@ -196,7 +204,41 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
     </div>
   </div>
 
-  <!-- Tab 4: Graph -->
+  <!-- Tab 4: Birth -->
+  <div class="tab-panel" id="panel-birth">
+    <div class="section">
+      <div class="section__title" data-i18n="uiBirthWizard">Birth Wizard</div>
+      <div class="form" id="birthForm">
+        <div class="form__field form__field--full">
+          <label class="form__label" data-i18n="uiBirthName">Character Name (optional)</label>
+          <input class="form__input" id="birthName" type="text" placeholder="Leave empty for random generation">
+        </div>
+        <div class="form__field form__field--full">
+          <label class="form__label" data-i18n="uiBirthHints">Character Hints (optional)</label>
+          <textarea class="form__textarea" id="birthHints" placeholder="e.g. female elf, mage, noble family...&#10;Leave empty for random generation"></textarea>
+        </div>
+        <div class="form__row">
+          <div class="form__field">
+            <label class="form__label" data-i18n="uiStartingAge">Starting Age</label>
+            <input class="form__input" id="birthAge" type="number" min="0" max="100" value="5">
+          </div>
+          <div class="form__field" style="flex:0 0 auto">
+            <label class="form__label" data-i18n="uiIsekaiMode">Isekai Mode</label>
+            <div class="toggle" id="birthIsekai" onclick="this.classList.toggle('toggle--on')">
+              <div class="toggle__track"><div class="toggle__thumb"></div></div>
+              <span class="toggle__label" data-i18n="uiReincarnation">Reincarnation</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn--primary" id="birthStartBtn" onclick="startBirth()" data-i18n="uiStartNewLife">START NEW LIFE</button>
+        </div>
+      </div>
+      <div id="birthResult" style="display:none;margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- Tab 5: Graph -->
   <div class="tab-panel" id="panel-graph">
     <iframe class="graph-frame" id="graphFrame" src="about:blank"></iframe>
   </div>
@@ -223,7 +265,7 @@ const worldName = decodeURIComponent(window.location.pathname.split('/')[2] || '
 const I18N = {
   en: {
     uiWorldConfig:"World Config",uiWorlds:"WORLDS",uiBackToChat:"BACK TO CHAT",
-    uiTabDescription:"Description",uiTabAgents:"Agents",uiTabStatistics:"Statistics",uiTabGraph:"Graph",uiTabAudit:"Audit",
+    uiTabDescription:"Description",uiTabAgents:"Agents",uiTabStatistics:"Statistics",uiTabBirth:"Birth",uiTabGraph:"Graph",uiTabAudit:"Audit",
     uiWorldSettings:"World Settings",uiTitle:"Title",uiDescription:"Description",uiLanguage:"Language",uiGenre:"Genre",
     uiWorldRules:"World Rules (one per line)",uiMagicSystem:"Magic System",
     uiSave:"Save",uiReload:"Reload",
@@ -234,10 +276,11 @@ const I18N = {
     uiSavePrompts:"Save Prompts",
     uiAuditTitle:"World Audit",uiAuditDesc:"World consistency checking via external God agent will be available here. The agent will validate world facts against external sources (Wikipedia API) and provide a tuning wizard for world parameters.",
     uiSaved:"Saved",uiFailedLoad:"Failed to load:",uiFailed:"Failed:",uiSettingsSaved:"Settings saved",uiPromptsSaved:"Prompts saved",
+    uiBirthWizard:"Birth Wizard",uiBirthName:"Character Name (optional)",uiBirthHints:"Character Hints (optional)",uiStartingAge:"Starting Age",uiIsekaiMode:"Isekai Mode",uiReincarnation:"Reincarnation",uiStartNewLife:"START NEW LIFE",uiCreating:"Creating your character...",uiGenerating:"GENERATING...",
   },
   ru: {
     uiWorldConfig:"Настройки мира",uiWorlds:"МИРЫ",uiBackToChat:"К ЧАТУ",
-    uiTabDescription:"Описание",uiTabAgents:"Агенты",uiTabStatistics:"Статистика",uiTabGraph:"Граф",uiTabAudit:"Аудит",
+    uiTabDescription:"Описание",uiTabAgents:"Агенты",uiTabStatistics:"Статистика",uiTabBirth:"Рождение",uiTabGraph:"Граф",uiTabAudit:"Аудит",
     uiWorldSettings:"Настройки мира",uiTitle:"Заголовок",uiDescription:"Описание",uiLanguage:"Язык",uiGenre:"Жанр",
     uiWorldRules:"Правила мира (по одному на строку)",uiMagicSystem:"Система магии",
     uiSave:"Сохранить",uiReload:"Перезагрузить",
@@ -248,10 +291,11 @@ const I18N = {
     uiSavePrompts:"Сохранить промпты",
     uiAuditTitle:"Аудит мира",uiAuditDesc:"Проверка целостности мира через внешний God-агент будет доступна здесь. Агент будет проверять факты мира по внешним источникам (Wikipedia API) и提供ать мастер настройки параметров мира.",
     uiSaved:"Сохранено",uiFailedLoad:"Ошибка загрузки:",uiFailed:"Ошибка:",uiSettingsSaved:"Настройки сохранены",uiPromptsSaved:"Промпты сохранены",
+    uiBirthWizard:"Мастер рождения",uiBirthName:"Имя персонажа (необязательно)",uiBirthHints:"Подсказки персонажа (необязательно)",uiStartingAge:"Начальный возраст",uiIsekaiMode:"Режим исekai",uiReincarnation:"Перерождение",uiStartNewLife:"НАЧАТЬ НОВУЮ ЖИЗНЬ",uiCreating:"Создаём вашего персонажа...",uiGenerating:"ГЕНЕРАЦИЯ...",
   },
   de: {
     uiWorldConfig:"Weltenkonfiguration",uiWorlds:"WELTEN",uiBackToChat:"ZUM CHAT",
-    uiTabDescription:"Beschreibung",uiTabAgents:"Agenten",uiTabStatistics:"Statistik",uiTabGraph:"Graf",uiTabAudit:"Prüfung",
+    uiTabDescription:"Beschreibung",uiTabAgents:"Agenten",uiTabStatistics:"Statistik",uiTabBirth:"Geburt",uiTabGraph:"Graf",uiTabAudit:"Prüfung",
     uiWorldSettings:"Welteinstellungen",uiTitle:"Titel",uiDescription:"Beschreibung",uiLanguage:"Sprache",uiGenre:"Genre",
     uiWorldRules:"Weltenregeln (eine pro Zeile)",uiMagicSystem:"Magiesystem",
     uiSave:"Speichern",uiReload:"Neu laden",
@@ -262,10 +306,11 @@ const I18N = {
     uiSavePrompts:"Prompts speichern",
     uiAuditTitle:"Welten-Prüfung",uiAuditDesc:"Die Prüfung der Weltenkonsistenz durch einen externen God-Agenten wird hier verfügbar sein. Der Agent wird Weltenfakten mit externen Quellen (Wikipedia API) validieren und einen Tuning-Assistenten für Weltparameter bereitstellen.",
     uiSaved:"Gespeichert",uiFailedLoad:"Laden fehlgeschlagen:",uiFailed:"Fehler:",uiSettingsSaved:"Einstellungen gespeichert",uiPromptsSaved:"Prompts gespeichert",
+    uiBirthWizard:"Geburts-Assistent",uiBirthName:"Charaktername (optional)",uiBirthHints:"Charakter-Hinweise (optional)",uiStartingAge:"Startalter",uiIsekaiMode:"Isekai-Modus",uiReincarnation:"Reinkarnation",uiStartNewLife:"NEUES LEBEN STARTEN",uiCreating:"Charakter wird erstellt...",uiGenerating:"GENERIEREN...",
   },
   fr: {
     uiWorldConfig:"Configuration du monde",uiWorlds:"MONDES",uiBackToChat:"AU CHAT",
-    uiTabDescription:"Description",uiTabAgents:"Agents",uiTabStatistics:"Statistiques",uiTabGraph:"Graphe",uiTabAudit:"Audit",
+    uiTabDescription:"Description",uiTabAgents:"Agents",uiTabStatistics:"Statistiques",uiTabBirth:"Naissance",uiTabGraph:"Graphe",uiTabAudit:"Audit",
     uiWorldSettings:"Paramètres du monde",uiTitle:"Titre",uiDescription:"Description",uiLanguage:"Langue",uiGenre:"Genre",
     uiWorldRules:"Règles du monde (une par ligne)",uiMagicSystem:"Système de magie",
     uiSave:"Enregistrer",uiReload:"Recharger",
@@ -276,10 +321,11 @@ const I18N = {
     uiSavePrompts:"Enregistrer les prompts",
     uiAuditTitle:"Audit du monde",uiAuditDesc:"La vérification de cohérence du monde par un agent externe God sera disponible ici. L'agent validera les faits du monde par rapport à des sources externes (WAPI) et fournira un assistant de réglage des paramètres du monde.",
     uiSaved:"Enregistré",uiFailedLoad:"Échec du chargement:",uiFailed:"Erreur:",uiSettingsSaved:"Paramètres enregistrés",uiPromptsSaved:"Prompts enregistrés",
+    uiBirthWizard:"Assistant de naissance",uiBirthName:"Nom du personnage (optionnel)",uiBirthHints:"Indices du personnage (optionnel)",uiStartingAge:"Âge de départ",uiIsekaiMode:"Mode Isekai",uiReincarnation:"Réincarnation",uiStartNewLife:"COMMENCER UNE NOUVELLE VIE",uiCreating:"Création de votre personnage...",uiGenerating:"GÉNÉRATION...",
   },
   es: {
     uiWorldConfig:"Configuración del mundo",uiWorlds:"MUNDOS",uiBackToChat:"AL CHAT",
-    uiTabDescription:"Descripción",uiTabAgents:"Agentes",uiTabStatistics:"Estadísticas",uiTabGraph:"Grafo",uiTabAudit:"Auditoría",
+    uiTabDescription:"Descripción",uiTabAgents:"Agentes",uiTabStatistics:"Estadísticas",uiTabBirth:"Nacimiento",uiTabGraph:"Grafo",uiTabAudit:"Auditoría",
     uiWorldSettings:"Configuración del mundo",uiTitle:"Título",uiDescription:"Descripción",uiLanguage:"Idioma",uiGenre:"Género",
     uiWorldRules:"Reglas del mundo (una por línea)",uiMagicSystem:"Sistema de magia",
     uiSave:"Guardar",uiReload:"Recargar",
@@ -290,10 +336,11 @@ const I18N = {
     uiSavePrompts:"Guardar prompts",
     uiAuditTitle:"Auditoría del mundo",uiAuditDesc:"La verificación de coherencia del mundo a través de un agente externo God estará disponible aquí. El agente validará los hechos del mundo contra fuentes externas (Wikipedia API) y proporcionará un asistente de ajuste de parámetros del mundo.",
     uiSaved:"Guardado",uiFailedLoad:"Error al cargar:",uiFailed:"Error:",uiSettingsSaved:"Configuración guardada",uiPromptsSaved:"Prompts guardados",
+    uiBirthWizard:"Asistente de nacimiento",uiBirthName:"Nombre del personaje (opcional)",uiBirthHints:"Pistas del personaje (opcional)",uiStartingAge:"Edad inicial",uiIsekaiMode:"Modo Isekai",uiReincarnation:"Reencarnación",uiStartNewLife:"COMENZAR NUEVA VIDA",uiCreating:"Creando tu personaje...",uiGenerating:"GENERANDO...",
   },
   ja: {
     uiWorldConfig:"ワールド設定",uiWorlds:"ワールド",uiBackToChat:"チャットへ",
-    uiTabDescription:"説明",uiTabAgents:"エージェント",uiTabStatistics:"統計",uiTabGraph:"グラフ",uiTabAudit:"監査",
+    uiTabDescription:"説明",uiTabAgents:"エージェント",uiTabStatistics:"統計",uiTabBirth:"誕生",uiTabGraph:"グラフ",uiTabAudit:"監査",
     uiWorldSettings:"ワールド設定",uiTitle:"タイトル",uiDescription:"説明",uiLanguage:"言語",uiGenre:"ジャンル",
     uiWorldRules:"ワールドのルール（1行に1つ）",uiMagicSystem:"魔法システム",
     uiSave:"保存",uiReload:"リロード",
@@ -304,10 +351,11 @@ const I18N = {
     uiSavePrompts:"プロンプトを保存",
     uiAuditTitle:"ワールド監査",uiAuditDesc:"外部のGodエージェントによるワールド整合性チェックはここで利用可能になります。エージェントは外部ソース（Wikipedia API）に対してワールドの事実を検証し、ワールドパラメータの調整ウィザードを提供します。",
     uiSaved:"保存しました",uiFailedLoad:"読み込み失敗:",uiFailed:"失敗:",uiSettingsSaved:"設定を保存しました",uiPromptsSaved:"プロンプトを保存しました",
+    uiBirthWizard:"出生ウィザード",uiBirthName:"キャラクター名（オプション）",uiBirthHints:"キャラクターのヒント（オプション）",uiStartingAge:"開始年齢",uiIsekaiMode:"異世界モード",uiReincarnation:"転生",uiStartNewLife:"新しい人生を始める",uiCreating:"キャラクターを作成中...",uiGenerating:"生成中...",
   },
   zh: {
     uiWorldConfig:"世界配置",uiWorlds:"世界",uiBackToChat:"返回聊天",
-    uiTabDescription:"描述",uiTabAgents:"智能体",uiTabStatistics:"统计",uiTabGraph:"图谱",uiTabAudit:"审计",
+    uiTabDescription:"描述",uiTabAgents:"智能体",uiTabStatistics:"统计",uiTabBirth:"诞生",uiTabGraph:"图谱",uiTabAudit:"审计",
     uiWorldSettings:"世界设置",uiTitle:"标题",uiDescription:"描述",uiLanguage:"语言",uiGenre:"类型",
     uiWorldRules:"世界规则（每行一条）",uiMagicSystem:"魔法系统",
     uiSave:"保存",uiReload:"重新加载",
@@ -318,6 +366,7 @@ const I18N = {
     uiSavePrompts:"保存提示词",
     uiAuditTitle:"世界审计",uiAuditDesc:"通过外部God智能体进行的世界一致性检查将在此处可用。该智能体将对照外部来源（Wikipedia API）验证世界事实，并提供世界参数调优向导。",
     uiSaved:"已保存",uiFailedLoad:"加载失败:",uiFailed:"失败:",uiSettingsSaved:"设置已保存",uiPromptsSaved:"提示词已保存",
+    uiBirthWizard:"出生向导",uiBirthName:"角色名称（可选）",uiBirthHints:"角色提示（可选）",uiStartingAge:"起始年龄",uiIsekaiMode:"异世界模式",uiReincarnation:"转生",uiStartNewLife:"开始新生活",uiCreating:"正在创建角色...",uiGenerating:"生成中...",
   },
 };
 
@@ -614,7 +663,67 @@ function renderEntityList(id, items) {
   `).join('');
 }
 
-// ── Tab 4: Graph ──
+// ── Tab 4: Birth ──
+async function startBirth() {
+  const btn = document.getElementById('birthStartBtn');
+  const result = document.getElementById('birthResult');
+  btn.disabled = true;
+  btn.textContent = t('uiGenerating');
+
+  const hints = document.getElementById('birthHints').value.trim();
+  const isekai = document.getElementById('birthIsekai').classList.contains('toggle--on');
+  const startingAge = parseInt(document.getElementById('birthAge').value) || 5;
+  const characterName = document.getElementById('birthName')?.value.trim() ?? '';
+
+  result.style.display = 'block';
+  result.innerHTML = `<div class="info-card"><div class="info-card__desc">${t('uiCreating')}</div></div>`;
+
+  try {
+    const res = await apiFetch('/launch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hints, isekai, starting_age: startingAge, name: characterName }),
+    });
+
+    if (res.status === 'error') throw new Error(res.error || 'Launch failed');
+
+    await apiFetch('/chat/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        character: res.character_name,
+        location: res.initial_location,
+        session_id: res.session_id,
+        role: 'protagonist',
+      }),
+    }).catch(() => {});
+
+    result.innerHTML = `
+      <div class="info-card">
+        <div class="info-card__title">${esc(res.character_name)}</div>
+        <div class="info-card__desc">
+          <strong>${esc(res.race)}</strong> · ${esc(res.social_class)}<br>
+          ${esc(res.birthplace)} → ${esc(res.initial_location)}
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-top:10px;font-size:12px;line-height:1.6;color:var(--text-secondary)">
+        ${esc(res.opening_narrative)}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <a href="/" class="btn btn--primary">${t('uiStartNewLife')}</a>
+      </div>
+    `;
+    toast(t('uiSaved'), true);
+  } catch (e) {
+    result.innerHTML = `<div class="info-card"><div class="info-card__desc" style="color:var(--accent)">${t('uiFailed')} ${esc(e.message)}</div></div>`;
+    toast(t('uiFailed') + ' ' + e.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t('uiStartNewLife');
+  }
+}
+
+// ── Tab 5: Graph ──
 function loadGraph() {
   const frame = document.getElementById('graphFrame');
   if (frame.src === 'about:blank' || !frame.src.includes('/graph.html')) {
