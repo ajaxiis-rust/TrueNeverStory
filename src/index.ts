@@ -19,6 +19,9 @@ import { initSystem } from "./routes/system";
 import { WebSocketManager } from "./services/websocket-manager";
 import { Navigator } from "./services/navigator";
 import { RoleplayEngine } from "./services/roleplay-engine";
+import { HeartbeatService } from "./services/heartbeat";
+import { TranslationService } from "./services/translation-service";
+import { TNSServer, type TNSServerConfig } from "./mcp/server";
 import { readJsonFileSync, atomicWriteJson } from "./lib/atomic-io";
 import { existsSync, mkdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
@@ -105,6 +108,33 @@ async function main() {
   const wsManager = new WebSocketManager();
   setWSManager(wsManager);
 
+  // EventBus and Heartbeat Service (v0.25.0 State-First pipeline)
+  // Use the same EventBus from NarrativeService so heartbeat events are received
+  const eventBus = narrativeCtx.eventBus;
+  const heartbeatService = new HeartbeatService(eventBus, wsManager);
+
+  // MCP Server (v0.25.0) — Bible & Gutenberg parsers
+  const bibleDbPath = join(dbPath, "bible.db");
+  const gutenbergDbPath = join(dbPath, "gutenberg.db");
+  let mcpServer: TNSServer | null = null;
+
+  if (existsSync(bibleDbPath) || existsSync(gutenbergDbPath)) {
+    const mcpConfig: TNSServerConfig = {
+      bibleDbPath,
+      gutenbergDbPath,
+      entityStore: narrativeCtx.entityStore,
+      dataDir: join(dbPath, "mcp"),
+    };
+    mcpServer = new TNSServer(mcpConfig);
+    await mcpServer.initialize();
+    log.info("MCP Server initialized (Bible + Gutenberg parsers)");
+  } else {
+    log.info("MCP Server skipped (no bible.db or gutenberg.db found)");
+  }
+
+  // Translation Service (v0.25.0) — English as Interlingua
+  const translationService = new TranslationService(narrativeCtx.llmQueue);
+
   // Wire rate limit notifications to WebSocket
   if (narrativeCtx.llmQueue) {
     narrativeCtx.llmQueue.setRateLimitNotification((notification) => {
@@ -116,7 +146,7 @@ async function main() {
   }
 
   // Roleplay engine
-  const engine = narrativeCtx.createRoleplayEngine();
+  const engine = narrativeCtx.createRoleplayEngine(mcpServer ?? undefined, translationService);
   setEngine(engine);
   setWorldServices(narrativeCtx, engine);
 

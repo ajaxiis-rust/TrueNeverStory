@@ -148,7 +148,10 @@ export class NarrativeService {
     log.info({ path: newDbPath }, "NarrativeService reset to new world");
   }
 
-  createRoleplayEngine(): RoleplayEngine {
+  createRoleplayEngine(
+    mcpServer?: import('../mcp/server').TNSServer,
+    translationService?: import('./translation-service').TranslationService,
+  ): RoleplayEngine {
     return new RoleplayEngine({
       dbPath: this.dbPath,
       entityStore: this.entityStore,
@@ -160,6 +163,9 @@ export class NarrativeService {
       validator: this.validator,
       userAgent: this.userAgent,
       sqliteStore: this.sqliteStore,
+      eventBus: this.eventBus,
+      mcpServer,
+      translationService,
     });
   }
 

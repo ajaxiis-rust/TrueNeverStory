@@ -1,8 +1,8 @@
-# TrueNeverStory v0.22.2
+# TrueNeverStory v0.25.0
 
 ### Write your book just by playing.
 
-TrueNeverStory is an AI-powered interactive narrative engine. Every NPC remembers, every action has a chance, and the story never stops. Play a character, explore a living world, and watch your choices shape the narrative — or let the world evolve on its own.
+TrueNeverStory is an AI-powered interactive narrative engine with **State-First architecture**. Every NPC remembers, every action has a deterministic outcome, and the story never stops. Play a character, explore a living world, and watch your choices shape the narrative — or let the world evolve on its own.
 
 Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-critical operations.
 
@@ -10,12 +10,54 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ---
 
+## What's New in v0.25.0
+
+### State-First Pipeline
+The engine now processes actions **deterministically before generating text**:
+1. **Intent Parser** — Zod-validated structured intents replace regex routing
+2. **Simulation Engine** — Mojo FFI computes outcomes before prose generation
+3. **State Mutator** — EntityStore updates immediately after logic
+4. **Context Builder** — Shared game context for all agents
+5. **Prose Generation** — LLM generates text constrained by simulation results
+
+### MCP Integration (Literature-as-Code)
+- **Bible as stdlib** — Biblical patterns as narrative archetypes (SQLite + MCP)
+- **Gutenberg as Style CSS** — Delexified stylistic patterns for prose rendering
+- **Wikipedia as Validator** — Historical fact-checking via external knowledge
+
+### The Big Six Agents
+Consolidated 14 agents into 6 specialized roles:
+
+| Agent | Role | Description |
+|-------|------|-------------|
+| **Dramaturg** | The Architect | Selects narrative patterns from Bible archetypes |
+| **Validator** | The Fact-Checker | Verifies facts via Wikipedia MCP |
+| **Stylist** | The Narrator | Renders prose using Gutenberg style patterns |
+| **Actor** | NPC Ensemble | Manages NPC dialogue with L3 hidden motivations |
+| **Censor** | Linter | Removes AI clichés and enforces style consistency |
+| **Chronicler** | World Memory | Updates timeline and world state |
+
+### System Heartbeat
+Real-time progress indicators in chat UI:
+- "Understanding your input..."
+- "Rolling dice..."
+- "Outcome: Success (73%)"
+- "Weaving narrative..."
+- "Complete"
+
+### Interlingua (English as Internal Language)
+All agent-to-agent and agent-to-MCP operations use English for token efficiency and accuracy. Translation happens at the output boundary.
+
+---
+
 ## Features
 
 | Feature | Description |
 |---------|-------------|
+| **State-First Pipeline** | Deterministic simulation → state mutation → constrained prose generation |
+| **6 AI Agents** | Dramaturg, Validator, Stylist, Actor, Censor, Chronicler |
+| **MCP Integration** | Bible patterns, Gutenberg styles, Wikipedia validation |
 | **Living World** | Characters, locations, items, factions — all connected in a knowledge graph with O(1) lookups |
-| **14 AI Agents** | Narrator, Director, NPC, Scene, Chronicler, Story Planner, Villain, Researcher, Historian, Cartographer, Merchant, Quest Giver, Lorekeeper, Social Sim |
 | **Memory & RAG** | Vector-accelerated memory with semantic search (BGE-M3 + SQLite hybrid FTS5/dense/RRF) |
 | **Probability System** | Deterministic outcomes for combat, persuasion, stealth, romance — dynamic modifiers, critical hits |
 | **Romance & Social** | Full relationship management, factions, alliances, feudal hierarchy, NPC dialogue |
@@ -28,7 +70,7 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 | **Plugin System** | Extensible architecture with plugin manager, lifecycle hooks, and API |
 | **Feature Flags** | A/B testing, gradual rollout, hash-based percentage targeting |
 | **API Versioning** | v1/v2 endpoints with deprecation headers |
-| **Real-Time Streaming** | WebSocket + SSE for live narrative delivery |
+| **Real-Time Streaming** | WebSocket + SSE for live narrative delivery with heartbeat progress |
 | **i18n (7 languages)** | EN, RU, DE, FR, ES, JA, ZH — UI, prompts, agent names |
 | **Password Auth** | Session-based with HttpOnly cookies, CSRF protection, SQLite-backed sessions |
 | **SQLite Storage** | Entities, embeddings, memories, prompts, translations — all in SQLite |
@@ -154,20 +196,58 @@ TrueNeverStory/
 │   ├── lib/              # LLM client, SQLite store, vector ops, session store, circuit breaker, feature flags
 │   ├── memory/           # WorldMemory, cognitive pipeline, entity extraction
 │   ├── middleware/        # Auth, rate limiter, security headers, CORS, logger
-│   ├── models/           # Entity, chat, probability, romance, quest, item
+│   ├── models/           # Entity, chat, probability, romance, quest, item, intent, simulation, heartbeat
+│   ├── mcp/              # MCP server, Bible/Gutenberg parsers, Wikipedia tools
 │   ├── plugins/          # Plugin interface and manager
 │   ├── routes/           # API routes (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Social/economic rules engine (14 rules, synergy matrix, tech deps)
-│   ├── services/         # 55+ services (roleplay engine, agents, economy, world isolator, cross-world bus)
+│   ├── services/         # 60+ services (roleplay engine, agents, economy, world isolator, cross-world bus)
+│   │   ├── agents/       # v0.25.0 new agents (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+│   │   └── ...
 │   ├── intelligence/     # Graph analyzer, duplicate detector, recommender
 │   ├── i18n/             # Language packs (7 languages)
 │   ├── store/            # EntityStore with O(1) NameIndex, WorldStore
 │   └── utils/            # Logger, hash, sanitize, template resolver
 ├── mojo/kernels/         # C FFI compute kernels (compiled via Zig)
-├── public/               # Web UI (terminal-style dark interface)
+├── public/               # Web UI (terminal-style dark interface with heartbeat progress)
 ├── worlds/               # World data (SQLite DB, entities, sessions)
 ├── conf/                 # Configuration (settings, agents, providers, registry)
 └── tests/                # Test suite
+```
+
+---
+
+## Architecture: State-First Pipeline
+
+```
+Player Input
+  │
+  ▼
+Intent Parser (Zod validation)
+  │
+  ▼
+Simulation Engine (Mojo FFI)
+  │ outcome, probability, stateChanges
+  ▼
+State Mutator (EntityStore L1-L3)
+  │
+  ▼
+Context Builder (shared game state)
+  │
+  ▼
+Dramaturg (Bible pattern selection via MCP)
+  │
+  ▼
+Stylist (Gutenberg style rendering via MCP)
+  │
+  ▼
+Censor (AI cliché removal)
+  │
+  ▼
+Translation Service (English → user language)
+  │
+  ▼
+Response to User
 ```
 
 ---
@@ -188,7 +268,7 @@ TrueNeverStory/
 |--------|----------|-------------|
 | POST | `/api/chat/setup` | Initialize session (character, location, role) |
 | POST | `/api/chat/message` | Send message, get narrative |
-| POST | `/api/chat/stream` | SSE streaming response |
+| POST | `/api/chat/stream` | SSE streaming response with heartbeat |
 | GET | `/api/chat/session` | Current session state |
 | GET | `/api/chat/history` | Conversation history |
 
@@ -259,7 +339,7 @@ TrueNeverStory/
 
 | Endpoint | Description |
 |----------|-------------|
-| `ws://host:8000/ws/roleplay/:sessionId` | Real-time roleplay streaming |
+| `ws://host:8000/ws/roleplay/:sessionId` | Real-time roleplay streaming with heartbeat |
 
 ---
 
@@ -293,22 +373,34 @@ curl -b cookies.txt -X POST http://localhost:8000/api/cross-world/portals \
   -d '{"world1": "world-a", "world2": "world-b"}'
 ```
 
-### WebSocket Streaming
+### SSE Streaming with Heartbeat
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/roleplay/session-id');
+const response = await fetch('/api/chat/stream', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ content: 'I explore the ancient ruins' }),
+});
 
-ws.onopen = () => {
-  ws.send(JSON.stringify({
-    type: 'message',
-    content: 'I enter the tavern and look around'
-  }));
-};
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
 
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log(data.narrative);
-};
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const lines = decoder.decode(value).split('\n');
+  for (const line of lines) {
+    if (!line.startsWith('data: ')) continue;
+    const event = JSON.parse(line.slice(6));
+    
+    if (event.type === 'heartbeat') {
+      console.log(`Progress: ${event.message} (${event.progress * 100}%)`);
+    } else if (event.type === 'chunk') {
+      process.stdout.write(event.content);
+    }
+  }
+}
 ```
 
 ---
@@ -368,6 +460,40 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 
 ## Recent Changes
 
+### v0.25.0 — State-First Architecture
+
+**Core Engine Refactoring:**
+- Intent Parser with Zod schemas (6 intent types: movement, dialogue, action, command, observation, meta)
+- Simulation Engine with Mojo FFI deterministic outcomes
+- State Mutator for immediate EntityStore updates
+- Context Builder for shared game state
+- Refactored RoleplayEngine as thin orchestrator
+
+**MCP Integration:**
+- TNS MCP Server with Bible, Gutenberg, and Wikipedia tools
+- Bible Parser for external SQLite databases with FTS search
+- Gutenberg Parser with style extraction and delexification
+- Wikipedia Validator for historical fact-checking
+
+**Agent Consolidation:**
+- 14 agents → 6 specialized roles (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+- AgentRegistryV2 for lifecycle management
+- MCP tools integration for each agent
+
+**System Heartbeat:**
+- Real-time progress indicators via SSE
+- HeartbeatUI frontend component
+- Progress bar with stage messages
+
+**Interlingua:**
+- English as internal language for all operations
+- TranslationService at output boundary
+
+**Bug Fixes:**
+- Fixed all TypeScript errors (0 errors)
+- Fixed SQLite query parameter types
+- Fixed LLMQueue signature mismatches
+
 ### v0.22.2 — Theme Builder
 
 - Standalone theme builder page at `/theme-builder`
@@ -397,62 +523,9 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 - Fixed `/api/rules` endpoint crash in compiled Bun binary
 - Changed `import.meta.dir` to `process.cwd()` for rules directory resolution
 - Resolves ENOENT error (`/$bunfs/root/../rules/social`) in compiled binary
-- Affects `src/routes/rules.ts` and `src/rules/rules-engine.ts`
-
-### v0.20.0 — Architectural Improvements
-
-Complete architectural overhaul with 5 etapes of improvements:
-
-**Etape 1-2:**
-- NarrativeService split (Bootstrapper + Facade + Service)
-- Unified Agent Model with interface and base class
-- Event Sourcing with domain events and snapshots
-- Circuit Breaker for LLM with automatic failover
-- Agent Registry with 4 source types (builtin, config, api, plugin)
-- Structured Logging with trace IDs and correlation
-
-**Etape 3:**
-- Social Rules Engine — 14 predefined systems (feudalism, democracy, anarchy, etc.)
-- Synergy Matrix, Tech Dependencies, Happiness Modifiers
-- Rule Validator and Cultural Drift modeling
-- Feature Flags with A/B testing and gradual rollout
-- API Versioning (v1/v2) with deprecation headers
-- WorldStore — SQLite migration for world data
-
-**Etape 4:**
-- Multi-World Isolation with resource monitoring
-- Cross-World Communication with portals and events
-- Plugin System with manager and lifecycle hooks
-
-**Etape 5:**
-- Documentation updates (ARCHITECTURE, API, PLUGIN-GUIDE, MIGRATION)
-
-→ [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [PLUGIN-GUIDE.md](docs/PLUGIN-GUIDE.md) | [MIGRATION.md](docs/MIGRATION.md)
-
-### v0.15.0 — Security Hardening
-
-- SQLite-backed sessions (survive restarts)
-- WebSocket auth token validation
-- Path traversal protection (static files, world names, chapters)
-- CSRF protection on login
-- Secure cookie flag, hardened CSP
-- Error messages sanitized
-
-→ [security.md](security.md) | [SECURITY-log.md](SECURITY-log.md)
-
-### v0.14.1 — C FFI Kernels & Cross-Compilation
-
-- 5 compute kernels ported from Mojo to pure C
-- Zig cross-compilation for 10 platforms
-- Pause/resume background processing
-- GitHub Actions CI/CD
 
 ---
 
 ## License
 
----
-
-🔗 **Project:** [https://github.com/ajaxiis-rust/TrueNeverStory](https://github.com/ajaxiis-rust/TrueNeverStory)
-
-Apache 2.0
+MIT

@@ -1,5 +1,145 @@
 # Changelog
 
+## v0.25.0 (2026-07-13)
+
+### State-First Architecture
+
+Complete rewrite of the core engine pipeline. The engine now processes actions **deterministically before generating text**, eliminating model "deafness" and restoring game logic integrity.
+
+**New Pipeline:**
+1. **Intent Parser** — Zod-validated structured intents replace regex routing
+2. **Simulation Engine** — Mojo FFI computes outcomes before prose generation
+3. **State Mutator** — EntityStore updates immediately after logic
+4. **Context Builder** — Shared game context for all agents
+5. **Prose Generation** — LLM generates text constrained by simulation results
+
+**New Files:**
+- `src/models/intent.ts` — Zod schemas for 6 intent types
+- `src/models/simulation.ts` — OutcomeQuality enum, SimulationResult types
+- `src/services/intent-parser.ts` — Regex + LLM intent classification
+- `src/services/simulation-engine.ts` — Deterministic simulation
+- `src/services/state-mutator.ts` — Immediate EntityStore mutations
+- `src/services/context-builder.ts` — Shared game context assembly
+
+---
+
+### MCP Integration (Literature-as-Code)
+
+New MCP server providing external knowledge sources for narrative generation.
+
+**Bible as stdlib:**
+- Biblical patterns as narrative archetypes
+- SQLite storage with FTS search
+- Verse-level granularity with atomic pointers
+
+**Gutenberg as Style CSS:**
+- Delexified stylistic patterns
+- Style extraction from Gutenberg Project texts
+- Vocabulary and sentence pattern analysis
+
+**Wikipedia as Validator:**
+- Historical fact-checking via Wikipedia API
+- Claim verification with confidence levels
+
+**New Files:**
+- `src/mcp/server.ts` — TNS MCP Server
+- `src/mcp/schemas.ts` — Zod schemas for MCP tools
+- `src/mcp/bible/parser.ts` — Bible SQLite parser
+- `src/mcp/bible/types.ts` — Bible verse/pattern types
+- `src/mcp/gutenberg/parser.ts` — Gutenberg SQLite parser
+- `src/mcp/gutenberg/delexifier.ts` — Name/place replacement
+- `src/mcp/tools/bible.ts` — Bible search tools
+- `src/mcp/tools/gutenberg.ts` — Gutenberg style tools
+- `src/mcp/tools/wikipedia.ts` — Wikipedia verification tools
+
+---
+
+### Agent Consolidation (14 → 6)
+
+Consolidated 14 agents into 6 specialized roles (The Big Six).
+
+**New Agents:**
+
+| Agent | Role | Replaces |
+|-------|------|----------|
+| **Dramaturg** | The Architect | Director, Story Planner, Lorekeeper, Quest Giver |
+| **Validator** | The Fact-Checker | Researcher |
+| **Stylist** | The Narrator | Narrator, Scene |
+| **Actor** | NPC Ensemble | NPC, Cartographer, Merchant, Crafter, Social Sim, User Agent |
+| **Censor** | Linter | NEW |
+| **Chronicler** | World Memory | Chronicler, Historian |
+
+**New Files:**
+- `src/services/agent-v2.ts` — New AgentV2 interface
+- `src/services/agents/dramaturg.ts` — Bible pattern selection
+- `src/services/agents/validator.ts` — Wikipedia fact-checking
+- `src/services/agents/stylist.ts` — Gutenberg style rendering
+- `src/services/agents/actor.ts` — NPC dialogue with L3 motivations
+- `src/services/agents/censor.ts` — AI cliché removal
+- `src/services/agents/chronicler-agent.ts` — World memory updates
+- `src/services/agent-registry-v2.ts` — Agent lifecycle management
+
+**Backward Compatibility:**
+Old agent IDs (`@narrator`, `@director`, etc.) still work but route to new agents internally.
+
+---
+
+### System Heartbeat
+
+Real-time progress indicators in chat UI showing engine stages.
+
+**Stages:**
+1. "Understanding your input..."
+2. "Rolling dice..."
+3. "Outcome: Success (73%)"
+4. "Weaving narrative..."
+5. "Complete"
+
+**New Files:**
+- `src/models/heartbeat.ts` — HeartbeatStage enum, progress map
+- `src/services/heartbeat.ts` — WebSocket broadcast service
+- `public/static/heartbeat.js` — Frontend progress bar UI
+
+**SSE Integration:**
+Heartbeat events are yielded as part of the SSE stream, providing real-time feedback to the frontend.
+
+---
+
+### Interlingua (English as Internal Language)
+
+All agent-to-agent and agent-to-MCP operations use English for token efficiency and accuracy.
+
+**Translation Service:**
+- Translates at output boundary
+- Supports 7 languages (EN, RU, DE, FR, ES, JA, ZH)
+- Language detection for user input
+
+**New Files:**
+- `src/services/translation-service.ts` — Translation at output boundary
+
+---
+
+### Bug Fixes
+
+- Fixed all TypeScript errors (0 errors)
+- Fixed SQLite query parameter types
+- Fixed LLMQueue signature mismatches
+- Fixed EventBus handler signatures
+- Fixed LayeredProfile type issues
+
+---
+
+### Tests
+
+Added 31 tests for new components:
+
+- `src/services/intent-parser.test.ts` — 8 tests
+- `src/services/simulation-engine.test.ts` — 7 tests
+- `src/services/state-mutator.test.ts` — 6 tests
+- `src/services/agent-registry-v2.test.ts` — 10 tests
+
+---
+
 ## v0.22.2 (2026-07-08)
 
 ### Birth Tab in World Config

@@ -1,4 +1,4 @@
-# TrueNeverStory v0.22.2
+# TrueNeverStory v0.25.0
 
 ### 遊ぶだけで、自分の物語を書こう。
 
@@ -301,7 +301,7 @@ bun run dev
 
 ## 最近の変更
 
-### v0.22.2 — テーマシステム修正
+### v0.25.0 — テーマシステム修正
 
 - `theme-custom.css`を修正 — CSS変数の構文を修正（`var()`ではなく`--name: value`を使用）
 - カスタムテーマに不足していた変数`--accent-subtle`、`--success-subtle`、`--warning-subtle`、`--interactive-subtle`を追加

@@ -1,22 +1,58 @@
 # TrueNeverStory — Architecture Document
 
 > A Domain-Driven Design analysis of the TrueNeverStory narrative RPG engine.
-> Generated from codebase inspection of `src/` as of 2026-07-05.
+> Updated for v0.25.0 — State-First Architecture with MCP Integration.
 
 ---
 
 ## [A1] Architectural Pattern
 
-**Layered Onion Architecture with Event-Driven Extensions**
+**Layered Onion Architecture with Event-Driven Extensions + State-First Pipeline**
 
-TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. The pattern fits because:
+TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.25.0, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
 
-1. **Domain models are isolated** — `src/models/` contains pure data structures with no infrastructure dependencies. `EntityNode`, `Quest`, `StoryContext`, `NPCProfile`, `ProbabilityModifier` are all framework-agnostic.
-2. **Services orchestrate domain logic** — `src/services/` contains application services (`RoleplayEngine`, `StoryEngine`) and domain services (`ProbabilityEngine`, `SocialSimulator`, `RomanceEngine`).
+The pattern fits because:
+
+1. **Domain models are isolated** — `src/models/` contains pure data structures with no infrastructure dependencies. `EntityNode`, `Quest`, `StoryContext`, `NPCProfile`, `ProbabilityModifier`, `Intent`, `SimulationResult` are all framework-agnostic.
+2. **Services orchestrate domain logic** — `src/services/` contains application services (`RoleplayEngine`, `StoryEngine`) and domain services (`ProbabilityEngine`, `SocialSimulator`, `RomanceEngine`, `SimulationEngine`).
 3. **Infrastructure is pushed to the edges** — `src/lib/` holds persistence (`SQLiteStore`, `AtomicIO`), external integrations (`LLMClient`, `ProviderManager`), and transport (`WebSocketManager`).
 4. **Routes are thin adapters** — `src/routes/` maps HTTP to service calls with minimal logic.
+5. **MCP integration** — `src/mcp/` provides external knowledge sources (Bible, Gutenberg, Wikipedia) via Model Context Protocol.
 
 The **event bus** (`EventBus` in `src/lib/event-bus.ts`) adds an asynchronous decoupling layer between bounded contexts, enabling the Director Loop to orchestrate narrative events without direct coupling to NPC, Social, or Quest subsystems.
+
+### State-First Pipeline (v0.25.0)
+
+```
+Player Input
+  │
+  ▼
+Intent Parser (Zod validation)
+  │
+  ▼
+Simulation Engine (Mojo FFI)
+  │ outcome, probability, stateChanges
+  ▼
+State Mutator (EntityStore L1-L3)
+  │
+  ▼
+Context Builder (shared game state)
+  │
+  ▼
+Dramaturg (Bible pattern selection via MCP)
+  │
+  ▼
+Stylist (Gutenberg style rendering via MCP)
+  │
+  ▼
+Censor (AI cliché removal)
+  │
+  ▼
+Translation Service (English → user language)
+  │
+  ▼
+Response to User
+```
 
 ```
 ┌─────────────────────────────────────────────────┐

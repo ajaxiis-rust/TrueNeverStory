@@ -13,6 +13,7 @@
 <link href="/static/theme.css" rel="stylesheet">
 <script src="/static/vendor/purify.min.js"></script>
 <script src="/static/theme.js"></script>
+<script src="/static/heartbeat.js"></script>
 <style>
 :root {
   --font-display: 'Doto', 'Space Mono', monospace;
@@ -415,8 +416,15 @@ function applyLang(lang){document.querySelectorAll('[data-i18n]').forEach(el=>{c
                   msgEl.classList.add('msg--agent');
                 }
               }
+              // Hide heartbeat on completion
+              if (window.heartbeatUI) window.heartbeatUI.hide();
             } else if (event.type === 'error') {
               addMsg(event.error || 'Unknown error', 'msg--error');
+              if (window.heartbeatUI) window.heartbeatUI.hide();
+            } else if (event.type === 'heartbeat') {
+              // Handle heartbeat progress events
+              if (!window.heartbeatUI) window.heartbeatUI = new HeartbeatUI();
+              window.heartbeatUI.update(event.message, event.progress);
             }
           } catch {}
         }
