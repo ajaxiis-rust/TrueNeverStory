@@ -56,6 +56,59 @@ export const GetRelationshipsSchema = z.object({
   depth: z.number().optional().describe('Relationship depth (default 1)'),
 });
 
+// ─── Literary Compiler Schemas ──────────────────────────────────────────────
+
+export const GetQuestTemplatesSchema = z.object({
+  position: z.string().optional().describe('Player position: leader, follower, tyrant, judge, etc.'),
+  archetype: z.string().optional().describe('Archetype: escape, judgment, loyalty, wisdom, etc.'),
+  mood: z.string().optional().describe('Mood: epic, dark, hopeful, tense, neutral'),
+  difficulty: z.string().optional().describe('Difficulty: low, medium, high'),
+  limit: z.number().optional().describe('Max results (default 5)'),
+});
+
+export const SearchQuestTemplatesSchema = z.object({
+  query: z.string().describe('Search text'),
+  limit: z.number().optional().describe('Max results (default 10)'),
+});
+
+// ─── Economic Tool Schemas ──────────────────────────────────────────────────
+
+export const GetEconomicPhaseSchema = z.object({
+  worldId: z.string().describe('World ID to check economic phase for'),
+});
+
+export const GetPriceModifierSchema = z.object({
+  worldId: z.string().describe('World ID to get price modifier for'),
+});
+
+export const CalculatePriceSchema = z.object({
+  worldId: z.string().describe('World ID'),
+  basePrice: z.number().describe('Base price to calculate'),
+});
+
+export const GetWageSchema = z.object({
+  faction: z.string().describe('Faction/rank to calculate wage for'),
+  baseWage: z.number().describe('Base wage amount'),
+  workedHours: z.number().describe('Hours worked'),
+  productivity: z.number().optional().describe('Productivity multiplier (default 1.0)'),
+});
+
+export const GenerateDilemmaSchema = z.object({
+  worldId: z.string().describe('World ID'),
+  factionA: z.string().describe('First faction name'),
+  factionB: z.string().describe('Second faction name'),
+});
+
+export const CheckJubileeSchema = z.object({
+  worldId: z.string().describe('World ID'),
+  currentYear: z.number().describe('Current in-game year'),
+});
+
+export const GetJubileeInfoSchema = z.object({
+  worldId: z.string().describe('World ID'),
+  currentYear: z.number().describe('Current in-game year'),
+});
+
 // ─── Inferred Types ──────────────────────────────────────────────────────────
 
 export type SearchVersesInput = z.infer<typeof SearchVersesSchema>;
@@ -67,3 +120,12 @@ export type VerifyFactInput = z.infer<typeof VerifyFactSchema>;
 export type GetContextInput = z.infer<typeof GetContextSchema>;
 export type QueryEntityInput = z.infer<typeof QueryEntitySchema>;
 export type GetRelationshipsInput = z.infer<typeof GetRelationshipsSchema>;
+export type GetQuestTemplatesInput = z.infer<typeof GetQuestTemplatesSchema>;
+export type SearchQuestTemplatesInput = z.infer<typeof SearchQuestTemplatesSchema>;
+export type GetEconomicPhaseInput = z.infer<typeof GetEconomicPhaseSchema>;
+export type GetPriceModifierInput = z.infer<typeof GetPriceModifierSchema>;
+export type CalculatePriceInput = z.infer<typeof CalculatePriceSchema>;
+export type GetWageInput = z.infer<typeof GetWageSchema>;
+export type GenerateDilemmaInput = z.infer<typeof GenerateDilemmaSchema>;
+export type CheckJubileeInput = z.infer<typeof CheckJubileeSchema>;
+export type GetJubileeInfoInput = z.infer<typeof GetJubileeInfoSchema>;

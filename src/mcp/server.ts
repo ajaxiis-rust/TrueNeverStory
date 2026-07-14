@@ -3,6 +3,11 @@ import { GutenbergParser } from './gutenberg/parser';
 import { BibleMCPTools } from './tools/bible';
 import { GutenbergMCPTools } from './tools/gutenberg';
 import { WikipediaMCPTools } from './tools/wikipedia';
+import { LiteraryCompilerMCPTools } from './tools/literary-compiler';
+import { EconomicMCPTools } from './tools/economic';
+import { LiteraryCompilerDB } from './literary-compiler/schema';
+import { EconomicDB } from './literary-compiler/economic-schema';
+import { EconomicService } from '@/services/economic-service';
 import {
   SearchVersesSchema,
   GetPatternSchema,
@@ -11,6 +16,15 @@ import {
   ApplyStyleSchema,
   VerifyFactSchema,
   GetContextSchema,
+  GetQuestTemplatesSchema,
+  SearchQuestTemplatesSchema,
+  GetEconomicPhaseSchema,
+  GetPriceModifierSchema,
+  CalculatePriceSchema,
+  GetWageSchema,
+  GenerateDilemmaSchema,
+  CheckJubileeSchema,
+  GetJubileeInfoSchema,
 } from './schemas';
 import { UnifiedEntityStore } from '@/store/entity-store';
 import { getLogger } from '@/utils/logger';
@@ -35,6 +49,11 @@ export class TNSServer {
   private bibleTools: BibleMCPTools;
   private gutenbergTools: GutenbergMCPTools;
   private wikipediaTools: WikipediaMCPTools;
+  private literaryCompilerDB: LiteraryCompilerDB;
+  private literaryCompilerTools: LiteraryCompilerMCPTools;
+  private economicDB: EconomicDB;
+  private economicService: EconomicService;
+  private economicTools: EconomicMCPTools;
   private entityStore: UnifiedEntityStore;
   private initialized = false;
 
@@ -53,10 +72,25 @@ export class TNSServer {
       extractStyles: true,
     });
 
+    // Initialize Literary Compiler DB
+    const litCompDbPath = config.dataDir
+      ? join(config.dataDir, 'literary-compiler', 'literary.db')
+      : join(process.cwd(), 'data', 'literary-compiler', 'literary.db');
+    this.literaryCompilerDB = new LiteraryCompilerDB(litCompDbPath);
+
+    // Initialize Economic DB
+    const econDbPath = config.dataDir
+      ? join(config.dataDir, 'literary-compiler', 'economic.db')
+      : join(process.cwd(), 'data', 'literary-compiler', 'economic.db');
+    this.economicDB = new EconomicDB(econDbPath);
+    this.economicService = new EconomicService(this.economicDB);
+
     // Initialize tools
     this.bibleTools = new BibleMCPTools(this.bibleParser);
     this.gutenbergTools = new GutenbergMCPTools(this.gutenbergParser);
     this.wikipediaTools = new WikipediaMCPTools();
+    this.literaryCompilerTools = new LiteraryCompilerMCPTools(this.literaryCompilerDB);
+    this.economicTools = new EconomicMCPTools(this.economicService);
   }
 
   /**
@@ -163,6 +197,62 @@ export class TNSServer {
         };
       }
 
+      case 'get_quest_templates': {
+        const parsed = GetQuestTemplatesSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.literaryCompilerTools.getQuestTemplates(parsed.data);
+      }
+
+      case 'search_quest_templates': {
+        const parsed = SearchQuestTemplatesSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.literaryCompilerTools.searchQuestTemplates(parsed.data);
+      }
+
+      // ─── Economic Tools ───────────────────────────────────────────
+
+      case 'get_economic_phase': {
+        const parsed = GetEconomicPhaseSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.economicTools.getEconomicPhase(parsed.data);
+      }
+
+      case 'get_price_modifier': {
+        const parsed = GetPriceModifierSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.economicTools.getPriceModifier(parsed.data);
+      }
+
+      case 'calculate_price': {
+        const parsed = CalculatePriceSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.economicTools.calculatePrice(parsed.data);
+      }
+
+      case 'get_wage': {
+        const parsed = GetWageSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.economicTools.getWage(parsed.data);
+      }
+
+      case 'generate_dilemma': {
+        const parsed = GenerateDilemmaSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.economicTools.generateDilemma(parsed.data);
+      }
+
+      case 'check_jubilee': {
+        const parsed = CheckJubileeSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.economicTools.checkJubilee(parsed.data);
+      }
+
+      case 'get_jubilee_info': {
+        const parsed = GetJubileeInfoSchema.safeParse(input);
+        if (!parsed.success) throw new Error(`Invalid input: ${parsed.error.message}`);
+        return this.economicTools.getJubileeInfo(parsed.data);
+      }
+
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -218,6 +308,52 @@ export class TNSServer {
         description: 'Get entity relationships',
         inputSchema: { entityUid: { type: 'string' }, depth: { type: 'number', optional: true } },
       },
+      {
+        name: 'get_quest_templates',
+        description: 'Get quest templates by player position, archetype, or mood',
+        inputSchema: GetQuestTemplatesSchema.shape,
+      },
+      {
+        name: 'search_quest_templates',
+        description: 'Search quest templates by text',
+        inputSchema: SearchQuestTemplatesSchema.shape,
+      },
+      // ─── Economic Tools ───────────────────────────────────────────
+      {
+        name: 'get_economic_phase',
+        description: 'Get current economic phase (abundance/transition/famine) and price modifier',
+        inputSchema: GetEconomicPhaseSchema.shape,
+      },
+      {
+        name: 'get_price_modifier',
+        description: 'Get current price modifier based on economic phase',
+        inputSchema: GetPriceModifierSchema.shape,
+      },
+      {
+        name: 'calculate_price',
+        description: 'Calculate price with economic phase modifier applied',
+        inputSchema: CalculatePriceSchema.shape,
+      },
+      {
+        name: 'get_wage',
+        description: 'Calculate wage for a faction based on labor rules',
+        inputSchema: GetWageSchema.shape,
+      },
+      {
+        name: 'generate_dilemma',
+        description: 'Generate a tax dilemma between two factions',
+        inputSchema: GenerateDilemmaSchema.shape,
+      },
+      {
+        name: 'check_jubilee',
+        description: 'Check if jubilee year should trigger',
+        inputSchema: CheckJubileeSchema.shape,
+      },
+      {
+        name: 'get_jubilee_info',
+        description: 'Get jubilee cycle information',
+        inputSchema: GetJubileeInfoSchema.shape,
+      },
     ];
   }
 
@@ -227,6 +363,8 @@ export class TNSServer {
   close(): void {
     this.bibleParser.close();
     this.gutenbergParser.close();
+    this.literaryCompilerDB.close();
+    this.economicDB.close();
     this.initialized = false;
   }
 }
