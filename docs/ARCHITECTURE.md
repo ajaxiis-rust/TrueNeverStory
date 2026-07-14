@@ -1,7 +1,7 @@
 # TrueNeverStory — Architecture Document
 
 > A Domain-Driven Design analysis of the TrueNeverStory narrative RPG engine.
-> Updated for v0.25.0 — State-First Architecture with MCP Integration.
+> Updated for v0.25.3 — Literary Compiler, Economic Models, State-First Architecture with MCP Integration.
 
 ---
 

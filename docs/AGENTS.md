@@ -1,4 +1,4 @@
-# Agents Reference (v0.25.0)
+# Agents Reference (v0.25.3)
 
 TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.25.0, the engine uses **6 specialized agents** (The Big Six) replacing the previous 14-agent system.
 

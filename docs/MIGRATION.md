@@ -2,6 +2,10 @@
 
 This guide covers the migration from JSON file storage to SQLite for world data.
 
+## v0.25.3 Migration: Literary Compiler & Economic Models
+
+The v0.25.3 release adds the Literary Compiler and Economic Models. No migration required — these are additive features that extend the existing State-First pipeline.
+
 ## v0.25.0 Migration: State-First Pipeline
 
 ### What Changed

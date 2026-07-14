@@ -1,5 +1,66 @@
 # Changelog
 
+## v0.25.3 (2026-07-14)
+
+### Literary Compiler (Phases 0-6)
+
+4 offline analysis passes for quest template enrichment:
+
+- **Dramaturgic Analysis** — Narrative structure, tension arcs, character dynamics
+- **Stylistic Analysis** — Vocabulary, sentence patterns, readability metrics
+- **Emotional Analysis** — Sentiment progression, emotional peaks, mood mapping
+- **Metadata Extraction** — Genre tags, difficulty, estimated duration
+
+**New Files:**
+- `src/services/literary-compiler.ts` — Main compiler orchestrator
+- `src/services/literary-analyzer.ts` — 4 analysis passes
+- `src/services/linter.ts` — Validation, deduplication, cliché detection
+
+**SQL Schema:**
+- `quest_templates` table with FTS5 full-text search
+- `quest_template_analysis` table for analysis results
+- Indexes for fast archetype/mood/tag lookups
+
+**Anti-Moralizing Prompt:**
+- New Stylist system prompt instruction to avoid moralizing narrative conclusions
+
+---
+
+### Economic Models
+
+4 new economic subsystems for faction management:
+
+- **JubileeManager** — Debt reset every 50 years, land return, loyalty boost
+- **FactionTaxDilemma** — Auto-generated faction tax disputes with player choices
+- **FactionLaborRules** — Per-faction fixed/proportional wages, loyalty conflict detection
+- **EconomicCycles** — Joseph model with abundance/transition/famine phases
+
+**New Files:**
+- `src/services/jubilee-manager.ts` — Jubilee cycle management
+- `src/services/faction-tax-dilemma.ts` — Tax dilemma generation
+- `src/services/faction-labor-rules.ts` — Wage calculation and loyalty conflicts
+- `src/services/economic-cycles.ts` — Joseph economic model
+- `src/services/economic-service.ts` — Facade wrapping all 4 models
+
+---
+
+### Economic Integration
+
+- **DirectorLoop** integration: cycle transitions, jubilee events, dilemma generation
+- **NPC-Economy** labor rule integration with wage calculation
+- **7 new MCP tools:** `get_economic_phase`, `get_price_modifier`, `calculate_price`, `get_wage`, `generate_dilemma`, `check_jubilee`, `get_jubilee_info`
+
+---
+
+### Bug Fixes
+
+- Removed unused `better-sqlite3` dependency (project uses `bun:sqlite`)
+- Fixed hardcoded faction names in dilemma choices — now uses actual faction names
+- Fixed hardcoded faction list in DirectorLoop — now reads from world config
+- Fixed year approximation drift — uses `getFullYear()` instead of manual calculation
+
+---
+
 ## v0.25.0 (2026-07-13)
 
 ### State-First Architecture
