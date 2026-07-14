@@ -31,6 +31,8 @@ import { WorldEvolver } from "./world-evolver";
 import { NPCGenerator } from "./npc-generator";
 import { GraphValidator } from "../intelligence/graph-validator";
 import { SQLiteStore } from "../lib/sqlite-store";
+import { EconomicService } from "./economic-service";
+import { EconomicDB } from "../mcp/literary-compiler/economic-schema";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -73,6 +75,7 @@ export interface BootstrapperResult {
   worldEvolver: WorldEvolver;
   npcGenerator: NPCGenerator;
   graphValidator: GraphValidator;
+  economicService: EconomicService;
 }
 
 export function bootstrapNarrativeServices(
@@ -137,6 +140,8 @@ export function bootstrapNarrativeServices(
 
   const npcRuntime = new NPCRuntime(dbPath, entityStore, llmQueue, chronicler);
 
+  const economicService = new EconomicService(new EconomicDB(join(dbPath, "economic.db")));
+
   const storyPlanner = new StoryPlanner({
     statePath: join(dbPath, "story_planner.json"),
     llmQueue,
@@ -174,6 +179,7 @@ export function bootstrapNarrativeServices(
     villainManager,
     storyPlanner,
     eventBus,
+    economicService,
     statePath: dbPath,
   });
 
@@ -240,5 +246,6 @@ export function bootstrapNarrativeServices(
     worldEvolver,
     npcGenerator,
     graphValidator,
+    economicService,
   };
 }

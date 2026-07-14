@@ -12,6 +12,7 @@ import type { StoryEngine } from "./story-engine";
 import type { NPCRuntime } from "./npc-runtime";
 import type { VillainManager } from "./villain-manager";
 import type { StoryPlanner } from "./story-planner";
+import type { EconomicService } from "./economic-service";
 import { EventTopic } from "../lib/event-bus";
 import { readJsonFileSync } from "../lib/atomic-io";
 import { atomicWriteJson } from "../lib/atomic-io";
@@ -47,6 +48,7 @@ export interface DirectorDeps {
   villainManager: VillainManager;
   storyPlanner: StoryPlanner;
   eventBus: EventBus;
+  economicService?: EconomicService;
   statePath: string;
   config?: Partial<DirectorConfig>;
 }
@@ -59,6 +61,7 @@ export class DirectorLoop {
   private _villainManager: VillainManager;
   private _storyPlanner: StoryPlanner;
   private _eventBus: EventBus;
+  private _economicService?: EconomicService;
   private _config: DirectorConfig;
   private _statePath: string;
   private _running = false;
@@ -74,6 +77,7 @@ export class DirectorLoop {
     this._villainManager = deps.villainManager;
     this._storyPlanner = deps.storyPlanner;
     this._eventBus = deps.eventBus;
+    this._economicService = deps.economicService;
     this._config = { ...DEFAULT_CONFIG, ...deps.config };
     this._statePath = join(deps.statePath, "director_state.json");
     this._load();
@@ -159,6 +163,25 @@ export class DirectorLoop {
       await this._clock.tick(this._config.tickIntervalMinutes);
       const currentTime = this._clock.currentTime;
 
+      // Economic cycle check
+      if (this._economicService) {
+        try {
+          const econResult = this._economicService.checkTick("default");
+          if (econResult.cycle_transition) {
+            for (const msg of econResult.messages) {
+              await this._chronicler.logEvent(`[Economic] ${msg}`, currentTime, "director");
+            }
+            await this._eventBus.publishSimple(
+              EventTopic.STORY_EVENT,
+              { title: econResult.transition?.message ?? "Economic phase changed", category: "economic" },
+              "director",
+            );
+          }
+        } catch (err) {
+          log.error({ err: err instanceof Error ? err : new Error(String(err ?? "economic tick failed")) }, "Economic tick failed");
+        }
+      }
+
       // Social simulation
       try {
         await this._npcRuntime.simulateTurn(currentTime);
@@ -223,8 +246,33 @@ export class DirectorLoop {
     const categories = [
       "accident", "discovery", "misunderstanding", "weather_event",
       "luck", "misfortune", "random_encounter", "rumor",
+      "economic_dilemma",
     ];
     const category = categories[Math.floor(Math.random() * categories.length)] ?? "accident";
+
+    // Handle economic dilemma as special chance event
+    if (category === "economic_dilemma" && this._economicService) {
+      const factions = ["Blacksmiths", "Farmers", "Merchants", "Guards", "Scholars"];
+      const factionA = factions[Math.floor(Math.random() * factions.length)]!;
+      const remaining = factions.filter(f => f !== factionA);
+      const factionB = remaining[Math.floor(Math.random() * remaining.length)]!;
+
+      const dilemma = this._economicService.generateDilemma("default", factionA, factionB);
+      if (dilemma) {
+        await this._chronicler.logEvent(
+          `[Economic] Tax dispute: ${factionA} vs ${factionB} over ${dilemma.dilemma.tax_amount} gold`,
+          currentTime,
+          "director",
+        );
+        await this._eventBus.publishSimple(
+          EventTopic.STORY_EVENT,
+          { title: `Tax Dispute: ${factionA} vs ${factionB}`, category: "economic_dilemma", dilemma },
+          "director",
+        );
+        return { title: dilemma.message, category: "economic_dilemma", dilemma };
+      }
+    }
+
     const npcs = Array.from(this._npcRuntime.listAll().keys());
     const involved = npcs.length >= 2
       ? [npcs[Math.floor(Math.random() * npcs.length)]!, npcs[Math.floor(Math.random() * npcs.length)]!]
@@ -259,6 +307,29 @@ export class DirectorLoop {
       const cooldown = this._config.majorBeatCooldownHours * 60 * 60 * 1000;
       if (currentTime.getTime() - this._lastMajorBeatTime.getTime() < cooldown) return;
     }
+
+    // Check for jubilee (year-based approximation)
+    if (this._economicService) {
+      const currentYear = Math.floor(currentTime.getTime() / (365 * 24 * 60 * 60 * 1000));
+      if (this._economicService.checkJubilee("default", currentYear)) {
+        const npcKeys = Array.from(this._npcRuntime.listAll().keys());
+        const jubileeResult = this._economicService.triggerJubilee("default", currentYear, {
+          debts: new Map(),
+          lands: new Map(),
+          npcs: npcKeys,
+        });
+        await this._chronicler.logEvent(`[Economic] ${jubileeResult.message}`, currentTime, "director");
+        await this._eventBus.publishSimple(
+          EventTopic.STORY_EVENT,
+          { title: "Jubilee Year", category: "economic", jubilee: jubileeResult },
+          "director",
+        );
+        this._lastMajorBeatTime = currentTime;
+        await this._save();
+        return;
+      }
+    }
+
     if (await this._storyPlanner.shouldGenerateBeat(currentTime)) {
       await this._generateMajorBeat(currentTime);
     }
