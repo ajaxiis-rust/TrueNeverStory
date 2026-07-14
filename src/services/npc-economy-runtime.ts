@@ -275,3 +275,93 @@ export function getEconomySummary(state: EconomyState): string {
     ...Array.from(byRank.entries()).map(([rank, count]) => `  ${rank}: ${count}`),
   ].join("\n");
 }
+
+/**
+ * Process turn with EconomicService integration.
+ * Applies faction labor rules to wage calculations.
+ */
+export function processTurnWithEconomy(
+  state: EconomyState,
+  economicService: {
+    calculateWage(faction: string, baseWage: number, workedHours: number, productivity: number): { wage: number; is_fixed: boolean; loyalty_modifier: number; message: string };
+    getLaborRule(faction: string): { faction: string; fixed_wages: boolean; wage_amount: number; loyalty_modifier: number } | null;
+  },
+): EconomyState {
+  const newNpcs = new Map<string, NPCWithEconomy>();
+  let totalFoodConsumption = 0;
+  let totalFoodProduction = 0;
+
+  for (const [id, npc] of state.npcs) {
+    let updated = { ...npc };
+
+    // 1. Age +1
+    updated.age = npc.age + 1;
+
+    // 2. Stat dynamics
+    updated = updateNPCStats(updated);
+
+    // 3. Apply faction labor rules for wage (only if rule exists)
+    const laborRule = economicService.getLaborRule(npc.rank as string);
+    if (laborRule) {
+      const wageResult = economicService.calculateWage(
+        npc.rank as string,
+        npc.income,
+        8, // standard work day
+        1.0,
+      );
+      updated.income = wageResult.wage;
+
+      // Apply loyalty modifier from labor rules
+      if (wageResult.loyalty_modifier !== 0) {
+        updated.loyalty = Math.max(0, Math.min(1000, updated.loyalty + wageResult.loyalty_modifier * 100));
+      }
+    }
+
+    // 4. Bribes (if can take)
+    const rankConfig = getRankConfig(updated.rank);
+    if (rankConfig.canTakeBribes) {
+      const bribeAmount = Math.floor(updated.income * 0.15);
+      if (bribeAmount > 0) {
+        const risk = bribeRisk(updated.stats.intrigue, updated.stats.intrigue, bribeAmount, 1);
+        if (Math.random() < risk) {
+          updated.stats.wealth += bribeAmount;
+          updated.stats.popularity -= 2;
+          updated.totalBribes += bribeAmount;
+        }
+      }
+    }
+
+    // 5. Taxes
+    const taxes = Math.floor(updated.income * updated.taxRate);
+    updated.stats.wealth -= taxes;
+    updated.treasury.taxes = taxes;
+
+    // 6. Food
+    const food = processFood(updated);
+    totalFoodConsumption += food.consumption;
+    totalFoodProduction += food.production;
+
+    // 7. Bankruptcy check
+    if (updated.stats.wealth < 0 && updated.rank !== RankType.SLAVE) {
+      updated = losePowerToSlavery(updated);
+      log.info({ npc: updated.name }, "NPC became slave due to bankruptcy");
+    }
+
+    // 8. Betrayal check
+    const betrayalRiskVal = checkBetrayalRisk(updated.taxRate, updated.income, updated.totalBribes, updated.loyalty);
+    if (betrayalRiskVal > 0.8 && Math.random() < betrayalRiskVal) {
+      updated.loyalty = Math.max(0, updated.loyalty - 100);
+      updated.stats.intrigue += 50;
+      log.info({ npc: updated.name }, "NPC reached betrayal threshold");
+    }
+
+    newNpcs.set(id, updated);
+  }
+
+  return {
+    npcs: newNpcs,
+    turn: state.turn + 1,
+    foodStockpile: state.foodStockpile + totalFoodProduction - totalFoodConsumption,
+    totalWealth: Array.from(newNpcs.values()).reduce((sum, n) => sum + n.stats.wealth, 0),
+  };
+}
