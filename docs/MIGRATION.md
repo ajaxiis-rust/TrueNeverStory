@@ -2,6 +2,74 @@
 
 This guide covers the migration from JSON file storage to SQLite for world data.
 
+## v0.25.0 Migration: State-First Pipeline
+
+### What Changed
+
+The v0.25.0 release introduces a state-first pipeline architecture that consolidates the previous 14-agent system into 6 specialized agents (The Big Six).
+
+**Old Pipeline:**
+```
+User Intent → Agent Selection → Agent Execution → Response
+```
+
+**New Pipeline:**
+```
+User Intent → Simulation → Pattern Selection (Dramaturg) → Fact Check (Validator) → Style Render (Stylist) → NPC Dialogue (Actor) → Linting (Censor) → Memory Update (Chronicler)
+```
+
+**Agent Consolidation:**
+
+| Old Agents (14) | New Agent | Responsibility |
+|-----------------|-----------|----------------|
+| Narrator, Director, Scene | Stylist | Prose generation |
+| Quest Giver, Lorekeeper, Villain | Dramaturg | Pattern selection |
+| Researcher, Historian | Validator | Fact verification |
+| NPC, Crafter, Cartographer, Merchant, Social Sim, User Agent | Actor | NPC interactions |
+| (none) | Censor | Style linting |
+| (none) | Chronicler | Memory maintenance |
+
+**Backward Compatibility:** Old agent IDs (`@narrator`, `@director`, etc.) still work but route to new agents internally.
+
+### MCP Integration
+
+v0.25.0 introduces Model Context Protocol (MCP) tools for external knowledge access:
+
+| MCP Server | Tools | Purpose |
+|------------|-------|---------|
+| Bible Parser | `search_verses`, `get_pattern`, `get_archetype` | Narrative patterns from biblical texts |
+| Gutenberg Parser | `get_style_pattern`, `apply_style` | Stylistic patterns from literature |
+| Wikipedia Tools | `verify_fact`, `get_context` | Historical fact-checking |
+
+**Configuration:**
+
+```typescript
+// In conf/settings.json
+{
+  "mcpServers": {
+    "bible": { "enabled": true, "dbPath": "./data/bible.db" },
+    "gutenberg": { "enabled": true, "dbPath": "./data/styles.db" },
+    "wikipedia": { "enabled": true }
+  }
+}
+```
+
+### New Dependencies
+
+| Dependency | Status | Purpose |
+|------------|--------|---------|
+| Zod | Already in project | Schema validation |
+| Mojo FFI | Already in project | Compute kernels |
+| TranslationService | No external deps | UI translations |
+
+### Breaking Changes
+
+- **RoleplayEngine internal flow rewritten** — The pipeline now follows Simulation → Pattern → Style → Dialogue → Lint → Memory
+- **AgentV2.process() replaces generateResponse()** — New signature: `process(intent, simulation, context, pattern?)`
+- **createRoleplayEngine() requires new deps** — MCP server references, AgentRegistryV2, EventBus
+
+---
+
 ## Overview
 
 TrueNeverStory uses a hybrid storage approach:

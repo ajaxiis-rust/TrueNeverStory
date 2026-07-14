@@ -2,7 +2,7 @@
 
 REST API for the TrueNeverStory world-building and roleplay platform. All endpoints return JSON unless noted.
 
-**Base URL:** `http://localhost:3000`
+**Base URL:** `http://localhost:8000`
 
 ---
 
@@ -74,6 +74,7 @@ SSE streaming endpoint for progressive narrative delivery. Same request body as 
 - `event: start` — session state
 - `event: chunk` — narrative text chunk
 - `event: agent` — agent response (for `@agent` mentions)
+- `event: heartbeat` — progress indicator ({ message: string, progress: number, stage: string })
 - `event: done` — final state
 - `event: error` — error message
 - `data: [DONE]` — stream end sentinel
@@ -287,6 +288,42 @@ Get single quest details.
 
 ---
 
+## Rules Engine
+
+### `GET /rules`
+List social/economic rules for the world.
+
+### `GET /rules/:id`
+Get rule details by ID.
+
+### `POST /rules/validate`
+Validate rule JSON structure.
+
+---
+
+## Feature Flags
+
+### `GET /feature-flags`
+List all feature flags.
+
+### `PUT /feature-flags/:id`
+Update a feature flag.
+
+---
+
+## API Versioning
+
+TrueNeverStory supports two API versions:
+
+- **v1** — Legacy wrapper for backward compatibility
+- **v2** — Enhanced version with agent registry integration
+
+All v2 responses include deprecation headers when legacy behavior is used:
+
+- `X-API-Version: v2`
+- `X-Deprecated: true` (when returning legacy format)
+- `Sunset: <date>` (when a v1 endpoint is scheduled for removal)
+
 ## Memory
 
 ### `POST /memory/forget?older_than=30&min_importance=0.2`
@@ -332,6 +369,16 @@ Rebuild vector index.
 
 ### `POST /maintenance/clean-orphans`
 Clean orphaned embeddings.
+
+---
+
+## System
+
+### `POST /system/pause`
+Pause the roleplay engine. Accepts no parameters.
+
+### `POST /system/resume`
+Resume the roleplay engine. Accepts no parameters.
 
 ---
 
@@ -549,4 +596,4 @@ Get all routes registered by plugins.
 
 ---
 
-*Generated: 2026-07-05 | TrueNeverStory v0.14.0*
+*Generated: 2026-07-14 | TrueNeverStory v0.25.3*

@@ -1,12 +1,52 @@
-# TrueNeverStory v0.25.0
+# TrueNeverStory v0.25.3
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
-TrueNeverStory ist eine KI-gestützte interaktive Narrativ-Engine. Jeder NPC erinnert sich, jede Handlung hat eine Chance, und die Geschichte hört nie auf. Spiele eine Figur, erkunde eine lebendige Welt und beobachte, wie deine Entscheidungen die Handlung formen — oder lass die Welt sich selbst entwickeln.
+TrueNeverStory ist eine KI-gestuetzte interaktive Narrativ-Engine mit **State-First-Architektur**. Jeder NPC erinnert sich, jede Handlung hat ein deterministisches Ergebnis, und die Geschichte hoert nie auf. Spiele eine Figur, erkunde eine lebendige Welt und beobachte, wie deine Entscheidungen die Handlung formen — oder lass die Welt sich selbst entwickeln.
 
-Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels für leistungskritische Operationen.
+Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskritische Operationen.
 
-**[English](README.md) | [Русский](README.ru.md) | [Français](README.fr.md) | [Español](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+**[English](README.md) | [Русский](README.ru.md) | [Francais](README.fr.md) | [Espanol](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+
+---
+
+## Neuigkeiten in v0.25.3
+
+### State-First-Pipeline
+Die Engine verarbeitet Aktionen nun **deterministisch, bevor Text generiert wird**:
+1. **Intent-Parser** — Zod-validierte strukturierte Intents ersetzen Regex-Routing
+2. **Simulations-Engine** — Mojo FFI berechnet Ergebnisse vor der Prosa-Generierung
+3. **State-Mutator** — EntityStore wird sofort nach der Logik aktualisiert
+4. **Context-Builder** — Gemeinsamer Spielkontext fuer alle Agenten
+5. **Prosa-Generierung** — LLM generiert Text, der durch Simulationsergebnisse eingeschraenkt ist
+
+### MCP-Integration (Literatur-als-Code)
+- **Bible als stdlib** — Biblische Muster als narrative Archetypen (SQLite + MCP)
+- **Gutenberg als Style CSS** — Delexifizierte stilistische Muster fuer Prosa-Rendering
+- **Wikipedia als Validator** — Historische Faktenpruefung ueber externes Wissen
+
+### Die Sechs Großen Agenten
+14 Agenten zu 6 spezialisierten Rollen zusammengefasst:
+
+| Agent | Rolle | Beschreibung |
+|-------|-------|-------------|
+| **Dramaturg** | Der Architekt | Waehlt narrative Muster aus Bible-Archetypen |
+| **Validator** | Der Faktenpruefer | Verifiziert Fakten ueber Wikipedia MCP |
+| **Stylist** | Der Erzaehler | Rendert Prosa mit Gutenberg-Stilmustern |
+| **Actor** | NPC-Ensemble | Verwaltet NPC-Dialoge mit L3-versteckten Motivationen |
+| **Censor** | Linter | Entfernt KI-Klischees und erzwingt Stilkonsistenz |
+| **Chronicler** | Welt-Gedaechtnis | Aktualisiert Timeline und Weltzustand |
+
+### System-Heartbeat
+Echtzeit-Fortschrittsanzeigen in der Chat-UI:
+- "Eingabe wird verstanden..."
+- "Wuerfel werden geworfen..."
+- "Ergebnis: Erfolg (73%)"
+- "Erzaehlung wird geweben..."
+- "Abgeschlossen"
+
+### Interlingua (Englisch als interne Sprache)
+Alle Agent-zu-Agent- und Agent-zu-MCP-Operationen verwenden Englisch fuer Token-Effizienz und Genauigkeit. Die Uebersetzung erfolgt an der Ausgabegrenze.
 
 ---
 
@@ -14,48 +54,52 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels für leistungskriti
 
 | Funktion | Beschreibung |
 |----------|-------------|
-| **Lebendige Welt** | Charaktere, Orte, Gegenstände, Fraktionen — alles in einem Wissensgraphen mit O(1) Zugriff |
-| **14 KI-Agenten** | Erzähler, Regisseur, NPC, Szene, Chronist, Planer, Schurke, Forscher, Historiker, Kartograph, Händler, Questgeber, Wissenshüter, Soz. Simulation |
-| **Gedächtnis & RAG** | Vektorbasierte Suche (BGE-M3 + SQLite Hybrid FTS5/dicht/RRF) |
-| **Wahrscheinlichkeitssystem** | Deterministische Ergebnisse für Kampf, Überredung, Heimlichkeit, Romantik |
+| **State-First-Pipeline** | Deterministische Simulation -> State-Mutation -> eingeschraenkte Prosa-Generierung |
+| **6 KI-Agenten** | Dramaturg, Validator, Stylist, Actor, Censor, Chronicler |
+| **MCP-Integration** | Bible-Muster, Gutenberg-Stile, Wikipedia-Validierung |
+| **Lebendige Welt** | Charaktere, Orte, Gegenstaende, Fraktionen — alles in einem Wissensgraphen mit O(1) Zugriff |
+| **Gedaechtnis & RAG** | Vektorbasierte Suche (BGE-M3 + SQLite Hybrid FTS5/dicht/RRF) |
+| **Wahrscheinlichkeitssystem** | Deterministische Ergebnisse fuer Kampf, Ueberredung, Heimlichkeit, Romantik |
 | **Romanze & Soziales** | Beziehungsmanagement, Fraktionen, Allianzen, feudale Hierarchie, NPC-Dialoge |
 | **Quest-System** | Dynamische Quest-Generierung, Ziele, Belohnungen, Ketten, Zeitlimits |
-| **Inventar & Handel** | Gegenstände mit Seltenheit, Statistiken, Ausrüstung, Gold, NPC-Handel |
-| **NPC-Ökonomie** | Feudale Hierarchie (10 Ränge), Steuern, Nahrungsproduktion, Familiensystem, 34 Archetypen |
-| **Regel-Engine** | 14 vordefinierte soziale/ökonomische Systeme (Feudalismus, Demokratie, Anarchie usw.) mit Synergie-Matrix |
-| **Multi-Welten** | Isolierte Weltenausführung mit Ressourcen-Monitoring (Speicher, CPU, Token) |
+| **Inventar & Handel** | Gegenstaende mit Seltenheit, Statistiken, Ausruestung, Gold, NPC-Handel |
+| **NPC-Oekonomie** | Feudale Hierarchie (10 Raenge), Steuern, Nahrungsproduktion, Familiensystem, 34 Archetypen |
+| **Regel-Engine** | 14 vordefinierte soziale/okonomische Systeme (Feudalismus, Demokratie, Anarchie usw.) mit Synergie-Matrix |
+| **Multi-Welten** | Isolierte Weltenausfuhrung mit Ressourcen-Monitoring (Speicher, CPU, Token) |
 | **Cross-Welt** | Event-Kommunikation zwischen Welten mit Portalen und geteilter Erinnerung |
 | **Plugin-System** | Erweiterbare Architektur mit Plugin-Manager, Lifecycle-Hooks und API |
 | **Feature-Flags** | A/B-Testing, schrittweiser Rollout, Hash-basiertes Targeting |
 | **API-Versionierung** | v1/v2 Endpunkte mit Deprecation-Headern |
-| **Echtzeit-Streaming** | WebSocket + SSE für Live-Erzählung |
-| **i18n (7 Sprachen)** | EN, RU, DE, FR, ES, JA, ZH |
-| **Passwort-Auth** | Sitzungsbasiert mit HttpOnly Cookies, CSRF-Schutz, SQLite-gestützte Sitzungen |
-| **SQLite-Speicher** | Entitäten, Embeddings, Erinnerungen, Prompts, Übersetzungen |
+| **Echtzeit-Streaming** | WebSocket + SSE fuer Live-Erzahlung mit Heartbeat-Fortschritt |
+| **i18n (7 Sprachen)** | EN, RU, DE, FR, ES, JA, ZH — UI, Prompts, Agenten-Namen |
+| **Passwort-Auth** | Sitzungsbasiert mit HttpOnly Cookies, CSRF-Schutz, SQLite-gestuetzte Sitzungen |
+| **SQLite-Speicher** | Entitaeten, Embeddings, Erinnerungen, Prompts, Uebersetzungen |
 | **Circuit Breaker** | Automatischer LLM-Provider-Failover mit Fallback-Kette |
-| **Strukturiertes Logging** | Trace-IDs, Correlation-IDs, Metriken für Multi-Agent-Workflows |
+| **Strukturiertes Logging** | Trace-IDs, Correlation-IDs, Metriken fuer Multi-Agent-Workflows |
 
 ---
 
-## Unterstützte Plattformen
+## Unterstuetzte Plattformen
 
 | Plattform | Status | Hinweise |
 |-----------|:------:|---------|
-| Linux x86_64 | ✅ | Volle Unterstützung, FFI-Kernels |
-| Linux ARM64 | ✅ | Volle Unterstützung, FFI-Kernels |
+| Linux x86_64 | ✅ | Volle Unterstuetzung, FFI-Kernels |
+| Linux ARM64 | ✅ | Volle Unterstuetzung, FFI-Kernels |
 | macOS ARM64 | ✅ | Apple Silicon |
 | macOS x86_64 | ✅ | Intel Mac |
 | Windows x86_64 | ✅ | C FFI via Zig |
+
+Der Server erkennt FFI-Kernels automatisch — fallback auf reines TypeScript, wenn nicht verfuegbar.
 
 ---
 
 ## Schnellstart
 
-**Kein Bun, Node.js oder andere Laufzeitumgebung nötig.** Einfach herunterladen und starten.
+**Kein Bun, Node.js oder andere Laufzeitumgebung noetig.** Einfach herunterladen und starten.
 
 ### 1. Herunterladen
 
-Das neueste Release für deine Plattform von [GitHub Releases](https://github.com/ajaxiis-rust/TrueNeverStory/releases/latest):
+Das neueste Release fuer deine Plattform von [GitHub Releases](https://github.com/ajaxiis-rust/TrueNeverStory/releases/latest):
 
 | Plattform | Datei |
 |-----------|-------|
@@ -83,7 +127,7 @@ chmod +x startgame.sh
 
 **Startoptionen:**
 ```bash
-./startgame.sh --local    # CORS=localhost only (sicher für Entwicklung)
+./startgame.sh --local    # CORS=localhost only (sicher fuer Entwicklung)
 ./startgame.sh --remote   # CORS=* (Standard, erlaubt externen Zugriff)
 ```
 
@@ -96,11 +140,11 @@ bun install
 .\startgame.ps1           # Windows PowerShell
 ```
 
-### 3. Öffnen
+### 3. Oeffnen
 
-**http://localhost:8000** öffnen — Passwort: **`changeme`**
+**http://localhost:8000** oeffnen — Passwort: **`changeme`**
 
-Passwort nach dem ersten Login in den Einstellungen ändern.
+Passwort nach dem ersten Login in den Einstellungen aendern.
 
 Das war's. Keine Datenbank-Installation, keine Pakete, keine Konfigurationsdateien.
 
@@ -108,7 +152,7 @@ Das war's. Keine Datenbank-Installation, keine Pakete, keine Konfigurationsdatei
 
 ## LLM konfigurieren
 
-Einstellungsseite öffnen oder `.env` bearbeiten:
+Einstellungsseite oeffnen oder `.env` bearbeiten:
 
 ### Ollama (lokal, kostenlos)
 
@@ -149,23 +193,61 @@ Funktioniert auch mit vLLM, Anthropic, Google und jeder OpenAI-kompatiblen API.
 TrueNeverStory/
 ├── src/
 │   ├── config/           # Zod-validierte Umgebungskonfiguration
-│   ├── lib/              # LLM-Client, SQLite Store, Vektoroperationen, Circuit Breaker, Feature-Flags
-│   ├── memory/           # WorldMemory, kognitiver Pipeline
-│   ├── middleware/        # Auth, Rate Limiter, Sicherheitsheader, Logger
-│   ├── models/           # Entity, chat, probability, romance, quest, item
+│   ├── lib/              # LLM-Client, SQLite Store, Vektoroperationen, Session Store, Circuit Breaker, Feature-Flags
+│   ├── memory/           # WorldMemory, kognitive Pipeline, Entitaeten-Extraktion
+│   ├── middleware/        # Auth, Rate Limiter, Sicherheitsheader, CORS, Logger
+│   ├── models/           # Entity, chat, probability, romance, quest, item, intent, simulation, heartbeat
+│   ├── mcp/              # MCP-Server, Bible/Gutenberg-Parser, Wikipedia-Tools
 │   ├── plugins/          # Plugin-Schnittstelle und Manager
 │   ├── routes/           # API-Routen (chat, entities, agents, settings, v1, v2, cross-world, plugins)
-│   ├── rules/            # Regel-Engine (14 Regeln, Synergie-Matrix, Technologie-Abhängigkeiten)
-│   ├── services/         # 55+ Dienste (Rollenspiel-Engine, Agenten, Ökonomie, Welt-Isolierung, Cross-Welt-Bus)
-│   ├── intelligence/     # Graph-Analyse, Duplikaterkennung
+│   ├── rules/            # Regel-Engine (14 Regeln, Synergie-Matrix, Technologie-Abhaengigkeiten)
+│   ├── services/         # 60+ Dienste (Rollenspiel-Engine, Agenten, Oekonomie, Welt-Isolierung, Cross-Welt-Bus)
+│   │   ├── agents/       # v0.25.3 neue Agenten (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+│   │   └── ...
+│   ├── intelligence/     # Graph-Analyse, Duplikaterkennung, Empfehlungssystem
 │   ├── i18n/             # Sprachpakete (7 Sprachen)
 │   ├── store/            # EntityStore mit O(1) NameIndex, WorldStore
 │   └── utils/            # Logger, Hash, Sanitizer, Template-Resolver
 ├── mojo/kernels/         # C FFI Compute-Kernels (compiliert via Zig)
-├── public/               # Web-UI (Terminal-Stil)
-├── worlds/               # Weltdaten (SQLite DB, Entitäten, Sitzungen)
+├── public/               # Web-UI (Terminal-Stil mit Heartbeat-Fortschritt)
+├── worlds/               # Weltdaten (SQLite DB, Entitaeten, Sitzungen)
 ├── conf/                 # Konfiguration (Einstellungen, Agenten, Provider, Registry)
 └── tests/                # Test-Suite
+```
+
+---
+
+## Architektur: State-First-Pipeline
+
+```
+Spieler-Eingabe
+  │
+  ▼
+Intent-Parser (Zod-Validierung)
+  │
+  ▼
+Simulations-Engine (Mojo FFI)
+  │ Ergebnis, Wahrscheinlichkeit, State-Aenderungen
+  ▼
+State-Mutator (EntityStore L1-L3)
+  │
+  ▼
+Context-Builder (gemeinsamer Spielzustand)
+  │
+  ▼
+Dramaturg (Bible-Muster-Auswahl via MCP)
+  │
+  ▼
+Stylist (Gutenberg-Stil-Rendering via MCP)
+  │
+  ▼
+Censor (KI-Klischee-Entfernung)
+  │
+  ▼
+Uebersetzungsdienst (Englisch -> Benutzersprache)
+  │
+  ▼
+Antwort an den Benutzer
 ```
 
 ---
@@ -177,25 +259,26 @@ TrueNeverStory/
 | Methode | Endpunkt | Beschreibung |
 |---------|----------|-------------|
 | GET | `/login` | Login-Seite |
-| POST | `/login` | Authentifizierung |
+| POST | `/login` | Authentifizierung (`password=...`) |
 | POST | `/logout` | Sitzung beenden |
 
 ### Chat & Rollenspiel
 
 | Methode | Endpunkt | Beschreibung |
 |---------|----------|-------------|
-| POST | `/api/chat/setup` | Sitzung initialisieren |
-| POST | `/api/chat/message` | Nachricht senden |
-| POST | `/api/chat/stream` | SSE-Streaming |
+| POST | `/api/chat/setup` | Sitzung initialisieren (Charakter, Ort, Rolle) |
+| POST | `/api/chat/message` | Nachricht senden, Erzaehlung erhalten |
+| POST | `/api/chat/stream` | SSE-Streaming mit Heartbeat |
 | GET | `/api/chat/session` | Aktueller Sitzungsstatus |
-| GET | `/api/chat/history` | Gesprächsverlauf |
+| GET | `/api/chat/history` | Gespraechsverlauf |
 
-### Entitäten & Graph
+### Entitaeten & Graph
 
 | Methode | Endpunkt | Beschreibung |
 |---------|----------|-------------|
-| GET | `/api/entity/:uid` | Entitätsdetails |
+| GET | `/api/entity/:uid` | Entitaetsdetails |
 | GET | `/api/neighbors/:uid` | Nachbarn mit Tiefen-Traversal |
+| GET | `/api/path?source=&target=` | Kuerzester Weg zwischen Entitaeten |
 | GET | `/api/search?q=` | Suche nach Name oder Semantik |
 | GET | `/api/graph/summary` | Graph-Statistiken |
 
@@ -206,13 +289,14 @@ TrueNeverStory/
 | GET | `/api/agents` | Agenten-Konfigurationen |
 | PUT | `/api/agents/:id` | Agent aktualisieren |
 | PUT | `/api/agents/:id/prompts/:lang` | Prompts pro Sprache |
-| GET | `/api/i18n/translations/:lang/:page` | Übersetzungen |
+| GET | `/api/i18n/translations/:lang/:page` | Uebersetzungen |
+| PUT | `/api/i18n/translations` | Uebersetzungen einfuegen/aktualisieren |
 
 ### Regel-Engine
 
 | Methode | Endpunkt | Beschreibung |
 |---------|----------|-------------|
-| GET | `/api/rules` | Verfügbare Regeln |
+| GET | `/api/rules` | Verfuegbare Regeln |
 | GET | `/api/rules/:id` | Regeldetails |
 | POST | `/api/rules/validate` | Regel-JSON validieren |
 
@@ -225,7 +309,7 @@ TrueNeverStory/
 | POST | `/api/cross-world/disable` | Cross-Welt deaktivieren |
 | GET | `/api/cross-world/portals` | Portale auflisten |
 | POST | `/api/cross-world/portals` | Portal erstellen |
-| DELETE | `/api/cross-world/portals/:id` | Portal löschen |
+| DELETE | `/api/cross-world/portals/:id` | Portal loeschen |
 | GET | `/api/cross-world/events` | Event-Log |
 
 ### Plugins
@@ -234,7 +318,7 @@ TrueNeverStory/
 |---------|----------|-------------|
 | GET | `/api/plugins` | Registrierte Plugins |
 | GET | `/api/plugins/:id` | Plugin-Details |
-| GET | `/api/plugins/:id/capabilities` | Plugin-Fähigkeiten |
+| GET | `/api/plugins/:id/capabilities` | Plugin-Faehigkeiten |
 
 ### Feature-Flags
 
@@ -243,11 +327,19 @@ TrueNeverStory/
 | GET | `/api/feature-flags` | Feature-Flags |
 | PUT | `/api/feature-flags/:id` | Feature-Flag aktualisieren |
 
+### System
+
+| Methode | Endpunkt | Beschreibung |
+|---------|----------|-------------|
+| POST | `/api/system/pause` | Hintergrundverarbeitung pausieren |
+| POST | `/api/system/resume` | Hintergrundverarbeitung fortsetzen |
+| GET | `/api/health` | Gesundheitscheck |
+
 ### WebSocket
 
 | Endpunkt | Beschreibung |
 |----------|-------------|
-| `ws://host:8000/ws/roleplay/:sessionId` | Echtzeit-Rollenspiel-Streaming |
+| `ws://host:8000/ws/roleplay/:sessionId` | Echtzeit-Rollenspiel-Streaming mit Heartbeat |
 
 ---
 
@@ -269,7 +361,10 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
   -H "Content-Type: application/json" \
   -d '{"content": "Ich ziehe mein Schwert und stelle dem Drachen entgegen"}'
 
-# Verfügbare Regeln
+# Entitaeten suchen
+curl -b cookies.txt "http://localhost:8000/api/search?q=dragon"
+
+# Verfuegbare Regeln
 curl -b cookies.txt "http://localhost:8000/api/rules"
 
 # Cross-Welt-Portal erstellen
@@ -278,11 +373,41 @@ curl -b cookies.txt -X POST http://localhost:8000/api/cross-world/portals \
   -d '{"world1": "world-a", "world2": "world-b"}'
 ```
 
+### SSE-Streaming mit Heartbeat
+
+```javascript
+const response = await fetch('/api/chat/stream', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ content: 'Ich erforsche die alten Ruinen' }),
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const lines = decoder.decode(value).split('\n');
+  for (const line of lines) {
+    if (!line.startsWith('data: ')) continue;
+    const event = JSON.parse(line.slice(6));
+    
+    if (event.type === 'heartbeat') {
+      console.log(`Fortschritt: ${event.message} (${event.progress * 100}%)`);
+    } else if (event.type === 'chunk') {
+      process.stdout.write(event.content);
+    }
+  }
+}
+```
+
 ---
 
-## Für Entwickler
+## Fuer Entwickler
 
-Vollständige Architektur-Dokumentation, DI-Container-Referenz und Contributing-Guide: [DEV.README.de.md](docs/DEV.README.de.md)
+Vollstaendige Architektur-Dokumentation, DI-Container-Referenz und Contributing-Guide: [DEV.README.de.md](docs/DEV.README.de.md)
 
 ### Voraussetzungen
 
@@ -297,21 +422,23 @@ bun install
 bun run dev
 ```
 
+http://localhost:8000 oeffnen
+
 ### Befehle
 
 | Befehl | Beschreibung |
 |--------|-------------|
 | `bun run dev` | Entwicklung mit Hot Reload |
 | `bun run start` | Produktionsmodus |
-| `bun run lint` | Typprüfung |
-| `bun test` | Test-Suite ausführen |
+| `bun run lint` | Typprufung |
+| `bun test` | Test-Suite ausfuehren |
 | `bun run build` | Bundle erstellen |
 
 ---
 
 ## Binary-Builds
 
-Cross-Kompilierung via Zig:
+Cross-Kompilierung via Zig fuer alle Plattformen:
 
 ```bash
 cd mojo/kernels
@@ -321,52 +448,127 @@ cd mojo/kernels
 ./build.sh list             # Alle Targets
 ```
 
+Server-Binary kompilieren:
+
+```bash
+bun build --compile --outfile tns-server src/index.ts
+```
+
 Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automatisch bei Tag-Push.
 
 ---
 
-## Letzte Änderungen
+## Letzte Aenderungen
 
-### v0.25.0 — Theme-System-Fix
+### v0.25.3 — Literary Compiler & Oekonomische Modelle
+
+**Literary Compiler (Phasen 0-6):**
+- 4 Offline-Analyse-Durchgaenge: Dramaturgisch, Stilistisch, Emotionale, Metadaten
+- SQL-Schema mit FTS5 fuer Quest-Template-Suche
+- Linter fuer Validierung, Deduplizierung und Klischee-Erkennung
+- Anti-Moralizing-Prompt fuer Stylist-Agent
+
+**Oekonomische Modelle:**
+- JubileeManager — Schuldenreset alle 50 Jahre, Landrueckgabe, Loyalitaets-Boost
+- FactionTaxDilemma — automatisch generierte Steuerstreitigkeiten zwischen Fraktionen
+- FactionLaborRules — per-Fraktion feste/propotionale Loehne, Loyalitaetskonflikte
+- EconomicCycles — Joseph-Modell mit Ueberfluss/UEbergang/Hungersnot-Zyklen
+
+**Oekonomische Integration:**
+- EconomicService Fassade fuer alle 4 oekonomischen Modelle
+- DirectorLoop-Integration: Zyklus-Uebergaenge, Jubilaeums-Events, Dilemma-Generierung
+- NPC-Economy Lohnregeln-Integration mit Lohnberechnung
+- 7 neue MCP-Werkzeuge: get_economic_phase, get_price_modifier, calculate_price, get_wage, generate_dilemma, check_jubilee, get_jubilee_info
+
+**Bugfixes:**
+- Ungenutzte Abhaengigkeit `better-sqlite3` entfernt (Projekt nutzt `bun:sqlite`)
+- Hardcodierte Fraktionsnamen in Dilemma-Optionen behoben — nutzt jetzt echte Namen
+- Hardcoded-Fraktionsliste in DirectorLoop behoben — liest jetzt aus World-Konfig
+- Jahresapproximation Drift behoben — nutzt `getFullYear()` statt manueller Berechnung
+
+### v0.25.3 — State-First-Architektur
+
+**Kern-Engine-Refactoring:**
+- Intent-Parser mit Zod-Schemas (6 Intent-Typen: Bewegung, Dialog, Aktion, Befehl, Beobachtung, Meta)
+- Simulations-Engine mit Mojo FFI deterministischen Ergebnissen
+- State-Mutator fuer sofortige EntityStore-Aktualisierungen
+- Context-Builder fuer gemeinsamen Spielzustand
+- Refactored RoleplayEngine als dünner Orchestrator
+
+**MCP-Integration:**
+- TNS MCP-Server mit Bible-, Gutenberg- und Wikipedia-Tools
+- Bible-Parser fuer externe SQLite-Datenbanken mit FTS-Suche
+- Gutenberg-Parser mit Stil-Extraktion und Delexifizierung
+- Wikipedia-Validator fuer historische Faktenpruefung
+
+**Agenten-Konsolidierung:**
+- 14 Agenten -> 6 spezialisierte Rollen (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+- AgentRegistryV2 fuer Lifecycle-Management
+- MCP-Tools-Integration fuer jeden Agenten
+
+**System-Heartbeat:**
+- Echtzeit-Fortschrittsanzeigen ueber SSE
+- HeartbeatUI Frontend-Komponente
+- Fortschrittsbalken mit Stufenmeldungen
+
+**Interlingua:**
+- Englisch als interne Sprache fuer alle Operationen
+- TranslationService an der Ausgabegrenze
+
+**Bugfixes:**
+- Alle TypeScript-Fehler behoben (0 Fehler)
+- SQLite-Abfrage-Parametertypen korrigiert
+- LLMQueue-Signatur-Fehler behoben
+
+### v0.22.2 — Theme Builder
+
+- Eigenstaendige Theme-Builder-Seite unter `/theme-builder`
+- 8 Preset-Themes: Dracula, Nord, Monokai, Solarized, Gruvbox, Tokyo Night, One Dark, Catppuccin
+- Farbauswahl-Kontrollen fuer 14 CSS-Variablen (Hintergraende, Raender, Text, Akzente)
+- Schriftarten-Auswahl fuer Mono-, Body- und Display-Schriftarten
+- Live-Vorschaupanel mit allen UI-Komponenten
+- Themes als JSON-Dateien exportieren/importieren
+- Navigationslink von der Einstellungsseite
+
+### v0.22.2 — Theme-System-Fix
 
 - Korrigiert `theme-custom.css` — CSS-Variablensyntax korrigiert (verwendete `var()` statt `--name: value`)
-- Fehlende Variablen `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--interactive-subtle` zum benutzerdefinierten Theme hinzugefügt
-- Alle 5 Themes (Dunkel, Hell, Terminal, Cyberpunk, Benutzerdefiniert) funktionieren jetzt korrekt über die Selektor-Buttons
+- Fehlende Variablen `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--interactive-subtle` zum benutzerdefinierten Theme hinzugefuegt
+- Alle 5 Themes (Dunkel, Hell, Terminal, Cyberpunk, Benutzerdefiniert) funktionieren jetzt korrekt ueber die Selektor-Buttons
 
 ### v0.20.4 — World-Graph-Fix + Statistik-Modal + Sprachinjektion + Themes
 
 - Behoben: Totes `buildRelationships()` — heuristische Beziehungen werden beim Start automatisch aufgebaut
-- Neuer Endpunkt `GET /worlds/:name/detail` für Weltstatistiken
-- Neues Statistik-Modal mit Entitätslisten, Regeln und Charakterdetails
+- Neuer Endpunkt `GET /api/worlds/:name/detail` fuer Weltstatistiken
+- Neues Statistik-Modal mit Entitaetslisten, Regeln und Charakterdetails
 - Sprach-Injektion — LLM-Antworten entsprechen der UI-Sprache (7 Sprachen)
 - Theme-System — 5 integrierte Themes (Dunkel, Hell, Terminal, Cyberpunk, Benutzerdefiniert) + Konstruktor
 
 ### v0.20.1 — Regel-Engine Binary Fix
 
 - Behoben: `/api/rules` Absturz im kompilierten Bun-Binary
-- `import.meta.dir` durch `process.cwd()` für die Verzeichnisauflösung ersetzt
+- `import.meta.dir` durch `process.cwd()` fuer die Verzeichnisauflösung ersetzt
 - Behebt ENOENT-Fehler (`/$bunfs/root/../rules/social`) im kompilierten Binary
-- Betroffene Dateien: `src/routes/rules.ts` und `src/rules/rules-engine.ts`
 
 ### v0.20.0 — Architekturverbesserungen
 
-Komplette architektonische Überarbeitung in 5 Etappen:
+Komplette architektonische Ueberarbeitung in 5 Etappen:
 
 **Etappe 1-2:**
 - NarrativeService Aufteilung (Bootstrapper + Facade + Service)
 - Einheitliches Agenten-Modell mit Schnittstelle und Basisklasse
 - Event Sourcing mit Domänen-Events und Snapshots
-- Circuit Breaker für LLM mit automatischem Failover
+- Circuit Breaker fuer LLM mit automatischem Failover
 - Agenten-Registry mit 4 Quelltypen (builtin, config, api, plugin)
 - Strukturiertes Logging mit Trace- und Correlation-IDs
 
 **Etappe 3:**
 - Regel-Engine — 14 vordefinierte Systeme (Feudalismus, Demokratie, Anarchie usw.)
-- Synergie-Matrix, Technologie-Abhängigkeiten, Glück-Modifikatoren
+- Synergie-Matrix, Technologie-Abhaengigkeiten, Glueck-Modifikatoren
 - Regel-Validator und kulturelle Drift-Modellierung
 - Feature-Flags mit A/B-Testing und schrittweisem Rollout
 - API-Versionierung (v1/v2) mit Deprecation-Headern
-- WorldStore — SQLite-Migration für Weltdaten
+- WorldStore — SQLite-Migration fuer Weltdaten
 
 **Etappe 4:**
 - Multi-Welten-Isolierung mit Ressourcen-Monitoring
@@ -380,7 +582,7 @@ Komplette architektonische Überarbeitung in 5 Etappen:
 
 ### v0.15.0 — Sicherheitsverbesserungen
 
-- SQLite-gestützte Sitzungen
+- SQLite-gestuetzte Sitzungen
 - WebSocket-Token-Validierung
 - Path-Traversal-Schutz
 - CSRF-Schutz beim Login
@@ -392,7 +594,7 @@ Komplette architektonische Überarbeitung in 5 Etappen:
 ### v0.14.1 — C FFI-Kernels & Cross-Kompilierung
 
 - 5 Compute-Kernels von Mojo zu reinem C portiert
-- Zig Cross-Kompilierung für 10 Plattformen
+- Zig Cross-Kompilierung fuer 10 Plattformen
 - Pause/Resume Hintergrundverarbeitung
 
 ---
@@ -401,6 +603,6 @@ Komplette architektonische Überarbeitung in 5 Etappen:
 
 ---
 
-🔗 **Projekt:** [https://github.com/ajaxiis-rust/TrueNeverStory](https://github.com/ajaxiis-rust/TrueNeverStory)
+**Projekt:** [https://github.com/ajaxiis-rust/TrueNeverStory](https://github.com/ajaxiis-rust/TrueNeverStory)
 
 Apache 2.0

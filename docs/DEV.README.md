@@ -6,32 +6,16 @@ Technical documentation for contributors and developers.
 
 ## Architecture Overview
 
-TrueNeverStory is a multi-agent AI roleplay engine. A player sends messages, which are processed through a pipeline of 14 specialized LLM agents, each handling a specific aspect of the narrative (narration, NPC dialogue, scene transitions, story planning, etc.).
+TrueNeverStory is a multi-agent AI roleplay engine with State-First architecture. A player sends messages, which are processed through a deterministic pipeline: intent parsing, simulation, state mutation, context building, and specialized agent rendering.
 
 ```
 Player Input
     ↓
-RoleplayEngine.processInput()
+Intent Parser → Simulation Engine → State Mutator → Context Builder
     ↓
-┌─────────────────────────────────┐
-│  Pattern Detection              │
-│  - Movement → SceneAgent        │
-│  - Talk to NPC → NPCAgent       │
-│  - @agent mention → That Agent  │
-│  - Default → NarratorAgent      │
-└─────────────┬───────────────────┘
-              ↓
-┌─────────────────────────────────┐
-│  Agent Pipeline                 │
-│  1. Build context (memory,      │
-│     relationships, world state) │
-│  2. Generate prompt             │
-│  3. Call LLM via queue          │
-│  4. Parse response              │
-│  5. Update world state          │
-└─────────────┬───────────────────┘
-              ↓
-         Narrative Response
+Dramaturg (MCP) → Stylist (MCP) → Censor → Translation Service
+    ↓
+Narrative Response
 ```
 
 ---
@@ -90,10 +74,13 @@ src/
 │   ├── error-handler.ts        # Global error handler
 │   └── logger.ts               # Request logging
 │
-├── models/                     # Data models (22 files)
+├── models/                     # Data models (25 files)
 │   ├── entity.ts               # Core entity (uid, name, profile with L1/L2/L3 layers)
 │   ├── chat.ts                 # ChatMessageSchema, SessionSetupSchema (Zod)
 │   ├── director.ts             # DirectorTask, TaskPriority
+│   ├── intent.ts               # Intent, IntentType
+│   ├── simulation.ts           # SimulationResult, SimulationState
+│   ├── heartbeat.ts            # HeartbeatPayload
 │   ├── memory.ts               # MemoryEntry
 │   ├── probability.ts          # ProbabilityProfile, Modifier
 │   ├── romance.ts              # RomanceState
@@ -126,7 +113,7 @@ src/
 │   ├── providers.ts            # LLM provider management
 │   └── system.ts               # Pause/resume background processing
 │
-├── services/                   # Business logic (52+ services)
+├── services/                   # Business logic (60+ services)
 │   │
 │   │  ── Core Engine ──
 │   ├── narrative-service.ts    # DI container — instantiates ALL services
@@ -135,21 +122,24 @@ src/
 │   ├── director-loop.ts        # Background story progression (setInterval)
 │   ├── agent-coordinator.ts    # Priority task queue for director
 │   │
-│   │  ── Agents (14) ──
-│   ├── narrator-agent.ts       # Primary storyteller
-│   ├── director-agent.ts       # Story beat injection
-│   ├── scene-agent.ts          # Scene transitions
-│   ├── npc-agent.ts            # NPC dialogue + reactions
-│   ├── crafter-agent.ts        # Crafting suggestions
-│   ├── researcher-agent.ts     # Fact-checking, realism validation
-│   ├── historian-agent.ts      # Historical events
-│   ├── cartographer-agent.ts   # Geography, distances
-│   ├── merchant-agent.ts       # Trading, pricing
-│   ├── quest-giver-agent.ts    # Quest generation
-│   ├── lorekeeper-agent.ts     # World facts, magic rules
-│   ├── chronicler.ts           # Timeline management
-│   ├── villain-manager.ts      # Antagonist actions
-│   ├── social-simulator.ts     # NPC social dynamics
+│   │  ── Agents (Big Six) ──
+│   ├── agents/
+│   │   ├── dramaturg.ts       # Narrative pattern selection (MCP)
+│   │   ├── validator.ts       # Fact-checking via Wikipedia (MCP)
+│   │   ├── stylist.ts         # Prose rendering (MCP)
+│   │   ├── actor.ts           # NPC dialogue + interactions
+│   │   ├── censor.ts          # AI cliché removal
+│   │   └── chronicler.ts      # Timeline + memory updates
+│   ├── agent-registry-v2.ts   # Agent registration + lookup
+│   └── agent-v2.ts            # AgentV2 interface + base class
+│
+│   │  ── State Pipeline ──
+│   ├── intent-parser.ts       # User intent classification
+│   ├── simulation-engine.ts   # Deterministic world simulation
+│   ├── state-mutator.ts       # World state updates
+│   ├── context-builder.ts     # Prompt context assembly
+│   ├── heartbeat.ts           # Background world heartbeat
+│   └── translation-service.ts # Multi-language response translation
 │   │
 │   │  ── World Systems ──
 │   ├── story-planner.ts        # LLM-driven arc planning
@@ -220,6 +210,8 @@ src/
 │   ├── embedding-queue.ts      # Async embedding generation
 │   ├── optimizer.ts            # Memory optimization
 │   └── write-buffer.ts         # Batch write buffer
+│
+├── mcp/                        # MCP server — Bible/Gutenberg parsers, Wikipedia tools
 │
 ├── i18n/                       # Internationalization (7 languages)
 │   ├── types.ts                # LanguagePack interface
@@ -322,7 +314,15 @@ NarrativeService
 ├── userAgent (UserAgent) — party + combat
 ├── npcGenerator (NPCGenerator) — intelligent NPC creation
 ├── worldEvolver (WorldEvolver) — auto world expansion
-└── graphValidator (GraphValidator) — self-healing graph
+├── graphValidator (GraphValidator) — self-healing graph
+├── intentParser (IntentParser) — user intent classification
+├── simEngine (SimulationEngine) — deterministic world simulation
+├── stateMutator (StateMutator) — world state updates
+├── contextBuilder (ContextBuilder) — prompt context assembly
+├── heartbeatService (HeartbeatService) — background world heartbeat
+├── tnsServer (TNSServer) — MCP server (Bible/Gutenberg/Wikipedia)
+├── translationService (TranslationService) — multi-language translation
+└── agentRegistry (AgentRegistryV2) — agent registration + lookup
 ```
 
 **Lifecycle:**
@@ -349,13 +349,14 @@ NarrativeService
    - engine.processInput(sanitized.clean)
 
 3. RoleplayEngine.processInput():
-   - Detect intent: movement, talk, @agent mention, or general
-   - Route to appropriate agent
-   - Build context (memory, relationships, world state)
-   - Generate prompt via PromptBuilder or userTemplate
-   - Call LLM via llmQueue
-   - Parse response
-   - Update world state (chronicler, entity store)
+   - Intent Parser → classify user intent
+   - Simulation Engine → deterministic world simulation
+   - State Mutator → update world state
+   - Context Builder → assemble prompt context
+   - Dramaturg (MCP) → select narrative pattern
+   - Stylist (MCP) → render prose
+   - Censor → remove AI clichés
+   - Translation Service → multi-language response
    - Return narrative string
 
 4. Response: JSON { narrative, location, story_time, ... }
@@ -377,24 +378,37 @@ Same as REST, but wraps `engine.processInputStream()` in a `ReadableStream` with
 
 ## Agent System
 
-Each agent is a class with a `generateResponse()` method that:
-1. Receives a context object (message, location, character, rules, etc.)
-2. Builds a prompt (system + user template + output format)
-3. Calls LLM via queue
-4. Returns structured response
+Each agent implements the `AgentV2` interface with a `process()` method that receives intent, simulation results, and game context.
 
-### Agent Priority (higher = processed first)
+### The Big Six
 
-| Priority | Agent |
-|----------|-------|
-| 10 | Narrator |
-| 9 | NPC |
-| 8 | Director |
-| 7 | Scene, Quest Giver |
-| 6 | Story Planner, Villain, Historian, Lorekeeper |
-| 5 | Chronicler, Merchant |
-| 4 | Social Sim, Cartographer |
-| 3 | Researcher |
+| Agent | Role | MCP Tools |
+|-------|------|-----------|
+| Dramaturg | Narrative pattern selection | search_verses, get_pattern, get_archetype |
+| Validator | Fact-checking via Wikipedia | verify_fact, get_context |
+| Stylist | Prose rendering | get_style_pattern, apply_style |
+| Actor | NPC dialogue + interactions | — |
+| Censor | AI cliché removal | — |
+| Chronicler | Timeline + memory updates | — |
+
+### AgentV2 Interface
+
+```typescript
+interface AgentV2 {
+  readonly id: AgentId;
+  readonly name: string;
+  readonly description: string;
+  readonly mcpTools: string[];
+  process(
+    intent: Intent,
+    simulation: SimulationResult,
+    context: GameContext,
+    pattern?: NarrativePattern,
+  ): Promise<AgentOutput>;
+}
+```
+
+**Note:** Legacy 14-agent system is deprecated but still functional for backward compatibility. Old agent IDs (`@narrator`, `@director`, etc.) route to the new agents internally.
 
 ### Prompt Resolution
 
@@ -404,6 +418,22 @@ Agent prompts are resolved in this order:
 3. Hardcoded defaults (`DEFAULT_PROMPTS` in `agent-config.ts`)
 
 Templates use `{variable}` placeholders resolved by `resolveTemplate()`.
+
+---
+
+## MCP Integration (v0.25.0)
+
+TNSServer (`src/mcp/tns-server.ts`) provides MCP tools for external data access.
+
+| Tool | Source | Description |
+|------|--------|-------------|
+| search_verses | Bible | Search biblical verses by text, book, or reference |
+| get_pattern | Bible | Get narrative patterns by archetype, mood, or function |
+| get_archetype | Bible | Get archetype details by name |
+| get_style_pattern | Gutenberg | Search styles by mood, tags, or description |
+| apply_style | Gutenberg | Apply style to text (delexify and return suggestions) |
+| verify_fact | Wikipedia | Verify a factual claim |
+| get_context | Wikipedia | Get Wikipedia context for a topic |
 
 ---
 

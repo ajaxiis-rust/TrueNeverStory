@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.0
+# TrueNeverStory v0.25.3
 
 ### Write your book just by playing.
 
@@ -10,7 +10,7 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ---
 
-## What's New in v0.25.0
+## What's New in v0.25.3
 
 ### State-First Pipeline
 The engine now processes actions **deterministically before generating text**:
@@ -459,6 +459,32 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 ---
 
 ## Recent Changes
+
+### v0.25.3 — Literary Compiler & Economic Models
+
+**Literary Compiler (Phases 0-6):**
+- 4 offline analysis passes: Dramaturgic, Stylistic, Emotional, Metadata
+- SQL schema with FTS5 for quest template search
+- Linter for validation, deduplication, and cliché detection
+- Anti-moralizing prompt for Stylist agent
+
+**Economic Models:**
+- JubileeManager — debt reset every 50 years, land return, loyalty boost
+- FactionTaxDilemma — auto-generated faction tax disputes with player choices
+- FactionLaborRules — per-faction fixed/proportional wages, loyalty conflict detection
+- EconomicCycles — Joseph model with abundance/transition/famine phases
+
+**Economic Integration:**
+- EconomicService facade wrapping all 4 economic models
+- DirectorLoop integration: cycle transitions, jubilee events, dilemma generation
+- NPC-Economy labor rule integration with wage calculation
+- 7 new MCP tools: get_economic_phase, get_price_modifier, calculate_price, get_wage, generate_dilemma, check_jubilee, get_jubilee_info
+
+**Bug Fixes:**
+- Removed unused `better-sqlite3` dependency (project uses `bun:sqlite`)
+- Fixed hardcoded faction names in dilemma choices — now uses actual faction names
+- Fixed hardcoded faction list in DirectorLoop — now reads from world config
+- Fixed year approximation drift — uses `getFullYear()` instead of manual calculation
 
 ### v0.25.0 — State-First Architecture
 

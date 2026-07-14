@@ -9,6 +9,43 @@ import { getLogger } from '@/utils/logger';
 const logger = getLogger('StylistAgent');
 
 /**
+ * Build anti-moralizing prompt for Stylist agent
+ */
+export function buildAntiMoralizingPrompt(): string {
+  return `## CRITICAL: Anti-Moralizing Constraint
+
+You are writing narrative prose for a game. Your output MUST follow these rules:
+
+### FORBIDDEN:
+- NO religious references (no God, no divine, no sacred, no holy)
+- NO moral commentary ("and so we learn", "the moral is", "this teaches us")
+- NO philosophical conclusions
+- NO "important lesson" phrases
+- NO sermonizing or preaching
+
+### REQUIRED:
+- Focus ONLY on actions (what characters DO)
+- Focus ONLY on emotions (what characters FEEL)
+- Focus ONLY on dialogue (what characters SAY)
+- Focus ONLY on sensory details (what characters SEE, HEAR, SMELL, TOUCH, TASTE)
+
+### Style:
+- Show, don't tell
+- Let the player draw their own conclusions
+- Keep it grounded in physical reality
+- Use concrete, specific details
+- Avoid abstract concepts
+
+### Example:
+BAD: "And so we learn that even in the darkest times, hope endures."
+GOOD: "The rain stopped. Sunlight broke through the clouds. She wiped her eyes and stood up."
+
+BAD: "This was a divine miracle that showed God's power."
+GOOD: "The water parted. A path appeared. They walked through."
+`;
+}
+
+/**
  * Stylist (The Narrator)
  *
  * Renders prose via Gutenberg patterns, handles scene transitions.
@@ -120,6 +157,9 @@ export class StylistAgent extends BaseAgentV2 {
 
     parts.push('\nWrite a vivid, engaging narrative passage (2-4 paragraphs).');
     parts.push('Show, don\'t tell. Use sensory details. Maintain consistent point of view.');
+
+    // Anti-moralizing constraint
+    parts.push('\n' + buildAntiMoralizingPrompt());
 
     return parts.join('\n');
   }

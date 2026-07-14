@@ -181,6 +181,11 @@ export function bootstrapNarrativeServices(
     eventBus,
     economicService,
     statePath: dbPath,
+    config: {
+      factionNames: ((worldFrame.factions as Array<Record<string, unknown>>) ?? [])
+        .map(f => f.name as string)
+        .filter(Boolean),
+    },
   });
 
   const worldBuilder = new WorldBuilder({

@@ -27,6 +27,7 @@ export interface DirectorConfig {
   chanceEventProbability: number;
   majorBeatCooldownHours: number;
   wakeIntervalSeconds: number;
+  factionNames?: string[];
 }
 
 const DEFAULT_CONFIG: DirectorConfig = {
@@ -252,7 +253,7 @@ export class DirectorLoop {
 
     // Handle economic dilemma as special chance event
     if (category === "economic_dilemma" && this._economicService) {
-      const factions = ["Blacksmiths", "Farmers", "Merchants", "Guards", "Scholars"];
+      const factions = this._config.factionNames ?? ["Blacksmiths", "Farmers", "Merchants", "Guards", "Scholars"];
       const factionA = factions[Math.floor(Math.random() * factions.length)]!;
       const remaining = factions.filter(f => f !== factionA);
       const factionB = remaining[Math.floor(Math.random() * remaining.length)]!;
@@ -310,7 +311,7 @@ export class DirectorLoop {
 
     // Check for jubilee (year-based approximation)
     if (this._economicService) {
-      const currentYear = Math.floor(currentTime.getTime() / (365 * 24 * 60 * 60 * 1000));
+      const currentYear = currentTime.getFullYear();
       if (this._economicService.checkJubilee("default", currentYear)) {
         const npcKeys = Array.from(this._npcRuntime.listAll().keys());
         const jubileeResult = this._economicService.triggerJubilee("default", currentYear, {

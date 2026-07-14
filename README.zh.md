@@ -1,12 +1,52 @@
-# TrueNeverStory v0.25.0
+# TrueNeverStory v0.25.3
 
 ### 玩着写你的书。
 
-TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，每个行动都有概率，故事永不停歇。扮演一个角色，探索一个活生生的世界，看着你的选择塑造叙事——或者让世界自行发展。
+TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架构**。每个NPC都有记忆，每个行动都有确定性结果，故事永不停歇。扮演一个角色，探索一个活生生的世界，看着你的选择塑造叙事——或者让世界自行发展。
 
 基于 TypeScript (Bun + Hono) 构建，使用 C FFI 内核处理高性能计算。
 
-**[English](README.md) | [Русский](README.ru.md) | [Deutsch](README.de.md) | [Français](README.fr.md) | [Español](README.es.md) | [日本語](README.ja.md)**
+**[English](README.md) | [Русский](README.ru.md) | [Deutsch](README.de.md) | [Francais](README.fr.md) | [Espanol](README.es.md) | [日本語](README.ja.md)**
+
+---
+
+## v0.25.3 新内容
+
+### State-First 管道
+引擎现在在**生成文本之前确定性地处理行动**：
+1. **意图解析器** — Zod验证的结构化意图取代正则路由
+2. **模拟引擎** — Mojo FFI在散文生成之前计算结果
+3. **状态变更器** — EntityStore在逻辑处理后立即更新
+4. **上下文构建器** — 所有代理共享的游戏上下文
+5. **散文生成** — LLM受模拟结果约束生成文本
+
+### MCP集成（文学即代码）
+- **圣经即标准库** — 圣经模式作为叙事原型（SQLite + MCP）
+- **古登堡即样式CSS** — 用于散文渲染的去词化风格模式
+- **维基百科即验证器** — 通过外部知识进行历史事实核查
+
+### 六大代理
+14个代理整合为6个专业化角色：
+
+| 代理 | 角色 | 描述 |
+|------|------|------|
+| **编剧** | 架构师 | 从圣经原型中选择叙事模式 |
+| **验证者** | 事实核查员 | 通过维基百科MCP验证事实 |
+| **风格师** | 叙述者 | 使用古登堡风格模式渲染散文 |
+| **演员** | NPC合奏 | 管理具有L3隐藏动机的NPC对话 |
+| **审查员** | 代码检查器 | 移除AI陈词滥调并强制风格一致性 |
+| **编年史官** | 世界记忆 | 更新时间线和世界状态 |
+
+### 系统心跳
+聊天UI中的实时进度指示器：
+- "正在理解你的输入..."
+- "正在掷骰子..."
+- "结果：成功（73%）"
+- "正在编织叙事..."
+- "完成"
+
+### 国际语（英语作为内部语言）
+所有代理间和代理-MCP操作使用英语以提高令牌效率和准确性。翻译在输出边界进行。
 
 ---
 
@@ -14,8 +54,10 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，
 
 | 功能 | 描述 |
 |------|------|
+| **State-First 管道** | 确定性模拟 -> 状态变更 -> 约束散文生成 |
+| **6个AI代理** | 编剧、验证者、风格师、演员、审查员、编年史官 |
+| **MCP集成** | 圣经模式、古登堡风格、维基百科验证 |
 | **活生生的世界** | 角色、地点、物品、派系——全部通过知识图谱 O(1) 连接 |
-| **14个AI代理** | 叙述者、导演、NPC、场景、编年史、规划师、反派、研究员、历史学家、地图师、商人、任务给予者、知识守护者、社交模拟 |
 | **记忆与RAG** | 向量搜索 (BGE-M3 + SQLite 混合 FTS5/密集/RRF) |
 | **概率系统** | 战斗、说服、潜行、浪漫的确定性结果 |
 | **浪漫与社交** | 关系管理、派系、联盟、封建等级、NPC对话 |
@@ -28,8 +70,8 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，
 | **插件系统** | 可扩展架构，包含插件管理器、生命周期钩子和API |
 | **功能标志** | A/B测试、渐进式发布、百分比定向 |
 | **API版本控制** | v1/v2端点，带弃用头 |
-| **实时流式传输** | WebSocket + SSE 实时叙事推送 |
-| **i18n (7种语言)** | EN, RU, DE, FR, ES, JA, ZH |
+| **实时流式传输** | WebSocket + SSE 实时叙事推送，带心跳进度 |
+| **i18n (7种语言)** | EN, RU, DE, FR, ES, JA, ZH — UI、提示词、代理名称 |
 | **密码认证** | HttpOnly cookie会话、CSRF保护、SQLite备份会话 |
 | **SQLite存储** | 实体、嵌入、记忆、提示词、翻译 |
 | **断路器** | LLM提供商自动故障转移与备用链 |
@@ -46,6 +88,8 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎。每个NPC都有记忆，
 | macOS ARM64 | ✅ | Apple Silicon |
 | macOS x86_64 | ✅ | Intel Mac |
 | Windows x86_64 | ✅ | C FFI via Zig |
+
+服务器自动检测FFI内核——不可用时回退到纯TypeScript。
 
 ---
 
@@ -98,7 +142,7 @@ bun install
 
 ### 3. 打开
 
-**http://localhost:8000** — 密码: **`changeme``**
+**http://localhost:8000** — 密码: **`changeme`**
 
 首次登录后请在设置中修改密码。
 
@@ -129,6 +173,14 @@ WORLD_LLM_API_KEY=sk-your-key-here
 WORLD_LLM_MODEL=gpt-4o-mini
 ```
 
+### LM Studio
+
+```
+WORLD_LLM_BASE_URL=http://localhost:1234/v1
+WORLD_LLM_API_KEY=lm-studio
+WORLD_LLM_MODEL=your-model
+```
+
 也支持vLLM、Anthropic、Google和任何OpenAI兼容API。
 
 ---
@@ -139,23 +191,61 @@ WORLD_LLM_MODEL=gpt-4o-mini
 TrueNeverStory/
 ├── src/
 │   ├── config/           # Zod验证的环境配置
-│   ├── lib/              # LLM客户端、SQLite存储、向量运算、断路器、功能标志
-│   ├── memory/           # WorldMemory、认知管道
-│   ├── middleware/        # 认证、限流器、安全头、日志器
-│   ├── models/           # Entity, chat, probability, romance, quest, item
+│   ├── lib/              # LLM客户端、SQLite存储、向量运算、会话存储、断路器、功能标志
+│   ├── memory/           # WorldMemory、认知管道、实体提取
+│   ├── middleware/        # 认证、限流器、安全头、CORS、日志器
+│   ├── models/           # Entity, chat, probability, romance, quest, item, intent, simulation, heartbeat
+│   ├── mcp/              # MCP服务器、Bible/Gutenberg解析器、Wikipedia工具
 │   ├── plugins/          # 插件接口和管理器
 │   ├── routes/           # API路由 (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # 规则引擎 (14条规则、协同矩阵、技术依赖)
-│   ├── services/         # 55+服务 (角色扮演引擎、代理、经济、世界隔离、跨世界总线)
-│   ├── intelligence/     # 图分析、重复检测
+│   ├── services/         # 60+服务 (角色扮演引擎、代理、经济、世界隔离、跨世界总线)
+│   │   ├── agents/       # v0.25.3 新代理 (编剧、验证者、风格师、演员、审查员、编年史官)
+│   │   └── ...
+│   ├── intelligence/     # 图分析、重复检测、推荐系统
 │   ├── i18n/             # 语言包 (7种语言)
 │   ├── store/            # EntityStore (O(1) NameIndex)、WorldStore
 │   └── utils/            # 日志器、哈希、清理器、模板解析器
 ├── mojo/kernels/         # C FFI内核 (通过Zig编译)
-├── public/               # Web界面 (终端风格)
+├── public/               # Web界面 (终端风格，带心跳进度)
 ├── worlds/               # 世界数据 (SQLite数据库、实体、会话)
 ├── conf/                 # 配置
 └── tests/                # 测试套件
+```
+
+---
+
+## 架构：State-First 管道
+
+```
+玩家输入
+  │
+  ▼
+意图解析器 (Zod验证)
+  │
+  ▼
+模拟引擎 (Mojo FFI)
+  │ 结果、概率、状态变更
+  ▼
+状态变更器 (EntityStore L1-L3)
+  │
+  ▼
+上下文构建器 (共享游戏状态)
+  │
+  ▼
+编剧 (通过MCP选择圣经模式)
+  │
+  ▼
+风格师 (通过MCP渲染古登堡风格)
+  │
+  ▼
+审查员 (AI陈词滥调移除)
+  │
+  ▼
+翻译服务 (英语 -> 用户语言)
+  │
+  ▼
+响应用户
 ```
 
 ---
@@ -167,16 +257,16 @@ TrueNeverStory/
 | 方法 | 端点 | 描述 |
 |------|------|------|
 | GET | `/login` | 登录页面 |
-| POST | `/login` | 认证 |
+| POST | `/login` | 认证 (`password=...`) |
 | POST | `/logout` | 登出 |
 
 ### 聊天与角色扮演
 
 | 方法 | 端点 | 描述 |
 |------|------|------|
-| POST | `/api/chat/setup` | 初始化会话 |
-| POST | `/api/chat/message` | 发送消息 |
-| POST | `/api/chat/stream` | SSE流式传输 |
+| POST | `/api/chat/setup` | 初始化会话（角色、地点、角色） |
+| POST | `/api/chat/message` | 发送消息，获取叙事 |
+| POST | `/api/chat/stream` | 带心跳的SSE流式传输 |
 | GET | `/api/chat/session` | 会话状态 |
 | GET | `/api/chat/history` | 对话历史 |
 
@@ -185,8 +275,9 @@ TrueNeverStory/
 | 方法 | 端点 | 描述 |
 |------|------|------|
 | GET | `/api/entity/:uid` | 实体详情 |
-| GET | `/api/neighbors/:uid` | 邻居遍历 |
-| GET | `/api/search?q=` | 搜索 |
+| GET | `/api/neighbors/:uid` | 邻居（深度遍历） |
+| GET | `/api/path?source=&target=` | 实体间最短路径 |
+| GET | `/api/search?q=` | 按名称或语义搜索 |
 | GET | `/api/graph/summary` | 图统计 |
 
 ### 代理与i18n
@@ -197,6 +288,7 @@ TrueNeverStory/
 | PUT | `/api/agents/:id` | 更新代理 |
 | PUT | `/api/agents/:id/prompts/:lang` | 语言提示词 |
 | GET | `/api/i18n/translations/:lang/:page` | 翻译 |
+| PUT | `/api/i18n/translations` | 翻译Upsert |
 
 ### 规则引擎
 
@@ -233,11 +325,19 @@ TrueNeverStory/
 | GET | `/api/feature-flags` | 功能标志 |
 | PUT | `/api/feature-flags/:id` | 更新标志 |
 
+### 系统
+
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| POST | `/api/system/pause` | 暂停后台处理 |
+| POST | `/api/system/resume` | 恢复后台处理 |
+| GET | `/api/health` | 健康检查 |
+
 ### WebSocket
 
 | 端点 | 描述 |
 |------|------|
-| `ws://host:8000/ws/roleplay/:sessionId` | 实时角色扮演流式传输 |
+| `ws://host:8000/ws/roleplay/:sessionId` | 带心跳的实时角色扮演流式传输 |
 
 ---
 
@@ -259,6 +359,9 @@ curl -b cookies.txt -X POST http://localhost:8000/api/chat/message \
   -H "Content-Type: application/json" \
   -d '{"content": "我拔出剑面对巨龙"}'
 
+# 搜索实体
+curl -b cookies.txt "http://localhost:8000/api/search?q=dragon"
+
 # 可用规则
 curl -b cookies.txt "http://localhost:8000/api/rules"
 
@@ -266,6 +369,36 @@ curl -b cookies.txt "http://localhost:8000/api/rules"
 curl -b cookies.txt -X POST http://localhost:8000/api/cross-world/portals \
   -H "Content-Type: application/json" \
   -d '{"world1": "world-a", "world2": "world-b"}'
+```
+
+### 带心跳的SSE流式传输
+
+```javascript
+const response = await fetch('/api/chat/stream', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ content: '我探索古代遗迹' }),
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const lines = decoder.decode(value).split('\n');
+  for (const line of lines) {
+    if (!line.startsWith('data: ')) continue;
+    const event = JSON.parse(line.slice(6));
+    
+    if (event.type === 'heartbeat') {
+      console.log(`进度: ${event.message} (${event.progress * 100}%)`);
+    } else if (event.type === 'chunk') {
+      process.stdout.write(event.content);
+    }
+  }
+}
 ```
 
 ---
@@ -287,6 +420,8 @@ bun install
 bun run dev
 ```
 
+打开 http://localhost:8000
+
 ### 命令
 
 | 命令 | 描述 |
@@ -299,9 +434,101 @@ bun run dev
 
 ---
 
+## 二进制发行版构建
+
+通过Zig跨平台编译：
+
+```bash
+cd mojo/kernels
+./build.sh native           # 当前平台
+./build.sh aarch64-linux    # ARM64 Linux
+./build.sh x86_64-windows   # Windows x64
+./build.sh list             # 所有目标
+```
+
+编译服务器二进制文件：
+
+```bash
+bun build --compile --outfile tns-server src/index.ts
+```
+
+详见 [COMPILE.md](docs/COMPILE.md)。GitHub Actions在标签推送时自动构建所有平台。
+
+---
+
 ## 最近更改
 
-### v0.25.0 — 主题系统修复
+### v0.25.3 — Literary Compiler 和经济模型
+
+**Literary Compiler（阶段0-6）：**
+- 4个离线分析通道：戏剧性、风格、情感、元数据
+- 带FTS5的SQL模式用于任务模板搜索
+- 用于验证、去重和陈词滥调检测的Linter
+- Stylist代理的反道德化提示
+
+**经济模型：**
+- JubileeManager — 每50年债务重置、土地归还、忠诚度提升
+- FactionTaxDilemma — 带玩家选择的自动派系间税争生成
+- FactionLaborRules — 按派系固定/比例工资、忠诚度冲突检测
+- EconomicCycles — 约瑟夫模型：丰裕/过渡/饥荒周期
+
+**经济集成：**
+- 包装4个经济模型的EconomicService外观
+- DirectorLoop集成：周期转换、禧年事件、困境生成
+- NPC-Economy劳动规则集成与工资计算
+- 7个新MCP工具：get_economic_phase、get_price_modifier、calculate_price、get_wage、generate_dilemma、check_jubilee、get_jubilee_info
+
+**错误修复：**
+- 移除未使用的`better-sqlite3`依赖（项目使用`bun:sqlite`）
+- 修复困境选项中硬编码的派系名 — 现在使用真实名称
+- 修复DirectorLoop中硬编码的派系列表 — 现在从世界配置读取
+- 修复年份近似漂移 — 使用`getFullYear()`代替手动计算
+
+### v0.25.3 — State-First 架构
+
+**核心引擎重构：**
+- 使用Zod模式的意图解析器（6种意图类型：移动、对话、动作、命令、观察、元）
+- Mojo FFI确定性结果的模拟引擎
+- EntityStore即时更新的状态变更器
+- 共享游戏状态的上下文构建器
+- RoleplayEngine重构为轻量级编排器
+
+**MCP集成：**
+- 带Bible、Gutenberg和Wikipedia工具的TNS MCP服务器
+- 带FTS搜索的外部SQLite数据库的圣经解析器
+- 带样式提取和去词化的古登堡解析器
+- 用于历史事实核查的维基百科验证器
+
+**代理整合：**
+- 14个代理 -> 6个专业化角色（编剧、验证者、风格师、演员、审查员、编年史官）
+- AgentRegistryV2用于生命周期管理
+- 每个代理的MCP工具集成
+
+**系统心跳：**
+- 通过SSE的实时进度指示器
+- HeartbeatUI前端组件
+- 带阶段消息的进度条
+
+**国际语：**
+- 英语作为所有操作的内部语言
+- 输出边界的TranslationService
+
+**错误修复：**
+- 修复所有TypeScript错误（0个错误）
+- 修复SQLite查询参数类型
+- 修复LLMQueue签名不匹配
+
+### v0.22.2 — Theme Builder
+
+- `/theme-builder`独立主题构建器页面
+- 8个预设主题：Dracula、Nord、Monokai、Solarized、Gruvbox、Tokyo Night、One Dark、Catppuccin
+- 14个CSS变量的颜色选择器控制（背景、边框、文本、强调色）
+- mono、body和display字体的字体选择器
+- 包含所有UI组件的实时预览面板
+- 以JSON文件导出/导入主题
+- 从设置页面的导航链接
+
+### v0.22.2 — 主题系统修复
 
 - 修复`theme-custom.css` — 修正CSS变量语法（之前使用`var()`而非`--name: value`）
 - 为自定义主题添加缺失的变量`--accent-subtle`、`--success-subtle`、`--warning-subtle`、`--interactive-subtle`
@@ -368,6 +595,6 @@ bun run dev
 
 ---
 
-🔗 **项目:** [https://github.com/ajaxiis-rust/TrueNeverStory](https://github.com/ajaxiis-rust/TrueNeverStory)
+**项目:** [https://github.com/ajaxiis-rust/TrueNeverStory](https://github.com/ajaxiis-rust/TrueNeverStory)
 
 Apache 2.0
