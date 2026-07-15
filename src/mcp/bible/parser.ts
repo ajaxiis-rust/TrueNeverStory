@@ -2,7 +2,8 @@ import { Database } from 'bun:sqlite';
 import { BibleVerse, BiblePattern, BibleParseResult, BibleSearchOptions, BiblePatternFilter, BOOK_ABBREVIATIONS, BibleJSONSchema } from './types';
 import { getLogger } from '@/utils/logger';
 import { join } from 'node:path';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import type { CrossRefJSONSchema, CrossRef, CrossRefSearchOptions } from './types';
 
 const logger = getLogger('BibleParser');
 
@@ -418,6 +419,36 @@ export class BibleParser {
         created_at INTEGER DEFAULT (unixepoch())
       )
     `);
+
+    this.normalizedDb.exec(`
+      CREATE TABLE IF NOT EXISTS bible_cross_refs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_book TEXT NOT NULL,
+        from_chapter INTEGER NOT NULL,
+        from_verse INTEGER NOT NULL,
+        to_book TEXT NOT NULL,
+        to_chapter INTEGER NOT NULL,
+        to_verse_start INTEGER NOT NULL,
+        to_verse_end INTEGER NOT NULL,
+        votes INTEGER DEFAULT 0,
+        source TEXT
+      )
+    `);
+
+    this.normalizedDb.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS bible_cross_refs_fts
+      USING fts5(from_book, to_book, content=bible_cross_refs, content_rowid=id)
+    `);
+
+    this.normalizedDb.exec(`
+      CREATE INDEX IF NOT EXISTS idx_cross_refs_from
+      ON bible_cross_refs(from_book, from_chapter, from_verse)
+    `);
+
+    this.normalizedDb.exec(`
+      CREATE INDEX IF NOT EXISTS idx_cross_refs_to
+      ON bible_cross_refs(to_book, to_chapter, to_verse_start)
+    `);
   }
 
   // ─── JSON Loading ────────────────────────────────────────────────────
@@ -454,6 +485,138 @@ export class BibleParser {
 
     logger.info(`Loaded ${verseCount} verses from ${filePath} (${books.size} books)`);
     return { verseCount, bookCount: books.size };
+  }
+
+  // ─── Cross-References ───────────────────────────────────────────────
+
+  /**
+   * Load cross-references from scrollmapper JSON shards.
+   */
+  async loadCrossRefs(shardsDir: string): Promise<{ refCount: number }> {
+    const files = readdirSync(shardsDir).filter(f => f.startsWith('cross_references_') && f.endsWith('.json'));
+    let refCount = 0;
+
+    for (const file of files) {
+      const raw = readFileSync(join(shardsDir, file), 'utf-8');
+      const data: CrossRefJSONSchema = JSON.parse(raw);
+
+      for (const ref of data.cross_references) {
+        for (const to of ref.to_verse) {
+          this.normalizedDb
+            .query('INSERT INTO bible_cross_refs (from_book, from_chapter, from_verse, to_book, to_chapter, to_verse_start, to_verse_end, votes, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            .run(
+              ref.from_verse.book,
+              ref.from_verse.chapter,
+              ref.from_verse.verse,
+              to.book,
+              to.chapter,
+              to.verse_start,
+              to.verse_end,
+              ref.votes,
+              file,
+            );
+          refCount++;
+        }
+      }
+
+      logger.info(`Loaded cross-refs from ${file}`);
+    }
+
+    this.normalizedDb.exec('INSERT OR REPLACE INTO bible_cross_refs_fts(bible_cross_refs_fts) VALUES("rebuild")');
+
+    logger.info(`Loaded ${refCount} cross-references total`);
+    return { refCount };
+  }
+
+  /**
+   * Get cross-references for a specific verse.
+   */
+  getCrossRefs(options: CrossRefSearchOptions): CrossRef[] {
+    let query = 'SELECT * FROM bible_cross_refs WHERE from_book = ? AND from_chapter = ? AND from_verse = ?';
+    const params: unknown[] = [options.book!, options.chapter!, options.verse!];
+
+    if (options.minVotes) {
+      query += ' AND votes >= ?';
+      params.push(options.minVotes);
+    }
+
+    query += ' ORDER BY votes DESC';
+
+    if (options.limit) {
+      query += ' LIMIT ?';
+      params.push(options.limit);
+    }
+
+    const rows = this.normalizedDb.query(query).all(...params) as Array<{
+      id: number;
+      from_book: string;
+      from_chapter: number;
+      from_verse: number;
+      to_book: string;
+      to_chapter: number;
+      to_verse_start: number;
+      to_verse_end: number;
+      votes: number;
+      source: string | null;
+    }>;
+
+    return rows.map(r => ({
+      id: r.id,
+      fromBook: r.from_book,
+      fromChapter: r.from_chapter,
+      fromVerse: r.from_verse,
+      toBook: r.to_book,
+      toChapter: r.to_chapter,
+      toVerseStart: r.to_verse_start,
+      toVerseEnd: r.to_verse_end,
+      votes: r.votes,
+      source: r.source ?? undefined,
+    }));
+  }
+
+  /**
+   * Graph traversal: find related verses up to N hops.
+   */
+  getRelatedVerses(book: string, chapter: number, verse: number, depth: number = 1): CrossRef[] {
+    const visited = new Set<string>();
+    const results: CrossRef[] = [];
+    const queue: Array<{ book: string; chapter: number; verse: number; currentDepth: number }> = [
+      { book, chapter, verse, currentDepth: 0 },
+    ];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const key = `${current.book}.${current.chapter}.${current.verse}`;
+
+      if (visited.has(key)) continue;
+      visited.add(key);
+
+      const refs = this.getCrossRefs({
+        book: current.book,
+        chapter: current.chapter,
+        verse: current.verse,
+      });
+
+      for (const ref of refs) {
+        results.push(ref);
+
+        if (current.currentDepth < depth) {
+          for (let v = ref.toVerseStart; v <= ref.toVerseEnd; v++) {
+            const targetKey = `${ref.toBook}.${ref.toChapter}.${v}`;
+            if (!visited.has(targetKey)) {
+              queue.push({
+                book: ref.toBook,
+                chapter: ref.toChapter,
+                verse: v,
+                currentDepth: current.currentDepth + 1,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   // ─── Cleanup ──────────────────────────────────────────────────────────
