@@ -1,5 +1,5 @@
 import { BibleParser } from '../bible/parser';
-import { SearchVersesInput, GetPatternInput, GetArchetypeInput } from '../schemas';
+import { SearchVersesInput, GetPatternInput, GetArchetypeInput, GetCrossRefsInput, GetRelatedVersesInput } from '../schemas';
 import { getLogger } from '@/utils/logger';
 
 const logger = getLogger('BibleMCPTools');
@@ -117,6 +117,83 @@ export class BibleMCPTools {
         book: v.book,
         text: v.text,
       })),
+    };
+  }
+
+  /**
+   * Get cross-references for a verse.
+   */
+  async getCrossRefs(input: GetCrossRefsInput): Promise<{
+    references: Array<{
+      fromBook: string;
+      fromChapter: number;
+      fromVerse: number;
+      toBook: string;
+      toChapter: number;
+      toVerseRange: string;
+      votes: number;
+    }>;
+    total: number;
+  }> {
+    const refs = this.parser.getCrossRefs({
+      book: input.book,
+      chapter: input.chapter,
+      verse: input.verse,
+      minVotes: input.minVotes,
+      limit: input.limit ?? 20,
+    });
+
+    return {
+      references: refs.map(r => ({
+        fromBook: r.fromBook,
+        fromChapter: r.fromChapter,
+        fromVerse: r.fromVerse,
+        toBook: r.toBook,
+        toChapter: r.toChapter,
+        toVerseRange: r.toVerseStart === r.toVerseEnd
+          ? `${r.toVerseStart}`
+          : `${r.toVerseStart}-${r.toVerseEnd}`,
+        votes: r.votes,
+      })),
+      total: refs.length,
+    };
+  }
+
+  /**
+   * Get related verses via graph traversal.
+   */
+  async getRelatedVerses(input: GetRelatedVersesInput): Promise<{
+    related: Array<{
+      fromBook: string;
+      fromChapter: number;
+      fromVerse: number;
+      toBook: string;
+      toChapter: number;
+      toVerseRange: string;
+      votes: number;
+    }>;
+    total: number;
+  }> {
+    const refs = this.parser.getRelatedVerses(
+      input.book,
+      input.chapter,
+      input.verse,
+      input.depth ?? 1,
+    );
+
+    return {
+      related: refs.map(r => ({
+        fromBook: r.fromBook,
+        fromChapter: r.fromChapter,
+        fromVerse: r.fromVerse,
+        toBook: r.toBook,
+        toChapter: r.toChapter,
+        toVerseRange: r.toVerseStart === r.toVerseEnd
+          ? `${r.toVerseStart}`
+          : `${r.toVerseStart}-${r.toVerseEnd}`,
+        votes: r.votes,
+      })),
+      total: refs.length,
     };
   }
 

@@ -19,6 +19,21 @@ export const GetArchetypeSchema = z.object({
   name: z.string().describe('Archetype name to search for'),
 });
 
+export const GetCrossRefsSchema = z.object({
+  book: z.string().describe('Book name (e.g., "John", "Psalms")'),
+  chapter: z.number().describe('Chapter number'),
+  verse: z.number().describe('Verse number'),
+  minVotes: z.number().optional().describe('Minimum vote threshold'),
+  limit: z.number().optional().describe('Max results (default 20)'),
+});
+
+export const GetRelatedVersesSchema = z.object({
+  book: z.string().describe('Book name (e.g., "John", "Psalms")'),
+  chapter: z.number().describe('Chapter number'),
+  verse: z.number().describe('Verse number'),
+  depth: z.number().optional().describe('Traversal depth (default 1)'),
+});
+
 // ─── Gutenberg Tool Schemas ──────────────────────────────────────────────────
 
 export const GetStyleSchema = z.object({
@@ -114,6 +129,8 @@ export const GetJubileeInfoSchema = z.object({
 export type SearchVersesInput = z.infer<typeof SearchVersesSchema>;
 export type GetPatternInput = z.infer<typeof GetPatternSchema>;
 export type GetArchetypeInput = z.infer<typeof GetArchetypeSchema>;
+export type GetCrossRefsInput = z.infer<typeof GetCrossRefsSchema>;
+export type GetRelatedVersesInput = z.infer<typeof GetRelatedVersesSchema>;
 export type GetStyleInput = z.infer<typeof GetStyleSchema>;
 export type ApplyStyleInput = z.infer<typeof ApplyStyleSchema>;
 export type VerifyFactInput = z.infer<typeof VerifyFactSchema>;
