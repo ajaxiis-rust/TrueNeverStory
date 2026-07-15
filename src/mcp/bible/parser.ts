@@ -1,8 +1,8 @@
 import { Database } from 'bun:sqlite';
-import { BibleVerse, BiblePattern, BibleParseResult, BibleSearchOptions, BiblePatternFilter, BOOK_ABBREVIATIONS } from './types';
+import { BibleVerse, BiblePattern, BibleParseResult, BibleSearchOptions, BiblePatternFilter, BOOK_ABBREVIATIONS, BibleJSONSchema } from './types';
 import { getLogger } from '@/utils/logger';
 import { join } from 'node:path';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 
 const logger = getLogger('BibleParser');
 
@@ -418,6 +418,42 @@ export class BibleParser {
         created_at INTEGER DEFAULT (unixepoch())
       )
     `);
+  }
+
+  // ─── JSON Loading ────────────────────────────────────────────────────
+
+  /**
+   * Load verses from a scrollmapper/bible_databases JSON file.
+   * Uses INSERT OR REPLACE — later loads overwrite earlier ones for same verse ID.
+   */
+  async loadFromJSON(filePath: string, source?: string): Promise<{ verseCount: number; bookCount: number }> {
+    const raw = readFileSync(filePath, 'utf-8');
+    const data: BibleJSONSchema = JSON.parse(raw);
+
+    let verseCount = 0;
+    const books = new Set<string>();
+
+    for (const book of data.books) {
+      books.add(book.name);
+      const bookAbbr = BOOK_ABBREVIATIONS[book.name] ?? book.name.substring(0, 3).toUpperCase();
+
+      for (const chapter of book.chapters) {
+        for (const v of chapter.verses) {
+          const id = `${bookAbbr}.${chapter.chapter}.${v.verse}`;
+          const text = v.text.trim();
+          if (!text) continue;
+
+          this.normalizedDb
+            .query('INSERT OR REPLACE INTO bible_verses (id, book, book_abbr, chapter, verse, text, language, source_table, source_rowid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            .run(id, book.name, bookAbbr, chapter.chapter, v.verse, text, 'en', source ?? data.translation, 0);
+
+          verseCount++;
+        }
+      }
+    }
+
+    logger.info(`Loaded ${verseCount} verses from ${filePath} (${books.size} books)`);
+    return { verseCount, bookCount: books.size };
   }
 
   // ─── Cleanup ──────────────────────────────────────────────────────────
