@@ -1,5 +1,6 @@
 import type { LiteraryCompilerDB } from './schema';
 import type { QuestTemplate, DramaturgicInput, DramaturgicOutput } from './types';
+import type { BibleParser } from '../bible/parser';
 import { getLogger } from '@/utils/logger';
 
 const logger = getLogger('DramaturgicPass');
@@ -44,7 +45,10 @@ const DEFAULT_VARIABLES: Record<string, string[]> = {
 };
 
 export class DramaturgicPass {
-  constructor(private db: LiteraryCompilerDB) {}
+  constructor(
+    private db: LiteraryCompilerDB,
+    private bibleParser?: BibleParser,
+  ) {}
 
   parse(input: DramaturgicInput): DramaturgicOutput {
     const templates: QuestTemplate[] = [];
@@ -61,7 +65,7 @@ export class DramaturgicPass {
         return { templates, errors };
       }
 
-      const archetype = this.inferArchetype(input.text);
+      const archetype = this.inferArchetype(input.text, input.source_book, input.source_chapter);
       const mood = this.inferMood(input.text);
       const difficulty = this.inferDifficulty(verses.length);
       const moralAmbiguity = this.inferMoralAmbiguity(input.text);
@@ -118,7 +122,7 @@ export class DramaturgicPass {
     return verses;
   }
 
-  private inferArchetype(text: string): string {
+  private inferArchetype(text: string, book?: string, chapter?: number): string {
     const lowerText = text.toLowerCase();
     const scores: Record<string, number> = {};
 
@@ -128,6 +132,14 @@ export class DramaturgicPass {
         if (lowerText.includes(keyword)) {
           scores[archetype]++;
         }
+      }
+    }
+
+    // Boost scores from cross-references
+    if (book && chapter) {
+      const hints = this.getCrossRefArchetypeHint(book, chapter);
+      for (const [archetype, hintScore] of Object.entries(hints)) {
+        scores[archetype] = (scores[archetype] ?? 0) + hintScore * 0.5;
       }
     }
 
@@ -142,6 +154,29 @@ export class DramaturgicPass {
     }
 
     return inferredArchetype;
+  }
+
+  private getCrossRefArchetypeHint(book: string, chapter: number): Record<string, number> {
+    if (!this.bibleParser) return {};
+
+    const hints: Record<string, number> = {};
+    const refs = this.bibleParser.getRelatedVerses(book, chapter, 1, 1);
+
+    for (const ref of refs) {
+      const verse = this.bibleParser.getVerse(`${ref.toBook}.${ref.toChapter}.${ref.toVerseStart}`);
+      if (!verse) continue;
+
+      const lowerText = verse.text.toLowerCase();
+      for (const [archetype, keywords] of Object.entries(ARCHETYPE_KEYWORDS)) {
+        for (const keyword of keywords) {
+          if (lowerText.includes(keyword)) {
+            hints[archetype] = (hints[archetype] ?? 0) + 1;
+          }
+        }
+      }
+    }
+
+    return hints;
   }
 
   private inferMood(text: string): string {
