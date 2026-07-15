@@ -41,6 +41,74 @@ export interface BiblePatternFilter {
   narrativeFunction?: string;
 }
 
+// ─── CrossRef Types ───────────────────────────────────────────────────────────
+
+export interface CrossRef {
+  id: number;
+  fromBook: string;
+  fromChapter: number;
+  fromVerse: number;
+  toBook: string;
+  toChapter: number;
+  toVerseStart: number;
+  toVerseEnd: number;
+  votes: number;
+  source?: string;
+}
+
+export interface CrossRefSearchOptions {
+  book?: string;
+  chapter?: number;
+  verse?: number;
+  minVotes?: number;
+  limit?: number;
+}
+
+// JSON schema types (matching scrollmapper/bible_databases format)
+
+export interface BibleJSONVerse {
+  verse: number;
+  text: string;
+}
+
+export interface BibleJSONChapter {
+  chapter: number;
+  verses: BibleJSONVerse[];
+}
+
+export interface BibleJSONBook {
+  name: string;
+  chapters: BibleJSONChapter[];
+}
+
+export interface BibleJSONSchema {
+  translation: string;
+  books: BibleJSONBook[];
+}
+
+export interface CrossRefJSONFromVerse {
+  book: string;
+  chapter: number;
+  verse: number;
+}
+
+export interface CrossRefJSONToVerse {
+  book: string;
+  chapter: number;
+  verse_start: number;
+  verse_end: number;
+}
+
+export interface CrossRefJSONEntry {
+  from_verse: CrossRefJSONFromVerse;
+  to_verse: CrossRefJSONToVerse[];
+  votes: number;
+}
+
+export interface CrossRefJSONSchema {
+  cross_references: CrossRefJSONEntry[];
+}
+
 // ─── Book Abbreviations ──────────────────────────────────────────────────────
 
 export const BOOK_ABBREVIATIONS: Record<string, string> = {
