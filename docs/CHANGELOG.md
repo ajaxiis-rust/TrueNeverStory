@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.25.5 (2026-07-16)
+
+### Translation Models
+
+Added multilingual translation models to the catalog:
+
+- **NLLB-200 600M** — Meta's 35+ language translation model (Q8_0 and Q4_K_M)
+- **MADLAD-400 3B** — Google's 400+ language model for rare languages
+
+### Hardware Documentation
+
+New comprehensive hardware requirements guide (`docs/HARDWARE.md`):
+
+- 4 configuration profiles (Ultra-Light to GPU-Accelerated)
+- Model recommendations by task (intent, translation, narrative, embeddings)
+- Configuration examples for different setups
+- Performance tips and language support matrix
+
+---
+
 ## v0.25.4 (2026-07-16)
 
 ### Translation Agent
