@@ -1,4 +1,5 @@
 import { BibleParser } from './bible/parser';
+import { CharacterDB } from './bible/characters';
 import { GutenbergParser } from './gutenberg/parser';
 import { BibleMCPTools } from './tools/bible';
 import { GutenbergMCPTools } from './tools/gutenberg';
@@ -45,6 +46,7 @@ export interface TNSServerConfig {
 
 export class TNSServer {
   private bibleParser: BibleParser;
+  private characterDB: CharacterDB;
   private gutenbergParser: GutenbergParser;
   private bibleTools: BibleMCPTools;
   private gutenbergTools: GutenbergMCPTools;
@@ -86,7 +88,8 @@ export class TNSServer {
     this.economicService = new EconomicService(this.economicDB);
 
     // Initialize tools
-    this.bibleTools = new BibleMCPTools(this.bibleParser);
+    this.characterDB = new CharacterDB(this.bibleParser);
+    this.bibleTools = new BibleMCPTools(this.bibleParser, this.characterDB);
     this.gutenbergTools = new GutenbergMCPTools(this.gutenbergParser);
     this.wikipediaTools = new WikipediaMCPTools();
     this.literaryCompilerTools = new LiteraryCompilerMCPTools(this.literaryCompilerDB);
