@@ -197,3 +197,52 @@ export const BOOK_ABBREVIATIONS: Record<string, string> = {
   Revelation: 'REV',
   'Revelation of John': 'REV',
 };
+
+// ─── Character Types ─────────────────────────────────────────────────────────
+
+export interface BibleCharacter {
+  id: string;
+  canonical_name: string;
+  hebrew_name: string | null;
+  greek_name: string | null;
+  russian_name: string | null;
+  aliases: string[];
+  significance: 'prophet' | 'king' | 'patriarch' | 'apostle' | 'minor';
+  testament: 'OT' | 'NT' | 'both';
+  description: string | null;
+}
+
+export interface BibleCharacterEdge {
+  id: number;
+  from_character: string;
+  to_character: string;
+  relation: 'parent_of' | 'spouse_of' | 'sibling_of' | 'mentor_of' | 'enemy_of' | 'ally_of';
+  context: { verse?: string; note?: string } | null;
+}
+
+export interface BibleCharacterMention {
+  id: number;
+  character_id: string;
+  verse_id: string;
+  role: 'subject' | 'object' | 'mentioned' | 'speaker';
+}
+
+export interface CharacterSearchOptions {
+  significance?: string;
+  testament?: string;
+  limit?: number;
+}
+
+export interface NameDictionaryEntry {
+  canonical: string;
+  variants: {
+    en: string[];
+    ru: string[];
+    he?: string[];
+    el?: string[];
+  };
+  significance: 'prophet' | 'king' | 'patriarch' | 'apostle' | 'minor';
+  testament: 'OT' | 'NT' | 'both';
+  description: string;
+  notToBeConfusedWith?: string[];
+}
