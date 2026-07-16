@@ -7,6 +7,33 @@ import type { CrossRefJSONSchema, CrossRef, CrossRefSearchOptions } from './type
 
 const logger = getLogger('BibleParser');
 
+// ─── Book Name Normalization ────────────────────────────────────────────────
+
+const BOOK_NAME_NORMALIZATION: Record<string, string> = {
+  'I Samuel': '1 Samuel',
+  'II Samuel': '2 Samuel',
+  'I Kings': '1 Kings',
+  'II Kings': '2 Kings',
+  'I Chronicles': '1 Chronicles',
+  'II Chronicles': '2 Chronicles',
+  'I Corinthians': '1 Corinthians',
+  'II Corinthians': '2 Corinthians',
+  'I Thessalonians': '1 Thessalonians',
+  'II Thessalonians': '2 Thessalonians',
+  'I Timothy': '1 Timothy',
+  'II Timothy': '2 Timothy',
+  'I Peter': '1 Peter',
+  'II Peter': '2 Peter',
+  'I John': '1 John',
+  'II John': '2 John',
+  'III John': '3 John',
+  'Revelation of John': 'Revelation',
+};
+
+function normalizeBookName(name: string): string {
+  return BOOK_NAME_NORMALIZATION[name] ?? name;
+}
+
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 export interface BibleParseConfig {
@@ -118,11 +145,31 @@ export class BibleParser {
 
   /**
    * Get verse by atomic pointer (GUID/reference).
+   * Accepts both abbreviated IDs ("ISA.63.12") and full book names ("Isaiah.63.12").
    */
   getVerse(ref: string): BibleVerse | null {
-    return this.normalizedDb
+    // Try exact match first
+    const exact = this.normalizedDb
       .query('SELECT * FROM bible_verses WHERE id = ?')
       .get(ref) as BibleVerse | null;
+    if (exact) return exact;
+
+    // Try resolving full book name → abbreviation
+    const parts = ref.split('.');
+    if (parts.length >= 3) {
+      const bookName = parts[0]!;
+      const chapter = parts[1]!;
+      const verse = parts[2]!;
+      const abbr = BOOK_ABBREVIATIONS[bookName];
+      if (abbr) {
+        const abbrRef = `${abbr}.${chapter}.${verse}`;
+        return this.normalizedDb
+          .query('SELECT * FROM bible_verses WHERE id = ?')
+          .get(abbrRef) as BibleVerse | null;
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -465,8 +512,9 @@ export class BibleParser {
     const books = new Set<string>();
 
     for (const book of data.books) {
-      books.add(book.name);
-      const bookAbbr = BOOK_ABBREVIATIONS[book.name] ?? book.name.substring(0, 3).toUpperCase();
+      const normalizedName = normalizeBookName(book.name);
+      books.add(normalizedName);
+      const bookAbbr = BOOK_ABBREVIATIONS[normalizedName] ?? BOOK_ABBREVIATIONS[book.name] ?? book.name.substring(0, 3).toUpperCase();
 
       for (const chapter of book.chapters) {
         for (const v of chapter.verses) {
@@ -476,7 +524,7 @@ export class BibleParser {
 
           this.normalizedDb
             .query('INSERT OR REPLACE INTO bible_verses (id, book, book_abbr, chapter, verse, text, language, source_table, source_rowid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            .run(id, book.name, bookAbbr, chapter.chapter, v.verse, text, 'en', source ?? data.translation, 0);
+            .run(id, normalizedName, bookAbbr, chapter.chapter, v.verse, text, 'en', source ?? data.translation, 0);
 
           verseCount++;
         }
@@ -505,10 +553,10 @@ export class BibleParser {
           this.normalizedDb
             .query('INSERT INTO bible_cross_refs (from_book, from_chapter, from_verse, to_book, to_chapter, to_verse_start, to_verse_end, votes, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
             .run(
-              ref.from_verse.book,
+              normalizeBookName(ref.from_verse.book),
               ref.from_verse.chapter,
               ref.from_verse.verse,
-              to.book,
+              normalizeBookName(to.book),
               to.chapter,
               to.verse_start,
               to.verse_end,
