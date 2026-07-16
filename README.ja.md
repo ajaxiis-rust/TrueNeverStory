@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.3
+# TrueNeverStory v0.25.6
 
 ### 遊ぶだけで、自分の物語を書こう。
 
@@ -10,7 +10,21 @@ TypeScript (Bun + Hono)とC FFIカーネルによるハイブリッド構成。
 
 ---
 
-## v0.25.3の新機能
+## v0.25.6 の新機能
+
+### 聖書DBの最適化
+- **FTS5検索** — `LIKE '%query%'` を FTS5 `MATCH` に置き換え、O(1)の全文検索を実現（LIKEへのフォールバック付き）
+- **バッチグラフ走査** — `getRelatedVerses()` が個別クエリN個の代わりに `IN (...)` を使ったバッチクエリを使用（N+1 → 1）
+- **節のインデックス** — フィルタクエリを高速化するための `idx_verses_book_chapter` を追加
+- **キャラクターシステム** — 3テーブル（`bible_characters`, `bible_character_edges`, `bible_character_mentions`）を持つ新しい `CharacterDB`
+- **名前辞書** — 40人以上の聖書のキャラクター（EN/RU/HE/ELの多言語バリアント付き）
+- **MCPキャラクターツール** — `searchCharacters`, `getCharacter`, `getCharacterEdges`, `getVerseCharacters`
+- **Gitクリーンアップ** — 177MBの生ソース + 59MBのコンパイル済みDBをトラッキングから削除
+- **ビルドスクリプト** — クライアントセットアップ用の `download-sources.sh` + `bootstrap-bible-db.ts`
+
+---
+
+## v0.25.3 の新機能
 
 ### State-Firstパイプライン
 エンジンは**テキストを生成する前にアクションを決定論的に処理**するようになりました：
@@ -457,6 +471,24 @@ bun build --compile --outfile tns-server src/index.ts
 ---
 
 ## 最近の変更
+
+### v0.25.6 — 聖書DBの最適化
+
+**パフォーマンス：**
+- FTS5検索（LIKEへのフォールバック付き）— O(n) → O(1)の全文クエリ
+- バッチグラフ走査 — 範囲のリレーションクエリをN+1 → 1に削減
+- 範囲のインデックス + DB圧縮用のVACUUMメソッド
+
+**機能：**
+- キャラクターシステム（3つのSQLiteテーブルを持つCharacterDB）
+- 40人以上の聖書の名前辞書（EN/RU/HE/ELのバリアント）
+- MCPツール：検索、取得、リレーション、メンション、範囲のキャラクター
+- 聖書のソースファイルのgzipサポート
+- クライアントセットアップ用のダウンロード・ブートストラップスクリプト
+
+**メンテナンス：**
+- 177MBのソース + 59MBのコンパイル済みDBをgitから削除
+- ソースとコンパイル済みDB用の.gitignoreを追加
 
 ### v0.25.3 — Literary Compiler と経済モデル
 

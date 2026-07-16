@@ -12,6 +12,16 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ## What's New in v0.25.6
 
+### Bible DB Optimization
+- **FTS5 search** — replaced `LIKE '%query%'` with FTS5 `MATCH` for O(1) full-text lookups (with LIKE fallback)
+- **Batch graph traversal** — `getRelatedVerses()` now uses batched `IN (...)` queries instead of N individual queries (N+1 → 1)
+- **Verse indexes** — added `idx_verses_book_chapter` for faster filtered queries
+- **Character system** — new `CharacterDB` with 3 tables: `bible_characters`, `bible_character_edges`, `bible_character_mentions`
+- **Name dictionary** — 40+ biblical characters with multi-language variants (EN/RU/HE/EL)
+- **Character MCP tools** — `searchCharacters`, `getCharacter`, `getCharacterEdges`, `getVerseCharacters`
+- **Git cleanup** — removed 177MB raw sources + 59MB compiled DB from git tracking
+- **Build scripts** — `download-sources.sh` + `bootstrap-bible-db.ts` for client setup
+
 ### TranslationService Integration
 - Pipeline now translates narrative output to the player's language automatically
 - Supports: Russian, German, French, Spanish, Japanese, Chinese
@@ -481,6 +491,24 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 ---
 
 ## Recent Changes
+
+### v0.25.6 — Bible DB Optimization
+
+**Performance:**
+- FTS5 search with LIKE fallback — O(n) → O(1) full-text lookups
+- Batch graph traversal — N+1 → 1 SQL queries for verse relationships
+- Verse indexes + VACUUM method for database compaction
+
+**Features:**
+- Character entity system (CharacterDB with 3 SQLite tables)
+- Biblical name dictionary (40+ characters, EN/RU/HE/EL variants)
+- Character MCP tools: search, get, edges, mentions, verse-characters
+- Gzip support for bible source files
+- Download + bootstrap scripts for client setup
+
+**Chore:**
+- Removed 177MB sources + 59MB compiled DB from git
+- Added .gitignore for sources and compiled database
 
 ### v0.25.3 — Literary Compiler & Economic Models
 

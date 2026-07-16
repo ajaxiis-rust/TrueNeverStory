@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.3
+# TrueNeverStory v0.25.6
 
 ### Ecris ton livre en jouant.
 
@@ -7,6 +7,20 @@ TrueNeverStory est un moteur de narration interactive propulse par l'IA avec une
 Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les operations critiques.
 
 **[English](README.md) | [Русский](README.ru.md) | [Deutsch](README.de.md) | [Espanol](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+
+---
+
+## Nouveautes de v0.25.6
+
+### Optimisation de la BD Biblique
+- **Recherche FTS5** — remplacement de `LIKE '%query%'` par `MATCH` FTS5 pour des requetes textuelles en O(1) (avec fallback sur LIKE)
+- **Parcours de graphe par lot** — `getRelatedVerses()` utilise maintenant des requetes `IN (...)` par lot au lieu de N requetes separees (N+1 → 1)
+- **Index des versets** — ajout de `idx_verses_book_chapter` pour accelerer les requetes filtrees
+- **Systeme de personnages** — nouveau `CharacterDB` avec 3 tables : `bible_characters`, `bible_character_edges`, `bible_character_mentions`
+- **Dictionnaire de noms** — 40+ personnages bibliques avec variantes multilingues (EN/RU/HE/EL)
+- **Outils MCP pour personnages** — `searchCharacters`, `getCharacter`, `getCharacterEdges`, `getVerseCharacters`
+- **Nettoyage git** — suppression de 177 Mo de sources brutes et 59 Mo de BD compilees du suivi de versions
+- **Scripts de build** — `download-sources.sh` + `bootstrap-bible-db.ts` pour la configuration du client
 
 ---
 
@@ -457,6 +471,24 @@ Voir [COMPILE.md](docs/COMPILE.md). GitHub Actions construit toutes les platefor
 ---
 
 ## Derniers changements
+
+### v0.25.6 — Optimisation de la BD Biblique
+
+**Performances :**
+- Recherche FTS5 avec fallback sur LIKE — O(n) → O(1) pour les requetes textuelles
+- Parcours de graphe par lot — N+1 → 1 requetes SQL pour les relations entre versets
+- Index des versets + methode VACUUM pour la compactation de la BD
+
+**Fonctionnalites :**
+- Systeme de personnages (CharacterDB avec 3 tables SQLite)
+- Dictionnaire de noms bibliques (40+ personnages, variantes EN/RU/HE/EL)
+- Outils MCP : recherche, obtention, liens, mentions, personnages de versets
+- Support gzip pour les fichiers sources de la Bible
+- Scripts de telechargement et bootstrap pour la configuration du client
+
+**Maintenance :**
+- Suppression de 177 Mo de sources et 59 Mo de BD compilees du suivi git
+- Ajout de .gitignore pour les sources et la BD compilee
 
 ### v0.25.3 — Literary Compiler & Modeles economiques
 

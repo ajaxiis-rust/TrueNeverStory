@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.3
+# TrueNeverStory v0.25.6
 
 ### Escribe tu libro solo jugando.
 
@@ -9,6 +9,18 @@ Construido en TypeScript (Bun + Hono) con kernels de computo C FFI para operacio
 **[English](README.md) | [Русский](README.ru.md) | [Deutsch](README.de.md) | [Francais](README.fr.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
 
 ---
+
+## Novedades en v0.25.6
+
+### Optimizacion de la BD Biblica
+- **Busqueda FTS5** — reemplazo de `LIKE '%query%'` por FTS5 `MATCH` para consultas de texto completo O(1) (con fallback a LIKE)
+- **Recorrido por lotes del grafo** — `getRelatedVerses()` ahora usa consultas por lotes `IN (...)` en lugar de N consultas individuales (N+1 a 1)
+- **Indices de versiculos** — se agrego `idx_verses_book_chapter` para acelerar consultas filtradas
+- **Sistema de personajes** — nuevo `CharacterDB` con 3 tablas: `bible_characters`, `bible_character_edges`, `bible_character_mentions`
+- **Diccionario de nombres** — 40+ personajes biblicos con variaciones multilingues (EN/RU/HE/EL)
+- **Herramientas MCP para personajes** — `searchCharacters`, `getCharacter`, `getCharacterEdges`, `getVerseCharacters`
+- **Limpieza de git** — eliminados 177MB de fuentes raw + 59MB de BD compilada del seguimiento
+- **Scripts de compilacion** — `download-sources.sh` + `bootstrap-bible-db.ts` para configuracion del cliente
 
 ## Novedades en v0.25.3
 
@@ -457,6 +469,24 @@ Ver [COMPILE.md](docs/COMPILE.md). GitHub Actions construye todas las plataforma
 ---
 
 ## Ultimos cambios
+
+### v0.25.6 — Optimizacion de la BD Biblica
+
+**Rendimiento:**
+- Busqueda FTS5 con fallback a LIKE — O(n) a O(1) consultas de texto completo
+- Recorrido por lotes del grafo — N+1 a 1 consultas SQL para versiculos relacionados
+- Indices de versiculos + metodo VACUUM para compactacion de BD
+
+**Funcionalidades:**
+- Sistema de personajes (CharacterDB con 3 tablas SQLite)
+- Diccionario de nombres biblicos (40+ personajes, variaciones EN/RU/HE/EL)
+- Herramientas MCP: busqueda, obtencion, conexiones, menciones, personajes de versiculos
+- Soporte gzip para archivos fuente de la Biblia
+- Scripts de descarga y bootstrap para configuracion del cliente
+
+**Mantenimiento:**
+- Eliminados 177MB de fuentes + 59MB de BD compilada de git
+- Agregado .gitignore para fuentes y BD compilada
 
 ### v0.25.3 — Literary Compiler y Modelos economicos
 

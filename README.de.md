@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.3
+# TrueNeverStory v0.25.6
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
@@ -10,7 +10,19 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskriti
 
 ---
 
-## Neuigkeiten in v0.25.3
+## Was ist neu in v0.25.6
+
+### Bibel-DB-Optimierung
+- **FTS5-Suche** — Ersetzt `LIKE '%query%'` durch FTS5 `MATCH` fuer O(1) Volltextanfragen (mit Fallback auf LIKE)
+- **Batch-Graph-Traversierung** — `getRelatedVerses()` verwendet jetzt Batch-Abfragen `IN (...)` statt N einzelner Abfragen (N+1 → 1)
+- **Verse-Indizes** — `idx_verses_book_chapter` hinzugefuegt zum Beschleunigen gefilterter Abfragen
+- **Charakter-System** — Neues `CharacterDB` mit 3 Tabellen: `bible_characters`, `bible_character_edges`, `bible_character_mentions`
+- **Namenlexikon** — 40+ biblische Charaktere mit mehrsprachigen Varianten (EN/RU/HE/EL)
+- **MCP-Tools fuer Charaktere** — `searchCharacters`, `getCharacter`, `getCharacterEdges`, `getVerseCharacters`
+- **Git-Bereinigung** — 177MB Quelldateien + 59MB kompilierte DB aus dem Tracking entfernt
+- **Build-Skripte** — `download-sources.sh` + `bootstrap-bible-db.ts` fuer die Client-Einrichtung
+
+## Was ist neu in v0.25.3
 
 ### State-First-Pipeline
 Die Engine verarbeitet Aktionen nun **deterministisch, bevor Text generiert wird**:
@@ -459,6 +471,24 @@ Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automa
 ---
 
 ## Letzte Aenderungen
+
+### v0.25.6 — Bibel-DB-Optimierung
+
+**Leistung:**
+- FTS5-Suche mit Fallback auf LIKE — O(n) → O(1) Volltextanfragen
+- Batch-Graph-Traversierung — N+1 → 1 SQL-Abfragen fuer Verse-Beziehungen
+- Verse-Indizes + VACUUM-Methode fuer DB-Kompaktierung
+
+**Funktionen:**
+- Charakter-System (CharacterDB mit 3 SQLite-Tabellen)
+- Lexikon biblischer Namen (40+ Charaktere, Varianten EN/RU/HE/EL)
+- MCP-Tools: Suche, Abruf, Beziehungen, Erwaehnungen, Verse-Charaktere
+- gzip-Unterstuetzung fuer Quelldateien der Bibel
+- Download-Skripte und Bootstrap fuer Client-Einrichtung
+
+**Wartung:**
+- 177MB Quellen + 59MB kompilierte DB aus Git entfernt
+- .gitignore fuer Quellen und kompilierte DB hinzugefuegt
 
 ### v0.25.3 — Literary Compiler & Oekonomische Modelle
 
