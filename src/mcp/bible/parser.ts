@@ -581,7 +581,7 @@ export class BibleParser {
    */
   getCrossRefs(options: CrossRefSearchOptions): CrossRef[] {
     let query = 'SELECT * FROM bible_cross_refs WHERE from_book = ? AND from_chapter = ? AND from_verse = ?';
-    const params: unknown[] = [options.book!, options.chapter!, options.verse!];
+    const params: (string | number)[] = [options.book!, options.chapter!, options.verse!];
 
     if (options.minVotes) {
       query += ' AND votes >= ?';
