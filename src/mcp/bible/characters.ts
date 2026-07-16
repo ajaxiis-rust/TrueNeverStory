@@ -164,7 +164,7 @@ export class CharacterDB {
 
   extractFromText(parser: BibleParser): { charactersFound: number; mentionsCreated: number } {
     const dictionary = getDictionary();
-    const verses = parser.normalizedDb.query('SELECT id, text FROM bible_verses').all() as Array<{ id: string; text: string }>;
+    const verses = this.db.query('SELECT id, text FROM bible_verses').all() as Array<{ id: string; text: string }>;
 
     let charactersFound = 0;
     let mentionsCreated = 0;
@@ -172,10 +172,10 @@ export class CharacterDB {
     for (const entry of dictionary) {
       this.insertCharacter({
         id: entry.canonical,
-        canonical_name: entry.variants.en[0],
+        canonical_name: entry.variants.en[0] ?? entry.canonical,
         hebrew_name: entry.variants.he?.[0] ?? null,
         greek_name: entry.variants.el?.[0] ?? null,
-        russian_name: entry.variants.ru[0],
+        russian_name: entry.variants.ru[0] ?? entry.canonical,
         aliases: entry.variants.en.concat(entry.variants.ru),
         significance: entry.significance,
         testament: entry.testament,
