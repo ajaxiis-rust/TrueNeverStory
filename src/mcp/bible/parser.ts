@@ -548,6 +548,11 @@ export class BibleParser {
       CREATE VIRTUAL TABLE IF NOT EXISTS bible_fts
       USING fts5(text, book, content=bible_verses, content_rowid=rowid)
     `);
+
+    this.normalizedDb.exec(`
+      CREATE INDEX IF NOT EXISTS idx_verses_book_chapter
+      ON bible_verses(book, chapter)
+    `);
   }
 
   // ─── JSON Loading ────────────────────────────────────────────────────
@@ -790,6 +795,12 @@ export class BibleParser {
   }
 
   // ─── Cleanup ──────────────────────────────────────────────────────────
+
+  compact(): void {
+    this.normalizedDb.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    this.normalizedDb.exec('VACUUM');
+    logger.info('Database compacted');
+  }
 
   close(): void {
     if (this.providedDb) {
