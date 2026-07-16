@@ -675,7 +675,65 @@ export class BibleParser {
   }
 
   /**
-   * Graph traversal: find related verses up to N hops.
+   * Batch get cross-references for multiple verses in a single query (chunked at 500).
+   */
+  getCrossRefsBatch(verses: Array<{ book: string; chapter: number; verse: number }>, minVotes?: number): CrossRef[] {
+    if (verses.length === 0) return [];
+
+    const CHUNK_SIZE = 500;
+    const allRefs: CrossRef[] = [];
+
+    for (let i = 0; i < verses.length; i += CHUNK_SIZE) {
+      const chunk = verses.slice(i, i + CHUNK_SIZE);
+      const placeholders = chunk.map(() => '(?, ?, ?)').join(', ');
+      const params: (string | number)[] = [];
+      for (const v of chunk) {
+        params.push(v.book, v.chapter, v.verse);
+      }
+
+      let query = `SELECT * FROM bible_cross_refs WHERE (from_book, from_chapter, from_verse) IN (${placeholders})`;
+
+      if (minVotes) {
+        query += ' AND votes >= ?';
+        params.push(minVotes);
+      }
+
+      query += ' ORDER BY votes DESC';
+
+      const rows = this.normalizedDb.query(query).all(...params) as Array<{
+        id: number;
+        from_book: string;
+        from_chapter: number;
+        from_verse: number;
+        to_book: string;
+        to_chapter: number;
+        to_verse_start: number;
+        to_verse_end: number;
+        votes: number;
+        source: string | null;
+      }>;
+
+      for (const r of rows) {
+        allRefs.push({
+          id: r.id,
+          fromBook: r.from_book,
+          fromChapter: r.from_chapter,
+          fromVerse: r.from_verse,
+          toBook: r.to_book,
+          toChapter: r.to_chapter,
+          toVerseStart: r.to_verse_start,
+          toVerseEnd: r.to_verse_end,
+          votes: r.votes,
+          source: r.source ?? undefined,
+        });
+      }
+    }
+
+    return allRefs;
+  }
+
+  /**
+   * Graph traversal: find related verses up to N hops (batched).
    */
   getRelatedVerses(book: string, chapter: number, verse: number, depth: number = 1): CrossRef[] {
     const visited = new Set<string>();
@@ -685,31 +743,43 @@ export class BibleParser {
     ];
 
     while (queue.length > 0) {
-      const current = queue.shift()!;
-      const key = `${current.book}.${current.chapter}.${current.verse}`;
+      const currentBatch = queue.splice(0, queue.length);
+      const toQuery: Array<{ book: string; chapter: number; verse: number }> = [];
 
-      if (visited.has(key)) continue;
-      visited.add(key);
+      for (const current of currentBatch) {
+        const key = `${current.book}.${current.chapter}.${current.verse}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+        toQuery.push({ book: current.book, chapter: current.chapter, verse: current.verse });
+      }
 
-      const refs = this.getCrossRefs({
-        book: current.book,
-        chapter: current.chapter,
-        verse: current.verse,
-      });
+      const refs = this.getCrossRefsBatch(toQuery);
 
+      const refsByKey = new Map<string, CrossRef[]>();
       for (const ref of refs) {
-        results.push(ref);
+        const key = `${ref.fromBook}.${ref.fromChapter}.${ref.fromVerse}`;
+        if (!refsByKey.has(key)) refsByKey.set(key, []);
+        refsByKey.get(key)!.push(ref);
+      }
 
-        if (current.currentDepth < depth) {
-          for (let v = ref.toVerseStart; v <= ref.toVerseEnd; v++) {
-            const targetKey = `${ref.toBook}.${ref.toChapter}.${v}`;
-            if (!visited.has(targetKey)) {
-              queue.push({
-                book: ref.toBook,
-                chapter: ref.toChapter,
-                verse: v,
-                currentDepth: current.currentDepth + 1,
-              });
+      for (const current of currentBatch) {
+        const key = `${current.book}.${current.chapter}.${current.verse}`;
+        const verseRefs = refsByKey.get(key) ?? [];
+
+        for (const ref of verseRefs) {
+          results.push(ref);
+
+          if (current.currentDepth < depth) {
+            for (let v = ref.toVerseStart; v <= ref.toVerseEnd; v++) {
+              const targetKey = `${ref.toBook}.${ref.toChapter}.${v}`;
+              if (!visited.has(targetKey)) {
+                queue.push({
+                  book: ref.toBook,
+                  chapter: ref.toChapter,
+                  verse: v,
+                  currentDepth: current.currentDepth + 1,
+                });
+              }
             }
           }
         }
