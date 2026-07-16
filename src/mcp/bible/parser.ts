@@ -120,9 +120,63 @@ export class BibleParser {
   }
 
   /**
-   * Search verses by text, book, or reference.
+   * Search verses by text using FTS5 with LIKE fallback.
    */
   search(query: string, options?: BibleSearchOptions): BibleVerse[] {
+    const limit = options?.limit ?? 20;
+
+    // Empty query: skip FTS, use LIKE directly
+    if (!query.trim()) {
+      return this.searchLike(query, options);
+    }
+
+    let results: BibleVerse[];
+
+    try {
+      if (options?.book) {
+        results = this.normalizedDb
+          .query(`
+            SELECT v.* FROM bible_verses v
+            JOIN bible_fts fts ON v.rowid = fts.rowid
+            WHERE bible_fts MATCH ? AND v.book = ?
+            LIMIT ?
+          `)
+          .all(query, options.book, limit) as BibleVerse[];
+      } else if (options?.chapter) {
+        results = this.normalizedDb
+          .query(`
+            SELECT v.* FROM bible_verses v
+            JOIN bible_fts fts ON v.rowid = fts.rowid
+            WHERE bible_fts MATCH ? AND v.chapter = ?
+            LIMIT ?
+          `)
+          .all(query, options.chapter, limit) as BibleVerse[];
+      } else {
+        results = this.normalizedDb
+          .query(`
+            SELECT v.* FROM bible_verses v
+            JOIN bible_fts fts ON v.rowid = fts.rowid
+            WHERE bible_fts MATCH ?
+            LIMIT ?
+          `)
+          .all(query, limit) as BibleVerse[];
+      }
+    } catch {
+      // FTS5 syntax error (special chars) — fall back to LIKE
+      return this.searchLike(query, options);
+    }
+
+    if (results.length === 0) {
+      return this.searchLike(query, options);
+    }
+
+    return results;
+  }
+
+  /**
+   * Search verses using LIKE (fallback for FTS substring matches).
+   */
+  searchLike(query: string, options?: BibleSearchOptions): BibleVerse[] {
     const limit = options?.limit ?? 20;
 
     if (options?.book) {
@@ -137,7 +191,6 @@ export class BibleParser {
         .all(options.chapter, `%${query}%`, limit) as BibleVerse[];
     }
 
-    // Full-text search
     return this.normalizedDb
       .query('SELECT * FROM bible_verses WHERE text LIKE ? LIMIT ?')
       .all(`%${query}%`, limit) as BibleVerse[];
@@ -423,13 +476,7 @@ export class BibleParser {
   // ─── FTS Index ────────────────────────────────────────────────────────
 
   private async buildSearchIndex(): Promise<void> {
-    // Create FTS table if it doesn't exist
-    this.normalizedDb.exec(`
-      CREATE VIRTUAL TABLE IF NOT EXISTS bible_fts
-      USING fts5(text, book, content=bible_verses, content_rowid=rowid)
-    `);
-
-    // Populate FTS
+    // Populate FTS index
     this.normalizedDb.exec(`
       INSERT OR REPLACE INTO bible_fts (rowid, text, book)
       SELECT rowid, text, book FROM bible_verses
@@ -495,6 +542,11 @@ export class BibleParser {
     this.normalizedDb.exec(`
       CREATE INDEX IF NOT EXISTS idx_cross_refs_to
       ON bible_cross_refs(to_book, to_chapter, to_verse_start)
+    `);
+
+    this.normalizedDb.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS bible_fts
+      USING fts5(text, book, content=bible_verses, content_rowid=rowid)
     `);
   }
 
