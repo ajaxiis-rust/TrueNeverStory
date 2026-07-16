@@ -248,10 +248,19 @@ export class RoleplayEngine {
       visitedLocations: this.visitedLocations,
     };
 
+    // Step 0: Reverse translate non-English input
+    let parsedInput = stripped;
+    if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
+      const inputLang = this.translationService.detectLanguage(stripped);
+      if (inputLang !== 'en') {
+        parsedInput = await this.translationService.translateToEnglish(stripped, inputLang);
+      }
+    }
+
     // Step 1: Parse intent
     this._eventBus.publishSimple('heartbeat.intent_parsed' as any, { input: stripped }, 'engine');
     const parserContext = this.contextBuilder.buildParserContext(engineState);
-    const intent = await this.intentParser.parse(stripped, parserContext);
+    const intent = await this.intentParser.parse(parsedInput, parserContext);
 
     // Step 2: Handle commands directly (no simulation needed)
     if (isCommandIntent(intent)) {
@@ -353,8 +362,17 @@ export class RoleplayEngine {
       visitedLocations: this.visitedLocations,
     };
 
+    // Reverse translate non-English input
+    let parsedInput = stripped;
+    if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
+      const inputLang = this.translationService.detectLanguage(stripped);
+      if (inputLang !== 'en') {
+        parsedInput = await this.translationService.translateToEnglish(stripped, inputLang);
+      }
+    }
+
     const parserContext = this.contextBuilder.buildParserContext(engineState);
-    const intent = await this.intentParser.parse(stripped, parserContext);
+    const intent = await this.intentParser.parse(parsedInput, parserContext);
 
     // Yield heartbeat: intent parsed
     yield { type: 'heartbeat', content: 'Understanding your input...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined } as any;

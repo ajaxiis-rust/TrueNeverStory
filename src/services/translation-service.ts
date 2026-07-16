@@ -103,6 +103,30 @@ Return ONLY the translated text, no explanation.`;
   }
 
   /**
+   * Translate user input from source language to English.
+   * Used before intent parsing to ensure LLM receives English text.
+   */
+  async translateToEnglish(text: string, sourceLang: LanguageCode): Promise<string> {
+    if (sourceLang === 'en') return text;
+    if (!SUPPORTED_LANGUAGES[sourceLang]) {
+      logger.warn(`Unsupported source language: ${sourceLang}, returning original`);
+      return text;
+    }
+
+    const langName = SUPPORTED_LANGUAGES[sourceLang];
+
+    const prompt = `Translate the following game command from ${langName} to English.
+Preserve the exact meaning and intent. Do not add explanations or context.
+
+Command: ${text}
+
+Return ONLY the translated command, no explanation.`;
+
+    const translated = await this.llmQueue.generateText(prompt, 1, 0.3, 'translation');
+    return translated.trim();
+  }
+
+  /**
    * Detect language of input text (simple heuristic).
    */
   detectLanguage(text: string): LanguageCode {
