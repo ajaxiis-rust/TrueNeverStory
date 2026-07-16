@@ -93,6 +93,7 @@ jobs:
           echo "/c/zig" >> $GITHUB_PATH
 
       - name: Install dependencies
+        shell: bash
         run: bun install
 
       - name: Build FFI kernels
