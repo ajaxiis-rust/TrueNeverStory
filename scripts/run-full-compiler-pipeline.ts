@@ -6,6 +6,7 @@
 import { BibleParser } from '../src/mcp/bible/parser';
 import { LiteraryCompilerDB } from '../src/mcp/literary-compiler/schema';
 import { DramaturgicPass } from '../src/mcp/literary-compiler/dramaturgic-pass';
+import { LLMClient } from '../src/lib/llm-client';
 import { StylisticPass } from '../src/mcp/literary-compiler/stylistic-pass';
 import { EmotionalPass } from '../src/mcp/literary-compiler/emotional-pass';
 import { MetadataPass } from '../src/mcp/literary-compiler/metadata-pass';
@@ -23,7 +24,8 @@ async function main() {
   const litDB = new LiteraryCompilerDB(join(tempDir, 'literary.db'));
 
   // Initialize passes
-  const dramaturgicPass = new DramaturgicPass(litDB, bibleParser);
+  const llm = new LLMClient({ agentId: 'dramaturg' });
+  const dramaturgicPass = new DramaturgicPass(litDB, bibleParser, llm);
   const stylisticPass = new StylisticPass();
   const emotionalPass = new EmotionalPass();
   const metadataPass = new MetadataPass();
@@ -63,7 +65,7 @@ async function main() {
       .join('\n\n');
 
     // ── Pass 1: Dramaturgic ──
-    const dramResult = dramaturgicPass.parse({
+    const dramResult = await dramaturgicPass.parse({
       text: chapterText,
       source_book: demo.book,
       source_chapter: demo.chapter,

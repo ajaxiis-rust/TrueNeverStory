@@ -41,7 +41,7 @@ import { CensorAgent } from './agents/censor';
 import { ChroniclerAgent } from './agents/chronicler-agent';
 import { AgentRegistryV2, getAgentRegistryV2 } from './agent-registry-v2';
 import type { TNSServer } from '../mcp/server';
-import { TranslationService } from './translation-service';
+import { TranslationService, type LanguageCode } from './translation-service';
 
 const log = getLogger('roleplay-engine');
 
@@ -301,6 +301,14 @@ export class RoleplayEngine {
 
     this._eventBus.publishSimple('heartbeat.prose_complete' as any, {}, 'engine');
 
+    // Step 6.5: Translate if needed
+    if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
+      const lang = this._worldFrame.language as LanguageCode;
+      if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
+        narrative = await this.translationService.translate(narrative, lang);
+      }
+    }
+
     // Step 7: Log and persist
     await this.chronicler.logEvent(
       `User action: ${stripped}`,
@@ -388,13 +396,31 @@ export class RoleplayEngine {
     yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined } as any;
 
     if (isMovementIntent(intent)) {
-      const result = await this._handleMovementWithIntent(intent, gameContext);
+      let result = await this._handleMovementWithIntent(intent, gameContext);
+      if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
+        const lang = this._worldFrame.language as LanguageCode;
+        if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
+          result = await this.translationService.translate(result, lang);
+        }
+      }
       yield { type: 'chunk', content: result };
     } else if (isDialogueIntent(intent)) {
-      const result = await this._handleDialogueWithIntent(intent, gameContext);
+      let result = await this._handleDialogueWithIntent(intent, gameContext);
+      if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
+        const lang = this._worldFrame.language as LanguageCode;
+        if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
+          result = await this.translationService.translate(result, lang);
+        }
+      }
       yield { type: 'chunk', content: result };
     } else if (isObservationIntent(intent)) {
-      const result = await this._handleObservation(intent, gameContext);
+      let result = await this._handleObservation(intent, gameContext);
+      if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
+        const lang = this._worldFrame.language as LanguageCode;
+        if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
+          result = await this.translationService.translate(result, lang);
+        }
+      }
       yield { type: 'chunk', content: result };
     } else {
       // Streaming for actions
@@ -585,15 +611,28 @@ export class RoleplayEngine {
     const conversation = this.memory.getRecent(5);
     const hints = simResult.narrativeHints.join('\n');
 
+    const shouldTranslate = this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en'
+      && ['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(this._worldFrame.language as string);
+
     let fullNarrative = '';
     for await (const chunk of this.narrator.generateStream(
       storyContext,
       [],
-      [`Simulation outcome: ${simResult.outcome} (${(simResult.probability * 100).toFixed(0)}%)\nHints: ${hints}`],
+      [`Simulation outcome: ${simResult.outcome} (${(simResult.probability * 100).toFixed(0)}%)
+Hints: ${hints}`],
       conversation,
     )) {
       fullNarrative += chunk;
-      yield { type: 'chunk', content: chunk };
+      if (!shouldTranslate) {
+        yield { type: 'chunk', content: chunk };
+      }
+    }
+
+    if (shouldTranslate) {
+      const lang = this._worldFrame.language as LanguageCode;
+      const translated = await this.translationService!.translate(fullNarrative, lang);
+      yield { type: 'chunk', content: translated };
+      fullNarrative = translated;
     }
 
     this.memory.addEntry('', fullNarrative);

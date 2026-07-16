@@ -6,6 +6,7 @@
 import { BibleParser } from '../src/mcp/bible/parser';
 import { LiteraryCompilerDB } from '../src/mcp/literary-compiler/schema';
 import { DramaturgicPass } from '../src/mcp/literary-compiler/dramaturgic-pass';
+import { LLMClient } from '../src/lib/llm-client';
 import { join } from 'path';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
@@ -22,7 +23,8 @@ async function main() {
 
   const bibleParser = new BibleParser({ dbPath: ':memory:', dataDir: tempDir });
   const litDB = new LiteraryCompilerDB(OUTPUT_DB);
-  const dramaturgicPass = new DramaturgicPass(litDB, bibleParser);
+  const llm = new LLMClient({ agentId: 'dramaturg' });
+  const dramaturgicPass = new DramaturgicPass(litDB, bibleParser, llm);
 
   // 2. Load BSB
   console.log('\n[1/4] Loading BSB.json...');
@@ -73,7 +75,7 @@ async function main() {
         .map((t, i) => `## Verse ${i + 1}\n${t}`)
         .join('\n\n');
 
-      const result = dramaturgicPass.parse({
+      const result = await dramaturgicPass.parse({
         text: chapterText,
         source_book: book,
         source_chapter: chapter,

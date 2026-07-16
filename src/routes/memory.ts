@@ -56,8 +56,19 @@ memory.post("/memory/summarise", async (c) => {
   try {
     const query = tag ?? nodeUid!;
     const results = await _worldMemory.retrieve({ query, topK: 50, minImportance: 0 });
-    const consolidated = 0;
-    return c.json({ consolidated, found: results.length });
+
+    if (results.length < 2) {
+      return c.json({ consolidated: 0, found: results.length, message: "Not enough memories to consolidate" });
+    }
+
+    // Trigger consolidation via optimizer (clusters similar memories and merges)
+    await _worldMemory.triggerConsolidation();
+
+    // Re-count after consolidation
+    const afterResults = await _worldMemory.retrieve({ query, topK: 50, minImportance: 0 });
+    const consolidated = Math.max(0, results.length - afterResults.length);
+
+    return c.json({ consolidated, found: results.length, after: afterResults.length });
   } catch (err) {
     log.error({ err }, "Failed to summarise memories");
     return c.json({ error: "Failed to summarise" }, 500);

@@ -22,6 +22,8 @@ import { EmbeddingQueue } from "./embedding-queue";
 import { MemoryPartitionManager } from "./partition";
 import { SQLiteStore } from "../lib/sqlite-store";
 import { getLogger } from "../utils/logger";
+import { MemoryOptimizer } from "./optimizer";
+import { ClusterEngine } from "./clustering";
 
 const log = getLogger("world-memory");
 
@@ -56,6 +58,7 @@ export class WorldMemory {
   private _sourceTypeToIds: Map<string, Set<string>> = new Map();
   private _sourceIdToIds: Map<string, Set<string>> = new Map();
   private _newEntriesSinceRebuild = 0;
+  private _optimizer: MemoryOptimizer;
 
   constructor(storagePath: string, llm: LLMClient, config?: MemoryConfig) {
     this._storagePath = storagePath;
@@ -83,6 +86,16 @@ export class WorldMemory {
     this._sessionDelta = new SessionDeltaTracker();
     this._speculativeCache = new SpeculativeCache();
     this._sqliteStore = this._vectorIndex.store;
+
+    const cluster = new ClusterEngine();
+    this._optimizer = new MemoryOptimizer(
+      this,
+      6, // run every 6 hours
+      this._scorer,
+      cluster,
+      0.1, // minKeepScore
+      30,  // minKeepDays
+    );
   }
 
   get activeEntries(): Map<string, WorldMemoryEntry> {
@@ -107,6 +120,30 @@ export class WorldMemory {
 
   get sqliteStore(): SQLiteStore | null {
     return this._sqliteStore;
+  }
+
+  get optimizer(): MemoryOptimizer {
+    return this._optimizer;
+  }
+
+  async triggerConsolidation(): Promise<void> {
+    await this._optimizer.runManual();
+  }
+
+  async rebuildFaissIndex(): Promise<void> {
+    await this._vectorIndex.rebuild();
+  }
+
+  async cleanOrphanedEmbeddings(): Promise<number> {
+    if (!this._sqliteStore) return 0;
+    const orphanUids = this._sqliteStore.getOrphanedEmbeddingUids();
+    for (const uid of orphanUids) {
+      this._sqliteStore.deleteEmbedding(uid);
+    }
+    if (orphanUids.length > 0) {
+      log.info({ removed: orphanUids.length }, "cleanOrphanedEmbeddings: removed orphaned embeddings");
+    }
+    return orphanUids.length;
   }
 
   async start(): Promise<void> {

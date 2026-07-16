@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.3
+# TrueNeverStory v0.25.6
 
 ### Write your book just by playing.
 
@@ -10,9 +10,31 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ---
 
-## What's New in v0.25.3
+## What's New in v0.25.6
 
-### State-First Pipeline
+### TranslationService Integration
+- Pipeline now translates narrative output to the player's language automatically
+- Supports: Russian, German, French, Spanish, Japanese, Chinese
+- Configured per-world via `language` field in world settings
+- Streaming paths: movement/dialogue/observation translate before yield; actions buffer full text then translate
+
+### WorldMemory Fixes
+- `VectorIndex.delete()` — properly removes embeddings from SQLite
+- `VectorIndex.rebuild()` — VACUUM compaction for index maintenance
+- `VectorIndex.fragmentationRatio()` — measures orphaned embeddings
+- `WorldMemory` — added `triggerConsolidation()`, `rebuildFaissIndex()`, `cleanOrphanedEmbeddings()`
+- `MemoryOptimizer` — integrated into WorldMemory lifecycle
+- `/memory/summarise` — now triggers real consolidation instead of returning 0
+- SQLiteStore — added `deleteEmbedding()`, `deleteEntityByUid()`, `getOrphanedEmbeddingUids()`, `vacuum()`
+
+### LLM-Based Archetype Inference
+- `DramaturgicPass` now uses LLM for Bible passage archetype classification
+- Falls back to keyword-based inference on LLM failure
+- Results cached in `archetype_llm_cache` SQLite table for persistence
+- Per-chapter caching avoids redundant LLM calls
+- Expected to fix 71% "inheritance" bias from keyword-only approach
+
+### Previous: State-First Pipeline
 The engine now processes actions **deterministically before generating text**:
 1. **Intent Parser** — Zod-validated structured intents replace regex routing
 2. **Simulation Engine** — Mojo FFI computes outcomes before prose generation

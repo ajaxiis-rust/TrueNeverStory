@@ -5,6 +5,15 @@ import { getLogger } from '@/utils/logger';
 
 const logger = getLogger('DramaturgicPass');
 
+export interface LLMProvider {
+  generateText(prompt: string): Promise<string>;
+}
+
+interface ArchetypeCacheEntry {
+  archetype: string;
+  confidence: number;
+}
+
 const ARCHETYPE_KEYWORDS: Record<string, string[]> = {
   escape: ['escape', 'flee', 'cross', 'sea', 'river', 'pass through', 'deliver', 'rescue'],
   judgment: ['judge', 'judgment', 'decide', 'dispute', 'claim', 'truth', 'verdict'],
@@ -45,12 +54,29 @@ const DEFAULT_VARIABLES: Record<string, string[]> = {
 };
 
 export class DramaturgicPass {
+  private _llmCache: Map<string, ArchetypeCacheEntry> = new Map();
+
   constructor(
     private db: LiteraryCompilerDB,
     private bibleParser?: BibleParser,
-  ) {}
+    private llm?: LLMProvider,
+  ) {
+    this._loadCacheFromDB();
+  }
 
-  parse(input: DramaturgicInput): DramaturgicOutput {
+  private _loadCacheFromDB(): void {
+    try {
+      const rows = this.db.getArchetypeCache?.() ?? [];
+      for (const row of rows) {
+        this._llmCache.set(row.cache_key, { archetype: row.archetype, confidence: row.confidence });
+      }
+      logger.info(`Loaded ${this._llmCache.size} archetype cache entries`);
+    } catch {
+      // Cache table may not exist yet
+    }
+  }
+
+  async parse(input: DramaturgicInput): Promise<DramaturgicOutput> {
     const templates: QuestTemplate[] = [];
     const errors: string[] = [];
 
@@ -65,7 +91,7 @@ export class DramaturgicPass {
         return { templates, errors };
       }
 
-      const archetype = this.inferArchetype(input.text, input.source_book, input.source_chapter);
+      const archetype = await this.inferArchetype(input.text, input.source_book, input.source_chapter);
       const mood = this.inferMood(input.text);
       const difficulty = this.inferDifficulty(verses.length);
       const moralAmbiguity = this.inferMoralAmbiguity(input.text);
@@ -122,7 +148,56 @@ export class DramaturgicPass {
     return verses;
   }
 
-  private inferArchetype(text: string, book?: string, chapter?: number): string {
+  private async inferArchetype(text: string, book?: string, chapter?: number): Promise<string> {
+    // Try LLM first if available
+    if (this.llm) {
+      try {
+        const llmResult = await this._inferArchetypeLLM(text, book, chapter);
+        if (llmResult) return llmResult;
+      } catch (err) {
+        logger.warn(`LLM archetype inference failed, falling back to keywords: ${err}`);
+      }
+    }
+    return this._inferArchetypeKeywords(text, book, chapter);
+  }
+
+  private async _inferArchetypeLLM(text: string, book?: string, chapter?: number): Promise<string | null> {
+    const cacheKey = `${book ?? 'unknown'}.${chapter ?? 0}`;
+
+    // Check cache first
+    const cached = this._llmCache.get(cacheKey);
+    if (cached) {
+      logger.debug(`Cache hit for ${cacheKey}: ${cached.archetype}`);
+      return cached.archetype;
+    }
+
+    const truncated = text.slice(0, 2000);
+    const archetypeList = Object.keys(ARCHETYPE_KEYWORDS).join(', ');
+
+    const prompt = `Classify this Bible passage into exactly ONE archetype.
+Valid archetypes: ${archetypeList}, everyday_life
+
+Passage (${book} ${chapter}):
+${truncated}
+
+Respond with ONLY the archetype name (lowercase, underscore). Nothing else.`;
+
+    const result = await this.llm!.generateText(prompt);
+    const cleaned = result.trim().toLowerCase().replace(/[^a-z_]/g, '');
+
+    if (ARCHETYPE_KEYWORDS[cleaned] || cleaned === 'everyday_life') {
+      // Cache the result
+      this._llmCache.set(cacheKey, { archetype: cleaned, confidence: 1.0 });
+      this.db.insertArchetypeCache?.(cacheKey, cleaned, 1.0);
+      logger.info(`LLM archetype for ${cacheKey}: ${cleaned}`);
+      return cleaned;
+    }
+
+    logger.warn(`LLM returned invalid archetype "${cleaned}" for ${cacheKey}`);
+    return null;
+  }
+
+  private _inferArchetypeKeywords(text: string, book?: string, chapter?: number): string {
     const lowerText = text.toLowerCase();
     const scores: Record<string, number> = {};
 

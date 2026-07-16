@@ -51,8 +51,9 @@ export class VectorIndex {
   }
 
   delete(id: number): void {
-    // SQLite doesn't support delete by internal ID easily; skip for now
-    log.debug({ id }, "VectorIndex.delete: not implemented for SQLite");
+    const uid = String(id);
+    this._store.deleteEmbedding(uid);
+    log.debug({ id: uid }, "VectorIndex.delete: removed embedding");
   }
 
   get size(): number {
@@ -60,7 +61,14 @@ export class VectorIndex {
   }
 
   async rebuild(): Promise<void> {
-    log.debug({ count: this._store.embeddingCount() }, "VectorIndex: SQLite index stats");
+    const before = this._store.embeddingCount();
+    this._store.vacuum();
+    const after = this._store.embeddingCount();
+    log.info({ before, after }, "VectorIndex: rebuilt (VACUUM)");
+  }
+
+  fragmentationRatio(): number {
+    return this._store.embeddingFragmentationRatio();
   }
 
   get store(): SQLiteStore {

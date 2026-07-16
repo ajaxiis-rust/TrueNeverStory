@@ -21,7 +21,7 @@ describe('DramaturgicPass', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('should parse Exodus 14 into escape template', () => {
+  it('should parse Exodus 14 into escape template', async () => {
     const text = `
       # Exodus 14
 
@@ -35,7 +35,7 @@ describe('DramaturgicPass', () => {
       And Moses stretched out his hand over the sea; and the LORD caused the sea to go back by a strong east wind all that night.
     `;
 
-    const result = pass.parse({
+    const result = await pass.parse({
       text,
       source_book: 'Exodus',
       source_chapter: 14,
@@ -54,7 +54,7 @@ describe('DramaturgicPass', () => {
     expect(['epic', 'neutral']).toContain(template.mood);
   });
 
-  it('should parse Ruth 1 into loyalty template', () => {
+  it('should parse Ruth 1 into loyalty template', async () => {
     const text = `
       # Ruth 1
 
@@ -65,7 +65,7 @@ describe('DramaturgicPass', () => {
       And Ruth said, Intreat me not to leave thee, or to return from following after thee. For where thou goest, I will go; where thou lodgest, I will lodge.
     `;
 
-    const result = pass.parse({
+    const result = await pass.parse({
       text,
       source_book: 'Ruth',
       source_chapter: 1,
@@ -77,8 +77,8 @@ describe('DramaturgicPass', () => {
     expect(['loyalty', 'judgment']).toContain(template.archetype);
   });
 
-  it('should handle empty text gracefully', () => {
-    const result = pass.parse({
+  it('should handle empty text gracefully', async () => {
+    const result = await pass.parse({
       text: '',
       source_book: 'Empty',
       source_chapter: 1,
@@ -88,7 +88,7 @@ describe('DramaturgicPass', () => {
     expect(result.errors.length).toBe(0);
   });
 
-  it('should store templates in database', () => {
+  it('should store templates in database', async () => {
     const text = `
       # Test Chapter
 
@@ -96,7 +96,7 @@ describe('DramaturgicPass', () => {
       The hero faced a great obstacle and overcame it through courage.
     `;
 
-    pass.parse({
+    await pass.parse({
       text,
       source_book: 'Test',
       source_chapter: 1,

@@ -52,6 +52,15 @@ export class LiteraryCompilerDB {
         content_rowid=rowid
       );
     `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS archetype_llm_cache (
+        cache_key TEXT PRIMARY KEY,
+        archetype TEXT NOT NULL,
+        confidence REAL NOT NULL DEFAULT 1.0,
+        created_at INTEGER DEFAULT (unixepoch())
+      );
+    `);
   }
 
   insertTemplate(template: Omit<QuestTemplate, 'created_at'>): void {
@@ -157,6 +166,16 @@ export class LiteraryCompilerDB {
       tags: JSON.parse(row.tags as string),
       created_at: row.created_at as number,
     };
+  }
+
+  getArchetypeCache(): Array<{ cache_key: string; archetype: string; confidence: number }> {
+    return this.db.prepare('SELECT cache_key, archetype, confidence FROM archetype_llm_cache').all() as Array<{ cache_key: string; archetype: string; confidence: number }>;
+  }
+
+  insertArchetypeCache(cacheKey: string, archetype: string, confidence: number): void {
+    this.db.prepare(
+      'INSERT OR REPLACE INTO archetype_llm_cache (cache_key, archetype, confidence) VALUES (?, ?, ?)'
+    ).run(cacheKey, archetype, confidence);
   }
 
   close(): void {

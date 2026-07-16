@@ -5,6 +5,7 @@
 import { BibleParser } from '../src/mcp/bible/parser';
 import { LiteraryCompilerDB } from '../src/mcp/literary-compiler/schema';
 import { DramaturgicPass } from '../src/mcp/literary-compiler/dramaturgic-pass';
+import { LLMClient } from '../src/lib/llm-client';
 import { StylisticPass } from '../src/mcp/literary-compiler/stylistic-pass';
 import { EmotionalPass } from '../src/mcp/literary-compiler/emotional-pass';
 import { MetadataPass } from '../src/mcp/literary-compiler/metadata-pass';
@@ -22,7 +23,8 @@ async function main() {
   console.log(`[1/2] Opened DB in ${Date.now() - t0}ms (${parser.getVerseCount()} verses, ${parser.getBooks().length} books)`);
 
   const litDB = new LiteraryCompilerDB(LIT_DB);
-  const dramaturgicPass = new DramaturgicPass(litDB, parser);
+  const llm = new LLMClient({ agentId: 'dramaturg' });
+  const dramaturgicPass = new DramaturgicPass(litDB, parser, llm);
   const stylisticPass = new StylisticPass();
   const emotionalPass = new EmotionalPass();
   const metadataPass = new MetadataPass();
@@ -57,7 +59,7 @@ async function main() {
         .map((t, i) => `## Verse ${i + 1}\n${t}`)
         .join('\n\n');
 
-      const result = dramaturgicPass.parse({
+      const result = await dramaturgicPass.parse({
         text: chapterText,
         source_book: book,
         source_chapter: chapter,
@@ -113,7 +115,7 @@ async function main() {
       .map((v, i) => `## Verse ${v.verse}\n${v.text}`)
       .join('\n\n');
 
-    const dram = dramaturgicPass.parse({ text: chapterText, source_book: s.book, source_chapter: s.chapter });
+    const dram = await dramaturgicPass.parse({ text: chapterText, source_book: s.book, source_chapter: s.chapter });
     const sty = stylisticPass.analyze({ text: chapterText, source_id: `${s.book}.${s.chapter}` });
     const emo = emotionalPass.analyze({ text: chapterText, source_id: `${s.book}.${s.chapter}` });
     const t = dram.templates[0];

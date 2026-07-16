@@ -1225,6 +1225,38 @@ export class SQLiteStore {
     return row.count;
   }
 
+  deleteEmbedding(entityUid: string): void {
+    this.db.run('DELETE FROM embeddings WHERE entity_uid = ?', [entityUid]);
+  }
+
+  deleteEntityByUid(uid: string): void {
+    this.db.run('DELETE FROM entities WHERE uid = ?', [uid]);
+  }
+
+  embeddingFragmentationRatio(): number {
+    const total = this.embeddingCount();
+    if (total === 0) return 0;
+    const orphaned = this.db.query(
+      `SELECT COUNT(*) as count FROM embeddings e
+       LEFT JOIN entities ent ON e.entity_uid = ent.uid
+       WHERE ent.uid IS NULL`
+    ).get() as { count: number };
+    return orphaned.count / total;
+  }
+
+  getOrphanedEmbeddingUids(): string[] {
+    const rows = this.db.query(
+      `SELECT e.entity_uid FROM embeddings e
+       LEFT JOIN entities ent ON e.entity_uid = ent.uid
+       WHERE ent.uid IS NULL`
+    ).all() as { entity_uid: string }[];
+    return rows.map(r => r.entity_uid);
+  }
+
+  vacuum(): void {
+    this.db.run('VACUUM');
+  }
+
   // ── Agent Prompts ──
 
   getAgentPrompts(world: string, agentId: string, language: string): AgentPromptConfig | undefined {
