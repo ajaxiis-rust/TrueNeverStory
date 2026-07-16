@@ -141,6 +141,7 @@ export const DEFAULT_AGENTS = [
   { id: "merchant", name: "Merchant", description: "Trading, pricing, and NPC inventory management", priority: 5 },
   { id: "quest-giver", name: "Quest Giver", description: "Generates contextual quests based on world state", priority: 7 },
   { id: "lorekeeper", name: "Lorekeeper", description: "World facts, magic rules, races, and established canon", priority: 6 },
+  { id: "translation", name: "Translation", description: "Translates game narrative between languages", priority: 2 },
 ];
 
 const LANG_INSTRUCTION: Record<string, string> = {
@@ -223,6 +224,11 @@ const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
     systemPrompt: "You are a Lorekeeper for a fantasy world. Maintain and recall world facts, magic rules, race information, and established canon. Never contradict established lore.",
     userTemplate: "Query: {query}\n\nEstablished Lore:\n{world_facts}\n\nMagic System:\n{magic_system}\n\nKnown Races: {races}",
     outputFormat: "Provide accurate lore information. Cite established facts. Acknowledge unknowns.",
+  },
+  translation: {
+    systemPrompt: "Translate game text between English and other languages. Rules: 1. Output ONLY the translation — no quotes, no explanations, no \"Translation:\" 2. Preserve paragraph structure and line breaks 3. Keep proper nouns, character names, and item names unchanged 4. Match the tone: epic for combat, intimate for dialogue, atmospheric for description",
+    userTemplate: "Translate {source_lang} → {target_lang}: {text}",
+    outputFormat: "Return only the translated text.",
   },
 };
 

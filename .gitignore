@@ -1,6 +1,7 @@
 node_modules/
 dist/
 compiled/
+release/
 .env
 .env.*
 world_db/

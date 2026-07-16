@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.25.4 (2026-07-16)
+
+### Translation Agent
+
+New `translation` agent for configuring translation model/provider in settings:
+
+- **Agent ID:** `translation`
+- **Purpose:** Translates game narrative between languages
+- **Configurable:** Model and provider assignment via Agents settings UI
+- **Prompt:** English-only for maximum speed, preserves literary style and tone
+
+**Changes:**
+- Added `translation` agent to `DEFAULT_AGENTS` in `agent-config.ts`
+- Added translation prompts (EN) for the agent
+- Added agent names/descriptions in all 7 languages to `agents.html`
+- Translation service uses `translation` agentId for model resolution
+
+---
+
 ## v0.25.3 (2026-07-14)
 
 ### Literary Compiler (Phases 0-6)
