@@ -2,10 +2,29 @@ import { Database } from 'bun:sqlite';
 import { BibleVerse, BiblePattern, BibleParseResult, BibleSearchOptions, BiblePatternFilter, BOOK_ABBREVIATIONS, BibleJSONSchema } from './types';
 import { getLogger } from '@/utils/logger';
 import { join } from 'node:path';
-import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, createReadStream } from 'node:fs';
+import { createGunzip } from 'node:zlib';
+import { pipeline } from 'node:stream/promises';
 import type { CrossRefJSONSchema, CrossRef, CrossRefSearchOptions } from './types';
 
 const logger = getLogger('BibleParser');
+
+// ─── Gzip Support ─────────────────────────────────────────────────────────
+
+async function readJsonFile(filePath: string): Promise<string> {
+  if (filePath.endsWith('.gz')) {
+    const chunks: Buffer[] = [];
+    const readStream = createReadStream(filePath);
+    const gunzip = createGunzip();
+    await pipeline(readStream, gunzip, async function* (source) {
+      for await (const chunk of source) {
+        chunks.push(chunk);
+      }
+    });
+    return Buffer.concat(chunks).toString('utf-8');
+  }
+  return readFileSync(filePath, 'utf-8');
+}
 
 // ─── Book Name Normalization ────────────────────────────────────────────────
 
@@ -562,7 +581,7 @@ export class BibleParser {
    * Uses INSERT OR REPLACE — later loads overwrite earlier ones for same verse ID.
    */
   async loadFromJSON(filePath: string, source?: string): Promise<{ verseCount: number; bookCount: number }> {
-    const raw = readFileSync(filePath, 'utf-8');
+    const raw = await readJsonFile(filePath);
     const data: BibleJSONSchema = JSON.parse(raw);
 
     let verseCount = 0;
@@ -598,11 +617,11 @@ export class BibleParser {
    * Load cross-references from scrollmapper JSON shards.
    */
   async loadCrossRefs(shardsDir: string): Promise<{ refCount: number }> {
-    const files = readdirSync(shardsDir).filter(f => f.startsWith('cross_references_') && f.endsWith('.json'));
+    const files = readdirSync(shardsDir).filter(f => f.startsWith('cross_references_') && (f.endsWith('.json') || f.endsWith('.json.gz')));
     let refCount = 0;
 
     for (const file of files) {
-      const raw = readFileSync(join(shardsDir, file), 'utf-8');
+      const raw = await readJsonFile(join(shardsDir, file));
       const data: CrossRefJSONSchema = JSON.parse(raw);
 
       for (const ref of data.cross_references) {
