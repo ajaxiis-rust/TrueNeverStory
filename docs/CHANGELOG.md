@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.25.5 (2026-07-16)
+## v0.25.7 (2026-07-16)
 
 ### Translation Models
 
