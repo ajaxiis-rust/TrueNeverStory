@@ -17,6 +17,7 @@ New comprehensive hardware requirements guide (`docs/HARDWARE.md`):
 - Model recommendations by task (intent, translation, narrative, embeddings)
 - Configuration examples for different setups
 - Performance tips and language support matrix
+- Translations to 7 languages (ru, de, fr, es, ja, zh)
 
 ---
 
