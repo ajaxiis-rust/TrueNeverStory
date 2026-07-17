@@ -529,6 +529,57 @@ cross_compile_selected() {
 }
 
 # ─────────────────────────────────────────────────────────────
+#  Assemble release directory from dist/ + project files
+# ─────────────────────────────────────────────────────────────
+
+assemble_release() {
+    local target="${1:-}"
+    resolve_target "$target"
+    target="$COMPILE_TARGET"
+
+    local release_dir="release/tns-${target}"
+    log "Assembling release → ${release_dir}/"
+
+    mkdir -p "${release_dir}/worlds/default"
+
+    # Binary
+    cp "${COMPILE_DIR}/tns-server" "${release_dir}/"
+    chmod +x "${release_dir}/tns-server"
+
+    # Database archive
+    if [[ -f "${COMPILE_DIR}/databases.tar.gz" ]]; then
+        cp "${COMPILE_DIR}/databases.tar.gz" "${release_dir}/"
+    fi
+
+    # Launcher
+    cp startgame.sh "${release_dir}/"
+    chmod +x "${release_dir}/startgame.sh"
+
+    # Environment template
+    cp .env.example "${release_dir}/"
+
+    # Static files
+    cp -r public "${release_dir}/"
+
+    # Documentation
+    mkdir -p "${release_dir}/docs"
+    cp docs/AGENTS.md docs/AGENTS.ru.md docs/AGENTS.de.md docs/AGENTS.es.md \
+       docs/AGENTS.fr.md docs/AGENTS.ja.md docs/AGENTS.zh.md \
+       docs/API.md docs/API.ru.md \
+       docs/ARCHITECTURE.md docs/CHANGELOG.md docs/COMPILE.md \
+       "${release_dir}/docs/" 2>/dev/null || true
+
+    # READMEs
+    cp README.md README.ru.md README.de.md README.es.md \
+       README.fr.md README.ja.md README.zh.md \
+       "${release_dir}/"
+
+    local size
+    size=$(du -sh "${release_dir}" | cut -f1)
+    info "Release assembled → ${release_dir}/ (${size})"
+}
+
+# ─────────────────────────────────────────────────────────────
 #  Download Bun binaries for cross-compilation
 # ─────────────────────────────────────────────────────────────
 
@@ -683,6 +734,7 @@ usage() {
     echo "  compile [target] Compile for specific target"
     echo "  select           Interactive target selection + compile"
     echo "  cross            Compile for ALL platforms"
+    echo "  release [target] Assemble release directory from dist/"
     echo "  download-bun     Download Bun binaries for cross-compilation"
     echo ""
     echo "Info:"
@@ -721,7 +773,7 @@ main() {
     shift 2>/dev/null || true
 
     case "$cmd" in
-        dev|start|build|test|setup|compile|select|cross|download-bun|info|help)
+        dev|start|build|test|setup|compile|select|cross|release|download-bun|info|help)
             ;;
         *)
             err "Unknown command: $cmd"
@@ -772,6 +824,14 @@ main() {
             ;;
         cross)
             cross_compile_selected "${ALL_TARGETS[@]}"
+            ;;
+        release)
+            pack_databases
+            if (( $# > 0 )); then
+                assemble_release "$1"
+            else
+                assemble_release ""
+            fi
             ;;
         download-bun)
             download_bun_targets
