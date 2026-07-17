@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.26.0 (2026-07-17)
+
+### Bug Fixes
+
+- **Fixed `loadRateLimitConfig()` reading wrong config file** — was reading `conf/providers.json` with non-existent `data.rateLimit` key, always falling back to defaults. Now correctly reads `conf/provider-rate-limits.json` and sums per-provider RPM values.
+
+### New Agents Wired into Pipeline
+
+5 previously orphaned specialist agents are now instantiated in `RoleplayEngine` and available for use:
+
+| Agent | Purpose |
+|-------|---------|
+| **CartographerAgent** | Generates location/geography information — distances, paths, terrain, points of interest |
+| **HistorianAgent** | Recalls and narrates world history, chronology, and past events |
+| **LorekeeperAgent** | Maintains world facts, magic system rules, race information, established canon |
+| **MerchantAgent** | Handles NPC merchant trading, pricing, inventory management |
+| **QuestGiverAgent** | Generates quests based on current world state, player level, and story threads |
+
+### Dialogue System
+
+New `DialogueManager` + `DialogueContext` wired into the engine (when `npcRuntime` is available):
+
+- Session-based NPC conversations (greeting → active → farewell)
+- Relationship-aware greetings (friend/neutral/enemy)
+- Feudal hierarchy awareness (lord/vassal greetings)
+- Topic-based dialogue choices (personal, faction, quest, trade, combat, etc.)
+- Dialogue memory recording for NPC long-term memory
+
+### Code Cleanup
+
+- **Removed dead `BaseAgent` v1 class** from `agent-interface.ts` — superseded by `BaseAgentV2`, never extended by any agent. Kept only type interfaces (`Agent`, `AgentConfig`, `AgentContext`, `AgentResponse`) used by `AgentRegistry`.
+- **Removed dead `AGENT_CONFIGS` constant and `AgentId` type** — never imported anywhere.
+- **Added `GraphValidator` to `intelligence/index.ts` barrel export** — was missing from the barrel, imported via direct path.
+
+---
+
 ## v0.25.7 (2026-07-16)
 
 ### Translation Models

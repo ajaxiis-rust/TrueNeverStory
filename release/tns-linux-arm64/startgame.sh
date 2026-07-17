@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # ═══════════════════════════════════════════════════════════════
-#  TrueNeverStory — Auto-detecting Game Server Launcher
-#  Detects hardware, finds LLM providers, configures itself.
+#  TrueNeverStory — Smart Auto-detecting Game Server Launcher
+#  Detects providers, adapts config, handles fallbacks.
 # ═══════════════════════════════════════════════════════════════
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,8 +20,60 @@ NC='\033[0m'
 
 PID_FILE="$SCRIPT_DIR/.server.pid"
 ARCH=$(uname -m | sed 's/x86_64/linux-x64/;s/aarch64/linux-arm64/')
+OS_TYPE=$(uname -s)
 
-# ── Auto-create .env from example if missing ─────────────────
+# macOS arch mapping
+if [[ "$OS_TYPE" == "Darwin" ]]; then
+    ARCH=$(uname -m | sed 's/x86_64/macos-x64/;s/arm64/macos-arm64/')
+fi
+
+# ── Cross-platform helpers ─────────────────────────────────────
+port_in_use() {
+    local port="$1"
+    if command -v ss &>/dev/null; then
+        ss -tlnp 2>/dev/null | grep -q ":${port} "
+    elif command -v lsof &>/dev/null; then
+        lsof -i :"$port" -P -n 2>/dev/null | grep -q LISTEN
+    elif command -v netstat &>/dev/null; then
+        netstat -an 2>/dev/null | grep -q ":${port}.*LISTEN"
+    else
+        false
+    fi
+}
+
+file_size() {
+    local path="$1"
+    if stat -c%s "$path" 2>/dev/null; then
+        return
+    fi
+    if stat -f%z "$path" 2>/dev/null; then
+        return
+    fi
+    echo 0
+}
+
+# ── Parse flags ────────────────────────────────────────────────
+MODE_FLAGS="remote"
+for arg in "$@"; do
+    case "$arg" in
+        --local|-l)   MODE_FLAGS="local" ;;
+        --remote|-r)  MODE_FLAGS="remote" ;;
+        --help|-h)
+            echo "Usage: bash startgame.sh [--local|--remote]"
+            echo "  --local, -l   CORS=localhost only (safe for dev)"
+            echo "  --remote, -r  CORS=* (default, allows external access)"
+            exit 0
+            ;;
+    esac
+done
+
+if [[ "$MODE_FLAGS" == "local" ]]; then
+    export TNS_CORS_ORIGIN="http://localhost:8000"
+else
+    export TNS_CORS_ORIGIN="*"
+fi
+
+# Auto-create .env from example if missing
 if [[ ! -f ".env" && -f ".env.example" ]]; then
     cp .env.example .env
     echo -e "${CYAN}Created .env from .env.example${NC}"
@@ -32,24 +84,26 @@ fi
 # ═══════════════════════════════════════════════════════════════
 
 detect_hardware() {
-    # CPU cores
     if command -v nproc &>/dev/null; then
         CPU_CORES=$(nproc)
     elif [[ -f /proc/cpuinfo ]]; then
         CPU_CORES=$(grep -c ^processor /proc/cpuinfo)
+    elif command -v sysctl &>/dev/null && sysctl -n hw.ncpu &>/dev/null 2>&1; then
+        CPU_CORES=$(sysctl -n hw.ncpu)
     else
         CPU_CORES=2
     fi
 
-    # RAM in GB
     if [[ -f /proc/meminfo ]]; then
         RAM_KB=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
         RAM_GB=$(( RAM_KB / 1024 / 1024 ))
+    elif command -v sysctl &>/dev/null && sysctl -n hw.memsize &>/dev/null 2>&1; then
+        RAM_BYTES=$(sysctl -n hw.memsize)
+        RAM_GB=$(( RAM_BYTES / 1024 / 1024 / 1024 ))
     else
         RAM_GB=8
     fi
 
-    # GPU detection
     GPU_TYPE="none"
     GPU_NAME=""
     GPU_VRAM_MB=0
@@ -58,6 +112,10 @@ detect_hardware() {
         GPU_TYPE="nvidia"
         GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 || echo "NVIDIA GPU")
         GPU_VRAM_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 || echo 0)
+    elif [[ "$OS_TYPE" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
+        GPU_TYPE="apple"
+        GPU_NAME="Apple Silicon (Metal)"
+        GPU_VRAM_MB=0
     elif command -v rocm-smi &>/dev/null; then
         GPU_TYPE="amd"
         GPU_NAME="AMD GPU"
@@ -66,7 +124,6 @@ detect_hardware() {
         GPU_NAME="Intel GPU"
     fi
 
-    # Optimal settings based on hardware
     if [[ "$CPU_CORES" -le 4 ]]; then
         LLM_THREADS=$(( CPU_CORES > 2 ? CPU_CORES - 1 : 1 ))
         LLM_PARALLEL=1
@@ -78,25 +135,16 @@ detect_hardware() {
         LLM_PARALLEL=3
     fi
 
-    # Context size: scale with RAM
     if [[ "$RAM_GB" -le 4 ]]; then
         LLM_CTX=4096
-        EMBED_CTX=2048
     elif [[ "$RAM_GB" -le 8 ]]; then
         LLM_CTX=8192
-        EMBED_CTX=4096
     elif [[ "$RAM_GB" -le 16 ]]; then
         LLM_CTX=16384
-        EMBED_CTX=8192
-    elif [[ "$RAM_GB" -le 32 ]]; then
-        LLM_CTX=32768
-        EMBED_CTX=16384
     else
         LLM_CTX=32768
-        EMBED_CTX=16384
     fi
 
-    # If VRAM > 4GB, we can fit larger models — bump context
     if [[ "$GPU_VRAM_MB" -gt 8000 ]]; then
         LLM_CTX=32768
     elif [[ "$GPU_VRAM_MB" -gt 4000 ]]; then
@@ -105,20 +153,23 @@ detect_hardware() {
 }
 
 # ═══════════════════════════════════════════════════════════════
-#  §2  LLM PROVIDER DETECTION
+#  §2  PROVIDER DETECTION — discovers what's available
 # ═══════════════════════════════════════════════════════════════
 
-# Provider registry: name, url, type, model_fetch_command
-PROVIDERS=()
+BEST_PROVIDER=""
+BEST_PROVIDER_URL=""
+BEST_PROVIDER_MODEL=""
+BEST_PROVIDER_EMBED=""
+BEST_PROVIDER_NAME=""
+BEST_PROVIDER_TYPE=""
+LLAMA_BIN=""
 
-detect_ollama() {
-    if ! command -v ollama &>/dev/null; then
-        return
-    fi
-    # Check if ollama is running or can start
-    if curl -sf http://localhost:11434/api/tags &>/dev/null; then
-        local models
-        models=$(curl -sf http://localhost:11434/api/tags 2>/dev/null | python3 -c "
+detect_providers() {
+    # 1. Check Ollama
+    if command -v ollama &>/dev/null; then
+        if curl -sf http://localhost:11434/api/tags &>/dev/null 2>&1; then
+            local models
+            models=$(curl -sf http://localhost:11434/api/tags 2>/dev/null | python3 -c "
 import sys,json
 try:
     d=json.load(sys.stdin)
@@ -127,30 +178,39 @@ try:
 except: pass
 " 2>/dev/null || echo "")
 
-        local chat_model=""
-        local embed_model=""
-        # Pick best chat model (prefer larger, newer)
-        while IFS= read -r m; do
-            [[ -z "$m" ]] && continue
-            # Skip embedding-only models
-            if [[ "$m" == *embed* || "$m" == *Embed* ]]; then
-                [[ -z "$embed_model" ]] && embed_model="$m"
-                continue
-            fi
-            # Prefer latest tag
-            if [[ -z "$chat_model" || "$m" == *:latest ]]; then
-                chat_model="$m"
-            fi
-        done <<< "$models"
+            local chat_model="" embed_model=""
+            local best_size=0
+            while IFS= read -r m; do
+                [[ -z "$m" ]] && continue
+                if [[ "$m" == *embed* || "$m" == *Embed* ]]; then
+                    [[ -z "$embed_model" ]] && embed_model="$m"
+                    continue
+                fi
+                # Prefer :latest tag
+                if [[ "$m" == *:latest ]] && [[ -z "$chat_model" ]]; then
+                    chat_model="$m"
+                elif [[ -z "$chat_model" ]]; then
+                    chat_model="$m"
+                fi
+            done <<< "$models"
 
-        PROVIDERS+=("ollama|http://localhost:11434/v1|openai|${chat_model:-}|${embed_model:-}|Ollama")
+            if [[ -n "$chat_model" ]]; then
+                BEST_PROVIDER="ollama"
+                BEST_PROVIDER_URL="http://localhost:11434/v1"
+                BEST_PROVIDER_MODEL="$chat_model"
+                BEST_PROVIDER_EMBED="$embed_model"
+                BEST_PROVIDER_NAME="Ollama"
+                BEST_PROVIDER_TYPE="openai"
+                echo -e "${GREEN}  Found Ollama with model: ${chat_model}${NC}"
+            fi
+        fi
     fi
-}
 
-detect_lmstudio() {
-    if curl -sf http://localhost:1234/v1/models &>/dev/null; then
-        local model=""
-        model=$(curl -sf http://localhost:1234/v1/models 2>/dev/null | python3 -c "
+    # 2. Check LM Studio (port 1234)
+    if [[ -z "$BEST_PROVIDER" ]]; then
+        if curl -sf http://localhost:1234/v1/models &>/dev/null 2>&1; then
+            local model=""
+            model=$(curl -sf http://localhost:1234/v1/models 2>/dev/null | python3 -c "
 import sys,json
 try:
     d=json.load(sys.stdin)
@@ -158,70 +218,130 @@ try:
     if models: print(models[0].get('id',''))
 except: pass
 " 2>/dev/null || echo "")
-        PROVIDERS+=("lmstudio|http://localhost:1234/v1|openai|${model:-}|${model:-}|LM Studio")
+            if [[ -n "$model" ]]; then
+                BEST_PROVIDER="lmstudio"
+                BEST_PROVIDER_URL="http://localhost:1234/v1"
+                BEST_PROVIDER_MODEL="$model"
+                BEST_PROVIDER_EMBED="$model"
+                BEST_PROVIDER_NAME="LM Studio"
+                BEST_PROVIDER_TYPE="openai"
+                echo -e "${GREEN}  Found LM Studio with model: ${model}${NC}"
+            fi
+        fi
     fi
-}
 
-detect_llamacpp() {
-    local llama_bin=""
+    # 3. Check vLLM (port 8000 — but avoid collision with our own server)
+    if [[ -z "$BEST_PROVIDER" ]]; then
+        if curl -sf http://localhost:8080/v1/models &>/dev/null 2>&1; then
+            local model=""
+            model=$(curl -sf http://localhost:8080/v1/models 2>/dev/null | python3 -c "
+import sys,json
+try:
+    d=json.load(sys.stdin)
+    models=d.get('data',[])
+    if models: print(models[0].get('id',''))
+except: pass
+" 2>/dev/null || echo "")
+            if [[ -n "$model" ]]; then
+                BEST_PROVIDER="vllm"
+                BEST_PROVIDER_URL="http://localhost:8080/v1"
+                BEST_PROVIDER_MODEL="$model"
+                BEST_PROVIDER_NAME="vLLM"
+                BEST_PROVIDER_TYPE="openai"
+                echo -e "${GREEN}  Found vLLM with model: ${model}${NC}"
+            fi
+        fi
+    fi
+
+    # 4. Check OpenAI key
+    if [[ -z "$BEST_PROVIDER" && -n "${OPENAI_API_KEY:-}" ]]; then
+        BEST_PROVIDER="openai"
+        BEST_PROVIDER_URL="https://api.openai.com/v1"
+        BEST_PROVIDER_MODEL="gpt-4o"
+        BEST_PROVIDER_NAME="OpenAI"
+        BEST_PROVIDER_TYPE="openai"
+        echo -e "${GREEN}  Found OpenAI API key${NC}"
+    fi
+
+    # 5. Check llama.cpp binary + local GGUF models
     for candidate in "dist/$ARCH/llama-server" "./llama-server"; do
         if [[ -x "$candidate" ]]; then
-            llama_bin="$candidate"
+            LLAMA_BIN="$candidate"
             break
         fi
     done
-    if [[ -z "$llama_bin" ]]; then
-        return
-    fi
-    # Find model
-    local model_path=""
-    for dir in "./local-models"; do
-        [[ -d "$dir" ]] || continue
-        model_path=$(find "$dir" -maxdepth 1 -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+
+    if [[ -z "$BEST_PROVIDER" && -n "$LLAMA_BIN" ]]; then
+        local model_path=""
+        if [[ -d "./local-models" ]]; then
+            # Find best chat model (not embedding-only), prefer larger
+            local best_file="" best_bytes=0
+            while IFS= read -r -d '' f; do
+                local fname
+                fname=$(basename "$f")
+                # Skip embedding-only models
+                if [[ "$fname" == *[Ee]mbed* || "$fname" == *BGE* || "$fname" == *bge* ]]; then
+                    continue
+                fi
+                local fsize
+                fsize=$(file_size "$f")
+                if [[ "$fsize" -gt "$best_bytes" ]]; then
+                    best_bytes="$fsize"
+                    best_file="$f"
+                fi
+            done < <(find ./local-models -maxdepth 1 -name "*.gguf" -type f -print0 2>/dev/null)
+
+            # Fallback: any GGUF if no chat model found
+            if [[ -z "$best_file" ]]; then
+                best_file=$(find ./local-models -maxdepth 1 -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+            fi
+
+            model_path="$best_file"
+        fi
+
         if [[ -n "$model_path" ]]; then
-            break
+            BEST_PROVIDER="llamacpp"
+            BEST_PROVIDER_URL="http://127.0.0.1:5001/v1"
+            BEST_PROVIDER_MODEL="$(basename "$model_path")"
+            BEST_PROVIDER_NAME="llama.cpp ($ARCH)"
+            BEST_PROVIDER_TYPE="llamacpp"
+            echo -e "${GREEN}  Found llama.cpp with model: $(basename "$model_path")${NC}"
         fi
-    done
-    if [[ -n "$model_path" ]]; then
-        PROVIDERS+=("llamacpp||local|$(basename "$model_path")||llama.cpp ($ARCH)")
     fi
-}
-
-detect_vllm() {
-    if curl -sf http://localhost:8000/v1/models &>/dev/null; then
-        local model=""
-        model=$(curl -sf http://localhost:8000/v1/models 2>/dev/null | python3 -c "
-import sys,json
-try:
-    d=json.load(sys.stdin)
-    models=d.get('data',[])
-    if models: print(models[0].get('id',''))
-except: pass
-" 2>/dev/null || echo "")
-        PROVIDERS+=("vllm|http://localhost:8000/v1|openai|${model:-}||vLLM")
-    fi
-}
-
-detect_openai() {
-    local key="${OPENAI_API_KEY:-}"
-    if [[ -n "$key" ]]; then
-        PROVIDERS+=("openai|https://api.openai.com/v1|openai|gpt-4o||OpenAI")
-    fi
-}
-
-detect_providers() {
-    detect_ollama
-    detect_lmstudio
-    detect_vllm
-    detect_openai
-    detect_llamacpp
 }
 
 # ═══════════════════════════════════════════════════════════════
-#  §3  AUTO-CONFIGURE .env
+#  §3  MODEL CONTEXT ADAPTATION
 # ═══════════════════════════════════════════════════════════════
 
-# Read existing .env values (if any) — user overrides take priority
+adapt_ctx_for_model() {
+    local model_name="${1,,}"  # lowercase
+    local max_ctx="$LLM_CTX"
+
+    # Known models with limited context windows
+    if [[ "$model_name" == *bge* || "$model_name" == *embed* || "$model_name" == *e5* || "$model_name" == *minilm* ]]; then
+        max_ctx=8192
+    elif [[ "$model_name" == *phi*mini* || "$model_name" == *tiny* || "$model_name" == *phi-2* ]]; then
+        max_ctx=4096
+    elif [[ "$model_name" == *1b* || "$model_name" == *smollm* || "$model_name" == *0.5b* || "$model_name" == *0.3b* ]]; then
+        max_ctx=8192
+    elif [[ "$model_name" == *3b* || "$model_name" == *2b* ]]; then
+        max_ctx=8192
+    fi
+
+    # Never exceed half of RAM (for KV cache + overhead)
+    local ram_limit=$(( RAM_GB * 1024 / 2 ))
+    if [[ "$max_ctx" -gt "$ram_limit" ]]; then
+        max_ctx="$ram_limit"
+    fi
+
+    echo "$max_ctx"
+}
+
+# ═══════════════════════════════════════════════════════════════
+#  §4  AUTO-CONFIGURE .env
+# ═══════════════════════════════════════════════════════════════
+
 env_get() {
     local key="$1" default="${2:-}"
     local val=""
@@ -238,76 +358,65 @@ write_env_key() {
     local key="$1" value="$2"
     local file=".env"
     if [[ -f "$file" ]] && grep -q "^${key}=" "$file" 2>/dev/null; then
-        # Update existing
         sed -i "s|^${key}=.*|${key}=${value}|" "$file"
     else
         echo "${key}=${value}" >> "$file"
     fi
 }
 
-auto_configure() {
-    # Only auto-configure if .env is empty/missing or has defaults
-    local existing_url
-    existing_url=$(env_get "WORLD_LLM_BASE_URL")
-
-    # If already configured with a non-default value, respect user choice
-    if [[ -n "$existing_url" && "$existing_url" != "http://localhost:11434/v1" ]]; then
-        echo -e "${DIM}  LLM already configured: ${existing_url}${NC}"
+auto_configure_env() {
+    # Skip if user explicitly disabled auto-config
+    if [[ "${TNS_NO_AUTOCONFIG:-0}" == "1" ]]; then
+        echo -e "${DIM}  Auto-configure disabled (TNS_NO_AUTOCONFIG=1)${NC}"
         return
     fi
 
-    # Pick best provider: ollama > lmstudio > vllm > llamacpp > openai
-    local best_type="" best_url="" best_model="" best_embed="" best_name=""
-    for entry in "${PROVIDERS[@]}"; do
-        IFS='|' read -r ptype purl plink pmodel pembed pname <<< "$entry"
-        if [[ -n "$pmodel" || "$plink" == "local" ]]; then
-            best_type="$ptype"
-            best_url="$purl"
-            best_model="$pmodel"
-            best_embed="$pembed"
-            best_name="$pname"
-            break
-        fi
-    done
-
-    if [[ -z "$best_type" ]]; then
+    if [[ -z "$BEST_PROVIDER" ]]; then
         echo -e "${YELLOW}  No LLM provider detected — configure manually in Settings${NC}"
         return
     fi
 
-    echo -e "${GREEN}  Auto-configuring: ${best_name}${NC}"
+    echo -e "${CYAN}  Configuring for: ${BEST_PROVIDER_NAME}${NC}"
 
-    case "$best_type" in
+    case "$BEST_PROVIDER" in
         ollama)
-            write_env_key "WORLD_LLM_BASE_URL" "http://localhost:11434/v1"
+            write_env_key "WORLD_LLM_BASE_URL" "$BEST_PROVIDER_URL"
             write_env_key "WORLD_LLM_API_KEY" "ollama"
-            write_env_key "WORLD_LLM_MODEL" "$best_model"
-            if [[ -n "$best_embed" ]]; then
-                write_env_key "WORLD_EMBEDDING_MODEL" "$best_embed"
+            write_env_key "WORLD_LLM_MODEL" "$BEST_PROVIDER_MODEL"
+            if [[ -n "$BEST_PROVIDER_EMBED" ]]; then
+                write_env_key "WORLD_EMBEDDING_MODEL" "$BEST_PROVIDER_EMBED"
                 write_env_key "WORLD_EMBEDDING_BASE_URL" "http://localhost:11434/v1"
                 write_env_key "WORLD_EMBEDDING_API_KEY" "ollama"
+            else
+                write_env_key "WORLD_EMBEDDING_MODEL" ""
+                write_env_key "WORLD_EMBEDDING_BASE_URL" ""
             fi
             ;;
         lmstudio)
-            write_env_key "WORLD_LLM_BASE_URL" "http://localhost:1234/v1"
+            write_env_key "WORLD_LLM_BASE_URL" "$BEST_PROVIDER_URL"
             write_env_key "WORLD_LLM_API_KEY" "lm-studio"
-            write_env_key "WORLD_LLM_MODEL" "$best_model"
+            write_env_key "WORLD_LLM_MODEL" "$BEST_PROVIDER_MODEL"
+            write_env_key "WORLD_EMBEDDING_MODEL" ""
+            write_env_key "WORLD_EMBEDDING_BASE_URL" ""
             ;;
         vllm)
-            write_env_key "WORLD_LLM_BASE_URL" "http://localhost:8000/v1"
+            write_env_key "WORLD_LLM_BASE_URL" "$BEST_PROVIDER_URL"
             write_env_key "WORLD_LLM_API_KEY" "vllm"
-            write_env_key "WORLD_LLM_MODEL" "$best_model"
+            write_env_key "WORLD_LLM_MODEL" "$BEST_PROVIDER_MODEL"
+            write_env_key "WORLD_EMBEDDING_MODEL" ""
+            write_env_key "WORLD_EMBEDDING_BASE_URL" ""
             ;;
         openai)
             write_env_key "WORLD_LLM_BASE_URL" "https://api.openai.com/v1"
             write_env_key "WORLD_LLM_API_KEY" "${OPENAI_API_KEY:-sk-...}"
-            write_env_key "WORLD_LLM_MODEL" "$best_model"
+            write_env_key "WORLD_LLM_MODEL" "$BEST_PROVIDER_MODEL"
+            write_env_key "WORLD_EMBEDDING_MODEL" "text-embedding-3-small"
+            write_env_key "WORLD_EMBEDDING_BASE_URL" "https://api.openai.com/v1"
             ;;
         llamacpp)
-            # llama-server is started by this script below
             write_env_key "WORLD_LLM_BASE_URL" "http://127.0.0.1:${LLM_PORT}/v1"
             write_env_key "WORLD_LLM_API_KEY" "llamacpp"
-            write_env_key "WORLD_LLM_MODEL" "$best_model"
+            write_env_key "WORLD_LLM_MODEL" "$BEST_PROVIDER_MODEL"
             ;;
     esac
 
@@ -315,7 +424,6 @@ auto_configure() {
     local pw
     pw=$(env_get "AUTH_PASSWORD")
     if [[ -z "$pw" ]]; then
-        # Generate a random password
         local new_pw
         new_pw=$(head -c 8 /dev/urandom | base64 | tr -d '/+=' | head -c 8)
         write_env_key "AUTH_PASSWORD" "$new_pw"
@@ -325,10 +433,9 @@ auto_configure() {
 }
 
 # ═══════════════════════════════════════════════════════════════
-#  §4  BINARY & STALE PROCESS CLEANUP
+#  §5  BINARY & STALE PROCESS CLEANUP
 # ═══════════════════════════════════════════════════════════════
 
-# Find binary: check dist/<arch>/ first, then root directory
 BIN=""
 for candidate in "dist/$ARCH/tns-server" "./tns-server"; do
     if [[ -x "$candidate" ]]; then
@@ -355,7 +462,7 @@ if [[ -f "$PID_FILE" ]]; then
 fi
 
 # ═══════════════════════════════════════════════════════════════
-#  §5  NETWORK & HOST
+#  §6  NETWORK & HOST
 # ═══════════════════════════════════════════════════════════════
 
 HOST=$(env_get "WORLD_SERVER_HOST" "0.0.0.0")
@@ -365,52 +472,31 @@ EMBED_PORT=5002
 
 EXT_IP="$HOST"
 if [[ "$HOST" == "0.0.0.0" ]]; then
-    EXT_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
-fi
-
-# ── Read model from conf/settings.json (UI) or .env ────────
-SETTINGS_MODEL=""
-if [[ -f "conf/settings.json" ]]; then
-    SETTINGS_MODEL=$(grep -oP '"llmModel"\s*:\s*"\K[^"]+' conf/settings.json 2>/dev/null || true)
-fi
-ENV_MODEL=$(env_get "WORLD_LLM_MODEL" "")
-MODEL="${SETTINGS_MODEL:-${ENV_MODEL:-gemma-3-4b-it.Q4_K_M}}"
-
-# ── Scan local-models/ for GGUF files ─────────────────────
-MODEL_PATH=""
-if [[ -d "./local-models" ]]; then
-    while IFS= read -r -d '' f; do
-        MODEL_PATH="$f"
-        break
-    done < <(find ./local-models -maxdepth 1 -iname "${MODEL}.gguf" -type f -print0 2>/dev/null)
-    if [[ -z "$MODEL_PATH" ]]; then
-        while IFS= read -r -d '' f; do
-            MODEL_PATH="$f"
-            break
-        done < <(find ./local-models -maxdepth 1 -iname "*${MODEL}*" -name "*.gguf" -type f -print0 2>/dev/null)
-    fi
-    if [[ -z "$MODEL_PATH" ]]; then
-        while IFS= read -r -d '' f; do
-            MODEL_PATH="$f"
-            break
-        done < <(find ./local-models -maxdepth 1 -name "*.gguf" -type f -print0 2>/dev/null)
+    if [[ "$OS_TYPE" == "Darwin" ]]; then
+        EXT_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "localhost")
+    else
+        EXT_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
     fi
 fi
 
 # ═══════════════════════════════════════════════════════════════
-#  §6  DETECT HARDWARE & PROVIDERS
+#  §7  DETECT & CONFIGURE
 # ═══════════════════════════════════════════════════════════════
 
 detect_hardware
 detect_providers
 
-# If no conf/llm-config.json exists, generate one
+# Adapt context size for the detected model
+LLM_CTX=$(adapt_ctx_for_model "$BEST_PROVIDER_MODEL")
+EMBED_CTX=$(adapt_ctx_for_model "BGE M3")
+
+# Write llm-config.json
 LLM_CONFIG="conf/llm-config.json"
-if [[ ! -f "$LLM_CONFIG" ]]; then
-    mkdir -p conf
-    cat > "$LLM_CONFIG" <<EOCFG
+mkdir -p conf
+cat > "$LLM_CONFIG" <<EOCFG
 {
   "llmPort": ${LLM_PORT},
+  "llmModel": "${BEST_PROVIDER_MODEL}",
   "llmThreads": ${LLM_THREADS},
   "llmParallel": ${LLM_PARALLEL},
   "llmCtxSize": ${LLM_CTX},
@@ -420,13 +506,9 @@ if [[ ! -f "$LLM_CONFIG" ]]; then
   "embedCtxSize": ${EMBED_CTX}
 }
 EOCFG
-fi
 
-# ═══════════════════════════════════════════════════════════════
-#  §7  AUTO-CONFIGURE LLM PROVIDER
-# ═══════════════════════════════════════════════════════════════
-
-auto_configure
+# Auto-configure .env with detected provider
+auto_configure_env
 
 # ═══════════════════════════════════════════════════════════════
 #  §8  BANNER
@@ -445,42 +527,29 @@ if [[ "$GPU_TYPE" != "none" ]]; then
     echo -e "${CYAN}║  GPU:      ${GPU_NAME} (${GPU_VRAM_MB}MB VRAM)${NC}"
 fi
 echo -e "${CYAN}║  Arch:     ${ARCH}${NC}"
+echo -e "${CYAN}║  CORS:     ${MODE_FLAGS}${NC}"
 echo ""
 
-# Show detected providers
-if [[ ${#PROVIDERS[@]} -gt 0 ]]; then
-    echo -e "${BOLD}  Detected LLM Providers:${NC}"
-    local_idx=1
-    for entry in "${PROVIDERS[@]}"; do
-        IFS='|' read -r ptype purl plink pmodel pembed pname <<< "$entry"
-        local_status=""
-        if [[ -n "$pmodel" || "$plink" == "local" ]]; then
-            local_status="${GREEN}active${NC}"
-        else
-            local_status="${YELLOW}no model${NC}"
-        fi
-        echo -e "  ${DIM}${local_idx}.${NC} ${BOLD}${pname}${NC} — ${local_status}"
-        if [[ -n "$pmodel" ]]; then
-            echo -e "     Model: ${DIM}${pmodel}${NC}"
-        fi
-        if [[ -n "$pembed" ]]; then
-            echo -e "     Embed: ${DIM}${pembed}${NC}"
-        fi
-        (( local_idx++ ))
-    done
+if [[ -n "$BEST_PROVIDER" ]]; then
+    echo -e "${BOLD}  LLM Provider:${NC}"
+    echo -e "  ${GREEN}● ${BEST_PROVIDER_NAME}${NC}"
+    echo -e "    Model:   ${DIM}${BEST_PROVIDER_MODEL}${NC}"
+    if [[ -n "$BEST_PROVIDER_EMBED" ]]; then
+        echo -e "    Embed:   ${DIM}${BEST_PROVIDER_EMBED}${NC}"
+    fi
+    if [[ "$BEST_PROVIDER" == "llamacpp" ]]; then
+        echo -e "    Context: ${DIM}${LLM_CTX} tokens${NC}"
+        echo -e "    Binary:  ${DIM}${LLAMA_BIN}${NC}"
+    fi
     echo ""
 else
     echo -e "${YELLOW}  No LLM providers detected${NC}"
-    echo -e "${CYAN}  Install Ollama: curl -fsSL https://ollama.com/install.sh | sh${NC}"
-    echo -e "${CYAN}  Then: ollama pull gemma3:latest${NC}"
+    echo -e "${CYAN}  Options:${NC}"
+    echo -e "${CYAN}    Ollama:    curl -fsSL https://ollama.com/install.sh | sh${NC}"
+    echo -e "${CYAN}    LM Studio: https://lmstudio.ai${NC}"
+    echo -e "${CYAN}    OpenAI:    export OPENAI_API_KEY=sk-...${NC}"
+    echo -e "${CYAN}    Or place .gguf files in local-models/${NC}"
     echo ""
-fi
-
-# Show model file
-if [[ -n "$MODEL_PATH" ]]; then
-    echo -e "${CYAN}  Local model: $(basename "$MODEL_PATH")${NC}"
-else
-    echo -e "${DIM}  No local GGUF model found in local-models/${NC}"
 fi
 
 echo -e "${CYAN}  Ctrl+C to stop${NC}"
@@ -530,69 +599,79 @@ trap cleanup SIGINT SIGTERM EXIT
 PIDS=()
 
 # ═══════════════════════════════════════════════════════════════
-#  §10  START LLAMA-SERVER (if bundled, and no external provider)
+#  §10  START LLAMA-SERVER (only if llamacpp is the best provider)
 # ═══════════════════════════════════════════════════════════════
 
-LLAMA_BIN=""
-for candidate in "dist/$ARCH/llama-server" "./llama-server"; do
-    if [[ -x "$candidate" ]]; then
-        LLAMA_BIN="$candidate"
-        break
-    fi
-done
-
-# Check if an external provider is already running on the LLM port
-external_running=false
-if ss -tlnp 2>/dev/null | grep -q ":${LLM_PORT} " 2>/dev/null; then
-    external_running=true
-fi
-if curl -sf http://localhost:11434/api/tags &>/dev/null 2>&1; then
-    external_running=true
-fi
-if curl -sf http://localhost:1234/v1/models &>/dev/null 2>&1; then
-    external_running=true
-fi
-
-if [[ "$external_running" == false && -n "$LLAMA_BIN" && -n "$MODEL_PATH" ]]; then
-    echo -e "${CYAN}Starting llama-server on port ${LLM_PORT}...${NC}"
-    "$LLAMA_BIN" \
-        --model "$MODEL_PATH" \
-        --host 127.0.0.1 \
-        --port "$LLM_PORT" \
-        --ctx-size "$LLM_CTX" \
-        --threads "$LLM_THREADS" \
-        --parallel "$LLM_PARALLEL" &
-    PIDS+=($!)
-    sleep 3
-    if ! kill -0 "${PIDS[-1]}" 2>/dev/null; then
-        echo -e "${RED}llama-server failed to start${NC}"
-        unset 'PIDS[-1]'
-    fi
-elif [[ "$external_running" == false ]]; then
-    echo -e "${DIM}No local LLM available — configure one in Settings${NC}"
-fi
-
-# ═══════════════════════════════════════════════════════════════
-#  §11  START EMBEDDING SERVER (llama.cpp only, if available)
-# ═══════════════════════════════════════════════════════════════
-
-EMBED_MODEL_CFG="BGE M3"
-if [[ -f "$LLM_CONFIG" ]] && command -v jq &>/dev/null; then
-    EMBED_MODEL_CFG=$(jq -r '.embedModel // "BGE M3"' "$LLM_CONFIG")
-fi
-
-# Only start embedding if no external embedding is configured
-EMBED_URL=$(env_get "WORLD_EMBEDDING_BASE_URL" "")
-if [[ -z "$EMBED_URL" && -n "$EMBED_PORT" ]]; then
-    if ! ss -tlnp 2>/dev/null | grep -q ":${EMBED_PORT} " 2>/dev/null; then
-        EMBED_PATH=""
+if [[ "$BEST_PROVIDER" == "llamacpp" && -n "$LLAMA_BIN" ]]; then
+    # Check port not already in use
+    if port_in_use "$LLM_PORT"; then
+        echo -e "${DIM}Port ${LLM_PORT} already in use, skipping llama-server start${NC}"
+    else
+        local_model_path=""
         if [[ -d "./local-models" ]]; then
-            EMBED_PATH=$(find ./local-models -iname "*${EMBED_MODEL_CFG}*" -name "*.gguf" -type f 2>/dev/null | head -1 || true)
-            if [[ -z "$EMBED_PATH" ]]; then
-                EMBED_PATH=$(find ./local-models -iname "*embed*" -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+            local_model_path=$(find ./local-models -maxdepth 1 -iname "*${BEST_PROVIDER_MODEL}*" -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+            if [[ -z "$local_model_path" ]]; then
+                # Fallback: find largest non-embed GGUF
+                local best_size=0
+                while IFS= read -r -d '' f; do
+                    local fname
+                    fname=$(basename "$f")
+                    if [[ "$fname" == *[Ee]mbed* || "$fname" == *BGE* || "$fname" == *bge* ]]; then
+                        continue
+                    fi
+                    local fsize
+                    fsize=$(file_size "$f")
+                    if [[ "$fsize" -gt "$best_size" ]]; then
+                        best_size="$fsize"
+                        local_model_path="$f"
+                    fi
+                done < <(find ./local-models -maxdepth 1 -name "*.gguf" -type f -print0 2>/dev/null)
             fi
         fi
-        if [[ -n "$LLAMA_BIN" && -n "$EMBED_PATH" ]]; then
+
+        if [[ -n "$local_model_path" ]]; then
+            echo -e "${CYAN}Starting llama-server on port ${LLM_PORT}...${NC}"
+            "$LLAMA_BIN" \
+                --model "$local_model_path" \
+                --host 127.0.0.1 \
+                --port "$LLM_PORT" \
+                --ctx-size "$LLM_CTX" \
+                --threads "$LLM_THREADS" \
+                --parallel "$LLM_PARALLEL" &
+            PIDS+=($!)
+            LLM_READY=false
+            for i in $(seq 1 30); do
+                if ! kill -0 "${PIDS[-1]}" 2>/dev/null; then
+                    echo -e "${RED}llama-server failed to start${NC}"
+                    unset 'PIDS[-1]'
+                    break
+                fi
+                if curl -sf http://127.0.0.1:${LLM_PORT}/health &>/dev/null; then
+                    LLM_READY=true
+                    echo -e "${GREEN}llama-server ready (${i}s)${NC}"
+                    break
+                fi
+                sleep 1
+            done
+            if [[ "$LLM_READY" == false ]] && kill -0 "${PIDS[-1]}" 2>/dev/null; then
+                echo -e "${YELLOW}llama-server still loading, continuing anyway...${NC}"
+            fi
+        fi
+    fi
+fi
+
+# ═══════════════════════════════════════════════════════════════
+#  §11  START EMBEDDING SERVER (only for llamacpp + local BGE)
+# ═══════════════════════════════════════════════════════════════
+
+EMBED_URL=$(env_get "WORLD_EMBEDDING_BASE_URL" "")
+if [[ "$BEST_PROVIDER" == "llamacpp" && -z "$EMBED_URL" && -n "$LLAMA_BIN" ]]; then
+    if ! port_in_use "$EMBED_PORT"; then
+        EMBED_PATH=""
+        if [[ -d "./local-models" ]]; then
+            EMBED_PATH=$(find ./local-models -maxdepth 1 \( -iname "*bge*" -o -iname "*embed*" \) -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+        fi
+        if [[ -n "$EMBED_PATH" ]]; then
             echo -e "${CYAN}Starting embedding server on port ${EMBED_PORT}...${NC}"
             "$LLAMA_BIN" \
                 --model "$EMBED_PATH" \
@@ -603,17 +682,26 @@ if [[ -z "$EMBED_URL" && -n "$EMBED_PORT" ]]; then
                 --pooling mean \
                 --threads 1 &
             PIDS+=($!)
-            sleep 2
-            if ! kill -0 "${PIDS[-1]}" 2>/dev/null; then
-                echo -e "${RED}Embedding server failed to start${NC}"
-                unset 'PIDS[-1]'
-            fi
+            EMBED_READY=false
+            for i in $(seq 1 15); do
+                if ! kill -0 "${PIDS[-1]}" 2>/dev/null; then
+                    echo -e "${RED}Embedding server failed to start${NC}"
+                    unset 'PIDS[-1]'
+                    break
+                fi
+                if curl -sf http://127.0.0.1:${EMBED_PORT}/health &>/dev/null; then
+                    EMBED_READY=true
+                    echo -e "${GREEN}Embedding server ready (${i}s)${NC}"
+                    break
+                fi
+                sleep 1
+            done
         fi
     fi
 fi
 
 # ═══════════════════════════════════════════════════════════════
-#  §12  CHECK LLM CONFIG & LAUNCH SERVER
+#  §12  CHECK LLM CONFIG & LAUNCH GAME SERVER
 # ═══════════════════════════════════════════════════════════════
 
 LLM_URL=$(env_get "WORLD_LLM_BASE_URL" "")

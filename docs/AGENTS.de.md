@@ -244,3 +244,35 @@ Agenten mit höherer Priorität werden zuerst verarbeitet, wenn mehrere LLM-Anfr
 | chronicler | 5 |
 | social-sim | 4 |
 | researcher | 3 (niedrigste) |
+
+---
+
+## Spezialisierte Agenten (v0.26.0)
+
+Die folgenden spezialisierten Agenten sind jetzt in `RoleplayEngine` eingebunden und über `engine.<agent>` verfügbar:
+
+| Agent | Feld | Zweck |
+|-------|------|-------|
+| **CartographerAgent** | `engine.cartographer` | Standort-/Geographie-Informationen — Entfernungen, Wege, Terrain, Sehenswürdigkeiten |
+| **HistorianAgent** | `engine.historian` | Weltgeschichte, Chronologie, vergangene Ereignisse, Lore-Erzählung |
+| **LorekeeperAgent** | `engine.lorekeeper` | Weltfakten, Magiesystem-Regeln, Rasseninformationen, etablierter Kanon |
+| **MerchantAgent** | `engine.merchant` | Händler-Handel, Preisgestaltung, Inventarverwaltung |
+| **QuestGiverAgent** | `engine.questGiver` | Quest-Generierung basierend auf Weltzustand, Spielerniveau, Handlungsfäden |
+
+Jeder Spezialagent akzeptiert nur `LLMQueue` als Abhängigkeit und generiert Text über eigene Prompts.
+
+---
+
+## Dialog-System (v0.26.0)
+
+Neues `DialogueManager` + `DialogueContext` für strukturierte NPC-Gespräche:
+
+| Funktion | Beschreibung |
+|----------|-------------|
+| **Sitzungsverwaltung** | Begrüßung → Aktiv → Verabschiedung Lebenszyklus |
+| **Beziehungsbewusstsein** | Begrüßungen und Themenauswahl für Freunde/Neutrale/Feinde |
+| **Feudale Hierarchie** | Besondere Begrüßungen für Lord/Vasallen |
+| **Themenbasierte Auswahl** | persönlich, Fraktion, Quest, Handel, Kampf, Handwerk, Gerüchte, Klatsch usw. |
+| **Gedächtnisaufzeichnung** | Dialogzusammenfassungen werden im Langzeitgedächtnis des NPC gespeichert |
+
+Zugang über `engine.dialogueManager` (erfordert `npcRuntime`).

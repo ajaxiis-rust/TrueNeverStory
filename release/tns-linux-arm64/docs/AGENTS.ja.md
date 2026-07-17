@@ -199,6 +199,36 @@ TrueNeverStoryはマルチエージェントアーキテクチャを使用して
 
 応答は青い左ボーダーとブラケット内のエージェント名でマークされます。
 
+### 言語指示の注入
+
+LLMの応答は選択されたUI言語に自動的に一致します。言語指示はワールド作成時に `seedWorldAgents()` を通じてエージェントのプロンプトに組み込まれ、ランタイムには `getLanguageInstruction()` によって追加されます：
+
+| 言語 | 挿入されるテキスト |
+|------|-------------------|
+| en | `IMPORTANT: Always respond in English.` |
+| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
+| de | `WICHTIG: Antworte immer auf Deutsch.` |
+| fr | `IMPORTANT: Réponds toujours en français.` |
+| es | `IMPORTANTE: Responde siempre en español.` |
+| ja | `重要：常に日本語で回答してください。` |
+| zh | `重要：请始终用中文回复。` |
+
+ワールド作成時、`seedWorldAgents()` は言語指示をシステムプロンプトに追加して全14エージェントを書き込みます。これにより、新しいワールドは適切な言語分離で開始されます。ランタイムの `getLanguageInstruction()` は `dialogue-context.ts` で動的なNPCダイアログに使用されます。
+
+### プロンプト用APIエンドポイント
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| `GET` | `/api/agents` | 全エージェントを一覧表示（`?world=` 対応） |
+| `GET` | `/api/agents/:id` | 単一エージェントの設定を取得（`?world=` 対応） |
+| `PUT` | `/api/agents/:id` | エージェントの設定を更新（`?world=` 対応） |
+| `PUT` | `/api/agents/:id/prompts` | プロンプトを更新（`?world=` 対応） |
+| `GET` | `/api/agents/:id/prompts/:lang` | 特定言語のプロロンプトを取得 |
+| `PUT` | `/api/agents/:id/prompts/:lang` | 特定言語のプロロンプトを作成/更新 |
+
+**クエリパラメータ：**
+- `world` — オプション、デフォルトは設定から取得したアクティブなワールド。すべてのエージェントエンドポイントは `?world=` をサポートし、アクティブなワールドを切り替えずにワールド単位の操作が可能です。
+
 ## 優先度
 
 複数のLLMリクエストがキューに入った場合、優先度の高いエージェントから先に処理されます。
@@ -214,47 +244,3 @@ TrueNeverStoryはマルチエージェントアーキテクチャを使用して
 | chronicler | 5 |
 | social-sim | 4 |
 | researcher | 3（最低） |
-
-### 言語指示注入
-
-LLMの応答は選択されたUI言語に自動的に一致します。言語指示は`seedWorldAgents()`を通じて初期化時にエージェントのプロンプトに組み込まれ、ランタイム時に`getLanguageInstruction()`によって追加されます：
-
-| 言語 | 注入テキスト |
-|------|-------------|
-| en | `IMPORTANT: Always respond in English.` |
-| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
-| de | `WICHTIG: Antworte immer auf Deutsch.` |
-| fr | `IMPORTANT: Réponds toujours en français.` |
-| es | `IMPORTANTE: Responde siempre en español.` |
-| ja | `重要：常に日本語で回答してください。` |
-| zh | `重要：请始终用中文回复。` |
-
-ワールド作成時、`seedWorldAgents()`はシステムプロンプトに言語指示を追加した14のエージェントを書き出します。これにより、新しいワールドが適切な言語分離で開始ことが保証されます。ランタイムの`getLanguageInstruction()`は`dialogue-context.ts`でダイナミックなNPCダイアログに使用されます。
-
-### プロンプト用APIエンドポイント
-
-| メソッド | パス | 説明 |
-|----------|------|------|
-| `GET` | `/api/agents` | すべてのエージェントを一覧表示（`?world=`を受け付ける） |
-| `GET` | `/api/agents/:id` | 単一エージェント設定を取得（`?world=`を受け付ける） |
-| `PUT` | `/api/agents/:id` | エージェント設定を更新（`?world=`を受け付ける） |
-| `PUT` | `/api/agents/:id/prompts` | プロンプトを更新（`?world=`を受け付ける） |
-| `GET` | `/api/agents/:id/prompts/:lang` | 特定言語のプロロンプトを取得 |
-| `PUT` | `/api/agents/:id/prompts/:lang` | 特定言語のプロロンプトを挿入/更新 |
-
-**クエリパラメータ：**
-- `world` — オプション、デフォルトは設定からアクティブなワールドを取得。すべてのエージェントエンドポイントは`?world=`をサポートし、アクティブなワールドを切り替えずにワールドごとの操作が可能。
-
-**応答例：**
-```json
-{
-  "agentId": "narrator",
-  "language": "ru",
-  "world": "levant",
-  "prompts": {
-    "systemPrompt": "...",
-    "userTemplate": "...",
-    "outputFormat": "..."
-  }
-}
-```

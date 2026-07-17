@@ -2,7 +2,7 @@
 
 REST API for the TrueNeverStory world-building and roleplay platform. All endpoints return JSON unless noted.
 
-**Base URL:** `http://localhost:3000`
+**Base URL:** `http://localhost:8000`
 
 ---
 
@@ -23,6 +23,8 @@ REST API for the TrueNeverStory world-building and roleplay platform. All endpoi
 - [Providers & Models](#providers--models)
 - [Settings](#settings)
 - [Launch](#launch)
+- [Cross-World](#cross-world)
+- [Plugins](#plugins)
 
 ---
 
@@ -72,6 +74,7 @@ SSE streaming endpoint for progressive narrative delivery. Same request body as 
 - `event: start` — session state
 - `event: chunk` — narrative text chunk
 - `event: agent` — agent response (for `@agent` mentions)
+- `event: heartbeat` — progress indicator ({ message: string, progress: number, stage: string })
 - `event: done` — final state
 - `event: error` — error message
 - `data: [DONE]` — stream end sentinel
@@ -136,6 +139,33 @@ List generated chapters.
 
 ### `GET /worlds/:name/chapters/:filename`
 Get chapter content.
+
+### `GET /worlds/:name/detail`
+Full world statistics for the statistics modal.
+
+**Response:**
+```json
+{
+  "name": "default",
+  "title": "My World",
+  "description": "...",
+  "genre": "fantasy",
+  "language": "en",
+  "worldRules": [{ "name": "...", "description": "..." }],
+  "magicSystem": "...",
+  "entityCounts": { "Character": 5, "Location": 3, "Faction": 2, "Item": 8 },
+  "totalEntities": 18,
+  "characters": [{ "name": "...", "summary": "...", "tags": [], "relationships": [] }],
+  "locations": [{ "name": "...", "summary": "..." }],
+  "factions": [{ "name": "...", "summary": "..." }],
+  "items": [{ "name": "...", "summary": "..." }],
+  "sessionCount": 4,
+  "eventCount": 42,
+  "chapterCount": 3,
+  "villainCount": 1,
+  "hasFrame": true
+}
+```
 
 ---
 
@@ -258,6 +288,42 @@ Get single quest details.
 
 ---
 
+## Rules Engine
+
+### `GET /rules`
+List social/economic rules for the world.
+
+### `GET /rules/:id`
+Get rule details by ID.
+
+### `POST /rules/validate`
+Validate rule JSON structure.
+
+---
+
+## Feature Flags
+
+### `GET /feature-flags`
+List all feature flags.
+
+### `PUT /feature-flags/:id`
+Update a feature flag.
+
+---
+
+## API Versioning
+
+TrueNeverStory supports two API versions:
+
+- **v1** — Legacy wrapper for backward compatibility
+- **v2** — Enhanced version with agent registry integration
+
+All v2 responses include deprecation headers when legacy behavior is used:
+
+- `X-API-Version: v2`
+- `X-Deprecated: true` (when returning legacy format)
+- `Sunset: <date>` (when a v1 endpoint is scheduled for removal)
+
 ## Memory
 
 ### `POST /memory/forget?older_than=30&min_importance=0.2`
@@ -306,6 +372,16 @@ Clean orphaned embeddings.
 
 ---
 
+## System
+
+### `POST /system/pause`
+Pause the roleplay engine. Accepts no parameters.
+
+### `POST /system/resume`
+Resume the roleplay engine. Accepts no parameters.
+
+---
+
 ## Agents
 
 ### `GET /agents`
@@ -316,17 +392,17 @@ List all configured agents.
 ### `GET /agents/:id`
 Get single agent configuration.
 
-**Query params:** `world` — optional, filter by specific world
+**Query params:** `world` — optional, load from specific world
 
 ### `PUT /agents/:id`
 Update agent config (model, temperature, prompts, etc.). Rate-limited: 30/min/IP.
 
-**Query params:** `world` — optional, filter by specific world
+**Query params:** `world` — optional, save to specific world
 
 ### `PUT /agents/:id/prompts`
 Update only prompts for an agent.
 
-**Query params:** `world` — optional, filter by specific world
+**Query params:** `world` — optional, save to specific world
 
 ### `POST /agents/:id/reset`
 Reset agent to defaults.
@@ -419,9 +495,9 @@ List available UI languages (EN, RU, DE, FR, ES, JA, ZH).
 ### `POST /launch`
 Create a new game session with character generation.
 
-**Request:** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
+**Request:** `{ hints?: string, isekai?: boolean, starting_age?: number, name?: string }`
 
-- `name` — optional, name for the game session
+- `name` — explicit character name (optional). If provided, skips LLM name generation. Supports non-Latin characters.
 
 **Response:** `{ status: "success", session_id, character_name, opening_narrative, url }`
 
@@ -450,4 +526,74 @@ When password auth is enabled, sessions use HttpOnly cookies. Include `credentia
 
 ---
 
-*Generated: 2026-06-27 | TrueNeverStory v0.12.0*
+## Cross-World
+
+### `GET /api/cross-world/status`
+Get cross-world communication status.
+
+**Response:** `{ enabled: boolean, portals: number, eventLog: number }`
+
+### `POST /api/cross-world/enable`
+Enable cross-world communication.
+
+**Response:** `{ enabled: true }`
+
+### `POST /api/cross-world/disable`
+Disable cross-world communication.
+
+**Response:** `{ enabled: false }`
+
+### `GET /api/cross-world/portals`
+List active portals between worlds.
+
+**Response:** Array of `{ id, world1, world2, createdAt, active }`
+
+### `POST /api/cross-world/portals`
+Create a portal between two worlds.
+
+**Request:** `{ world1: string, world2: string }`
+
+**Response:** `{ id, world1, world2, createdAt, active }`
+
+### `DELETE /api/cross-world/portals/:id`
+Destroy a portal.
+
+**Response:** `{ deleted: true }`
+
+### `GET /api/cross-world/events?limit=50`
+Get cross-world event log.
+
+**Response:** Array of `{ type, data, source, timestamp }`
+
+---
+
+## Plugins
+
+### `GET /api/plugins`
+List all registered plugins.
+
+**Response:** Array of `{ id, name, version, description, agents, routes, hooks }`
+
+### `GET /api/plugins/:id`
+Get plugin details.
+
+**Response:** Plugin object with full details.
+
+### `GET /api/plugins/:id/capabilities`
+Get plugin capabilities (counts of agents, routes, hooks).
+
+**Response:** `{ agents: number, routes: number, hooks: number }`
+
+### `GET /api/plugins/agents/all`
+Get all agents registered by plugins.
+
+**Response:** Array of `{ id, name, description, config }`
+
+### `GET /api/plugins/routes/all`
+Get all routes registered by plugins.
+
+**Response:** Array of `{ path, method, handler }`
+
+---
+
+*Generated: 2026-07-14 | TrueNeverStory v0.25.3*

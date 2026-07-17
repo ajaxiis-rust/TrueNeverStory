@@ -244,3 +244,35 @@ LLM 响应会自动匹配所选的 UI 语言。语言指令在世界创建时通
 | chronicler | 5 |
 | social-sim | 4 |
 | researcher | 3（最低） |
+
+---
+
+## 专业代理 (v0.26.0)
+
+以下专业代理现已接入`RoleplayEngine`，可通过`engine.<agent>`访问：
+
+| 代理 | 字段 | 用途 |
+|------|------|------|
+| **CartographerAgent** | `engine.cartographer` | 位置/地理信息 — 距离、路径、地形、兴趣点 |
+| **HistorianAgent** | `engine.historian` | 世界历史、编年史、过去事件、传说叙述 |
+| **LorekeeperAgent** | `engine.lorekeeper` | 世界事实、魔法系统规则、种族信息、已确立的典籍 |
+| **MerchantAgent** | `engine.merchant` | NPC商人交易、定价、库存管理 |
+| **QuestGiverAgent** | `engine.questGiver` | 基于世界状态、玩家等级、故事线索的任务生成 |
+
+每个专业代理仅接受`LLMQueue`作为依赖，通过专用提示词生成文本。
+
+---
+
+## 对话系统 (v0.26.0)
+
+新的`DialogueManager` + `DialogueContext`用于结构化NPC对话：
+
+| 功能 | 描述 |
+|------|------|
+| **会话管理** | 问候 → 活跃 → 告别的生命周期 |
+| **关系感知** | 针对朋友/中立/敌人的问候和话题可用性 |
+| **封建等级** | 领主/封臣的特殊问候 |
+| **主题选择** | 个人、派系、任务、交易、战斗、制造、谣言、八卦等 |
+| **记忆记录** | 对话摘要存储在NPC长期记忆中 |
+
+通过`engine.dialogueManager`访问（需要`npcRuntime`）。

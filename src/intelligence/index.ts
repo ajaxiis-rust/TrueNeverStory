@@ -10,3 +10,4 @@ export { SceneGenerator } from "./scene-generator";
 export { RuleChecker } from "./rule-checker";
 export { SubgraphExpander } from "./subgraph-expander";
 export { IntelligencePipeline } from "./pipeline";
+export { GraphValidator } from "./graph-validator";

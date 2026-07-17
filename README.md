@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.6
+# TrueNeverStory v0.26.0
 
 ### Write your book just by playing.
 
@@ -10,7 +10,7 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ---
 
-## What's New in v0.25.6
+## What's New in v0.26.0
 
 ### Bible DB Optimization
 - **FTS5 search** — replaced `LIKE '%query%'` with FTS5 `MATCH` for O(1) full-text lookups (with LIKE fallback)
@@ -234,7 +234,7 @@ TrueNeverStory/
 │   ├── routes/           # API routes (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Social/economic rules engine (14 rules, synergy matrix, tech deps)
 │   ├── services/         # 60+ services (roleplay engine, agents, economy, world isolator, cross-world bus)
-│   │   ├── agents/       # v0.25.0 new agents (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+│   │   ├── agents/       # v0.26.0 new agents (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
 │   │   └── ...
 │   ├── intelligence/     # Graph analyzer, duplicate detector, recommender
 │   ├── i18n/             # Language packs (7 languages)
@@ -492,7 +492,7 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 
 ## Recent Changes
 
-### v0.25.6 — Bible DB Optimization
+### v0.26.0 — Bible DB Optimization
 
 **Performance:**
 - FTS5 search with LIKE fallback — O(n) → O(1) full-text lookups
@@ -510,7 +510,7 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 - Removed 177MB sources + 59MB compiled DB from git
 - Added .gitignore for sources and compiled database
 
-### v0.25.3 — Literary Compiler & Economic Models
+### v0.26.0 — Literary Compiler & Economic Models
 
 **Literary Compiler (Phases 0-6):**
 - 4 offline analysis passes: Dramaturgic, Stylistic, Emotional, Metadata
@@ -536,7 +536,7 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 - Fixed hardcoded faction list in DirectorLoop — now reads from world config
 - Fixed year approximation drift — uses `getFullYear()` instead of manual calculation
 
-### v0.25.0 — State-First Architecture
+### v0.26.0 — State-First Architecture
 
 **Core Engine Refactoring:**
 - Intent Parser with Zod schemas (6 intent types: movement, dialogue, action, command, observation, meta)

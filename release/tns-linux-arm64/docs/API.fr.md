@@ -137,6 +137,33 @@ Lister les chapitres générés.
 ### `GET /worlds/:name/chapters/:filename`
 Contenu d'un chapitre.
 
+### `GET /worlds/:name/detail`
+Statistiques complètes du monde pour la modale de statistiques.
+
+**Réponse :**
+```json
+{
+  "name": "default",
+  "title": "Mon monde",
+  "description": "...",
+  "genre": "fantasy",
+  "language": "fr",
+  "worldRules": [{ "name": "...", "description": "..." }],
+  "magicSystem": "...",
+  "entityCounts": { "Character": 5, "Location": 3, "Faction": 2, "Item": 8 },
+  "totalEntities": 18,
+  "characters": [{ "name": "...", "summary": "...", "tags": [], "relationships": [] }],
+  "locations": [{ "name": "...", "summary": "..." }],
+  "factions": [{ "name": "...", "summary": "..." }],
+  "items": [{ "name": "...", "summary": "..." }],
+  "sessionCount": 4,
+  "eventCount": 42,
+  "chapterCount": 3,
+  "villainCount": 1,
+  "hasFrame": true
+}
+```
+
 ---
 
 ## Entités & Graphe
@@ -311,22 +338,22 @@ Nettoyer les embeddings orphelins.
 ### `GET /agents`
 Lister tous les agents configurés.
 
-**Paramètres de requête :** `world` — optionnel, filtrer par monde spécifique
+Paramètres de requête : `world` — optionnel, filtrage par monde spécifique
 
 ### `GET /agents/:id`
 Configuration d'un agent.
 
-**Paramètres de requête :** `world` — optionnel, filtrer par monde spécifique
+Paramètres de requête : `world` — optionnel, chargement depuis un monde spécifique
 
 ### `PUT /agents/:id`
 Mettre à jour la configuration d'un agent (modèle, température, prompts, etc.). Limite : 30 requêtes/min/IP.
 
-**Paramètres de requête :** `world` — optionnel, filtrer par monde spécifique
+Paramètres de requête : `world` — optionnel, enregistrement dans un monde spécifique
 
 ### `PUT /agents/:id/prompts`
 Mettre à jour uniquement les prompts d'un agent.
 
-**Paramètres de requête :** `world` — optionnel, filtrer par monde spécifique
+Paramètres de requête : `world` — optionnel, enregistrement dans un monde spécifique
 
 ### `POST /agents/:id/reset`
 Réinitialiser un agent aux paramètres par défaut.
@@ -421,7 +448,7 @@ Créer une nouvelle session de jeu avec génération de personnage.
 
 **Requête :** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
 
-- `name` — optionnel, nom de la session de jeu
+`name` — nom explicite du personnage (optionnel). Si fourni, la génération de nom par LLM est ignorée. Prend en charge les caractères non-latins.
 
 **Réponse :** `{ status: "success", session_id, character_name, opening_narrative, url }`
 

@@ -197,7 +197,7 @@ public/                         # 前端 (静态HTML)
 
 **生命周期:**
 1. `new NarrativeService({dbPath, worldFrame})` — 连接一切
-2. `start()` — 启动LLM队列、同步实体、启动director
+2. `start()` — 启动LLM队列、同步实体、自动构建启发式关系（若实体存在但无连接）、启动director
 3. `stop()` — 停止director + LLM
 4. `pause()` / `resume()` — 用户离开聊天时
 5. `reset(newDbPath, worldFrame)` — 热切换到另一个世界
@@ -322,3 +322,4 @@ bun test tests/probability-engine.test.ts  # 概率测试
 - **安全eval**: 公式通过递归下降求值（不用eval）
 - **提示词注入防御**: LLM前调用 `sanitizeInput()`
 - **原子JSON写入**: 临时文件 + rename
+- **语言指令注入**: 语言指令在创建世界时通过`seedWorldAgents()`嵌入代理提示词中，运行时通过`getLanguageInstruction()`为动态NPC对话追加

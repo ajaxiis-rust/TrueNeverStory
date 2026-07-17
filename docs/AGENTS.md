@@ -1,6 +1,6 @@
-# Agents Reference (v0.25.3)
+# Agents Reference (v0.26.0)
 
-TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.25.0, the engine uses **6 specialized agents** (The Big Six) replacing the previous 14-agent system.
+TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.26.0, the engine uses **6 core agents** (The Big Six) plus **5 specialist agents** and a **dialogue system**.
 
 ---
 
@@ -137,7 +137,7 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 
 ## Legacy Agents (Deprecated)
 
-The following agents are deprecated in v0.25.0 but still available for backward compatibility:
+The following agents are deprecated in v0.26.0 but still available for backward compatibility:
 
 | Agent | Replacement | Status |
 |-------|-------------|--------|
@@ -155,6 +155,38 @@ The following agents are deprecated in v0.25.0 but still available for backward 
 | Social Sim | Actor | Deprecated |
 | Villain | Dramaturg | Deprecated |
 | User Agent | Actor | Deprecated |
+
+---
+
+## Specialist Agents (v0.26.0)
+
+The following specialist agents are now wired into `RoleplayEngine` and available via `engine.<agent>`:
+
+| Agent | Field | Purpose |
+|-------|-------|---------|
+| **CartographerAgent** | `engine.cartographer` | Location/geography information — distances, paths, terrain, points of interest |
+| **HistorianAgent** | `engine.historian` | World history, chronology, past events, lore narration |
+| **LorekeeperAgent** | `engine.lorekeeper` | World facts, magic system rules, race information, established canon |
+| **MerchantAgent** | `engine.merchant` | NPC merchant trading, pricing, inventory management |
+| **QuestGiverAgent** | `engine.questGiver` | Quest generation based on world state, player level, story threads |
+
+Each specialist agent takes only `LLMQueue` as a dependency and generates text via dedicated prompts.
+
+---
+
+## Dialogue System (v0.26.0)
+
+New `DialogueManager` + `DialogueContext` for structured NPC conversations:
+
+| Feature | Description |
+|---------|-------------|
+| **Session management** | Greeting → Active → Farewell lifecycle |
+| **Relationship awareness** | Friend/neutral/enemy greetings and topic availability |
+| **Feudal hierarchy** | Lord/vassal special greetings |
+| **Topic-based choices** | personal, faction, quest, trade, combat, crafting, rumor, gossip, etc. |
+| **Memory recording** | Dialogue summaries stored in NPC long-term memory |
+
+Access via `engine.dialogueManager` (requires `npcRuntime` to be available).
 
 **Backward Compatibility:**
 Old agent IDs (`@narrator`, `@director`, etc.) still work but route to the new agents internally.
@@ -187,7 +219,7 @@ const withSearch = registry.getAgentsWithTool('search_verses');
 
 ---
 
-## Agent Interface (v0.25.0)
+## Agent Interface (v0.26.0)
 
 ```typescript
 interface AgentV2 {
@@ -297,7 +329,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## MCP Integration (v0.25.0)
+## MCP Integration (v0.26.0)
 
 ### Bible Patterns
 

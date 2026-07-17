@@ -611,7 +611,7 @@ async function loadWorlds() {
       return;
     }
     grid.innerHTML = data.worlds.map(w => `
-      <div class="world-card ${w.name === activeWorld ? 'world-card--active' : ''}" onclick="openDetailModal('${w.name}', event)">
+      <div class="world-card ${w.name === activeWorld ? 'world-card--active' : ''}" onclick="window.location.href='/worlds/${encodeURIComponent(w.name)}/config'">
         ${w.name === activeWorld ? '<div class="world-card__active">' + t('uiActive') + '</div>' : ''}
         <div class="world-card__header">
           <div class="world-card__name">${esc(w.title || w.name)}</div>
@@ -746,8 +746,12 @@ function openBirthWizard(worldName) {
   body.innerHTML = `
     <div class="form">
       <div class="form__field form__field--full">
+        <label class="form__label" data-i18n="uiBirthName">Character Name (optional)</label>
+        <input class="form__input" id="birthName" type="text" placeholder="Leave empty for random generation">
+      </div>
+      <div class="form__field form__field--full">
         <label class="form__label" data-i18n="uiBirthHints">Character Hints (optional)</label>
-        <textarea class="form__textarea" id="birthHints" data-i18n-placeholder="uiBirthHintsPlaceholder" placeholder="e.g. female elf, mage, noble family, name: Aria...\nLeave empty for random generation"></textarea>
+        <textarea class="form__textarea" id="birthHints" data-i18n-placeholder="uiBirthHintsPlaceholder" placeholder="e.g. female elf, mage, noble family...\nLeave empty for random generation"></textarea>
       </div>
       <div class="form__row">
         <div class="form__field">
@@ -782,6 +786,7 @@ async function startBirth() {
   const hints = document.getElementById('birthHints').value.trim();
   const isekai = document.getElementById('birthIsekai').classList.contains('toggle--on');
   const startingAge = parseInt(document.getElementById('birthAge').value) || 5;
+  const characterName = document.getElementById('birthName')?.value.trim() ?? '';
 
   body.innerHTML = '<div class="birth-wizard__loading">' + t('uiCreating') + '</div>';
   footer.innerHTML = '';
@@ -790,7 +795,7 @@ async function startBirth() {
     const res = await apiFetch('/launch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hints, isekai, starting_age: startingAge }),
+      body: JSON.stringify({ hints, isekai, starting_age: startingAge, name: characterName }),
     });
 
     if (res.status === 'error') throw new Error(res.error || 'Launch failed');

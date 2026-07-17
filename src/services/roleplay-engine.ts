@@ -13,6 +13,15 @@ import { SceneAgent } from './scene-agent';
 import { DirectorAgent } from './director-agent';
 import { CrafterAgent } from './crafter-agent';
 import { ResearcherAgent } from './researcher-agent';
+import { CartographerAgent } from './cartographer-agent';
+import { HistorianAgent } from './historian-agent';
+import { LorekeeperAgent } from './lorekeeper-agent';
+import { MerchantAgent } from './merchant-agent';
+import { QuestGiverAgent } from './quest-giver-agent';
+import { DialogueManager } from './dialogue-manager';
+import { DialogueContext } from './dialogue-context';
+import { SocialGraph } from './social-graph';
+import { MemoryEngine } from './memory-engine';
 import { StartResolver } from './start-resolver';
 import { Chronicler } from './chronicler';
 import { IntentParser } from './intent-parser';
@@ -128,6 +137,12 @@ export class RoleplayEngine {
   readonly directorAgent: DirectorAgent;
   readonly crafter: CrafterAgent;
   readonly researcher: ResearcherAgent;
+  readonly cartographer: CartographerAgent;
+  readonly historian: HistorianAgent;
+  readonly lorekeeper: LorekeeperAgent;
+  readonly merchant: MerchantAgent;
+  readonly questGiver: QuestGiverAgent;
+  dialogueManager?: DialogueManager;
   readonly startResolver: StartResolver;
   readonly chronicler: Chronicler;
   readonly memory: MemoryManager;
@@ -204,6 +219,18 @@ export class RoleplayEngine {
     this.directorAgent = new DirectorAgent(deps.llmQueue);
     this.crafter = new CrafterAgent(deps.entityStore, deps.llmQueue, deps.dbPath);
     this.researcher = new ResearcherAgent(deps.llmQueue);
+    this.cartographer = new CartographerAgent(deps.llmQueue);
+    this.historian = new HistorianAgent(deps.llmQueue);
+    this.lorekeeper = new LorekeeperAgent(deps.llmQueue);
+    this.merchant = new MerchantAgent(deps.llmQueue);
+    this.questGiver = new QuestGiverAgent(deps.llmQueue);
+    // DialogueManager requires SocialGraph + MemoryEngine, both backed by the same dbPath
+    if (this._npcRuntime) {
+      const socialGraph = new SocialGraph(deps.dbPath);
+      const memoryEngine = new MemoryEngine(this._npcRuntime);
+      const dialogueCtx = new DialogueContext(this._npcRuntime, socialGraph, memoryEngine);
+      this.dialogueManager = new DialogueManager(deps.dbPath, this._npcRuntime, socialGraph, dialogueCtx);
+    }
     this.startResolver = new StartResolver(deps.entityStore, deps.llmQueue, 'director');
     this.chronicler = deps.chronicler ?? new Chronicler(join(deps.dbPath, 'timeline.jsonl'));
     this.memory = new MemoryManager(join(deps.dbPath, 'roleplay_memory.json'));

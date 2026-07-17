@@ -199,6 +199,36 @@ Envoyez un message privé à n'importe quel agent depuis le chat :
 
 Les réponses sont marquées d'une bordure bleue à gauche et du nom de l'agent entre crochets.
 
+### Injection d'instruction linguistique
+
+Les réponses LLM correspondent automatiquement à la langue de l'interface sélectionnée. L'instruction linguistique est intégrée dans les prompts des agents lors de la création du monde via `seedWorldAgents()`, et également ajoutée en temps d'exécution par `getLanguageInstruction()` :
+
+| Langue | Texte injecté |
+|--------|---------------|
+| en | `IMPORTANT: Always respond in English.` |
+| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
+| de | `WICHTIG: Antworte immer auf Deutsch.` |
+| fr | `IMPORTANT: Réponds toujours en français.` |
+| es | `IMPORTANTE: Responde siempre en español.` |
+| ja | `重要：常に日本語で回答してください。` |
+| zh | `重要：请始终用中文回复。` |
+
+Lors de la création du monde, `seedWorldAgents()` écrit les 14 agents avec l'instruction linguistique ajoutée au prompt système. Cela garantit que les nouveaux mondes commencent avec une isolation linguistique appropriée. La fonction d'exécution `getLanguageInstruction()` est utilisée par `dialogue-context.ts` pour les dialogues PNJ dynamiques.
+
+### Points de terminaison API pour les prompts
+
+| Méthode | Chemin | Description |
+|---------|--------|-------------|
+| `GET` | `/api/agents` | Lister tous les agents (accepte `?world=`) |
+| `GET` | `/api/agents/:id` | Obtenir la configuration d'un agent (accepte `?world=`) |
+| `PUT` | `/api/agents/:id` | Mettre à jour la configuration d'un agent (accepte `?world=`) |
+| `PUT` | `/api/agents/:id/prompts` | Mettre à jour les prompts (accepte `?world=`) |
+| `GET` | `/api/agents/:id/prompts/:lang` | Obtenir les prompts pour une langue spécifique |
+| `PUT` | `/api/agents/:id/prompts/:lang` | Créer ou mettre à jour les prompts pour une langue spécifique |
+
+**Paramètres de requête :**
+- `world` — optionnel, par défaut le monde actif des paramètres. Tous les points de terminaison des agents supportent `?world=` pour les opérations par monde sans changer le monde actif.
+
 ## Priorité
 
 Les agents avec une priorité plus élevée sont traités en premier lorsque plusieurs requêtes LLM sont en file d'attente.
@@ -214,47 +244,3 @@ Les agents avec une priorité plus élevée sont traités en premier lorsque plu
 | chronicler | 5 |
 | social-sim | 4 |
 | researcher | 3 (la plus basse) |
-
-### Injection d'instruction linguistique
-
-Les réponses du LLM correspondent automatiquement à la langue sélectionnée de l'interface utilisateur. L'instruction linguistique est intégrée aux prompts des agents lors de l'initialisation via `seedWorldAgents()`, et également ajoutée à l'exécution par `getLanguageInstruction()` :
-
-| Langue | Texte injecté |
-|--------|---------------|
-| en | `IMPORTANT: Always respond in English.` |
-| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
-| de | `WICHTIG: Antworte immer auf Deutsch.` |
-| fr | `IMPORTANT: Réponds toujours en français.` |
-| es | `IMPORTANTE: Responde siempre en español.` |
-| ja | `重要：常に日本語で回答してください。` |
-| zh | `重要：请始终用中文回复。` |
-
-Lors de la création du monde, `seedWorldAgents()` écrit les 14 agents avec l'instruction linguistique ajoutée au prompt système. Cela garantit que les nouveaux mondes commencent avec une isolation linguistique appropriée. La fonction d'exécution `getLanguageInstruction()` est utilisée par `dialogue-context.ts` pour les dialogues NPC dynamiques.
-
-### Points de terminaison API pour les prompts
-
-| Méthode | Chemin | Description |
-|---------|--------|-------------|
-| `GET` | `/api/agents` | Lister tous les agents (accepte `?world=`) |
-| `GET` | `/api/agents/:id` | Obtenir la configuration d'un agent (accepte `?world=`) |
-| `PUT` | `/api/agents/:id` | Mettre à jour la configuration d'un agent (accepte `?world=`) |
-| `PUT` | `/api/agents/:id/prompts` | Mettre à jour les prompts (accepte `?world=`) |
-| `GET` | `/api/agents/:id/prompts/:lang` | Obtenir les prompts pour une langue spécifique |
-| `PUT` | `/api/agents/:id/prompts/:lang` | Insérer/mettre à jour les prompts pour une langue spécifique |
-
-**Paramètres de requête :**
-- `world` — optionnel, par défaut prend le monde actif des paramètres. Tous les points de terminaison des agents supportent `?world=` pour les opérations par monde sans basculer le monde actif.
-
-**Exemple de réponse :**
-```json
-{
-  "agentId": "narrator",
-  "language": "ru",
-  "world": "levant",
-  "prompts": {
-    "systemPrompt": "...",
-    "userTemplate": "...",
-    "outputFormat": "..."
-  }
-}
-```

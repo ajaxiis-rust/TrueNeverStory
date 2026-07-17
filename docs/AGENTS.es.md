@@ -244,3 +244,35 @@ Los agentes con mayor prioridad se procesan primero cuando hay múltiples solici
 | chronicler | 5 |
 | social-sim | 4 |
 | researcher | 3 (la más baja) |
+
+---
+
+## Agentes especializados (v0.26.0)
+
+Los siguientes agentes especializados están ahora integrados en `RoleplayEngine` y disponibles a través de `engine.<agent>`:
+
+| Agente | Campo | Propósito |
+|--------|-------|-----------|
+| **CartographerAgent** | `engine.cartographer` | Información de ubicación/geografía — distancias, rutas, terreno, puntos de interés |
+| **HistorianAgent** | `engine.historian` | Historia del mundo, cronología, eventos pasados, narración de lore |
+| **LorekeeperAgent** | `engine.lorekeeper` | Hechos del mundo, reglas del sistema de magia, información de razas, canon establecido |
+| **MerchantAgent** | `engine.merchant` | Comercio de mercaderes NPC, fijación de precios, gestión de inventario |
+| **QuestGiverAgent** | `engine.questGiver` | Generación de misiones basada en el estado del mundo, nivel del jugador, hilos argumentales |
+
+Cada agente especialista solo acepta `LLMQueue` como dependencia y genera texto a través de prompts dedicados.
+
+---
+
+## Sistema de diálogos (v0.26.0)
+
+Nuevo `DialogueManager` + `DialogueContext` para conversaciones estructuradas con NPC:
+
+| Característica | Descripción |
+|----------------|-------------|
+| **Gestión de sesiones** | Ciclo Saludo → Activo → Despedida |
+| **Conciencia de relaciones** | Saludos y disponibilidad de temas para amigos/neutrales/enemigos |
+| **Jerarquía feudal** | Saludos especiales para señor/vasallos |
+| **Selección temática** | personal, facción, misión, comercio, combate, artesanía, rumores, chismes, etc. |
+| **Grabación en memoria** | Los resúmenes de diálogo se almacenan en la memoria a largo plazo del NPC |
+
+Acceso a través de `engine.dialogueManager` (requiere `npcRuntime`).

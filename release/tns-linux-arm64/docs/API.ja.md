@@ -137,6 +137,33 @@ World Frame フィールドを更新。
 ### `GET /worlds/:name/chapters/:filename`
 章の内容を取得。
 
+### `GET /worlds/:name/detail`
+統計モーダル用の完全なワールド統計。
+
+**レスポンス:**
+```json
+{
+  "name": "default",
+  "title": "マイワールド",
+  "description": "...",
+  "genre": "fantasy",
+  "language": "ja",
+  "worldRules": [{ "name": "...", "description": "..." }],
+  "magicSystem": "...",
+  "entityCounts": { "Character": 5, "Location": 3, "Faction": 2, "Item": 8 },
+  "totalEntities": 18,
+  "characters": [{ "name": "...", "summary": "...", "tags": [], "relationships": [] }],
+  "locations": [{ "name": "...", "summary": "..." }],
+  "factions": [{ "name": "...", "summary": "..." }],
+  "items": [{ "name": "...", "summary": "..." }],
+  "sessionCount": 4,
+  "eventCount": 42,
+  "chapterCount": 3,
+  "villainCount": 1,
+  "hasFrame": true
+}
+```
+
 ---
 
 ## エンティティ＆グラフ
@@ -311,22 +338,22 @@ FAISS ベクトルインデックスを再構築。
 ### `GET /agents`
 設定されたすべてのエージェントを一覧表示。
 
-**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
+クエリパラメータ: `world` — オプション、特定のワールドでフィルタリング
 
 ### `GET /agents/:id`
 個々のエージェントの設定を取得。
 
-**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
+クエリパラメータ: `world` — オプション、特定のワールドから読み込み
 
 ### `PUT /agents/:id`
 エージェントの設定を更新（モデル、温度、プロンプトなど）。レート制限: 30件/分/IP。
 
-**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
+クエリパラメータ: `world` — オプション、特定のワールドに保存
 
 ### `PUT /agents/:id/prompts`
 エージェントのプロンプトのみを更新。
 
-**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
+クエリパラメータ: `world` — オプション、特定のワールドに保存
 
 ### `POST /agents/:id/reset`
 エージェントをデフォルト設定にリセット。
@@ -421,7 +448,7 @@ API キーを削除。
 
 **リクエスト:** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
 
-- `name` — オプション、ゲームセッションの名前
+`name` — 明示的なキャラクター名（オプション）。指定した場合、LLM名前の生成をスキップ。非ラテン文字をサポート。
 
 **レスポンス:** `{ status: "success", session_id, character_name, opening_narrative, url }`
 

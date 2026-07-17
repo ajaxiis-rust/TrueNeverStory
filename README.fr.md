@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.6
+# TrueNeverStory v0.26.0
 
 ### Ecris ton livre en jouant.
 
@@ -10,7 +10,7 @@ Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les o
 
 ---
 
-## Nouveautes de v0.25.6
+## Nouveautes de v0.26.0
 
 ### Optimisation de la BD Biblique
 - **Recherche FTS5** — remplacement de `LIKE '%query%'` par `MATCH` FTS5 pour des requetes textuelles en O(1) (avec fallback sur LIKE)
@@ -24,7 +24,7 @@ Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les o
 
 ---
 
-## Nouveautes de v0.25.3
+## Nouveautes de v0.26.0
 
 ### Pipeline State-First
 Le moteur traite maintenant les actions **de maniere deterministe avant de generer du texte** :
@@ -214,7 +214,7 @@ TrueNeverStory/
 │   ├── routes/           # Routes API (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Moteur de regles (14 regles, matrice synergie, dependances tech)
 │   ├── services/         # 60+ services (moteur de jeu, agents, economie, isolation mondes, bus inter-mondes)
-│   │   ├── agents/       # Nouveaux agents v0.25.3 (Dramaturge, Validateur, Styliste, Acteur, Censeur, Chroniqueur)
+│   │   ├── agents/       # Nouveaux agents v0.26.0 (Dramaturge, Validateur, Styliste, Acteur, Censeur, Chroniqueur)
 │   │   └── ...
 │   ├── intelligence/     # Analyse graphe, detection doublons, systeme de recommandation
 │   ├── i18n/             # Pack de langues (7 langues)
@@ -472,7 +472,7 @@ Voir [COMPILE.md](docs/COMPILE.md). GitHub Actions construit toutes les platefor
 
 ## Derniers changements
 
-### v0.25.6 — Optimisation de la BD Biblique
+### v0.26.0 — Optimisation de la BD Biblique
 
 **Performances :**
 - Recherche FTS5 avec fallback sur LIKE — O(n) → O(1) pour les requetes textuelles
@@ -490,7 +490,7 @@ Voir [COMPILE.md](docs/COMPILE.md). GitHub Actions construit toutes les platefor
 - Suppression de 177 Mo de sources et 59 Mo de BD compilees du suivi git
 - Ajout de .gitignore pour les sources et la BD compilee
 
-### v0.25.3 — Literary Compiler & Modeles economiques
+### v0.26.0 — Literary Compiler & Modeles economiques
 
 **Literary Compiler (Phases 0-6):**
 - 4 passes d'analyse hors-ligne : Dramaturgique, Stylistique, Emotionnelle, Metadonnees
@@ -516,7 +516,7 @@ Voir [COMPILE.md](docs/COMPILE.md). GitHub Actions construit toutes les platefor
 - Liste de factions hardcodee dans DirectorLoop corrige — lit depuis la config du monde
 - Approximation de l'annee corrigee — utilise `getFullYear()` au lieu du calcul manuel
 
-### v0.25.3 — Architecture State-First
+### v0.26.0 — Architecture State-First
 
 **Refactoring du moteur principal :**
 - Intent Parser avec schemas Zod (6 types d'intents : mouvement, dialogue, action, commande, observation, meta)

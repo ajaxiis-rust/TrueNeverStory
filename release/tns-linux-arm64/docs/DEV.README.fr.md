@@ -201,7 +201,7 @@ public/                         # Frontend (HTML statique)
 
 **Cycle de vie:**
 1. `new NarrativeService({dbPath, worldFrame})` — tout connecter
-2. `start()` — démarrer la queue LLM, synchroniser les entités, lancer le director
+2. `start()` — démarrer la queue LLM, synchroniser les entités, construire les relations heuristiques (si entités sans liens), lancer le director
 3. `stop()` — arrêter director + LLM
 4. `pause()` / `resume()` — quand l'utilisateur quitte le chat
 5. `reset(newDbPath, worldFrame)` — changement à chaud de monde
@@ -326,3 +326,4 @@ bun test tests/probability-engine.test.ts  # Tests probabilités
 - **Éval sûr**: Formules via descente récursive (pas de eval)
 - **Défense anti injection**: `sanitizeInput()` avant LLM
 - **Écriture JSON atomique**: via fichier temp + rename
+- **Injection de langue**: Les directives linguistiques sont intégrées aux prompts des agents lors de la création du monde via `seedWorldAgents()`, et également ajoutées au moment de l'exécution par `getLanguageInstruction()` pour les dialogues NPC dynamiques

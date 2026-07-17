@@ -244,3 +244,35 @@ LLMの応答は選択されたUI言語に自動的に一致します。言語指
 | chronicler | 5 |
 | social-sim | 4 |
 | researcher | 3（最低） |
+
+---
+
+## スペシャリストエージェント (v0.26.0)
+
+以下のスペシャリストエージェントが`RoleplayEngine`に接続され、`engine.<agent>`で利用可能です：
+
+| エージェント | フィールド | 目的 |
+|-------------|-----------|------|
+| **CartographerAgent** | `engine.cartographer` | 場所/地理情報 — 距離、ルート、地形、ポイントオブインテレスト |
+| **HistorianAgent** | `engine.historian` | 世界の歴史、年代記、過去の出来事、伝承の語り |
+| **LorekeeperAgent** | `engine.lorekeeper` | 世界の事実、魔法システムのルール、種族情報、確立された canon |
+| **MerchantAgent** | `engine.merchant` | NPC商人の取引、価格設定、在庫管理 |
+| **QuestGiverAgent** | `engine.questGiver` | 世界の状態、プレイヤーレベル、ストーリースレッドに基づくクエスト生成 |
+
+各スペシャリストエージェントは`LLMQueue`のみを依存関係として受け取り、専用プロンプトを通じてテキストを生成します。
+
+---
+
+## ダイアログシステム (v0.26.0)
+
+構造化されたNPC会話のための新しい`DialogueManager` + `DialogueContext`：
+
+| 機能 | 説明 |
+|------|------|
+| **セッション管理** | 挨拶 → アクティブ → 別れのライフサイクル |
+| **関係性認識** | 友達/中立/敵ごとの挨拶とトピックの利用可能性 |
+| **封建的階級** | 領主/家臣の特別な挨拶 |
+| **トピック選択** | 個人、派閥、クエスト、取引、戦闘、クラフト、噂、ゴシップなど |
+| **記憶記録** | ダイアログの要約はNPCの長期記憶に保存されます |
+
+`engine.dialogueManager`でアクセス（`npcRuntime`が必要）。

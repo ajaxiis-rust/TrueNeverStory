@@ -1,4 +1,4 @@
-# TrueNeverStory v0.25.6
+# TrueNeverStory v0.26.0
 
 ### 遊ぶだけで、自分の物語を書こう。
 
@@ -10,7 +10,7 @@ TypeScript (Bun + Hono)とC FFIカーネルによるハイブリッド構成。
 
 ---
 
-## v0.25.6 の新機能
+## v0.26.0 の新機能
 
 ### 聖書DBの最適化
 - **FTS5検索** — `LIKE '%query%'` を FTS5 `MATCH` に置き換え、O(1)の全文検索を実現（LIKEへのフォールバック付き）
@@ -24,7 +24,7 @@ TypeScript (Bun + Hono)とC FFIカーネルによるハイブリッド構成。
 
 ---
 
-## v0.25.3 の新機能
+## v0.26.0 の新機能
 
 ### State-Firstパイプライン
 エンジンは**テキストを生成する前にアクションを決定論的に処理**するようになりました：
@@ -214,7 +214,7 @@ TrueNeverStory/
 │   ├── routes/           # APIルート (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # ルールエンジン (14ルール、シナジーマトリックス、技術依存関係)
 │   ├── services/         # 60+サービス (ロールプレイエンジン、エージェント、経済、ワールド分離、クロスワールドバス)
-│   │   ├── agents/       # v0.25.3 新エージェント (ドラマトゥルグ、バリデーター、スタイリスト、アクター、センサー、クロニクラー)
+│   │   ├── agents/       # v0.26.0 新エージェント (ドラマトゥルグ、バリデーター、スタイリスト、アクター、センサー、クロニクラー)
 │   │   └── ...
 │   ├── intelligence/     # グラフ分析、重複検出、レコメンドシステム
 │   ├── i18n/             # 言語パック (7言語)
@@ -472,7 +472,7 @@ bun build --compile --outfile tns-server src/index.ts
 
 ## 最近の変更
 
-### v0.25.6 — 聖書DBの最適化
+### v0.26.0 — 聖書DBの最適化
 
 **パフォーマンス：**
 - FTS5検索（LIKEへのフォールバック付き）— O(n) → O(1)の全文クエリ
@@ -490,7 +490,7 @@ bun build --compile --outfile tns-server src/index.ts
 - 177MBのソース + 59MBのコンパイル済みDBをgitから削除
 - ソースとコンパイル済みDB用の.gitignoreを追加
 
-### v0.25.3 — Literary Compiler と経済モデル
+### v0.26.0 — Literary Compiler と経済モデル
 
 **Literary Compiler（フェーズ0-6）：**
 - 4つのオフライン分析パス：戯曲的、様式的、感情的、メタデータ
@@ -516,7 +516,7 @@ bun build --compile --outfile tns-server src/index.ts
 - DirectorLoopのハードコードされた派閥リストを修正 — ワールド設定から読み込み
 - 年の近似ドリフトを修正 — 手動計算の代わりに`getFullYear()`を使用
 
-### v0.25.3 — State-Firstアーキテクチャ
+### v0.26.0 — State-Firstアーキテクチャ
 
 **コアエンジンリファクタリング：**
 - ZodスキーマによるIntent Parser（6種類のIntentタイプ：移動、会話、アクション、コマンド、観察、メタ）

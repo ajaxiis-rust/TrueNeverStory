@@ -244,3 +244,35 @@ Les agents avec une priorité plus élevée sont traités en premier lorsque plu
 | chronicler | 5 |
 | social-sim | 4 |
 | researcher | 3 (la plus basse) |
+
+---
+
+## Agents spécialisés (v0.26.0)
+
+Les agents spécialisés suivants sont maintenant intégrés dans `RoleplayEngine` et accessibles via `engine.<agent>` :
+
+| Agent | Champ | Rôle |
+|-------|-------|------|
+| **CartographerAgent** | `engine.cartographer` | Informations géographiques — distances, itinéraires, terrain, points d'intérêt |
+| **HistorianAgent** | `engine.historian` | Histoire du monde, chronologie, événements passés, narration du lore |
+| **LorekeeperAgent** | `engine.lorekeeper` | Faits du monde, règles du système de magie, informations sur les races, canon établi |
+| **MerchantAgent** | `engine.merchant` | Commerce des marchands PNJ, tarification, gestion de l'inventaire |
+| **QuestGiverAgent** | `engine.questGiver` | Génération de quêtes basée sur l'état du monde, le niveau du joueur, les fils narratifs |
+
+Chaque agent spécialiste n'accepte que `LLMQueue` comme dépendance et génère du texte via des prompts dédiés.
+
+---
+
+## Système de dialogue (v0.26.0)
+
+Nouveau `DialogueManager` + `DialogueContext` pour les conversations structurées avec les PNJ :
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Gestion des sessions** | Cycle Salutation → Actif → Au revoir |
+| **Conscience des relations** | Salutations et disponibilité des sujets pour amis/neutres/ennemis |
+| **Hiérarchie féodale** | Salutations spéciales pour seigneur/vassaux |
+| **Choix thématique** | personnel, faction, quête, commerce, combat, artisanat, rumeurs, potins, etc. |
+| **Enregistrement en mémoire** | Les résumés de dialogues sont stockés en mémoire à long terme des PNJ |
+
+Accès via `engine.dialogueManager` (nécessite `npcRuntime`).

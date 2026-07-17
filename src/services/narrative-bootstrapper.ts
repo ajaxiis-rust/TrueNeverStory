@@ -29,7 +29,7 @@ import { StoryArcManager } from "./story-arc-manager";
 import { UserAgent } from "./user-agent";
 import { WorldEvolver } from "./world-evolver";
 import { NPCGenerator } from "./npc-generator";
-import { GraphValidator } from "../intelligence/graph-validator";
+import { GraphValidator } from "../intelligence";
 import { SQLiteStore } from "../lib/sqlite-store";
 import { EconomicService } from "./economic-service";
 import { EconomicDB } from "../mcp/literary-compiler/economic-schema";
@@ -39,10 +39,16 @@ import { join } from "node:path";
 function loadRateLimitConfig(): { rpm: number; maxConcurrent: number; maxQueueSize: number } {
   const defaults = { rpm: 45, maxConcurrent: 3, maxQueueSize: 50 };
   try {
-    const path = join(process.cwd(), "conf", "providers.json");
+    const path = join(process.cwd(), "conf", "provider-rate-limits.json");
     if (!existsSync(path)) return defaults;
     const data = JSON.parse(readFileSync(path, "utf-8"));
-    return { ...defaults, ...data.rateLimit };
+    // provider-rate-limits.json has per-provider rpm; sum them for the queue cap
+    const providers = data.providers as Record<string, { rpm?: number }> | undefined;
+    if (providers) {
+      const totalRpm = Object.values(providers).reduce((sum, p) => sum + (p.rpm ?? 0), 0);
+      if (totalRpm > 0) return { ...defaults, rpm: Math.min(totalRpm, 200) };
+    }
+    return defaults;
   } catch { return defaults; }
 }
 

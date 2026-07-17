@@ -197,7 +197,7 @@ public/                         # フロントエンド (静的HTML)
 
 **ライフサイクル:**
 1. `new NarrativeService({dbPath, worldFrame})` — 全体を接続
-2. `start()` — LLMキュー起動、エンティティ同期、director開始
+2. `start()` — LLMキュー起動、エンティティ同期、ヒューリスティック関係構築（エンティティがあるがリンクがない場合）、director開始
 3. `stop()` — director + LLM停止
 4. `pause()` / `resume()` — ユーザーがチャットを離れた時
 5. `reset(newDbPath, worldFrame)` — 別ワールドへのホットスワップ
@@ -322,3 +322,4 @@ bun test tests/probability-engine.test.ts  # 確率テスト
 - **安全なeval**: 再帰的降下による数式 (eval不使用)
 - **プロンプトインジェクション防御**: LLM前に`sanitizeInput()`
 - **アトミックJSON書き込み**: テンポファイル + rename
+- **言語指示注入**: 言語ディレクティブはワールド作成時に`seedWorldAgents()`でエージェントのプロンプトに組み込まれ、ランタイムには`getLanguageInstruction()`で動的なNPCダイアログに追加されます

@@ -1,10 +1,221 @@
-# Agents Reference
+# Agents Reference (v0.25.3)
 
-TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. Agents have their own LLM configuration, system prompts, and user templates.
+TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.25.0, the engine uses **6 specialized agents** (The Big Six) replacing the previous 14-agent system.
+
+---
+
+## The Big Six Agents
+
+### 1. Dramaturg (The Architect)
+
+**ID:** `dramaturg`
+**Role:** Selects narrative patterns from Bible archetypes
+**MCP Tools:** `search_verses`, `get_pattern`, `get_archetype`
+
+| Aspect | Detail |
+|--------|--------|
+| **Purpose** | Analyzes the current situation and chooses appropriate story structures from biblical patterns |
+| **Input** | Intent, SimulationResult, GameContext |
+| **Output** | NarrativePattern (archetype, name, description, verses, mood) |
+| **Dependencies** | TNSServer (MCP), LLMQueue |
+
+**Workflow:**
+1. Infers mood from intent type and simulation outcome
+2. Queries Bible MCP for matching archetypes
+3. Falls back to LLM-generated patterns if MCP unavailable
+
+---
+
+### 2. Validator (The Fact-Checker)
+
+**ID:** `validator`
+**Role:** Verifies facts via Wikipedia MCP
+**MCP Tools:** `verify_fact`, `get_context`
+
+| Aspect | Detail |
+|--------|--------|
+| **Purpose** | Ensures world consistency and historical accuracy |
+| **Input** | Intent, SimulationResult, GameContext |
+| **Output** | Verification results (verified, confidence, evidence, sources) |
+| **Dependencies** | TNSServer (MCP) |
+
+**Workflow:**
+1. Extracts factual claims from the situation
+2. Queries Wikipedia MCP for verification
+3. Returns verification results with confidence levels
+
+---
+
+### 3. Stylist (The Narrator)
+
+**ID:** `stylist`
+**Role:** Renders prose using Gutenberg style patterns
+**MCP Tools:** `get_style_pattern`, `apply_style`
+
+| Aspect | Detail |
+|--------|--------|
+| **Purpose** | Core text generation agent that produces narrative prose |
+| **Input** | Intent, SimulationResult, GameContext, NarrativePattern |
+| **Output** | Prose text |
+| **Dependencies** | TNSServer (MCP), LLMQueue |
+
+**Workflow:**
+1. Gets style based on mood from Gutenberg MCP
+2. Builds constrained prompt with simulation results and style
+3. Generates prose via LLM
+4. Returns rendered text
+
+---
+
+### 4. Actor (NPC Ensemble)
+
+**ID:** `actor`
+**Role:** Manages NPC interactions and dialogue
+**MCP Tools:** None
+
+| Aspect | Detail |
+|--------|--------|
+| **Purpose** | Handles all NPC dialogue, trading, crafting, social dynamics |
+| **Input** | Intent, SimulationResult, GameContext |
+| **Output** | NPC dialogue text, state changes |
+| **Dependencies** | UnifiedEntityStore, LLMQueue |
+
+**Workflow:**
+1. Routes to appropriate sub-handler based on intent type
+2. Gets NPC's hidden motivations from L3 profile
+3. Generates NPC response using LLM
+4. Computes relationship state changes
+
+---
+
+### 5. Censor (Linter)
+
+**ID:** `censor`
+**Role:** Removes AI clichés and enforces style consistency
+**MCP Tools:** None
+
+| Aspect | Detail |
+|--------|--------|
+| **Purpose** | Cleans prose by removing AI-generated clichés and anachronisms |
+| **Input** | Prose text, GameContext |
+| **Output** | Cleaned prose text |
+| **Dependencies** | LLMQueue |
+
+**Workflow:**
+1. Removes AI clichés via regex patterns
+2. Fixes anachronisms based on world context
+3. LLM-based polish for complex issues
+4. Returns cleaned text
+
+**Common AI Clichés Removed:**
+- "delved", "tapestry", "rich tapestry", "palpable", "visceral"
+- "it's worth noting", "it goes without saying"
+- "the very fabric of", "on a deeper level"
+
+---
+
+### 6. Chronicler
+
+**ID:** `chronicler`
+**Role:** Updates world memory and maintains timeline
+**MCP Tools:** None
+
+| Aspect | Detail |
+|--------|--------|
+| **Purpose** | Logs all significant events and maintains world consistency |
+| **Input** | Intent, SimulationResult, GameContext |
+| **Output** | State changes (NPC memory updates) |
+| **Dependencies** | UnifiedEntityStore, EventBus |
+
+**Workflow:**
+1. Creates event description from intent and outcome
+2. Publishes to EventBus for other systems
+3. Updates NPC memories for nearby characters
+4. Logs to timeline
+
+---
+
+## Legacy Agents (Deprecated)
+
+The following agents are deprecated in v0.25.0 but still available for backward compatibility:
+
+| Agent | Replacement | Status |
+|-------|-------------|--------|
+| Narrator | Stylist | Deprecated |
+| Director | Dramaturg | Deprecated |
+| Scene | Stylist | Deprecated |
+| NPC | Actor | Deprecated |
+| Crafter | Actor | Deprecated |
+| Researcher | Validator | Deprecated |
+| Historian | Chronicler | Deprecated |
+| Cartographer | Actor | Deprecated |
+| Merchant | Actor | Deprecated |
+| Quest Giver | Dramaturg | Deprecated |
+| Lorekeeper | Dramaturg | Deprecated |
+| Social Sim | Actor | Deprecated |
+| Villain | Dramaturg | Deprecated |
+| User Agent | Actor | Deprecated |
+
+**Backward Compatibility:**
+Old agent IDs (`@narrator`, `@director`, etc.) still work but route to the new agents internally.
+
+---
+
+## Agent Registry v2
+
+All agents are registered in `AgentRegistryV2` (`src/services/agent-registry-v2.ts`):
+
+```typescript
+import { getAgentRegistryV2 } from './agent-registry-v2';
+
+const registry = getAgentRegistryV2();
+
+// Register agents
+registry.register(dramaturgAgent);
+registry.register(validatorAgent);
+registry.register(stylistAgent);
+registry.register(actorAgent);
+registry.register(censorAgent);
+registry.register(chroniclerAgent);
+
+// Get agent by ID
+const dramaturg = registry.get('dramaturg');
+
+// Get agents with specific MCP tool
+const withSearch = registry.getAgentsWithTool('search_verses');
+```
+
+---
+
+## Agent Interface (v0.25.0)
+
+```typescript
+interface AgentV2 {
+  readonly id: AgentId;
+  readonly name: string;
+  readonly description: string;
+  readonly mcpTools: string[];
+
+  process(
+    intent: Intent,
+    simulation: SimulationResult,
+    context: GameContext,
+    pattern?: NarrativePattern,
+  ): Promise<AgentOutput>;
+}
+
+interface AgentOutput {
+  text?: string;
+  stateChanges?: StateChange[];
+  metadata?: Record<string, unknown>;
+}
+```
+
+---
 
 ## Global Variables
 
-These variables are available to most agents through the world state context:
+These variables are available to agents through the game context:
 
 | Variable | Description |
 |----------|-------------|
@@ -27,275 +238,33 @@ These variables are available to most agents through the world state context:
 | `{language}` | Primary world language (en, ru, etc.) |
 | `{world_description}` | World description/pitch |
 
-## Agents
-
-### Narrator (`narrator`)
-
-**Description:** Primary storyteller. Generates world narrative from story context.
-
-**Template variables:**
-`{world_name}` `{time}` `{location}` `{character}` `{role}` `{rules}` `{timeline}` `{memories}` `{facts}` `{npcs}` `{history}`
-
-**System prompt:** Defines the narrator as a skilled storyteller. Writes vivid, immersive prose in second/third person. Never breaks character.
-
-**Temperature:** 0.8 | **Max tokens:** 4096 | **Priority:** 10 (highest)
-
----
-
-### Director (`director`)
-
-**Description:** Story beat injection. Integrates dramatic moments into the narrative.
-
-**Template variables:**
-`{narrative}` `{beat}`
-
-| Variable | Description |
-|----------|-------------|
-| `{narrative}` | Current narrative text to inject the beat into |
-| `{beat}` | Story beat description (inciting incident, revelation, setback, etc.) |
-
-**Temperature:** 0.7 | **Max tokens:** 2048 | **Priority:** 8
-
----
-
-### Scene Generator (`scene`)
-
-**Description:** Scene transition narratives when characters move between locations.
-
-**Template variables:**
-`{character}` `{origin}` `{destination}` `{rules}` `{events}`
-
-| Variable | Description |
-|----------|-------------|
-| `{origin}` | Current location (where the character is leaving from) |
-| `{destination}` | Target location (where the character is going to) |
-
-**Temperature:** 0.8 | **Max tokens:** 2048 | **Priority:** 7
-
----
-
-### NPC Agent (`npc`)
-
-**Description:** NPC dialogue and reactions. Roleplays individual characters.
-
-**Template variables:**
-`{npc_name}` `{npc_personality}` `{player}` `{location}` `{relationship}` `{events}` `{line}`
-
-| Variable | Description |
-|----------|-------------|
-| `{npc_name}` | Name of the NPC being roleplayed |
-| `{npc_personality}` | NPC's personality traits (from entity profile) |
-| `{player}` | Player character's name |
-| `{relationship}` | Relationship with the player (friend, neutral, enemy, etc.) |
-| `{line}` | What the player said to the NPC |
-
-**Temperature:** 0.7 | **Max tokens:** 1024 | **Priority:** 9
-
----
-
-### Chronicler (`chronicler`)
-
-**Description:** Timeline management. Summarizes events and maintains world history.
-
-**Template variables:**
-`{events}` `{timeline}`
-
-| Variable | Description |
-|----------|-------------|
-| `{events}` | New events to chronicle (recent actions, movements, dialogues) |
-| `{timeline}` | Existing timeline for context |
-
-**Temperature:** 0.5 | **Max tokens:** 1024 | **Priority:** 5
-
----
-
-### Story Planner (`story-planner`)
-
-**Description:** Story arc planning. Plans quests and plot developments.
-
-**Template variables:**
-`{world_state}` `{characters}` `{events}` `{quests}`
-
-| Variable | Description |
-|----------|-------------|
-| `{characters}` | Active characters in the world |
-| `{quests}` | Currently active quests |
-
-**Output format:**
-```json
-{"arc": "description", "quests": [{"title": "", "description": "", "objectives": [""]}], "hooks": [""]}
-```
-
-**Temperature:** 0.7 | **Max tokens:** 2048 | **Priority:** 6
-
----
-
-### Social Simulator (`social-sim`)
-
-**Description:** Social dynamics. Simulates NPC relationships and interactions.
-
-**Template variables:**
-`{characters}` `{relationships}` `{context}`
-
-| Variable | Description |
-|----------|-------------|
-| `{relationships}` | Current relationship graph between characters |
-| `{context}` | Social context (meeting, conflict, alliance, etc.) |
-
-**Temperature:** 0.6 | **Max tokens:** 1024 | **Priority:** 4
-
----
-
-### Villain Manager (`villain`)
-
-**Description:** Antagonist management. Plans villain moves and evil schemes.
-
-**Template variables:**
-`{villain}` `{world_state}` `{recent_actions}`
-
-| Variable | Description |
-|----------|-------------|
-| `{villain}` | Villain profile (personality, goals, abilities) |
-| `{recent_actions}` | Recent villain actions in the world |
-
-**Temperature:** 0.8 | **Max tokens:** 2048 | **Priority:** 6
-
----
-
-### Researcher (`researcher`)
-
-**Description:** Fact-checking, realism validation, and world-building research.
-
-**Template variables:**
-`{task}` `{world_context}`
-
-| Variable | Description |
-|----------|-------------|
-| `{task}` | Research task (recipe verification, character validation, scene enrichment, fact-check) |
-
-**Output format:**
-```json
-{"verdict": "plausible|questionable|unrealistic", "confidence": 0.0-1.0, "issues": [], "suggestions": [], "enrichedDetails": ""}
-```
-
-**Temperature:** 0.3 | **Max tokens:** 2048 | **Priority:** 3 (lowest)
-
----
-
-### Historian (`historian`)
-
-**Description:** World history, chronology, and historical events.
-
-**Template variables:**
-`{query}` `{world_history}` `{relevant_events}` `{world_rules}`
-
-| Variable | Description |
-|----------|-------------|
-| `{query}` | Historical query from the user |
-| `{world_history}` | Established world history and chronology |
-| `{relevant_events}` | Recent events relevant to the query |
-| `{world_rules}` | World rules that affect historical interpretation |
-
-**Temperature:** 0.5 | **Max tokens:** 2048 | **Priority:** 6
-
----
-
-### Cartographer (`cartographer`)
-
-**Description:** Maps, locations, distances, and geography.
-
-**Template variables:**
-`{query}` `{locations}` `{current_location}`
-
-| Variable | Description |
-|----------|-------------|
-| `{query}` | Geographic query from the user |
-| `{locations}` | Known locations in the world |
-| `{current_location}` | Character's current location |
-
-**Temperature:** 0.4 | **Max tokens:** 1024 | **Priority:** 4
-
----
-
-### Merchant (`merchant`)
-
-**Description:** Trading, pricing, and NPC inventory management.
-
-**Template variables:**
-`{query}` `{inventory}` `{world_economy}`
-
-| Variable | Description |
-|----------|-------------|
-| `{query}` | Trading query from the user |
-| `{inventory}` | Merchant's current inventory |
-| `{world_economy}` | Economic context (supply, demand, prices) |
-
-**Temperature:** 0.6 | **Max tokens:** 1024 | **Priority:** 5
-
----
-
-### Quest Giver (`quest-giver`)
-
-**Description:** Generates contextual quests based on world state.
-
-**Template variables:**
-`{query}` `{world_state}` `{active_quests}` `{nearby_npcs}` `{player_level}`
-
-| Variable | Description |
-|----------|-------------|
-| `{query}` | Quest-related query from the user |
-| `{world_state}` | Current world state |
-| `{active_quests}` | Currently active quests |
-| `{nearby_npcs}` | NPCs near the player |
-| `{player_level}` | Player's current level |
-
-**Output format:**
-```json
-{"title": "", "description": "", "objectives": [""], "rewards": "", "difficulty": "easy|medium|hard"}
-```
-
-**Temperature:** 0.7 | **Max tokens:** 2048 | **Priority:** 7
-
----
-
-### Lorekeeper (`lorekeeper`)
-
-**Description:** World facts, magic rules, races, and established canon.
-
-**Template variables:**
-`{query}` `{world_facts}` `{magic_system}` `{races}`
-
-| Variable | Description |
-|----------|-------------|
-| `{query}` | Lore query from the user |
-| `{world_facts}` | Established world facts |
-| `{magic_system}` | Magic system rules and limitations |
-| `{races}` | Known races and their characteristics |
-
-**Temperature:** 0.4 | **Max tokens:** 2048 | **Priority:** 6
-
 ---
 
 ## Temperature Guide
 
 | Value | Effect | Use for |
 |-------|--------|---------|
-| 0.1 - 0.3 | Focused, deterministic | Research, fact-checking |
+| 0.1 - 0.3 | Focused, deterministic | Research, fact-checking, intent parsing |
 | 0.4 - 0.6 | Balanced | Chronicler, social simulation |
 | 0.7 - 0.8 | Creative | Narrative, NPC dialogue, villain schemes |
+
+---
 
 ## Using @agent in Chat
 
 Send a private message to any agent from the chat:
 
 ```
-@narrator Describe the atmosphere of the ancient forest at dusk
-@director Suggest a dramatic plot twist for the current scene
-@researcher Is this medieval weapon historically accurate?
-@chronicler Summarize what happened in the last hour
+@dramaturg Suggest a narrative pattern for this scene
+@validator Is this historical event accurate?
+@stylist Describe the ancient ruins in Gothic style
+@actor Talk to the merchant about rare items
+@chronicler What happened in the last hour?
 ```
 
 Responses are marked with a blue left border and agent name in brackets.
+
+---
 
 ## RAG System (Embeddings + Long-Term Memory)
 
@@ -326,10 +295,36 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
                               Context for LLM Prompt
 ```
 
-**Key files:**
-- `src/lib/agent-memory-store.ts` — AgentMemoryStore with embedding integration
-- `src/lib/sqlite-store.ts` — SQLiteStore with FTS5 + vector search + RRF
-- `src/lib/vector-ops.ts` — Vector operations (cosine, L2, dot product)
+---
+
+## MCP Integration (v0.25.0)
+
+### Bible Patterns
+
+Biblical texts stored in SQLite with verse-level granularity. Each verse is an atomic pointer that can be referenced by agents.
+
+**Tools:**
+- `search_verses` — Search by text, book, or reference
+- `get_pattern` — Get narrative patterns by archetype, mood, or function
+- `get_archetype` — Get archetype details by name
+
+### Gutenberg Styles
+
+Stylistic patterns extracted from Gutenberg Project texts. Delexified descriptions preserve structure without character names.
+
+**Tools:**
+- `get_style_pattern` — Search styles by mood, tags, or description
+- `apply_style` — Apply style to text (delexify and return suggestions)
+
+### Wikipedia Validation
+
+Historical fact-checking via Wikipedia API.
+
+**Tools:**
+- `verify_fact` — Verify a factual claim
+- `get_context` — Get Wikipedia context for a topic
+
+---
 
 ## Template System
 
@@ -345,203 +340,13 @@ Each agent stores a `userTemplate` in SQLite (`agent_prompts` table) with JSON f
 
 **If no userTemplate exists** → fallback to `PromptBuilder` (hardcoded TypeScript templates).
 
-### Language-Aware Prompts
-
-Agent prompts are stored per world and per language in SQLite:
-
-```sql
-CREATE TABLE agent_prompts (
-  world TEXT NOT NULL DEFAULT 'default',
-  agent_id TEXT NOT NULL,
-  language TEXT NOT NULL DEFAULT 'en',
-  system_prompt TEXT NOT NULL DEFAULT '',
-  user_template TEXT NOT NULL DEFAULT '',
-  output_format TEXT NOT NULL DEFAULT '',
-  UNIQUE(world, agent_id, language)
-);
-```
-
-**Storage hierarchy:**
-1. **SQLite** (`agent_prompts` table) — primary storage, per world + language
-2. **JSON files** (`worlds/{world}/agents/{agentId}.json`) — fallback during migration
-3. **Hardcoded defaults** (`DEFAULT_PROMPTS` in `src/services/agent-config.ts`)
-
-**Dual-write strategy:** During migration, writes go to both SQLite and JSON. Reads prioritize SQLite, falling back to JSON if not found.
-
-### Language Instruction Injection
-
-LLM responses automatically match the selected UI language. The language instruction is baked into agent prompts at seed time via `seedWorldAgents()`, and also appended at runtime by `getLanguageInstruction()`:
-
-| Language | Injected text |
-|----------|--------------|
-| en | `IMPORTANT: Always respond in English.` |
-| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
-| de | `WICHTIG: Antworte immer auf Deutsch.` |
-| fr | `IMPORTANT: Réponds toujours en français.` |
-| es | `IMPORTANTE: Responde siempre en español.` |
-| ja | `重要：常に日本語で回答してください。` |
-| zh | `重要：请始终用中文回复。` |
-
-At world creation, `seedWorldAgents()` writes all 14 agents with the language instruction appended to the system prompt. This ensures new worlds start with proper language isolation. The runtime `getLanguageInstruction()` is used by `dialogue-context.ts` for dynamic NPC dialogue.
-
-### API Endpoints for Prompts
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/agents` | List all agents (accepts `?world=`) |
-| `GET` | `/api/agents/:id` | Get single agent config (accepts `?world=`) |
-| `PUT` | `/api/agents/:id` | Update agent config (accepts `?world=`) |
-| `PUT` | `/api/agents/:id/prompts` | Update prompts (accepts `?world=`) |
-| `GET` | `/api/agents/:id/prompts/:lang` | Get prompts for a specific language |
-| `PUT` | `/api/agents/:id/prompts/:lang` | Upsert prompts for a specific language |
-
-**Query parameters:**
-- `world` — optional, defaults to active world from settings. All agent endpoints support `?world=` for per-world operations without switching the active world.
-
-**Example response:**
-```json
-{
-  "agentId": "narrator",
-  "language": "ru",
-  "world": "levant",
-  "prompts": {
-    "systemPrompt": "...",
-    "userTemplate": "...",
-    "outputFormat": "..."
-  }
-}
-```
-
-### Agents Using userTemplate (dynamic, user-editable via UI)
-
-| Agent | Template Variables |
-|-------|-------------------|
-| narrator | `{world_name}`, `{time}`, `{location}`, `{character}`, `{role}`, `{rules}`, `{timeline}`, `{memories}`, `{facts}`, `{npcs}`, `{history}` |
-| scene | `{character}`, `{origin}`, `{destination}`, `{rules}`, `{events}` |
-| director | `{narrative}`, `{beat}` |
-| npc | `{npc_name}`, `{npc_personality}`, `{location}`, `{player}`, `{relationship}`, `{events}`, `{line}` |
-
-### Agents Using PromptBuilder (static, code-only)
-
-| Agent | Reason |
-|-------|--------|
-| **researcher** | Complex multi-method prompts (verifyRecipe, researchTopic, validateCharacter, enrichScene, factCheck). Each method has unique structure not suited for simple variable substitution. |
-| **crafter** | Recipe suggestion prompt with dynamic scenario generation. Too complex for template vars. |
-| **chronicler** | Data storage service, not a prompt-generating agent. |
-| **story-planner** | Connected to LLM via roleplay engine (real prompts). |
-| **social-sim** | Connected to LLM via roleplay engine (real prompts). |
-| **villain** | Connected to LLM via roleplay engine (real prompts). |
-
-> **Reminder:** If you add a new agent that needs simple prompt templating, add it to the "Using userTemplate" list. If it needs complex multi-branch logic, keep it on PromptBuilder and add it to this list instead.
-
-## i18n System
-
-### UI Translations in SQLite
-
-UI translation strings are stored in SQLite (`ui_translations` table) per language and page:
-
-```sql
-CREATE TABLE ui_translations (
-  language TEXT NOT NULL,
-  page TEXT NOT NULL DEFAULT 'global',
-  key TEXT NOT NULL,
-  value TEXT NOT NULL,
-  UNIQUE(language, page, key)
-);
-```
-
-**Supported pages:**
-- `agents` — Agent settings page UI strings
-- `settings` — Global settings page UI strings
-- `agent_names` — Translated agent names
-- `agent_descs` — Translated agent descriptions
-
-**Supported languages:** en, ru, de, fr, es, ja, zh
-
-### i18n API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/i18n/translations/:lang/:page` | Get translations for a language+page |
-| `GET` | `/api/i18n/translations/:lang` | Get all translations for a language |
-| `PUT` | `/api/i18n/translations` | Upsert batch of translations |
-| `DELETE` | `/api/i18n/translations/:lang/:page/:key` | Delete a translation key |
-
-**Example request (PUT):**
-```json
-{
-  "language": "ru",
-  "page": "agents",
-  "entries": {
-    "title": "Настройки агентов",
-    "savePrompts": "Сохранить промпты"
-  }
-}
-```
-
-**Example response (GET):**
-```json
-{
-  "language": "ru",
-  "page": "agents",
-  "translations": {
-    "title": "Настройки агентов",
-    "savePrompts": "Сохранить промпты",
-    "settings": "Настройки"
-  }
-}
-```
-
-### Frontend Integration
-
-Frontend pages fetch translations from the API and fall back to inline JavaScript objects:
-
-```javascript
-// agents.html
-async function loadTranslations(langCode) {
-  const res = await fetch(`/api/i18n/translations/${langCode}/agents`);
-  const data = await res.json();
-  remoteTranslations = data.translations || {};
-}
-
-function t(key) {
-  if (remoteTranslations[key] !== undefined) return remoteTranslations[key];
-  return I18N[lang]?.[key] ?? I18N.en[key] ?? key;
-}
-```
-
-### Seeding Translations
-
-On first startup, `seedUITranslations()` in `src/lib/sqlite-store.ts` populates the `ui_translations` table with all 7 languages for all 4 pages. This only runs if the table is empty.
-
-## Priority
-
-Higher priority agents are processed first when multiple LLM requests queue up.
-
-| Agent | Priority |
-|-------|----------|
-| narrator | 10 (highest) |
-| npc | 9 |
-| director | 8 |
-| scene | 7 |
-| quest-giver | 7 |
-| story-planner | 6 |
-| villain | 6 |
-| historian | 6 |
-| lorekeeper | 6 |
-| chronicler | 5 |
-| merchant | 5 |
-| social-sim | 4 |
-| cartographer | 4 |
-| researcher | 3 (lowest) |
-
-> **Note:** Template variables are resolved at runtime by `resolveTemplate()` in `src/utils/template-resolver.ts`. Agents using userTemplate (narrator, scene, director, npc) read from `worlds/default/agents/{id}.json` and resolve `{var}` placeholders with real context data. Researcher and crafter use `PromptBuilder` (code-only) because their prompts have complex multi-branch logic not suitable for simple variable substitution.
+---
 
 ## Storage Architecture
 
 ### SQLite Database
 
-The project uses SQLite via Bun's built-in `bun:sqlite` module. The database file is `tns.db` in the configured `dbPath` (default `./world_db`).
+The project uses SQLite via Bun's built-in `bun:sqlite` module. The database file is `tns.db` in the configured `dbPath` (default `./worlds/{active}`).
 
 **Tables:**
 - `entities` — World entities with FTS5 full-text search
@@ -561,10 +366,3 @@ conf/
 worlds/{active}/
   agents/{agentId}.json  — Per-world agent prompts (fallback)
 ```
-
-### Dual-Write Strategy
-
-During migration, writes go to both SQLite and JSON:
-- **Reads:** SQLite first → JSON fallback → hardcoded defaults
-- **Writes:** Dual-write to SQLite + JSON (JSON for backward compatibility)
-- **Future:** Can drop JSON fallback after verification

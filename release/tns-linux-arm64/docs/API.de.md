@@ -137,6 +137,33 @@ Generierte Kapitel auflisten.
 ### `GET /worlds/:name/chapters/:filename`
 Kapitelinhalt abrufen.
 
+### `GET /worlds/:name/detail`
+Vollständige Weltstatistiken für das Statistik-Modal.
+
+**Antwort:**
+```json
+{
+  "name": "default",
+  "title": "Meine Welt",
+  "description": "...",
+  "genre": "fantasy",
+  "language": "de",
+  "worldRules": [{ "name": "...", "description": "..." }],
+  "magicSystem": "...",
+  "entityCounts": { "Character": 5, "Location": 3, "Faction": 2, "Item": 8 },
+  "totalEntities": 18,
+  "characters": [{ "name": "...", "summary": "...", "tags": [], "relationships": [] }],
+  "locations": [{ "name": "...", "summary": "..." }],
+  "factions": [{ "name": "...", "summary": "..." }],
+  "items": [{ "name": "...", "summary": "..." }],
+  "sessionCount": 4,
+  "eventCount": 42,
+  "chapterCount": 3,
+  "villainCount": 1,
+  "hasFrame": true
+}
+```
+
 ---
 
 ## Entitäten & Graf
@@ -311,22 +338,22 @@ Verwaiste Embeddings bereinigen.
 ### `GET /agents`
 Alle konfigurierten Agenten auflisten.
 
-**Abfrageparameter:** `world` — optional, nach bestimmter Welt filtern
+Abfrageparameter: `world` — optional, Filterung nach bestimmter Welt
 
 ### `GET /agents/:id`
 Einzelne Agentenkonfiguration abrufen.
 
-**Abfrageparameter:** `world` — optional, nach bestimmter Welt filtern
+Abfrageparameter: `world` — optional, Laden aus bestimmter Welt
 
 ### `PUT /agents/:id`
 Agentenkonfiguration aktualisieren (Modell, Temperatur, Prompts usw.). Rate-Limit: 30/Min/IP.
 
-**Abfrageparameter:** `world` — optional, nach bestimmter Welt filtern
+Abfrageparameter: `world` — optional, Speichern in bestimmter Welt
 
 ### `PUT /agents/:id/prompts`
 Nur Prompts des Agenten aktualisieren.
 
-**Abfrageparameter:** `world` — optional, nach bestimmter Welt filtern
+Abfrageparameter: `world` — optional, Speichern in bestimmter Welt
 
 ### `POST /agents/:id/reset`
 Agenten auf Standardwerte zurücksetzen.
@@ -421,7 +448,7 @@ Neue Spielsitzung mit Charaktergenerierung erstellen.
 
 **Anfrage:** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
 
-- `name` — optional, Name der Spielsitzung
+`name` — expliziter Charaktername (optional). Wenn angegeben, wird die LLM-Namensgenerierung übersprungen. Unterstützt nicht-lateinische Zeichen.
 
 **Antwort:** `{ status: "success", session_id, character_name, opening_narrative, url }`
 
