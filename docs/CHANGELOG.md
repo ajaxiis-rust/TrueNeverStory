@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.27.0 (2026-07-17)
+
+### Release Packaging — Database Archives
+
+Compiled `.db` databases are now included in release builds as compressed archives:
+
+- **`build.sh`**: New `pack_databases()` step compresses all `data/**/*.db` into `databases.tar.gz` (71MB → 15MB) and places it in each release target directory
+- **`startgame.sh`**: New `ensure_databases()` section auto-extracts `databases.tar.gz` on first launch if `.db` files are missing from disk
+- Works for all 7 compiled databases: bible-normalized, literary-compiler (literary + economic), gutenberg-normalized, bible-compiler-output (literary, literary-cached, literary-full)
+
 ## v0.26.0 (2026-07-17)
 
 ### Bug Fixes

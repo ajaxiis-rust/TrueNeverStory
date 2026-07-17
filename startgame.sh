@@ -511,12 +511,43 @@ EOCFG
 auto_configure_env
 
 # ═══════════════════════════════════════════════════════════════
+#  §7b  DATABASE EXTRACTION (auto-unpack on first launch)
+# ═══════════════════════════════════════════════════════════════
+
+ensure_databases() {
+    local KEY_DB="data/bible/bible-normalized.db"
+    local ARCHIVE="databases.tar.gz"
+
+    if [[ -f "$KEY_DB" ]]; then
+        return 0
+    fi
+
+    if [[ ! -f "$ARCHIVE" ]]; then
+        echo -e "${YELLOW}  Database files not found and no archive available.${NC}"
+        echo -e "${YELLOW}  The server may not work correctly without compiled databases.${NC}"
+        return 0
+    fi
+
+    echo -e "${CYAN}  Extracting databases from ${ARCHIVE}...${NC}"
+    if tar xzf "$ARCHIVE" 2>/dev/null; then
+        local count
+        count=$(find data -name "*.db" -type f 2>/dev/null | wc -l)
+        echo -e "${GREEN}  Extracted ${count} database files${NC}"
+    else
+        echo -e "${RED}  Failed to extract database archive${NC}"
+        echo -e "${YELLOW}  Try manually: tar xzf ${ARCHIVE}${NC}"
+    fi
+}
+
+ensure_databases
+
+# ═══════════════════════════════════════════════════════════════
 #  §8  BANNER
 # ═══════════════════════════════════════════════════════════════
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║      TrueNeverStory v0.22.2 — Game Server        ║${NC}"
+echo -e "${BOLD}║      TrueNeverStory v0.27.0 — Game Server        ║${NC}"
 echo -e "${BOLD}╠══════════════════════════════════════════════════╣${NC}"
 echo -e "${CYAN}║  Mode:     ${MODE}${NC}"
 echo -e "${CYAN}║  URL:      http://${EXT_IP}:${PORT}${NC}"

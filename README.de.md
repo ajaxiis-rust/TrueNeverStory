@@ -1,4 +1,4 @@
-# TrueNeverStory v0.26.0
+# TrueNeverStory v0.27.0
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
@@ -10,7 +10,7 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskriti
 
 ---
 
-## Was ist neu in v0.26.0
+## Was ist neu in v0.27.0
 
 ### Bibel-DB-Optimierung
 - **FTS5-Suche** — Ersetzt `LIKE '%query%'` durch FTS5 `MATCH` fuer O(1) Volltextanfragen (mit Fallback auf LIKE)
@@ -22,7 +22,7 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskriti
 - **Git-Bereinigung** — 177MB Quelldateien + 59MB kompilierte DB aus dem Tracking entfernt
 - **Build-Skripte** — `download-sources.sh` + `bootstrap-bible-db.ts` fuer die Client-Einrichtung
 
-## Was ist neu in v0.26.0
+## Was ist neu in v0.27.0
 
 ### State-First-Pipeline
 Die Engine verarbeitet Aktionen nun **deterministisch, bevor Text generiert wird**:
@@ -214,7 +214,7 @@ TrueNeverStory/
 │   ├── routes/           # API-Routen (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Regel-Engine (14 Regeln, Synergie-Matrix, Technologie-Abhaengigkeiten)
 │   ├── services/         # 60+ Dienste (Rollenspiel-Engine, Agenten, Oekonomie, Welt-Isolierung, Cross-Welt-Bus)
-│   │   ├── agents/       # v0.26.0 neue Agenten (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+│   │   ├── agents/       # v0.27.0 neue Agenten (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
 │   │   └── ...
 │   ├── intelligence/     # Graph-Analyse, Duplikaterkennung, Empfehlungssystem
 │   ├── i18n/             # Sprachpakete (7 Sprachen)
@@ -472,7 +472,7 @@ Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automa
 
 ## Letzte Aenderungen
 
-### v0.26.0 — Bibel-DB-Optimierung
+### v0.27.0 — Bibel-DB-Optimierung
 
 **Leistung:**
 - FTS5-Suche mit Fallback auf LIKE — O(n) → O(1) Volltextanfragen
@@ -490,7 +490,7 @@ Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automa
 - 177MB Quellen + 59MB kompilierte DB aus Git entfernt
 - .gitignore fuer Quellen und kompilierte DB hinzugefuegt
 
-### v0.26.0 — Literary Compiler & Oekonomische Modelle
+### v0.27.0 — Literary Compiler & Oekonomische Modelle
 
 **Literary Compiler (Phasen 0-6):**
 - 4 Offline-Analyse-Durchgaenge: Dramaturgisch, Stilistisch, Emotionale, Metadaten
@@ -516,7 +516,7 @@ Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automa
 - Hardcoded-Fraktionsliste in DirectorLoop behoben — liest jetzt aus World-Konfig
 - Jahresapproximation Drift behoben — nutzt `getFullYear()` statt manueller Berechnung
 
-### v0.26.0 — State-First-Architektur
+### v0.27.0 — State-First-Architektur
 
 **Kern-Engine-Refactoring:**
 - Intent-Parser mit Zod-Schemas (6 Intent-Typen: Bewegung, Dialog, Aktion, Befehl, Beobachtung, Meta)

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────
-#  TrueNeverStory v0.26.0 — Universal build, compile & launch script
+#  TrueNeverStory v0.27.0 — Universal build, compile & launch script
 #  Detects hardware, installs deps, compiles binaries,
 #  cross-compiles for other platforms, starts server
 # ─────────────────────────────────────────────────────────────
@@ -444,6 +444,34 @@ copy_env_template() {
 }
 
 # ─────────────────────────────────────────────────────────────
+#  Pack databases into archive for release
+# ─────────────────────────────────────────────────────────────
+
+pack_databases() {
+    local target="${1:-}"
+    resolve_target "$target"
+    mkdir -p "$COMPILE_DIR"
+
+    log "Packing databases → ${COMPILE_DIR}/databases.tar.gz"
+
+    local db_files=()
+    while IFS= read -r -d '' f; do
+        db_files+=("$f")
+    done < <(find data -name "*.db" -type f -print0 2>/dev/null)
+
+    if (( ${#db_files[@]} == 0 )); then
+        warn "No .db files found in data/ — skipping database pack"
+        return 0
+    fi
+
+    tar czf "${COMPILE_DIR}/databases.tar.gz" "${db_files[@]}"
+
+    local size
+    size=$(du -h "${COMPILE_DIR}/databases.tar.gz" | cut -f1)
+    info "Packed ${#db_files[@]} databases → ${COMPILE_DIR}/databases.tar.gz (${size})"
+}
+
+# ─────────────────────────────────────────────────────────────
 #  Compile all for a single target
 # ─────────────────────────────────────────────────────────────
 
@@ -457,6 +485,7 @@ compile_target() {
     compile_bun "$target"
     compile_mojo "$target"
     copy_env_template "$target"
+    pack_databases "$target"
 
     echo ""
     info "Contents of ${COMPILE_DIR}/:"
@@ -624,7 +653,7 @@ start_server() {
 # ─────────────────────────────────────────────────────────────
 
 usage() {
-    echo -e "${BOLD}TrueNeverStory v0.26.0 Build, Compile & Launch Script${NC}"
+    echo -e "${BOLD}TrueNeverStory v0.27.0 Build, Compile & Launch Script${NC}"
     echo ""
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""

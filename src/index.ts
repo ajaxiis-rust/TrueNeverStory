@@ -113,7 +113,7 @@ async function main() {
   const eventBus = narrativeCtx.eventBus;
   const heartbeatService = new HeartbeatService(eventBus, wsManager);
 
-  // MCP Server (v0.26.0) — Bible & Gutenberg parsers
+  // MCP Server (v0.27.0) — Bible & Gutenberg parsers
   // BibleParser and GutenbergParser use data/bible/ and data/gutenberg/ by default
   const bibleDbPath = join(dbPath, "bible.db");
   const gutenbergDbPath = join(dbPath, "gutenberg.db");

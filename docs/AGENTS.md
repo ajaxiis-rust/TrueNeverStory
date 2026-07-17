@@ -1,6 +1,6 @@
-# Agents Reference (v0.26.0)
+# Agents Reference (v0.27.0)
 
-TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.26.0, the engine uses **6 core agents** (The Big Six) plus **5 specialist agents** and a **dialogue system**.
+TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.27.0, the engine uses **6 core agents** (The Big Six) plus **5 specialist agents** and a **dialogue system**.
 
 ---
 
@@ -137,7 +137,7 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 
 ## Legacy Agents (Deprecated)
 
-The following agents are deprecated in v0.26.0 but still available for backward compatibility:
+The following agents are deprecated in v0.27.0 but still available for backward compatibility:
 
 | Agent | Replacement | Status |
 |-------|-------------|--------|
@@ -158,7 +158,7 @@ The following agents are deprecated in v0.26.0 but still available for backward 
 
 ---
 
-## Specialist Agents (v0.26.0)
+## Specialist Agents (v0.27.0)
 
 The following specialist agents are now wired into `RoleplayEngine` and available via `engine.<agent>`:
 
@@ -174,7 +174,7 @@ Each specialist agent takes only `LLMQueue` as a dependency and generates text v
 
 ---
 
-## Dialogue System (v0.26.0)
+## Dialogue System (v0.27.0)
 
 New `DialogueManager` + `DialogueContext` for structured NPC conversations:
 
@@ -219,7 +219,7 @@ const withSearch = registry.getAgentsWithTool('search_verses');
 
 ---
 
-## Agent Interface (v0.26.0)
+## Agent Interface (v0.27.0)
 
 ```typescript
 interface AgentV2 {
@@ -329,7 +329,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## MCP Integration (v0.26.0)
+## MCP Integration (v0.27.0)
 
 ### Bible Patterns
 
