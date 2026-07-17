@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────
-#  TrueNeverStory v0.11.4 — Universal build, compile & launch script
+#  TrueNeverStory v0.26.0 — Universal build, compile & launch script
 #  Detects hardware, installs deps, compiles binaries,
 #  cross-compiles for other platforms, starts server
 # ─────────────────────────────────────────────────────────────
@@ -624,7 +624,7 @@ start_server() {
 # ─────────────────────────────────────────────────────────────
 
 usage() {
-    echo -e "${BOLD}TrueNeverStory v0.10.0 Build, Compile & Launch Script${NC}"
+    echo -e "${BOLD}TrueNeverStory v0.26.0 Build, Compile & Launch Script${NC}"
     echo ""
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""

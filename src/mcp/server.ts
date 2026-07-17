@@ -62,15 +62,14 @@ export class TNSServer {
   constructor(private config: TNSServerConfig) {
     this.entityStore = config.entityStore;
 
-    // Initialize parsers
+    // Initialize parsers — use default dataDir (data/bible, data/gutenberg)
+    // where bootstrap scripts create the normalized databases
     this.bibleParser = new BibleParser({
       dbPath: config.bibleDbPath,
-      dataDir: config.dataDir ? join(config.dataDir, 'bible') : undefined,
     });
 
     this.gutenbergParser = new GutenbergParser({
       dbPath: config.gutenbergDbPath,
-      dataDir: config.dataDir ? join(config.dataDir, 'gutenberg') : undefined,
       extractStyles: true,
     });
 

@@ -1,4 +1,4 @@
-# TrueNeverStory v0.12.0 — Руководство по компиляции
+# TrueNeverStory v0.26.0 — Руководство по компиляции
 
 ## Быстрый старт
 
@@ -21,13 +21,76 @@
 
 ## Поддерживаемые платформы
 
-| Платформа | TypeScript | Mojo (.so) | Backend | Заметки |
-|-----------|:----------:|:----------:|:-------:|---------|
-| linux-x64 | ✅ | ✅ | mojo | Полная поддержка |
-| linux-arm64 | ✅ | ✅ | mojo | Полная поддержка |
-| macos-arm64 | ✅ | ✅ | mojo | Apple Silicon |
-| macos-x64 | ✅ | ✅ | mojo | Intel Mac |
-| windows-x64 | ✅ | ❌ | typescript | Fallback на TypeScript |
+| Платформа | TypeScript | Mojo (.so) | MCP | Backend | Заметки |
+|-----------|:----------:|:----------:|:---:|:-------:|---------|
+| linux-x64 | ✅ | ✅ | ✅ | mojo | Полная поддержка |
+| linux-arm64 | ✅ | ✅ | ✅ | mojo | Полная поддержка |
+| macos-arm64 | ✅ | ✅ | ✅ | mojo | Apple Silicon |
+| macos-x64 | ✅ | ✅ | ✅ | mojo | Intel Mac |
+| windows-x64 | ✅ | ❌ | ✅ | typescript | Fallback на TypeScript |
+
+## MCP — Model Context Protocol
+
+MCP提供工具给LLM代理，用于查询外部数据源：
+
+| Инструмент | Источник данных | Описание |
+|------------|----------------|----------|
+| `search_verses` | Bible SQLite | Поиск стихов по тексту, книге, ссылке |
+| `get_pattern` | Bible SQLite | Нарративные паттерны по архетипу/настроению |
+| `get_archetype` | Bible SQLite | Детали архетипа по имени |
+| `get_cross_refs` | Bible SQLite | Перекрёстные ссылки между стихами |
+| `get_style_pattern` | Gutenberg SQLite | Стилистические паттерны по настроению/тегам |
+| `apply_style` | Gutenberg SQLite | Применение стиля к тексту |
+| `verify_fact` | Wikipedia API | Проверка фактических утверждений |
+| `get_context` | Wikipedia API | Контекст из Wikipedia по теме |
+| `get_quest_templates` | Literary Compiler | Шаблоны квестов по архетипу |
+| `search_quest_templates` | Literary Compiler | Поиск квестов по тексту |
+| `get_economic_phase` | Economic DB | Текущая фаза экономического цикла |
+| `calculate_price` | Economic DB | Расчёт цены с учётом фазы |
+| `generate_dilemma` | Economic DB | Генерация фракционной дилеммы |
+| `check_jubilee` | Economic DB | Проверка цикла jubilee |
+
+### Компиляция баз данных MCP
+
+MCP-сервер требует скомпилированные SQLite базы данных:
+
+```bash
+# Bible: BSB, LEB, NHEBME + cross-references
+bun run scripts/run-bsb-compiler.ts
+
+# Полный пайплайн (Bible + Literary Compiler)
+bun run scripts/run-full-compiler-pipeline.ts
+
+# Только Bible
+bun run scripts/run-full-bible-compiler.ts
+
+# Кэшированный пайплайн (增量)
+bun run scripts/run-cached-pipeline.ts
+```
+
+### Структура данных MCP
+
+```
+worlds/{active}/
+├── bible.db              # BSB + LEB + NHEBME + cross-refs
+├── gutenberg.db          # Стили из Gutenberg Project
+├── mcp/
+│   ├── bible/            # Кэш Bible парсера
+│   └── gutenberg/        # Кэш Gutenberg парсера
+└── economic.db           # Экономические данные
+```
+
+### Запуск MCP
+
+MCP-сервер автоматически стартует если найдены `bible.db` или `gutenberg.db`:
+
+```bash
+# Автоматический запуск
+./bun run src/index.ts
+
+# Проверка MCP
+curl http://localhost:8000/health  # → "status": "ok"
+```
 
 ## Автоматический fallback
 
@@ -53,6 +116,8 @@ bun run -e "import { getBackend } from './src/lib/mojo-ffi'; console.log(getBack
 | Chat / Roleplay | TypeScript | TypeScript | 0% |
 | Memory System | TypeScript + Mojo | TypeScript only | Замедление поиска |
 | Quests / Director | TypeScript | TypeScript | 0% |
+| MCP Bible/Gutenberg | TypeScript | TypeScript | 0% |
+| MCP Wikipedia | HTTP | HTTP | 0% |
 
 **Вывод:** Windows-версия полностью работоспособна. Разница только в производительности вычислений.
 
@@ -64,6 +129,8 @@ dist/
 │   ├── tns-server              # Standalone бинарник
 │   ├── libtns_kernels.so       # Mojo: вероятности
 │   ├── libtns_vectors.so       # Mojo: векторные операции
+│   ├── libtns_graph_ops.so     # Mojo: графовые операции
+│   ├── libtns_batch_ops.so     # Mojo: пакетные операции
 │   └── .env                      # Конфигурация
 ├── linux-x64/
 │   └── ...
@@ -80,7 +147,8 @@ dist/
 
 1. Скачать папку под свою платформу
 2. Настроить `.env` (LLM endpoint, пароль)
-3. Запустить:
+3. Скопировать `conf/` из корня проекта (или создать вручную)
+4. Запустить:
 
 ```bash
 # Linux/macOS
@@ -91,6 +159,8 @@ tns-server.exe
 ```
 
 **Не нужно:** Bun, Node.js, Python, Mojo, компиляторы.
+
+Для работы MCP нужно additionally скомпилировать базы данных (см. раздел MCP выше).
 
 ## Embedding-модели (локальный сервер)
 
@@ -125,11 +195,11 @@ EMBED_SERVER_PORT=8081
 
 ## Требования к платформе
 
-| ОС | Минимальная версия | Архитектура | Mojo |
-|----|-------------------|-------------|:----:|
-| Linux | glibc 2.34+ (Ubuntu 22.04+, Debian 12+, RHEL 9+) | x86_64, ARM64 | ✅ |
-| macOS | 11 Big Sur+ | x86_64, ARM64 (Apple Silicon) | ✅ |
-| Windows | 10+ (64-bit) | x86_64 | ❌ |
+| ОС | Минимальная версия | Архитектура | Mojo | MCP |
+|----|-------------------|-------------|:----:|:---:|
+| Linux | glibc 2.34+ (Ubuntu 22.04+, Debian 12+, RHEL 9+) | x86_64, ARM64 | ✅ | ✅ |
+| macOS | 11 Big Sur+ | x86_64, ARM64 (Apple Silicon) | ✅ | ✅ |
+| Windows | 10+ (64-bit) | x86_64 | ❌ | ✅ |
 
 ## Windows — детали
 
@@ -138,6 +208,7 @@ Windows-сборка работает через **TypeScript fallback**:
 - `tns-server.exe` — standalone бинарник, работает без установки
 - Mojo `.so` не компилируются (Mojo не поддерживает Windows/MSVC)
 - Все вычисления работают на TypeScript — медленнее, но функционально идентично
+- MCP работает полностью (TypeScript)
 - WSL2 не требуется — нативный Windows запуск
 
 ### Производительность на Windows
@@ -146,6 +217,7 @@ Windows-сборка работает через **TypeScript fallback**:
 - Чат и ролплей — одинаково (TypeScript)
 - Вероятности — незначительная разница (<1ms)
 - Векторный поиск — медленнее при больших данных (>10K воспоминаний)
+- MCP — одинаково (TypeScript + HTTP)
 
 Для максимальной производительности на Windows:
 1. **Внешний сервер** на Linux
@@ -177,6 +249,14 @@ mojo build --emit shared-lib -O3 \
 mojo build --emit shared-lib -O3 \
   -o dist/libtns_vectors.so \
   mojo/kernels/vector_ffi.mojo
+
+mojo build --emit shared-lib -O3 \
+  -o dist/libtns_graph_ops.so \
+  mojo/kernels/graph_ops.c
+
+mojo build --emit shared-lib -O3 \
+  -o dist/libtns_batch_ops.so \
+  mojo/kernels/batch_ops.c
 ```
 
 ### Кросс-компиляция
@@ -215,4 +295,8 @@ bun run -e "
 
 # Проверить платформу бинарника
 file dist/linux-arm64/tns-server
+
+# Проверить MCP (нужны базы данных)
+bun run scripts/run-bsb-compiler.ts
+curl http://localhost:8000/health
 ```
