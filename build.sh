@@ -444,15 +444,13 @@ copy_env_template() {
 }
 
 # ─────────────────────────────────────────────────────────────
-#  Pack databases into archive for release
+#  Pack databases into archive (once, shared across targets)
 # ─────────────────────────────────────────────────────────────
 
 pack_databases() {
-    local target="${1:-}"
-    resolve_target "$target"
-    mkdir -p "$COMPILE_DIR"
+    mkdir -p dist
 
-    log "Packing databases → ${COMPILE_DIR}/databases.tar.gz"
+    log "Packing databases → dist/databases.tar.gz"
 
     local db_files=()
     while IFS= read -r -d '' f; do
@@ -464,11 +462,25 @@ pack_databases() {
         return 0
     fi
 
-    tar czf "${COMPILE_DIR}/databases.tar.gz" "${db_files[@]}"
+    tar czf dist/databases.tar.gz "${db_files[@]}"
 
     local size
-    size=$(du -h "${COMPILE_DIR}/databases.tar.gz" | cut -f1)
-    info "Packed ${#db_files[@]} databases → ${COMPILE_DIR}/databases.tar.gz (${size})"
+    size=$(du -h dist/databases.tar.gz | cut -f1)
+    info "Packed ${#db_files[@]} databases → dist/databases.tar.gz (${size})"
+}
+
+# ─────────────────────────────────────────────────────────────
+#  Copy pre-built database archive to target dir
+# ─────────────────────────────────────────────────────────────
+
+copy_databases() {
+    local target="${1:-}"
+    resolve_target "$target"
+
+    if [[ -f dist/databases.tar.gz ]]; then
+        cp dist/databases.tar.gz "${COMPILE_DIR}/databases.tar.gz"
+        info "Copied databases.tar.gz → ${COMPILE_DIR}/"
+    fi
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -485,7 +497,7 @@ compile_target() {
     compile_bun "$target"
     compile_mojo "$target"
     copy_env_template "$target"
-    pack_databases "$target"
+    copy_databases "$target"
 
     echo ""
     info "Contents of ${COMPILE_DIR}/:"
@@ -500,6 +512,8 @@ cross_compile_selected() {
     local targets=("$@")
 
     log "Cross-compiling for: ${targets[*]}"
+
+    pack_databases
 
     for t in "${targets[@]}"; do
         compile_target "$t"
@@ -745,6 +759,7 @@ main() {
             run_tests
             ;;
         compile)
+            pack_databases
             if (( $# > 0 )); then
                 compile_target "$1"
             else
