@@ -511,21 +511,43 @@ EOCFG
 auto_configure_env
 
 # ═══════════════════════════════════════════════════════════════
-#  §7b  DATABASE EXTRACTION (auto-unpack on first launch)
+#  §7b  DATABASE EXTRACTION (auto-download + unpack)
 # ═══════════════════════════════════════════════════════════════
+
+TNS_REPO="ajaxiis-rust/TrueNeverStory"
 
 ensure_databases() {
     local KEY_DB="data/bible/bible-normalized.db"
     local ARCHIVE="databases.tar.gz"
 
+    # Already have databases — nothing to do
     if [[ -f "$KEY_DB" ]]; then
         return 0
     fi
 
+    # Archive missing — try to download from GitHub
     if [[ ! -f "$ARCHIVE" ]]; then
-        echo -e "${YELLOW}  Database files not found and no archive available.${NC}"
-        echo -e "${YELLOW}  The server may not work correctly without compiled databases.${NC}"
-        return 0
+        echo -e "${CYAN}  Databases not found. Downloading from GitHub...${NC}"
+
+        local download_url="https://github.com/${TNS_REPO}/releases/download/databases/databases.tar.gz"
+
+        if command -v curl &>/dev/null; then
+            curl -fsSL "$download_url" -o "$ARCHIVE" 2>/dev/null
+        elif command -v wget &>/dev/null; then
+            wget -q "$download_url" -O "$ARCHIVE" 2>/dev/null
+        else
+            echo -e "${YELLOW}  Neither curl nor wget found — cannot download databases${NC}"
+            echo -e "${YELLOW}  Install manually: bash install.sh --update${NC}"
+            return 0
+        fi
+
+        if [[ ! -f "$ARCHIVE" ]] || [[ $(stat -c%s "$ARCHIVE" 2>/dev/null || stat -f%z "$ARCHIVE" 2>/dev/null || echo 0) -lt 1000 ]]; then
+            echo -e "${RED}  Failed to download databases${NC}"
+            rm -f "$ARCHIVE"
+            return 0
+        fi
+
+        echo -e "${GREEN}  Downloaded databases.tar.gz${NC}"
     fi
 
     echo -e "${CYAN}  Extracting databases from ${ARCHIVE}...${NC}"
