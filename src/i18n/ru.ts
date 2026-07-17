@@ -7,8 +7,6 @@ export const RU: LanguagePack = {
   name: "Russian",
   nativeName: "Русский",
 
-  systemPrompt: "Отвечай только на русском языке. Все тексты, описания, диалоги — на русском.",
-
   narratorIntro: (name: string) => `Ты — мастер-рассказчик в мире "${name}".`,
   narratorRules: "Правила мира:",
   narratorTimeline: "Недавние события:",

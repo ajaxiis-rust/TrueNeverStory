@@ -5,8 +5,6 @@ export const EN: LanguagePack = {
   name: "English",
   nativeName: "English",
 
-  systemPrompt: "Respond only in English.",
-
   narratorIntro: (name: string) => `You are a master storyteller in the world "${name}".`,
   narratorRules: "World rules:",
   narratorTimeline: "Recent timeline:",

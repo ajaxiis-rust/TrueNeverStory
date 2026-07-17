@@ -7,7 +7,6 @@ export const ES: LanguagePack = {
   name: "Spanish",
   nativeName: "Español",
 
-  systemPrompt: "Responde solo en español.",
   uiSettings: "Ajustes",
   uiBackToChat: "AL CHAT",
   uiSave: "Guardar",

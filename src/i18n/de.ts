@@ -7,8 +7,6 @@ export const DE: LanguagePack = {
   name: "German",
   nativeName: "Deutsch",
 
-  systemPrompt: "Antworte nur auf Deutsch.",
-
   narratorIntro: (name: string) => `Du bist ein Meister-Erzähler in der Welt "${name}".`,
   npcIntro: (name: string, personality: string, location: string) =>
     `${name} ist ein ${personality}-Charakter, der sich in ${location} befindet.`,

@@ -7,7 +7,6 @@ export const ZH: LanguagePack = {
   name: "Chinese",
   nativeName: "中文",
 
-  systemPrompt: "请用中文回复。",
   uiSettings: "设置",
   uiBackToChat: "返回聊天",
   uiSave: "保存",

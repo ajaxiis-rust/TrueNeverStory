@@ -5,7 +5,6 @@
 
 import { getConfig } from "../config/env";
 import { getSettings } from "../services/settings";
-import { getLanguagePack } from "../i18n";
 import { sha256Short } from "../utils/hash";
 import { getLogger } from "../utils/logger";
 import { getProviderManager, type LLMProvider } from "./providers";
@@ -165,14 +164,11 @@ export class LLMClient {
     // Use provider if available
     if (provider) {
       try {
-        const s = getSettings();
-        const lang = getLanguagePack(s.language || "en");
-
         const result = await provider.generateText(prompt, {
           temperature: temp,
           maxTokens: maxTok,
           jsonMode: options.jsonMode,
-          systemPrompt: options.systemPrompt ?? lang.systemPrompt,
+          systemPrompt: options.systemPrompt,
           timeout: options.timeout,
         });
 
@@ -196,12 +192,10 @@ export class LLMClient {
     const maxTok = options.maxTokens ?? this._getMaxTokens();
 
     if (provider?.generateTextStream) {
-      const s = getSettings();
-      const lang = getLanguagePack(s.language || "en");
       yield* provider.generateTextStream(prompt, {
         temperature: temp,
         maxTokens: maxTok,
-        systemPrompt: options.systemPrompt ?? lang.systemPrompt,
+        systemPrompt: options.systemPrompt,
       });
       return;
     }
@@ -218,13 +212,10 @@ export class LLMClient {
     const temp = options.temperature ?? this._getTemperature();
     const maxTok = options.maxTokens ?? this._getMaxTokens();
 
-    const s = getSettings();
-    const lang = getLanguagePack(s.language || "en");
-
     const body: Record<string, unknown> = {
       model: this._model || this._fallbackModel,
       messages: [
-        { role: "system", content: lang.systemPrompt },
+        { role: "system", content: "Respond only in English." },
         { role: "user", content: prompt },
       ],
       temperature: temp,

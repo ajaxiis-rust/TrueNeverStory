@@ -114,11 +114,6 @@ export function getWorldLanguage(world?: string): string {
   return "en";
 }
 
-export function getLanguageInstruction(world?: string): string {
-  const lang = getWorldLanguage(world);
-  return LANG_INSTRUCTION[lang] ?? "";
-}
-
 function getStoreForWorld(world?: string): SQLiteStore {
   const dbPath = getWorldDbPath(world);
   return new SQLiteStore(dbPath);
@@ -143,16 +138,6 @@ export const DEFAULT_AGENTS = [
   { id: "lorekeeper", name: "Lorekeeper", description: "World facts, magic rules, races, and established canon", priority: 6 },
   { id: "translation", name: "Translation", description: "Translates game narrative between languages", priority: 2 },
 ];
-
-const LANG_INSTRUCTION: Record<string, string> = {
-  en: "\n\nIMPORTANT: Always respond in English.",
-  ru: "\n\nВАЖНО: Всегда отвечай на русском языке.",
-  de: "\n\nWICHTIG: Antworte immer auf Deutsch.",
-  fr: "\n\nIMPORTANT: Réponds toujours en français.",
-  es: "\n\nIMPORTANTE: Responde siempre en español.",
-  ja: "\n\n重要：常に日本語で回答してください。",
-  zh: "\n\n重要：请始终用中文回复。",
-};
 
 const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
   narrator: {
@@ -232,104 +217,21 @@ const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
   },
 };
 
-const DEFAULT_PROMPTS_RU: Record<string, AgentPromptConfig> = {
-  narrator: {
-    systemPrompt: "Ты — искусный рассказчик, повествующий об интерактивном фэнтезийном мире. Пиши ярко, атмосферно и образно. Отвечай кратко, но ёмко. Никогда не выходи из роли и не упоминай, что это игра.",
-    userTemplate: "Мир: {world_name}\nВремя: {time}\nЛокация: {location}\nПерсонаж: {character}\nРоль пользователя: {role}\n\nПравила:\n{rules}\n\nТаймлайн:\n{timeline}\n\nНедавние воспоминания:\n{memories}\n\nФакты мира:\n{facts}\n\nБлижайшие NPC: {npcs}\n\nИстория разговора:\n{history}\n\nПользователь управляет {character}. Отвечай как рассказчик, описывая мир и события.",
-    outputFormat: "Пиши повествовательной прозой от второго или третьего лица. 2-4 абзаца. Включай сенсорные детали. Реагируй на действия игрока. Двигай сюжет вперёд.",
-  },
-  director: {
-    systemPrompt: "Ты — режиссёр повествования для интерактивной истории. Ты вводишь сюжетные повороты, драматические моменты и зацепки. Будь креативным, но последовательным с установленной мифологией.",
-    userTemplate: "Текущее повествование:\n{narrative}\n\nСюжетный бит для вставки:\n{beat}\n\nЕстественно впиши этот бит в текущее повествование.",
-    outputFormat: "Напиши 1-3 абзаца, плавно включающих сюжетный бит в текущее повествование. Сохрани тон и стиль.",
-  },
-  scene: {
-    systemPrompt: "Ты генерируешь описания переходов между сценами в фэнтезийном мире. Описывай путь, атмосферу и прибытие в новую локацию. Будь образным и последовательным с миром.",
-    userTemplate: "{character} путешествует из {origin} в {destination}.\n\nПравила мира:\n{rules}\n\nНедавние события:\n{events}\n\nСгенерируй переход между сценами.",
-    outputFormat: "Напиши 2-4 абзаца, описывающих переход. Включай сенсорные детали, атмосферу и встречи по дороге.",
-  },
-  npc: {
-    systemPrompt: "Ты играешь роли NPC в фэнтезийном мире. Оставайся в характере, исходя из личности NPC, его прошлого и отношений с игроком. Отвечай естественно в диалоге.",
-    userTemplate: "Ты — {npc_name}, персонаж с чертами: {npc_personality}.\nЛокация: {location}\nОтношения с {player}: {relationship}\n\nНедавние события:\n{events}\n\n{player} говорит: \"{line}\"\n\nОтветь от имени {npc_name}.",
-    outputFormat: "Напиши ответ NPC от первого лица. Включай действия в звёздочках, если уместно. Оставайся в характере.",
-  },
-  chronicler: {
-    systemPrompt: "Ты — летописец, ведущий историю фэнтезийного мира. Кратко и точно резюмируй события. Отслеживай действия персонажей, изменения мира и важные события.",
-    userTemplate: "Недавние события для летописи:\n{events}\n\nТекущий таймлайн:\n{timeline}\n\nРезюмируй новые события и обнови таймлайн.",
-    outputFormat: "Предоставь краткую хронологическую сводку. Используй списки для отдельных событий. Включи кто, что, где и значение.",
-  },
-  "story-planner": {
-    systemPrompt: "Ты — планировщик сюжетов для интерактивного фэнтезийного мира. Планируй увлекательные сюжетные арки, квесты и развитие сюжета. Учитывай мотивации персонажей, состояние мира и свободу выбора игрока.",
-    userTemplate: "Состояние мира:\n{world_state}\n\nАктивные персонажи:\n{characters}\n\nНедавние события:\n{events}\n\nАктивные квесты:\n{quests}\n\nСпланируй следующее развитие сюжета.",
-    outputFormat: "Верни JSON: { \"arc\": \"описание\", \"quests\": [{\"title\": \"\", \"description\": \"\", \"objectives\": [\"\"]}], \"hooks\": [\"\"] }",
-  },
-  "social-sim": {
-    systemPrompt: "Ты моделируешь социальную динамику между персонажами в фэнтезийном мире. Моделируй отношения, политику фракций и взаимодействия между персонажами реалистично.",
-    userTemplate: "Задействованные персонажи:\n{characters}\n\nОтношения:\n{relationships}\n\nКонтекст:\n{context}\n\nСмоделируй социальное взаимодействие.",
-    outputFormat: "Опиши социальную динамику. Включи изменения в отношениях, мнения и последствия для фракций.",
-  },
-  villain: {
-    systemPrompt: "Ты управляешь действиями и планами злодеев в фэнтезийном мире. Создавай ярких антагонистов с понятными мотивациями. Планируй их действия на основе состояния мира.",
-    userTemplate: "Профиль злодея:\n{villain}\n\nСостояние мира:\n{world_state}\n\nНедавние действия злодея:\n{recent_actions}\n\nСпланируй следующий шаг злодея.",
-    outputFormat: "Опиши следующее действие или план злодея. Включи мотивацию, метод и возможные последствия.",
-  },
-  researcher: {
-    systemPrompt: "Ты — аналитик-исследователь, специализирующийся на исторической точности, культурной аутентичности и практическом реализме для балдахина мира. Проверяй факты, подтверждай правдоподобие и обогащай сцены точными деталями о одежде, еде, быте, материалах и инструментах.",
-    userTemplate: "{task}\n\nКонтекст мира:\n{world_context}\n\nПредоставь анализ в виде структурированного JSON-ответа.",
-    outputFormat: "Верни JSON с полями: verdict, confidence, issues, suggestions, enrichedDetails.",
-  },
-  historian: {
-    systemPrompt: "Ты — историк фэнтезийного мира. Вспоминай и повествуй об исторических событиях, мифологии и хронологии. Предоставляй точную историческую информацию, основанную на установленных фактах мира.",
-    userTemplate: "Запрос: {query}\n\nИстория мира:\n{world_history}\n\nНедавние релевантные события:\n{relevant_events}\n\nПравила мира:\n{world_rules}",
-    outputFormat: "Пиши исторически точные ответы. Ссылайся на установленные события. Признавай неизвестное вместо выдумывания.",
-  },
-  cartographer: {
-    systemPrompt: "Ты — картограф фэнтезийного мира. Предоставляй информацию о локациях, расстояниях, путях и географии. Будь точен во временах пути и описаниях местности.",
-    userTemplate: "Запрос: {query}\n\nИзвестные локации:\n{locations}\n\nТекущая локация: {current_location}",
-    outputFormat: "Предоставь географическую информацию с временами пути, описаниями местности и достопримечательностями.",
-  },
-  merchant: {
-    systemPrompt: "Ты — NPC-торговец в фэнтезийном мире. Занимайся торговлей, ценообразованием и инвентарём. Будь расчётлив, но справедлив. Учитывай спрос, предложение и отношения с клиентами.",
-    userTemplate: "Запрос: {query}\n\nТвой инвентарь:\n{inventory}\n\nКонтекст экономики:\n{world_economy}",
-    outputFormat: "Отвечай в роли торговца. Включи цены, наличие и возможности для торга.",
-  },
-  "quest-giver": {
-    systemPrompt: "Ты — квестодатель фэнтезийного мира. Генерируй увлекательные квесты на основе текущего состояния мира. Квесты должны иметь понятные цели и осмысленные награды.",
-    userTemplate: "Запрос: {query}\n\nСостояние мира:\n{world_state}\n\nАктивные квесты:\n{active_quests}\n\nБлижайшие персонажи: {nearby_npcs}\nУровень игрока: {player_level}",
-    outputFormat: "Верни JSON: { \"title\": \"\", \"description\": \"\", \"objectives\": [\"\"], \"rewards\": \"\", \"difficulty\": \"easy|medium|hard\" }",
-  },
-  lorekeeper: {
-    systemPrompt: "Ты — хранитель знаний фэнтезийного мира. Поддерживай и вспоминай факты мира, правила магии, информацию о расах и установленный канон. Никогда не противоречь установленной мифологии.",
-    userTemplate: "Запрос: {query}\n\nУстановленная мифология:\n{world_facts}\n\nСистема магии:\n{magic_system}\n\nИзвестные расы: {races}",
-    outputFormat: "Предоставляй точную информацию из мифологии. Ссылайся на установленные факты. Признавай неизвестное.",
-  },
-};
-
-const ALL_PROMPTS: Record<string, Record<string, AgentPromptConfig>> = {
-  en: DEFAULT_PROMPTS,
-  ru: DEFAULT_PROMPTS_RU,
-};
-
-function getDefaultPrompts(agentId: string, lang?: string): AgentPromptConfig | undefined {
-  const l = lang || "en";
-  return ALL_PROMPTS[l]?.[agentId] ?? DEFAULT_PROMPTS[agentId];
+function getDefaultPrompts(agentId: string): AgentPromptConfig | undefined {
+  return DEFAULT_PROMPTS[agentId];
 }
 
 // ── Seed agents for new world ──
 
 export async function seedWorldAgents(worldName: string): Promise<void> {
-  const lang = getWorldLanguage(worldName);
   const store = getStoreForWorld(worldName);
   try {
     for (const agent of DEFAULT_AGENTS) {
-      const base = getDefaultPrompts(agent.id, lang);
+      const base = getDefaultPrompts(agent.id);
       if (!base) continue;
-      const prompts: AgentPromptConfig = LANG_INSTRUCTION[lang]
-        ? { ...base, systemPrompt: base.systemPrompt + LANG_INSTRUCTION[lang] }
-        : { ...base };
-      store.upsertAgentPrompts(worldName, agent.id, lang, prompts);
+      store.upsertAgentPrompts(worldName, agent.id, "en", { ...base });
     }
-    log.info({ worldName, lang, count: DEFAULT_AGENTS.length }, "Seeded agent prompts");
+    log.info({ worldName, count: DEFAULT_AGENTS.length }, "Seeded agent prompts");
   } finally {
     store.close();
   }
@@ -353,18 +255,17 @@ async function saveGlobalAssignments(assignments: AgentAssignment[]): Promise<vo
 
 // ── Per-world prompts ──
 
-function loadWorldPrompts(agentId: string, world?: string, lang?: string): AgentPromptConfig | null {
+function loadWorldPrompts(agentId: string, world?: string): AgentPromptConfig | null {
   const w = world ?? getActiveWorld();
-  const l = lang ?? getWorldLanguage(world);
 
   // 1. Try SQLite (agent_prompts table)
   try {
     const store = getStoreForWorld(world);
-    const row = store.getAgentPrompts(w, agentId, l);
+    const row = store.getAgentPrompts(w, agentId, "en");
     store.close();
     if (row) return row;
   } catch (e) {
-    log.warn({ agentId, world, lang, error: e }, "SQLite read failed, falling back to JSON");
+    log.warn({ agentId, world, error: e }, "SQLite read failed, falling back to JSON");
   }
 
   // 2. Fallback: existing JSON file (only for active world)
@@ -377,27 +278,19 @@ function loadWorldPrompts(agentId: string, world?: string, lang?: string): Agent
     }
   }
 
-  // 3. Language-aware defaults
-  const base = getDefaultPrompts(agentId, l) ?? null;
-  if (base && LANG_INSTRUCTION[l]) {
-    return {
-      ...base,
-      systemPrompt: base.systemPrompt + LANG_INSTRUCTION[l],
-    };
-  }
-  return base;
+  // 3. English defaults
+  return getDefaultPrompts(agentId) ?? null;
 }
 
-async function saveWorldPrompts(agentId: string, prompts: AgentPromptConfig, world?: string, lang?: string): Promise<void> {
+async function saveWorldPrompts(agentId: string, prompts: AgentPromptConfig, world?: string): Promise<void> {
   // 1. Write to SQLite
   try {
     const store = getStoreForWorld(world);
     const w = world ?? getActiveWorld();
-    const l = lang ?? getWorldLanguage(world);
-    store.upsertAgentPrompts(w, agentId, l, prompts);
+    store.upsertAgentPrompts(w, agentId, "en", prompts);
     store.close();
   } catch (e) {
-    log.warn({ agentId, world, lang, error: e }, "SQLite write failed, falling back to JSON only");
+    log.warn({ agentId, world, error: e }, "SQLite write failed, falling back to JSON only");
   }
 
   // 2. Dual-write to JSON (fallback)
@@ -411,12 +304,11 @@ async function saveWorldPrompts(agentId: string, prompts: AgentPromptConfig, wor
 
 // ── Public API ──
 
-export function loadAgentConfig(agentId: string, world?: string, lang?: string): AgentConfig {
+export function loadAgentConfig(agentId: string, world?: string): AgentConfig {
   const meta = DEFAULT_AGENTS.find(a => a.id === agentId);
   const assignments = loadGlobalAssignments();
   const assignment = assignments.find(a => a.agentId === agentId);
-  const l = lang ?? getWorldLanguage(world);
-  const prompts = loadWorldPrompts(agentId, world, l) ?? getDefaultPrompts(agentId, l) ?? {
+  const prompts = loadWorldPrompts(agentId, world) ?? getDefaultPrompts(agentId) ?? {
     systemPrompt: "",
     userTemplate: "",
     outputFormat: "",
@@ -436,7 +328,7 @@ export function loadAgentConfig(agentId: string, world?: string, lang?: string):
   };
 }
 
-export async function saveAgentConfig(agentId: string, config: AgentConfig, world?: string, lang?: string): Promise<void> {
+export async function saveAgentConfig(agentId: string, config: AgentConfig, world?: string): Promise<void> {
   // Save global assignment
   const assignments = loadGlobalAssignments();
   const idx = assignments.findIndex(a => a.agentId === agentId);
@@ -453,20 +345,19 @@ export async function saveAgentConfig(agentId: string, config: AgentConfig, worl
   await saveGlobalAssignments(assignments);
 
   // Save per-world prompts
-  await saveWorldPrompts(agentId, config.prompts, world, lang);
+  await saveWorldPrompts(agentId, config.prompts, world);
 
   log.info({ agentId }, "Agent config saved");
 }
 
-export function loadAllAgentConfigs(world?: string, lang?: string): AgentConfig[] {
-  return DEFAULT_AGENTS.map(a => loadAgentConfig(a.id, world, lang));
+export function loadAllAgentConfigs(world?: string): AgentConfig[] {
+  return DEFAULT_AGENTS.map(a => loadAgentConfig(a.id, world));
 }
 
 export async function resetAgentConfig(agentId: string): Promise<AgentConfig> {
   const meta = DEFAULT_AGENTS.find(a => a.id === agentId);
   if (!meta) throw new Error(`Unknown agent: ${agentId}`);
 
-  const lang = getWorldLanguage();
   const config: AgentConfig = {
     id: agentId,
     name: meta.name,
@@ -477,7 +368,7 @@ export async function resetAgentConfig(agentId: string): Promise<AgentConfig> {
     temperature: 0.7,
     maxTokens: 2048,
     priority: meta.priority,
-    prompts: getDefaultPrompts(agentId, lang) ?? { systemPrompt: "", userTemplate: "", outputFormat: "" },
+    prompts: getDefaultPrompts(agentId) ?? { systemPrompt: "", userTemplate: "", outputFormat: "" },
   };
 
   await saveAgentConfig(agentId, config);

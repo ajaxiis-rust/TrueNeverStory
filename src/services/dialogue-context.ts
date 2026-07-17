@@ -1,7 +1,6 @@
 import type { NPCRuntime } from "./npc-runtime";
 import type { SocialGraph } from "./social-graph";
 import type { MemoryEngine } from "./memory-engine";
-import { getLanguageInstruction } from "./agent-config";
 
 const FACTIONS = ["guards", "thieves", "merchants", "nobles", "peasants"];
 
@@ -79,9 +78,6 @@ export class DialogueContext {
     parts.push(`\n${playerOrNpc} says: "${line}"`);
     parts.push(`\nRespond as ${npcName}.`);
 
-    const instruction = getLanguageInstruction();
-    if (instruction) parts.push(instruction);
-
     return parts.join("\n");
   }
 
@@ -138,9 +134,6 @@ export class DialogueContext {
 
     parts.push(`\nStay in character. Respond naturally in first person.`);
     parts.push(`Include actions in asterisks if appropriate.`);
-
-    const instruction = getLanguageInstruction();
-    if (instruction) parts.push(instruction);
 
     return parts.join("\n");
   }

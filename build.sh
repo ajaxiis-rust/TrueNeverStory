@@ -301,10 +301,14 @@ compile_bun() {
 
     log "Compiling TypeScript → ${outpath} (${COMPILE_TARGET})"
 
+    local ver
+    ver=$(grep '"version"' package.json | head -1 | sed 's/.*"\([^"]*\)".*/\1/')
+
     local bun_args=(
         --compile
         --outfile "$outpath"
         --target bun
+        --define "TNS_VERSION=\"${ver}\""
     )
 
     # Cross-compilation: point to target bun binary if available

@@ -6,7 +6,7 @@ TrueNeverStory ist eine KI-gestuetzte interaktive Narrativ-Engine mit **State-Fi
 
 Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskritische Operationen.
 
-**[English](README.md) | [Русский](README.ru.md) | [Francais](README.fr.md) | [Espanol](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+**[English](../../README.md) | [Русский](../ru/README.md) | [Français](../fr/README.md) | [Español](../es/README.md) | [日本語](../ja/README.md) | [中文](../zh/README.md)**
 
 ---
 
@@ -419,7 +419,7 @@ while (true) {
 
 ## Fuer Entwickler
 
-Vollstaendige Architektur-Dokumentation, DI-Container-Referenz und Contributing-Guide: [DEV.README.de.md](docs/DEV.README.de.md)
+Vollstaendige Architektur-Dokumentation, DI-Container-Referenz und Contributing-Guide: [DEV.README.md](DEV.README.md)
 
 ### Voraussetzungen
 
@@ -466,7 +466,7 @@ Server-Binary kompilieren:
 bun build --compile --outfile tns-server src/index.ts
 ```
 
-Siehe [COMPILE.md](docs/COMPILE.md). GitHub Actions baut alle Plattformen automatisch bei Tag-Push.
+Siehe [COMPILE.md](../COMPILE.md). GitHub Actions baut alle Plattformen automatisch bei Tag-Push.
 
 ---
 
@@ -619,7 +619,7 @@ Komplette architektonische Ueberarbeitung in 5 Etappen:
 - Secure Cookie-Flag, hartes CSP
 - Fehlermeldungen sanitisiert
 
-→ [security.md](security.md) | [SECURITY-log.md](SECURITY-log.md)
+→ [security-audit.md](../security-audit.md) | [SECURITY-log.md](../../SECURITY-log.md)
 
 ### v0.14.1 — C FFI-Kernels & Cross-Kompilierung
 

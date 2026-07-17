@@ -57,6 +57,11 @@ check_deps() {
         missing+=("tar")
     fi
 
+    # Check for unzip on Windows
+    if [[ "$PLATFORM" == *"windows"* ]] && ! command -v unzip &>/dev/null; then
+        missing+=("unzip")
+    fi
+
     if (( ${#missing[@]} > 0 )); then
         err "Missing dependencies: ${missing[*]}"
         exit 1
@@ -80,8 +85,11 @@ download() {
 
 get_latest_tag() {
     local tag
-    tag=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" 2>/dev/null \
-        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+    # Get the latest release with a version tag (starting with 'v')
+    # Skip the 'databases' release which is marked as Latest
+    tag=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases" 2>/dev/null \
+        | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' \
+        | grep '^v' | head -1)
     echo "$tag"
 }
 
@@ -92,25 +100,56 @@ download_binary() {
 
     log "Downloading tns-server (${tag}, ${PLATFORM})..."
 
-    local binary_name="tns-server"
-    if [[ "$PLATFORM" == *"windows"* ]]; then
-        binary_name="tns-server.exe"
+    # Determine archive name based on platform
+    local archive_name
+    case "$PLATFORM" in
+        linux-x64)    archive_name="tns-linux-x64-${tag}.tar.gz" ;;
+        linux-arm64)  archive_name="tns-linux-arm64-${tag}.tar.gz" ;;
+        darwin-x64)   archive_name="tns-macos-x64-${tag}.tar.gz" ;;
+        darwin-arm64) archive_name="tns-macos-arm64-${tag}.tar.gz" ;;
+        windows-x64)  archive_name="tns-windows-x64-${tag}.zip" ;;
+        *) err "Unsupported platform: $PLATFORM"; exit 1 ;;
+    esac
+
+    local url="https://github.com/${REPO}/releases/download/${tag}/${archive_name}"
+    local tmp_file="${INSTALL_DIR}/${archive_name}"
+
+    download "$url" "$tmp_file"
+
+    # Extract based on file type
+    if [[ "$archive_name" == *.zip ]]; then
+        unzip -o "$tmp_file" -d "${INSTALL_DIR}"
+        rm -f "$tmp_file"
+    else
+        tar xzf "$tmp_file" -C "${INSTALL_DIR}"
+        rm -f "$tmp_file"
     fi
 
-    local url="https://github.com/${REPO}/releases/download/${tag}/${binary_name}"
-    download "$url" "${INSTALL_DIR}/${binary_name}"
-    chmod +x "${INSTALL_DIR}/${binary_name}"
-
-    info "Binary installed: ${INSTALL_DIR}/${binary_name}"
+    # Find and make binary executable
+    local binary_path
+    binary_path=$(find "${INSTALL_DIR}" -name "tns-server" -o -name "tns-server.exe" | head -1)
+    if [[ -n "$binary_path" ]]; then
+        chmod +x "$binary_path"
+        info "Binary installed: ${binary_path}"
+    else
+        err "Binary not found after extraction"
+        exit 1
+    fi
 }
 
 # ── Download Database Archive ─────────────────────────────────
 
 download_databases() {
-    log "Downloading databases..."
+    local tag="${1:-databases}"
+    log "Downloading databases (${tag})..."
 
-    local url="https://github.com/${REPO}/releases/download/databases/databases.tar.gz"
-    download "$url" "${INSTALL_DIR}/databases.tar.gz"
+    local url="https://github.com/${REPO}/releases/download/${tag}/databases.tar.gz"
+
+    if ! download "$url" "${INSTALL_DIR}/databases.tar.gz" 2>/dev/null; then
+        warn "databases.tar.gz not found in ${tag}, falling back to 'databases' release"
+        url="https://github.com/${REPO}/releases/download/databases/databases.tar.gz"
+        download "$url" "${INSTALL_DIR}/databases.tar.gz"
+    fi
 
     info "Archive downloaded: ${INSTALL_DIR}/databases.tar.gz"
 }
@@ -140,9 +179,11 @@ download_assets() {
 
     local base_url="https://raw.githubusercontent.com/${REPO}/${tag}"
 
-    # Launcher
-    download "${base_url}/startgame.sh" "${INSTALL_DIR}/startgame.sh"
-    chmod +x "${INSTALL_DIR}/startgame.sh"
+    # Launcher (only if not already extracted from binary archive)
+    if [[ ! -f "${INSTALL_DIR}/startgame.sh" ]]; then
+        download "${base_url}/startgame.sh" "${INSTALL_DIR}/startgame.sh"
+        chmod +x "${INSTALL_DIR}/startgame.sh"
+    fi
 
     # Environment template
     download "${base_url}/.env.example" "${INSTALL_DIR}/.env.example"
@@ -167,6 +208,7 @@ download_assets() {
     done
 
     # Static subdirectory
+    mkdir -p "${INSTALL_DIR}/public/static"
     download "${base_url}/public/static/theme.css" "${INSTALL_DIR}/public/static/theme.css" 2>/dev/null || true
 
     # Worlds
@@ -200,7 +242,7 @@ full_install() {
     info "Latest release: ${tag}"
 
     download_binary "$tag"
-    download_databases
+    download_databases "$tag"
     extract_databases
     download_assets "$tag"
 

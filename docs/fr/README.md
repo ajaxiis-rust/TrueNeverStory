@@ -6,7 +6,7 @@ TrueNeverStory est un moteur de narration interactive propulse par l'IA avec une
 
 Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les operations critiques.
 
-**[English](README.md) | [Русский](README.ru.md) | [Deutsch](README.de.md) | [Espanol](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+**[English](../../README.md) | [Русский](../ru/README.md) | [Deutsch](../de/README.md) | [Español](../es/README.md) | [日本語](../ja/README.md) | [中文](../zh/README.md)**
 
 ---
 
@@ -419,7 +419,7 @@ while (true) {
 
 ## Pour les developpeurs
 
-Documentation complete : [DEV.README.fr.md](docs/DEV.README.fr.md)
+Documentation complete : [DEV.README.md](DEV.README.md)
 
 ### Pre-requis
 
@@ -466,7 +466,7 @@ Compiler le binaire serveur :
 bun build --compile --outfile tns-server src/index.ts
 ```
 
-Voir [COMPILE.md](docs/COMPILE.md). GitHub Actions construit toutes les plateformes automatiquement lors du push de tag.
+Voir [COMPILE.md](../COMPILE.md). GitHub Actions construit toutes les plateformes automatiquement lors du push de tag.
 
 ---
 
@@ -619,7 +619,7 @@ Refonte architecturale complete en 5 etapes :
 - Protection CSRF
 - Secure cookie, CSP renforce
 
-→ [security.md](security.md) | [SECURITY-log.md](SECURITY-log.md)
+→ [security-audit.md](../security-audit.md) | [SECURITY-log.md](../../SECURITY-log.md)
 
 ---
 

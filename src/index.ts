@@ -38,6 +38,14 @@ process.on("uncaughtException", (err) => {
 });
 
 async function main() {
+  // ── CLI flags ──
+  if (process.argv.includes("--version") || process.argv.includes("-v")) {
+    // @ts-ignore — TNS_VERSION is injected at compile time via --define
+    const v: string = typeof TNS_VERSION !== "undefined" ? TNS_VERSION : "dev";
+    console.log(`tns-server ${v}`);
+    process.exit(0);
+  }
+
   loadConfig();
   const cfg = getConfig();
   log.info("Configuration loaded");

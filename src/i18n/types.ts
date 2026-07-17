@@ -5,8 +5,6 @@ export interface LanguagePack {
   name: string;
   nativeName: string;
 
-  systemPrompt: string;
-
   narratorIntro: (name: string) => string;
   narratorRules: string;
   narratorTimeline: string;

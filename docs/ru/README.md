@@ -6,7 +6,7 @@ TrueNeverStory — ИИ-движок интерактивных нарратив
 
 Построен на TypeScript (Bun + Hono) с C FFI ядрами вычислений для критичных к производительности операций.
 
-**[English](README.md) | [Deutsch](README.de.md) | [Français](README.fr.md) | [Español](README.es.md) | [日本語](README.ja.md) | [中文](README.zh.md)**
+**[English](../../README.md) | [Deutsch](../de/README.md) | [Français](../fr/README.md) | [Español](../es/README.md) | [日本語](../ja/README.md) | [中文](../zh/README.md)**
 
 ---
 
@@ -328,7 +328,7 @@ while (true) {
 
 ## Для разработчиков
 
-Полная документация архитектуры, справочник DI контейнера и руководство по внесению вклада: [DEV.README.md](docs/DEV.README.ru.md)
+Полная документация архитектуры, справочник DI контейнера и руководство по внесению вклада: [DEV.README.md](DEV.README.md)
 
 ### Требования
 
@@ -375,7 +375,7 @@ cd mojo/kernels
 bun build --compile --outfile tns-server src/index.ts
 ```
 
-Смотри [COMPILE.md](docs/COMPILE.md) для деталей. GitHub Actions собирает все платформы автоматически при пуше тега.
+Смотри [COMPILE.md](COMPILE.md) для деталей. GitHub Actions собирает все платформы автоматически при пуше тега.
 
 ---
 

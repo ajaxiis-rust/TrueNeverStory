@@ -39,8 +39,6 @@ export class PromptBuilder {
 
     return `${lang.narratorIntro(context.worldName)}
 
-${lang.systemPrompt}
-
 Current story time: ${context.currentTime}
 Location: ${context.location}
 Active character: ${context.activeCharacter ?? "none"}

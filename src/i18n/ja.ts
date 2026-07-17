@@ -7,7 +7,6 @@ export const JA: LanguagePack = {
   name: "Japanese",
   nativeName: "日本語",
 
-  systemPrompt: "日本語で回答してください。",
   uiSettings: "設定",
   uiBackToChat: "チャットへ",
   uiSave: "保存",

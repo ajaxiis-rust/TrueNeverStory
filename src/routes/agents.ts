@@ -140,7 +140,7 @@ agents.get("/agents/:id/prompts/:lang", async (c) => {
   const agentId = c.req.param("id");
   const lang = c.req.param("lang");
   const world = c.req.query("world") ?? getActiveWorld();
-  const config = loadAgentConfig(agentId, world, lang);
+  const config = loadAgentConfig(agentId, world);
   return c.json({ agentId, language: lang, world, prompts: config.prompts });
 });
 
@@ -159,10 +159,10 @@ agents.put("/agents/:id/prompts/:lang", async (c) => {
   const lang = c.req.param("lang");
   const world = c.req.query("world") ?? getActiveWorld();
   const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig["prompts"]>;
-  const current = loadAgentConfig(agentId, world, lang);
+  const current = loadAgentConfig(agentId, world);
   current.prompts = { ...current.prompts, ...body };
   log.info({ agentId, ip, lang, world, promptKeys: Object.keys(body) }, "Agent prompts updated for language");
-  await saveAgentConfig(agentId, current, world, lang);
+  await saveAgentConfig(agentId, current, world);
   return c.json({ status: "saved", language: lang, world, prompts: current.prompts });
 });
 
