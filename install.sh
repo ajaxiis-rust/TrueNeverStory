@@ -171,6 +171,8 @@ download_assets() {
 
     # Worlds
     mkdir -p "${INSTALL_DIR}/worlds/default"
+    mkdir -p "${INSTALL_DIR}/conf"
+    mkdir -p "${INSTALL_DIR}/local-models"
 
     info "Assets installed"
 }
