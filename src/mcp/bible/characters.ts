@@ -10,7 +10,7 @@ export class CharacterDB {
   private db: Database;
 
   constructor(parser: BibleParser) {
-    this.db = (parser as any).normalizedDb as Database;
+    this.db = parser.db;
   }
 
   createTables(): void {

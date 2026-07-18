@@ -6,6 +6,9 @@
 
 import type { LLMProvider, LLMProviderConfig, LLMRequestOptions, ProviderKey } from "./llm-provider";
 import type { ProviderRateLimiter } from "../provider-rate-limiter";
+import { getLogger } from "../../utils/logger";
+
+const log = getLogger("openai-provider");
 
 interface OAuthTokenResponse {
   access_token?: string;
@@ -145,7 +148,7 @@ export class OpenAIProvider implements LLMProvider {
           oauth.expiresAt = Date.now() + (data.expires_in ?? 3600) * 1000;
           return oauth.accessToken ?? null;
         }
-      } catch {}
+      } catch (e) { log.debug({ err: e }, "Failed to refresh OAuth token"); }
     }
 
     // No valid token available - OAuth flow must be completed via UI
@@ -337,7 +340,7 @@ export class OpenAIProvider implements LLMProvider {
             const parsed = JSON.parse(data);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) yield content;
-          } catch {}
+          } catch (e) { log.debug({ err: e }, "Failed to parse SSE chunk"); }
         }
       }
     } finally {

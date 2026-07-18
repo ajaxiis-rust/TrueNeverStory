@@ -139,7 +139,7 @@ worlds.post("/worlds/:name/switch", async (c) => {
       const worldFramePath = join(dbPath, "world_frame.json");
       let worldFrame: Record<string, unknown> = {};
       if (existsSync(worldFramePath)) {
-        try { worldFrame = JSON.parse(readFileSync(worldFramePath, "utf-8")); } catch {}
+        try { worldFrame = JSON.parse(readFileSync(worldFramePath, "utf-8")); } catch (e) { log.debug({ err: e, path: worldFramePath }, "Failed to read world frame"); }
       }
       await _narrativeCtx.reset(dbPath, worldFrame);
       _engine.reset(dbPath);
@@ -302,7 +302,7 @@ worlds.get("/worlds/:name/detail", async (c) => {
   const entitiesPath = join(worldPath, "entities.json");
   let entities: Array<Record<string, unknown>> = [];
   if (existsSync(entitiesPath)) {
-    try { entities = readJsonFileSync(entitiesPath) ?? []; } catch {}
+    try { entities = readJsonFileSync(entitiesPath) ?? []; } catch (e) { log.debug({ err: e, path: entitiesPath }, "Failed to read entities"); }
   }
 
   const byType: Record<string, number> = {};
@@ -341,7 +341,7 @@ worlds.get("/worlds/:name/detail", async (c) => {
     try {
       const content = readFileSync(timelinePath, "utf-8");
       eventCount = content.split("\n").filter((l) => l.trim()).length;
-    } catch {}
+    } catch (e) { log.debug({ err: e, path: timelinePath }, "Failed to read timeline"); }
   }
 
   // Chapters
@@ -358,7 +358,7 @@ worlds.get("/worlds/:name/detail", async (c) => {
     try {
       const v = readJsonFileSync(villainsPath);
       villainCount = Array.isArray(v) ? v.length : 0;
-    } catch {}
+    } catch (e) { log.debug({ err: e, path: villainsPath }, "Failed to read villains"); }
   }
 
   return c.json({

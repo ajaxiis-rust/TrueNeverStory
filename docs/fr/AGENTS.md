@@ -247,7 +247,7 @@ Les agents avec une priorité plus élevée sont traités en premier lorsque plu
 
 ---
 
-## Agents spécialisés (v0.27.0)
+## Agents spécialisés (v0.28.0)
 
 Les agents spécialisés suivants sont maintenant intégrés dans `RoleplayEngine` et accessibles via `engine.<agent>` :
 
@@ -263,7 +263,7 @@ Chaque agent spécialiste n'accepte que `LLMQueue` comme dépendance et génère
 
 ---
 
-## Système de dialogue (v0.27.0)
+## Système de dialogue (v0.28.0)
 
 Nouveau `DialogueManager` + `DialogueContext` pour les conversations structurées avec les PNJ :
 

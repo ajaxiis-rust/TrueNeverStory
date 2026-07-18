@@ -3,6 +3,9 @@ import { dirname } from "node:path";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
+import { getLogger } from "../utils/logger";
+
+const log = getLogger("atomic-io");
 
 export async function atomicWriteJson(filePath: string, data: unknown): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true });
@@ -12,8 +15,8 @@ export async function atomicWriteJson(filePath: string, data: unknown): Promise<
     await rename(tempPath, filePath);
   } catch (err) {
     try {
-      await import("node:fs/promises").then((fs) => fs.unlink(tempPath).catch(() => {}));
-    } catch {}
+      await import("node:fs/promises").then((fs) => fs.unlink(tempPath).catch((e) => log.debug({ err: e }, "Failed to clean up temp file")));
+    } catch (e) { log.debug({ err: e }, "Failed to import fs for cleanup"); }
     throw err;
   }
 }
@@ -24,7 +27,8 @@ export function readJsonFileSync<T = unknown>(filePath: string): T | null {
   try {
     const content = readFileSync(filePath, "utf-8");
     return JSON.parse(content) as T;
-  } catch {
+  } catch (e) {
+    log.debug({ err: e, path: filePath }, "Failed to read JSON file");
     return null;
   }
 }

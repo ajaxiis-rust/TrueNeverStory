@@ -247,7 +247,7 @@ Agenten mit höherer Priorität werden zuerst verarbeitet, wenn mehrere LLM-Anfr
 
 ---
 
-## Spezialisierte Agenten (v0.27.0)
+## Spezialisierte Agenten (v0.28.0)
 
 Die folgenden spezialisierten Agenten sind jetzt in `RoleplayEngine` eingebunden und über `engine.<agent>` verfügbar:
 
@@ -263,7 +263,7 @@ Jeder Spezialagent akzeptiert nur `LLMQueue` als Abhängigkeit und generiert Tex
 
 ---
 
-## Dialog-System (v0.27.0)
+## Dialog-System (v0.28.0)
 
 Neues `DialogueManager` + `DialogueContext` für strukturierte NPC-Gespräche:
 

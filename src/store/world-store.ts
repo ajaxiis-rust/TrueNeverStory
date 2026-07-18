@@ -20,6 +20,36 @@ export interface QuestData {
   created_at: string;
 }
 
+interface QuestRow {
+  id: string;
+  title: string;
+  description: string;
+  giver: string;
+  objectives: string | null;
+  status: string;
+  created_at: string;
+}
+
+interface NPCMemoryRow {
+  id: string;
+  timestamp: string;
+  description: string;
+  importance: number;
+  emotion: string;
+  involved_entities: string | null;
+  location: string;
+  consolidated: number;
+}
+
+interface WorldFrameRow {
+  key: string;
+  value: string;
+}
+
+interface CountRow {
+  count: number;
+}
+
 export interface NPCMemoryData {
   id: string;
   timestamp: string;
@@ -349,7 +379,7 @@ export class WorldStore {
   // ── Quest CRUD ──
 
   getQuests(): QuestData[] {
-    const rows = this.db.query("SELECT * FROM quests ORDER BY created_at DESC").all() as any[];
+    const rows = this.db.query("SELECT * FROM quests ORDER BY created_at DESC").all() as QuestRow[];
     return rows.map((r) => ({
       id: r.id,
       title: r.title,
@@ -362,7 +392,7 @@ export class WorldStore {
   }
 
   getQuest(id: string): QuestData | null {
-    const row = this.db.query("SELECT * FROM quests WHERE id = ?").get(id) as any;
+    const row = this.db.query("SELECT * FROM quests WHERE id = ?").get(id) as QuestRow | undefined;
     if (!row) return null;
     return {
       id: row.id,
@@ -395,7 +425,7 @@ export class WorldStore {
       ? "SELECT * FROM npc_memories WHERE npc_uid = ? AND memory_type = ? ORDER BY timestamp DESC"
       : "SELECT * FROM npc_memories WHERE npc_uid = ? ORDER BY timestamp DESC";
     const params = type ? [npcUid, type] : [npcUid];
-    const rows = this.db.query(query).all(...params) as any[];
+    const rows = this.db.query(query).all(...params) as NPCMemoryRow[];
     return rows.map((r) => ({
       id: r.id,
       timestamp: r.timestamp,
@@ -419,7 +449,7 @@ export class WorldStore {
   // ── World Frame CRUD ──
 
   getWorldFrame(): Record<string, string> {
-    const rows = this.db.query("SELECT key, value FROM world_frame").all() as any[];
+    const rows = this.db.query("SELECT key, value FROM world_frame").all() as WorldFrameRow[];
     const frame: Record<string, string> = {};
     for (const row of rows) {
       frame[row.key] = row.value;
@@ -437,9 +467,9 @@ export class WorldStore {
   // ── Stats ──
 
   getStats(): Record<string, number> {
-    const quests = (this.db.query("SELECT COUNT(*) as count FROM quests").get() as any).count;
-    const memories = (this.db.query("SELECT COUNT(*) as count FROM npc_memories").get() as any).count;
-    const worldFrame = (this.db.query("SELECT COUNT(*) as count FROM world_frame").get() as any).count;
+    const quests = (this.db.query("SELECT COUNT(*) as count FROM quests").get() as CountRow).count;
+    const memories = (this.db.query("SELECT COUNT(*) as count FROM npc_memories").get() as CountRow).count;
+    const worldFrame = (this.db.query("SELECT COUNT(*) as count FROM world_frame").get() as CountRow).count;
     return { quests, memories, worldFrame };
   }
 

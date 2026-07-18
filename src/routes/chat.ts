@@ -75,7 +75,7 @@ chat.post("/message", zValidator("json", ChatMessageSchema), async (c) => {
     engine.currentLocation = body.location;
   }
   if (body.story_time) {
-    try { engine.currentTime = new Date(body.story_time); } catch {}
+    try { engine.currentTime = new Date(body.story_time); } catch (e) { log.debug({ err: e }, "Invalid story_time"); }
   }
 
   try {

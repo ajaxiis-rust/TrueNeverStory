@@ -95,7 +95,8 @@ export class Chronicler {
           if (!since || new Date(entry.timestamp) >= since) {
             entries.push(entry);
           }
-        } catch {
+        } catch (e) {
+          log.debug({ err: e, line }, "Failed to parse timeline entry");
           continue;
         }
       }

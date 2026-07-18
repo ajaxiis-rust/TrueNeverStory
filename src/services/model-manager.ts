@@ -279,6 +279,10 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
 export async function listModels(): Promise<ModelInfo[]> {
   const models = loadModels();
 
+  // Build index for O(1) lookups
+  const byId = new Map(models.map(m => [m.id, m]));
+  const byPath = new Map(models.filter(m => m.path).map(m => [m.path, m]));
+
   // Sync with Ollama — always run so models persist when offline
   const ollamaRunning = await isOllamaRunning();
   if (ollamaRunning) {
@@ -286,7 +290,7 @@ export async function listModels(): Promise<ModelInfo[]> {
     const ollamaNames = new Set(ollamaModels.map((m) => m.name));
 
     for (const om of ollamaModels) {
-      if (!models.find((m) => m.id === om.name && m.backend === "ollama")) {
+      if (!byId.has(om.name)) {
         models.push({
           id: om.name,
           name: om.name,
@@ -322,7 +326,7 @@ export async function listModels(): Promise<ModelInfo[]> {
     for (const file of files) {
       const filePath = join(dir, file);
       const stat = statSync(filePath);
-      const existing = models.find((m) => m.path === filePath);
+      const existing = byPath.get(filePath);
       if (existing) {
         existing.size = stat.size;
         existing.sizeHuman = formatSize(stat.size);
@@ -351,7 +355,7 @@ export async function listModels(): Promise<ModelInfo[]> {
     for (const file of files) {
       const filePath = join(koboldDir, file);
       const stat = statSync(filePath);
-      const existing = models.find((m) => m.path === filePath);
+      const existing = byPath.get(filePath);
       if (existing) {
         existing.size = stat.size;
         existing.sizeHuman = formatSize(stat.size);

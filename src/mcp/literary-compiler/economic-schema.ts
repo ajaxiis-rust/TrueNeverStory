@@ -29,6 +29,14 @@ export interface FactionLaborRule {
   created_at: number;
 }
 
+interface FactionLaborRuleRow {
+  faction: string;
+  fixed_wages: number;
+  wage_amount: number;
+  loyalty_modifier: number;
+  created_at: number;
+}
+
 /**
  * Экономический цикл (модель Иосифа)
  */
@@ -150,13 +158,13 @@ export class EconomicDB {
 
   getLaborRule(faction: string): FactionLaborRule | null {
     const row = this.db.prepare('SELECT * FROM faction_labor_rules WHERE faction = ?')
-      .get(faction) as any;
+      .get(faction) as FactionLaborRuleRow | undefined;
     return row ? { ...row, fixed_wages: row.fixed_wages === 1 } : null;
   }
 
   getAllLaborRules(): FactionLaborRule[] {
-    return this.db.prepare('SELECT * FROM faction_labor_rules')
-      .all().map((row: any) => ({ ...row, fixed_wages: row.fixed_wages === 1 })) as FactionLaborRule[];
+    return (this.db.prepare('SELECT * FROM faction_labor_rules')
+      .all() as FactionLaborRuleRow[]).map((row) => ({ ...row, fixed_wages: row.fixed_wages === 1 })) as FactionLaborRule[];
   }
 
   deleteLaborRule(faction: string): void {

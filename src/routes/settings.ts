@@ -76,18 +76,18 @@ function killLlamaServers(): void {
                       return parseInt(d);
                     }
                   }
-                } catch {}
+                } catch (e) { log.debug({ err: e, fd, pid: d }, "Failed to read fd link"); }
               }
-            } catch {}
+            } catch (e) { log.debug({ err: e, pid: d }, "Failed to read fd directory"); }
             return null;
           })
           .filter((p): p is number => p !== null);
 
         for (const pid of pids) {
-          try { process.kill(pid, "SIGTERM"); } catch {}
+          try { process.kill(pid, "SIGTERM"); } catch (e) { log.debug({ err: e, pid }, "Failed to kill process"); }
           log.info({ pid, port }, "Killed llama-server");
         }
-      } catch {}
+      } catch (e) { log.debug({ err: e, port }, "Failed to scan /proc for port"); }
     };
 
     killByPort(config.llmPort);
@@ -108,7 +108,7 @@ function findModel(name: string): string {
       // Partial match
       const partial = files.find(f => f.toLowerCase().includes(name.toLowerCase()) && f.endsWith(".gguf"));
       if (partial) return join(dir, partial);
-    } catch {}
+    } catch (e) { log.debug({ err: e, dir, name }, "Failed to scan model directory"); }
   }
   return "";
 }

@@ -225,7 +225,7 @@ function loadRateLimitFromProviders(): Record<string, unknown> {
 function saveRateLimitToProviders(rateLimit: Record<string, unknown>): void {
   const path = getRateLimitPath();
   let data: Record<string, unknown> = {};
-  try { data = JSON.parse(readFileSync(path, "utf-8")); } catch {}
+  try { data = JSON.parse(readFileSync(path, "utf-8")); } catch (e) { log.debug({ err: e, path }, "Failed to read rate limit config"); }
   data.rateLimit = rateLimit;
   writeFileSync(path, JSON.stringify(data, null, 2));
 }
@@ -253,13 +253,13 @@ providers.get("/providers/rate-limit/status", async (c) => {
   const { NarrativeService } = await import("../services/narrative-service");
   // Access providerRateLimiter from the global narrative service instance
   // This is set during server startup in index.ts
-  const providerRateLimiter = (globalThis as any).__narrativeService?.providerRateLimiter;
+  const providerRateLimiter = globalThis.__narrativeService?.providerRateLimiter;
   if (!providerRateLimiter) return c.json({ error: "Provider rate limiter not initialized" }, 500);
   return c.json(providerRateLimiter.getStatus());
 });
 
 providers.post("/providers/rate-limit/reset", async (c) => {
-  const providerRateLimiter = (globalThis as any).__narrativeService?.providerRateLimiter;
+  const providerRateLimiter = globalThis.__narrativeService?.providerRateLimiter;
   if (!providerRateLimiter) return c.json({ error: "Provider rate limiter not initialized" }, 500);
   const body = await c.req.json().catch(() => ({})) as { providerId?: string };
   if (body.providerId) {

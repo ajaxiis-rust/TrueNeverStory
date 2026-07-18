@@ -67,6 +67,38 @@ export class DramaturgAgent extends BaseAgentV2 {
       logger.warn('Failed to query Bible patterns:', error as string);
     }
 
+    // Fallback: query literary compiler quest templates (classics DB)
+    try {
+      const position = this.inferPosition(intent, simulation, context);
+      const templates = await this.mcpServer.handleToolCall('get_quest_templates', {
+        archetype,
+        mood,
+        position,
+        limit: 3,
+      }) as { templates: Array<{ id: string; archetype: string; template_text: string; mood: string; variables: string[]; tags: string[]; applicable_positions: string[] }> };
+
+      if (templates.templates.length > 0) {
+        const t = templates.templates[0]!;
+        return {
+          metadata: {
+            pattern: {
+              archetype: t.archetype,
+              name: t.id,
+              description: t.template_text,
+              verses: [],
+              mood: t.mood,
+              // Attach literary metadata for Stylist enrichment
+              tags: t.tags,
+              variables: t.variables,
+              applicable_positions: t.applicable_positions,
+            } as NarrativePattern,
+          },
+        };
+      }
+    } catch (error) {
+      logger.warn('Failed to query quest templates:', error as string);
+    }
+
     // Fallback: generate pattern via LLM
     const fallbackPattern = await this.generateFallbackPattern(intent, simulation, context);
     return { metadata: { pattern: fallbackPattern } };
@@ -109,6 +141,17 @@ export class DramaturgAgent extends BaseAgentV2 {
     if (intent.type === 'action') return 'challenge';
 
     return 'everyday_life';
+  }
+
+  private inferPosition(
+    intent: Intent,
+    simulation: SimulationResult,
+    context: GameContext,
+  ): string {
+    if (context.character?.entityType === 'NPC') return 'follower';
+    if (simulation.outcome === 'critical_success') return 'leader';
+    if (intent.type === 'dialogue') return 'follower';
+    return 'follower';
   }
 
   private async generateFallbackPattern(

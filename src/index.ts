@@ -105,7 +105,7 @@ async function main() {
   await narrativeCtx.start();
 
   // Expose narrative service globally for routes
-  (globalThis as any).__narrativeService = narrativeCtx;
+  globalThis.__narrativeService = narrativeCtx;
 
   // Set rate limiter on provider manager
   const { getProviderManager } = await import("./lib/providers");
@@ -121,7 +121,7 @@ async function main() {
   const eventBus = narrativeCtx.eventBus;
   const heartbeatService = new HeartbeatService(eventBus, wsManager);
 
-  // MCP Server (v0.27.0) — Bible & Gutenberg parsers
+  // MCP Server (v0.28.0) — Bible & Gutenberg parsers
   // BibleParser and GutenbergParser use data/bible/ and data/gutenberg/ by default
   const bibleDbPath = join(dbPath, "bible.db");
   const gutenbergDbPath = join(dbPath, "gutenberg.db");
@@ -273,6 +273,72 @@ async function main() {
   process.on("SIGTERM", shutdown);
 }
 
+function handleMessage(
+  ws: { send: (data: string | ArrayBufferLike) => void },
+  data: Record<string, unknown>,
+  engine: RoleplayEngine,
+): void {
+  const content = (data.content as string)?.trim();
+  if (!content) {
+    ws.send(JSON.stringify({ type: "error", detail: "Empty message" }));
+    return;
+  }
+  if (data.character) engine.activeCharacter = data.character as string;
+  if (data.location) engine.currentLocation = data.location as string;
+
+  engine.processInput(content)
+    .then((result) => {
+      if (typeof result === "object" && result !== null && "agentResponse" in result) {
+        const agentResult = (result as { agentResponse: { response: string; agentId: string; agentName: string } }).agentResponse;
+        ws.send(JSON.stringify({
+          type: "agent",
+          narrative: `【${agentResult.agentName}】\n${agentResult.response}`,
+          agent_id: agentResult.agentId,
+          agent_name: agentResult.agentName,
+          location: engine.currentLocation,
+          story_time: engine.currentTime.toISOString(),
+          active_character: engine.activeCharacter,
+        }));
+      } else {
+        ws.send(JSON.stringify({
+          type: "narrative",
+          narrative: result as string,
+          location: engine.currentLocation,
+          story_time: engine.currentTime.toISOString(),
+          active_character: engine.activeCharacter,
+        }));
+      }
+    })
+    .catch((err) => {
+      ws.send(JSON.stringify({ type: "error", detail: err.message }));
+    });
+}
+
+function handleSetup(
+  ws: { send: (data: string | ArrayBufferLike) => void },
+  data: Record<string, unknown>,
+  engine: RoleplayEngine,
+): void {
+  const storyTime = data.story_time ? new Date(data.story_time as string) : new Date();
+  engine.setSession({
+    character: data.character as string,
+    location: (data.location as string) ?? "unknown",
+    storyTime,
+    role: (data.role as string) ?? "protagonist",
+    sessionId: data.session_id as string,
+  });
+  ws.send(JSON.stringify({
+    type: "session",
+    active_character: engine.activeCharacter,
+    current_location: engine.currentLocation,
+    current_time: engine.currentTime.toISOString(),
+  }));
+}
+
+function handlePing(ws: { send: (data: string | ArrayBufferLike) => void }): void {
+  ws.send(JSON.stringify({ type: "pong" }));
+}
+
 function handleWSMessage(
   ws: { send: (data: string | ArrayBufferLike) => void },
   rawMessage: string | Buffer,
@@ -289,58 +355,18 @@ function handleWSMessage(
 
   const msgType = (data.type as string) ?? "message";
 
-  if (msgType === "message") {
-    const content = (data.content as string)?.trim();
-    if (!content) {
-      ws.send(JSON.stringify({ type: "error", detail: "Empty message" }));
-      return;
-    }
-    if (data.character) engine.activeCharacter = data.character as string;
-    if (data.location) engine.currentLocation = data.location as string;
-
-    engine.processInput(content)
-      .then((result) => {
-        if (typeof result === "object" && result !== null && "agentResponse" in result) {
-          const agentResult = (result as { agentResponse: { response: string; agentId: string; agentName: string } }).agentResponse;
-          ws.send(JSON.stringify({
-            type: "agent",
-            narrative: `【${agentResult.agentName}】\n${agentResult.response}`,
-            agent_id: agentResult.agentId,
-            agent_name: agentResult.agentName,
-            location: engine.currentLocation,
-            story_time: engine.currentTime.toISOString(),
-            active_character: engine.activeCharacter,
-          }));
-        } else {
-          ws.send(JSON.stringify({
-            type: "narrative",
-            narrative: result as string,
-            location: engine.currentLocation,
-            story_time: engine.currentTime.toISOString(),
-            active_character: engine.activeCharacter,
-          }));
-        }
-      })
-      .catch((err) => {
-        ws.send(JSON.stringify({ type: "error", detail: err.message }));
-      });
-  } else if (msgType === "setup") {
-    const storyTime = data.story_time ? new Date(data.story_time as string) : new Date();
-    engine.setSession({
-      character: data.character as string,
-      location: (data.location as string) ?? "unknown",
-      storyTime,
-      role: (data.role as string) ?? "protagonist",
-      sessionId: data.session_id as string,
-    });
-    ws.send(JSON.stringify({
-      type: "session",
-      active_character: engine.activeCharacter,
-      current_location: engine.currentLocation,
-      current_time: engine.currentTime.toISOString(),
-    }));
-  } else if (msgType === "ping") {
-    ws.send(JSON.stringify({ type: "pong" }));
+  switch (msgType) {
+    case "message":
+      handleMessage(ws, data, engine);
+      break;
+    case "setup":
+      handleSetup(ws, data, engine);
+      break;
+    case "ping":
+      handlePing(ws);
+      break;
+    default:
+      ws.send(JSON.stringify({ type: "error", detail: `Unknown message type: ${msgType}` }));
   }
 }
 

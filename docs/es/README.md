@@ -1,4 +1,4 @@
-# TrueNeverStory v0.27.0
+# TrueNeverStory v0.28.0
 
 ### Escribe tu libro solo jugando.
 
@@ -10,7 +10,7 @@ Construido en TypeScript (Bun + Hono) con kernels de computo C FFI para operacio
 
 ---
 
-## Novedades en v0.27.0
+## Novedades en v0.28.0
 
 ### Optimizacion de la BD Biblica
 - **Busqueda FTS5** — reemplazo de `LIKE '%query%'` por FTS5 `MATCH` para consultas de texto completo O(1) (con fallback a LIKE)
@@ -22,7 +22,7 @@ Construido en TypeScript (Bun + Hono) con kernels de computo C FFI para operacio
 - **Limpieza de git** — eliminados 177MB de fuentes raw + 59MB de BD compilada del seguimiento
 - **Scripts de compilacion** — `download-sources.sh` + `bootstrap-bible-db.ts` para configuracion del cliente
 
-## Novedades en v0.27.0
+## Novedades en v0.28.0
 
 ### Pipeline State-First
 El motor ahora procesa acciones **de forma determinista antes de generar texto**:
@@ -212,7 +212,7 @@ TrueNeverStory/
 │   ├── routes/           # Rutas API (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Motor de reglas (14 reglas, matriz sinergia, dependencias tech)
 │   ├── services/         # 60+ servicios (motor de juego, agentes, economia, aislamiento mundos, bus inter-mundos)
-│   │   ├── agents/       # Nuevos agentes v0.27.0 (Dramaturgo, Validador, Estilista, Actor, Censor, Cronista)
+│   │   ├── agents/       # Nuevos agentes v0.28.0 (Dramaturgo, Validador, Estilista, Actor, Censor, Cronista)
 │   │   └── ...
 │   ├── intelligence/     # Analisis grafo, deteccion duplicados, sistema de recomendacion
 │   ├── i18n/             # Paquetes de idiomas (7 idiomas)
@@ -470,7 +470,7 @@ Ver [COMPILE.md](../COMPILE.md). GitHub Actions construye todas las plataformas 
 
 ## Ultimos cambios
 
-### v0.27.0 — Optimizacion de la BD Biblica
+### v0.28.0 — Optimizacion de la BD Biblica
 
 **Rendimiento:**
 - Busqueda FTS5 con fallback a LIKE — O(n) a O(1) consultas de texto completo
@@ -488,7 +488,7 @@ Ver [COMPILE.md](../COMPILE.md). GitHub Actions construye todas las plataformas 
 - Eliminados 177MB de fuentes + 59MB de BD compilada de git
 - Agregado .gitignore para fuentes y BD compilada
 
-### v0.27.0 — Literary Compiler y Modelos economicos
+### v0.28.0 — Literary Compiler y Modelos economicos
 
 **Literary Compiler (Fases 0-6):**
 - 4 pases de analisis sin conexion: Dramaturgico, Estilistico, Emocional, Metadatos
@@ -514,7 +514,7 @@ Ver [COMPILE.md](../COMPILE.md). GitHub Actions construye todas las plataformas 
 - Lista de facciones hardcodeada en DirectorLoop corregida — lee desde config del mundo
 - Aproximacion de ano corregida — usa `getFullYear()` en vez de calculo manual
 
-### v0.27.0 — Arquitectura State-First
+### v0.28.0 — Arquitectura State-First
 
 **Refactorizacion del motor principal:**
 - Intent Parser con esquemas Zod (6 tipos de intent: movimiento, dialogo, accion, comando, observacion, meta)

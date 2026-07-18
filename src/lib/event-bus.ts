@@ -30,6 +30,12 @@ export enum EventTopic {
   MAINTENANCE_DONE = "system.maintenance_done",
   GRAPH_CHANGED = "system.graph_changed",
   ERROR = "system.error",
+  HEARTBEAT_INTENT_PARSED = "heartbeat.intent_parsed",
+  HEARTBEAT_SIMULATION_STARTED = "heartbeat.simulation_started",
+  HEARTBEAT_SIMULATION_COMPLETE = "heartbeat.simulation_complete",
+  HEARTBEAT_STATE_MUTATED = "heartbeat.state_mutated",
+  HEARTBEAT_PROSE_GENERATING = "heartbeat.prose_generating",
+  HEARTBEAT_PROSE_COMPLETE = "heartbeat.prose_complete",
 }
 
 export interface Event {

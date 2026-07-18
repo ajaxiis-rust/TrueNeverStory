@@ -80,6 +80,10 @@ describe("safeEval", () => {
     expect(() => safeEval("{ }", {})).toThrow("Unsafe expression");
     expect(() => safeEval("[1]", {})).toThrow("Unsafe expression");
     expect(() => safeEval("a; b", {})).toThrow("Unsafe expression");
+    // Prototype pollution patterns
+    expect(() => safeEval("__proto__.polluted", {})).toThrow("Unsafe expression");
+    expect(() => safeEval("constructor.prototype", {})).toThrow("Unsafe expression");
+    expect(() => safeEval("prototype.toString", {})).toThrow("Unsafe expression");
   });
 
   it("throws on trailing characters", () => {

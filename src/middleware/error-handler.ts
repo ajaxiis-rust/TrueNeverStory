@@ -32,7 +32,6 @@ export const errorHandler: MiddlewareHandler = async (c, next) => {
       {
         error: message,
         code: error.code ?? "INTERNAL_ERROR",
-        ...(status !== 500 && { detail: error.message }),
       },
       status as 400 | 401 | 403 | 404 | 429 | 500,
     );

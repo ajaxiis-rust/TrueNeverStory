@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import { Database, type SQLQueryBindings } from 'bun:sqlite';
 import { BibleVerse, BiblePattern, BibleParseResult, BibleSearchOptions, BiblePatternFilter, BOOK_ABBREVIATIONS, BibleJSONSchema } from './types';
 import { getLogger } from '@/utils/logger';
 import { join } from 'node:path';
@@ -76,6 +76,10 @@ export class BibleParser {
   private normalizedDb: Database;
   private config: BibleParseConfig;
   private dataDir: string;
+
+  get db(): Database {
+    return this.normalizedDb;
+  }
 
   constructor(config: BibleParseConfig) {
     this.config = config;
@@ -249,7 +253,7 @@ export class BibleParser {
    */
   getPatterns(filter?: BiblePatternFilter): BiblePattern[] {
     let query = 'SELECT * FROM bible_patterns WHERE 1=1';
-    const params: unknown[] = [];
+    const params: SQLQueryBindings[] = [];
 
     if (filter?.archetype) {
       query += ' AND archetype = ?';
@@ -266,7 +270,7 @@ export class BibleParser {
       params.push(`%${filter.narrativeFunction}%`);
     }
 
-    const results = this.normalizedDb.query(query).all(...params as any[]) as Array<{
+    const results = this.normalizedDb.query(query).all(...params) as Array<{
       id: string;
       name: string;
       archetype: string;

@@ -199,7 +199,7 @@ export function safeEval(expr: string, context: Record<string, number>): number 
   if (!expr?.trim()) return 0;
 
   // Block dangerous patterns in raw input
-  if (/[;{}[\]\\]|import|require|eval|Function|this|global|process|window|document]/i.test(expr)) {
+  if (/[;{}[\]\\]|import|require|eval|Function|this|global|process|window|document|__proto__|constructor|prototype/i.test(expr)) {
     throw new Error("Unsafe expression");
   }
 

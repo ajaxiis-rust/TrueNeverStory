@@ -1,5 +1,54 @@
 # Changelog
 
+## v0.28.0 (2026-07-18)
+
+### Full Audit — Silent Errors, Type Safety, Performance, Security
+
+Comprehensive codebase audit with all issues resolved:
+
+#### Silent Catch Blocks — All Replaced with Logging
+- **14 files** modified: every empty `catch {}` now logs via `log.debug()` or `log.warn()`
+- `src/routes/settings.ts` — 6 catch blocks in `killLlamaServers` and `findModel`
+- `src/lib/mojo-ffi.ts` — 5 catch blocks in `tryLoad*` FFI functions
+- `src/lib/atomic-io.ts` — 2 catch blocks in `readJsonFileSync` and `atomicWriteJson`
+- `src/services/chronicler.ts` — 1 catch block in `getTimeline`
+- `src/services/agent-config.ts` — 3 catch blocks in config reading
+- `src/lib/providers/google-provider.ts` — 1 catch block in SSE parsing
+- `src/lib/providers/llamacpp-provider.ts` — 1 catch block in SSE parsing
+- `src/lib/providers/openai-provider.ts` — 2 catch blocks in OAuth and SSE
+- `src/routes/chat.ts` — 1 catch block in story_time parsing
+- `src/routes/providers.ts` — 1 catch block in rate-limit config reading
+- `src/routes/worlds.ts` — 4 catch blocks in world data reading
+
+#### Type Safety — Eliminated All `as any` Casts
+- **13 `as any` casts removed** across the codebase
+- `src/services/roleplay-engine.ts` — 12x replaced with typed `EventTopic` enum values
+- `src/services/agents/stylist.ts` — removed casts, added `tags`/`variables` to `NarrativePattern` interface
+- `src/services/agents/dramaturg.ts` — fixed `etype` → `entityType` bug
+- `src/store/world-store.ts` — 7x replaced with typed SQL row interfaces (`QuestRow`, `NPCMemoryRow`, `WorldFrameRow`, `CountRow`)
+- `src/mcp/bible/parser.ts` — replaced `as any[]` with `SQLQueryBindings[]`
+- `src/mcp/bible/characters.ts` — replaced `(parser as any).normalizedDb` with public getter `parser.db`
+- `src/mcp/literary-compiler/economic-schema.ts` — 2x replaced with `FactionLaborRuleRow` type
+- `src/routes/providers.ts` + `src/index.ts` — typed global `__narrativeService` via `global.d.ts`
+
+#### Performance — O(n²) → O(1) Model Lookup
+- `src/services/model-manager.ts:listModels` — replaced `models.find()` in loops with `Map.get()` for O(1) lookups
+
+#### Security — Hardened `safeEval` and Error Handler
+- `src/services/probability-expression.ts` — blocked `__proto__`, `constructor`, `prototype` in regex
+- `src/middleware/error-handler.ts` — removed internal error message disclosure from HTTP responses
+- Added 3 security tests for prototype pollution patterns
+
+#### Architecture — Strategy Pattern Refactoring
+- `src/index.ts` — `handleWSMessage` refactored from 70-line if/else chain to strategy pattern with `handleMessage`, `handleSetup`, `handlePing` functions
+
+#### Event System — Typed Topics
+- `src/lib/event-bus.ts` — added 6 heartbeat event topics to `EventTopic` enum
+- `src/services/roleplay-engine.ts` — all event publishing now uses typed enum values
+
+#### TODO Resolution
+- `src/services/roleplay-engine.ts` — `characterLevel` now fetched from entity store instead of hardcoded `1`
+
 ## v0.27.0 (2026-07-17)
 
 ### Release Packaging — Database Archives

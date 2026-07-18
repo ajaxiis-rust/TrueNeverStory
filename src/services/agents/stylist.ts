@@ -73,8 +73,12 @@ export class StylistAgent extends BaseAgentV2 {
     // Get style based on mood
     const style = await this.getStyle(pattern?.mood ?? 'neutral');
 
+    // Extract literary metadata from pattern (if from classics-compiled.db)
+    const tags = pattern?.tags;
+    const variables = pattern?.variables;
+
     // Build constrained prompt
-    const prompt = this.buildPrompt(intent, simulation, context, style);
+    const prompt = this.buildPrompt(intent, simulation, context, style, tags, variables);
 
     // Generate prose
     const prose = await this.llmQueue.generateText(prompt, 1, 0.8, 'stylist');
@@ -109,6 +113,8 @@ export class StylistAgent extends BaseAgentV2 {
     simulation: SimulationResult,
     context: GameContext,
     style: { name: string; description: string; vocabulary: string[]; sentencePatterns: string[] } | null,
+    tags?: string[],
+    variables?: string[],
   ): string {
     const parts: string[] = [];
 
@@ -124,6 +130,18 @@ export class StylistAgent extends BaseAgentV2 {
       }
       if (style.sentencePatterns.length > 0) {
         parts.push(`Sentence patterns: ${style.sentencePatterns.slice(0, 3).join(' | ')}`);
+      }
+    }
+
+    // Literary template hints from classics-compiled.db
+    if (tags && tags.length > 0) {
+      const sensoryTags = tags.filter(t => ['sight', 'sound', 'smell', 'touch', 'taste'].includes(t));
+      if (sensoryTags.length > 0) {
+        parts.push(`\nSensory focus: ${sensoryTags.join(', ')}`);
+      }
+      const thematicTags = tags.filter(t => !['sight', 'sound', 'smell', 'touch', 'taste'].includes(t) && !t.includes('_'));
+      if (thematicTags.length > 0) {
+        parts.push(`Themes present: ${thematicTags.slice(0, 5).join(', ')}`);
       }
     }
 

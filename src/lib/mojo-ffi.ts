@@ -13,6 +13,9 @@ import { dlopen, FFIType } from "bun:ffi";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
+import { getLogger } from "../utils/logger";
+
+const log = getLogger("mojo-ffi");
 
 const distDir = join(import.meta.dir, "../../dist");
 
@@ -90,7 +93,8 @@ function tryLoadProbLib() {
     });
     useMojoProb = true;
     return probLib;
-  } catch {
+  } catch (e) {
+    log.debug({ err: e }, "Mojo probability library not available, falling back to JS");
     return null;
   }
 }
@@ -124,7 +128,8 @@ function tryLoadVecLib() {
     });
     useMojoVec = true;
     return vecLib;
-  } catch {
+  } catch (e) {
+    log.debug({ err: e }, "Mojo vector library not available, falling back to JS");
     return null;
   }
 }
@@ -153,7 +158,8 @@ function tryLoadVecFullLib() {
     });
     useMojoVecFull = true;
     return vecFullLib;
-  } catch {
+  } catch (e) {
+    log.debug({ err: e }, "Mojo vector-full library not available, falling back to JS");
     return null;
   }
 }
@@ -190,7 +196,8 @@ function tryLoadBatchLib() {
     });
     useMojoBatch = true;
     return batchLib;
-  } catch {
+  } catch (e) {
+    log.debug({ err: e }, "Mojo batch library not available, falling back to JS");
     return null;
   }
 }
@@ -215,7 +222,8 @@ function tryLoadGraphLib() {
     });
     useMojoGraph = true;
     return graphLib;
-  } catch {
+  } catch (e) {
+    log.debug({ err: e }, "Mojo graph library not available, falling back to JS");
     return null;
   }
 }

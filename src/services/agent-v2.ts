@@ -22,6 +22,8 @@ export interface NarrativePattern {
   description: string;
   verses: string[];
   mood: string;
+  tags?: string[];
+  variables?: string[];
 }
 
 // ─── Agent V2 Interface ──────────────────────────────────────────────────────

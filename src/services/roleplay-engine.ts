@@ -28,7 +28,7 @@ import { IntentParser } from './intent-parser';
 import { SimulationEngine } from './simulation-engine';
 import { StateMutator } from './state-mutator';
 import { ContextBuilder, GameContext, EngineState } from './context-builder';
-import { EventBus } from '../lib/event-bus';
+import { EventBus, EventTopic } from '../lib/event-bus';
 import type { NPCRuntime } from './npc-runtime';
 import type { WorldValidator } from './world-validator';
 import type { UserAgent } from './user-agent';
@@ -285,7 +285,7 @@ export class RoleplayEngine {
     }
 
     // Step 1: Parse intent
-    this._eventBus.publishSimple('heartbeat.intent_parsed' as any, { input: stripped }, 'engine');
+    this._eventBus.publishSimple(EventTopic.HEARTBEAT_INTENT_PARSED, { input: stripped }, 'engine');
     const parserContext = this.contextBuilder.buildParserContext(engineState);
     const intent = await this.intentParser.parse(parsedInput, parserContext);
 
@@ -295,10 +295,11 @@ export class RoleplayEngine {
     }
 
     // Step 3: Run deterministic simulation
-    this._eventBus.publishSimple('heartbeat.simulation_started' as any, {}, 'engine');
+    this._eventBus.publishSimple(EventTopic.HEARTBEAT_SIMULATION_STARTED, {}, 'engine');
+    const characterEntity = this._entityStore.getByNameAndType(this.activeCharacter ?? 'unknown', 'Character');
     const simContext = {
-      characterLevel: 1, // TODO: Get from character entity
-      characterStats: {},
+      characterLevel: typeof characterEntity?.profile?.l2?.['level'] === 'number' ? characterEntity.profile.l2['level'] : 1,
+      characterStats: (characterEntity?.profile?.l2 ?? {}) as Record<string, number>,
       locationDanger: 0,
       timeOfDay: this._getTimeOfDay(),
       weather: 'clear',
@@ -306,14 +307,14 @@ export class RoleplayEngine {
       activeDebuffs: [],
     };
     const simResult = await this.simulationEngine.simulate(intent, simContext);
-    this._eventBus.publishSimple('heartbeat.simulation_complete' as any, {
+    this._eventBus.publishSimple(EventTopic.HEARTBEAT_SIMULATION_COMPLETE, {
       outcome: simResult.outcome,
       probability: simResult.probability,
     }, 'engine');
 
     // Step 4: Apply state changes immediately
     if (simResult.stateChanges.length > 0) {
-      this._eventBus.publishSimple('heartbeat.state_mutated' as any, {}, 'engine');
+      this._eventBus.publishSimple(EventTopic.HEARTBEAT_STATE_MUTATED, {}, 'engine');
       await this.stateMutator.applyChanges(simResult.stateChanges);
     }
 
@@ -321,7 +322,7 @@ export class RoleplayEngine {
     const gameContext = await this.contextBuilder.build(engineState);
 
     // Step 6: Generate prose based on intent type
-    this._eventBus.publishSimple('heartbeat.prose_generating' as any, {}, 'engine');
+    this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
     let narrative: string;
 
     if (isMovementIntent(intent)) {
@@ -335,7 +336,7 @@ export class RoleplayEngine {
       narrative = await this._handleActionWithSimulation(intent, simResult, gameContext);
     }
 
-    this._eventBus.publishSimple('heartbeat.prose_complete' as any, {}, 'engine');
+    this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_COMPLETE, {}, 'engine');
 
     // Step 6.5: Translate if needed
     if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
@@ -402,7 +403,7 @@ export class RoleplayEngine {
     const intent = await this.intentParser.parse(parsedInput, parserContext);
 
     // Yield heartbeat: intent parsed
-    yield { type: 'heartbeat', content: 'Understanding your input...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined } as any;
+    yield { type: 'heartbeat', content: 'Understanding your input...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
     // Commands — no streaming
     if (isCommandIntent(intent)) {
@@ -413,10 +414,11 @@ export class RoleplayEngine {
     }
 
     // Run simulation
-    yield { type: 'heartbeat', content: 'Rolling dice...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined } as any;
+    yield { type: 'heartbeat', content: 'Rolling dice...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
+    const characterEntity = this._entityStore.getByNameAndType(this.activeCharacter ?? 'unknown', 'Character');
     const simContext = {
-      characterLevel: 1,
-      characterStats: {},
+      characterLevel: typeof characterEntity?.profile?.l2?.['level'] === 'number' ? characterEntity.profile.l2['level'] : 1,
+      characterStats: (characterEntity?.profile?.l2 ?? {}) as Record<string, number>,
       locationDanger: 0,
       timeOfDay: this._getTimeOfDay(),
       weather: 'clear',
@@ -426,11 +428,11 @@ export class RoleplayEngine {
     const simResult = await this.simulationEngine.simulate(intent, simContext);
 
     // Yield heartbeat: simulation complete
-    yield { type: 'heartbeat', content: `Outcome: ${simResult.outcome}`, location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined } as any;
+    yield { type: 'heartbeat', content: `Outcome: ${simResult.outcome}`, location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
     // Apply state changes
     if (simResult.stateChanges.length > 0) {
-      yield { type: 'heartbeat', content: 'Updating world state...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined } as any;
+      yield { type: 'heartbeat', content: 'Updating world state...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
       await this.stateMutator.applyChanges(simResult.stateChanges);
     }
 
@@ -438,7 +440,7 @@ export class RoleplayEngine {
     const gameContext = await this.contextBuilder.build(engineState);
 
     // Generate prose (streaming for actions, non-streaming for movement/dialogue)
-    yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined } as any;
+    yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
     if (isMovementIntent(intent)) {
       let result = await this._handleMovementWithIntent(intent, gameContext);
@@ -477,7 +479,7 @@ export class RoleplayEngine {
     }
 
     // Yield heartbeat: prose complete
-    yield { type: 'heartbeat', content: 'Complete', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined } as any;
+    yield { type: 'heartbeat', content: 'Complete', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
     // Log and persist
     await this.chronicler.logEvent(`User action: ${stripped}`, this.currentTime, 'user_input');

@@ -6,6 +6,9 @@
 
 import type { LLMProvider, LLMProviderConfig, LLMRequestOptions, ProviderKey } from "./llm-provider";
 import type { ProviderRateLimiter } from "../provider-rate-limiter";
+import { getLogger } from "../../utils/logger";
+
+const log = getLogger("google-provider");
 
 interface ChatCompletionResponse {
   choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
@@ -274,7 +277,7 @@ export class GoogleProvider implements LLMProvider {
             const parsed = JSON.parse(data);
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) yield content;
-          } catch {}
+          } catch (e) { log.debug({ err: e }, "Failed to parse SSE chunk"); }
         }
       }
     } finally {
