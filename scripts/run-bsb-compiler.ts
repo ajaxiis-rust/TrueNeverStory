@@ -10,6 +10,7 @@ import { LLMClient } from '../src/lib/llm-client';
 import { join } from 'path';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
+import { ProgressBar } from '../src/lib/progress-bar';
 
 const BIBLE_DIR = join(process.cwd(), 'sources', 'bible');
 const OUTPUT_DB = join(process.cwd(), 'data', 'bible-compiler-output', 'literary.db');
@@ -53,24 +54,33 @@ async function main() {
   const archetypeCounts: Record<string, number> = {};
   const moodCounts: Record<string, number> = {};
 
+  // Count total chapters for progress bar
+  let totalChapters = 0;
+  const bookData = new Map<string, Map<number, string[]>>();
   for (const book of KEY_BOOKS) {
-    const bookAbbr = bibleParser.getBooks().includes(book)
-      ? book
-      : null;
-
-    if (!bookAbbr) continue;
-
-    // Get all verses for this book, group by chapter
+    if (!bibleParser.getBooks().includes(book)) continue;
     const verses = bibleParser.search('', { book, limit: 10000 });
     const chapters = new Map<number, string[]>();
-
     for (const v of verses) {
       const existing = chapters.get(v.chapter) ?? [];
       existing.push(v.text);
       chapters.set(v.chapter, existing);
     }
+    bookData.set(book, chapters);
+    totalChapters += chapters.size;
+  }
+
+  const progress = new ProgressBar(totalChapters, "Dramaturgic");
+  let chapterIdx = 0;
+
+  for (const book of KEY_BOOKS) {
+    const chapters = bookData.get(book);
+    if (!chapters) continue;
 
     for (const [chapter, chapterVerses] of chapters) {
+      chapterIdx++;
+      progress.update(chapterIdx, `${book} ${chapter}`);
+
       const chapterText = chapterVerses
         .map((t, i) => `## Verse ${i + 1}\n${t}`)
         .join('\n\n');
@@ -89,12 +99,9 @@ async function main() {
         moodCounts[t.mood] = (moodCounts[t.mood] ?? 0) + 1;
       }
     }
-
-    const bookTemplates = verses.length; // approximate
-    process.stdout.write(`  ${book}: ${chapters.size} chapters... `);
   }
 
-  console.log(`\n  Done in ${Date.now() - t2}ms`);
+  progress.finish(`${totalTemplates} templates, ${totalErrors} errors`);
 
   // 5. Results
   console.log('\n[4/4] Results:');

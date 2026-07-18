@@ -40,6 +40,8 @@ export interface TNSServerConfig {
   gutenbergDbPath: string;
   entityStore: UnifiedEntityStore;
   dataDir?: string;
+  /** Override literary compiler DB path (default: data/literary-compiler/classics-compiled.db) */
+  litCompDbPath?: string;
 }
 
 // ─── MCP Server ──────────────────────────────────────────────────────────────
@@ -73,10 +75,11 @@ export class TNSServer {
       extractStyles: true,
     });
 
-    // Initialize Literary Compiler DB
-    const litCompDbPath = config.dataDir
-      ? join(config.dataDir, 'literary-compiler', 'literary.db')
-      : join(process.cwd(), 'data', 'literary-compiler', 'literary.db');
+    // Initialize Literary Compiler DB (prefer classics-compiled.db over empty literary.db)
+    const litCompDbPath = config.litCompDbPath
+      ?? (config.dataDir
+        ? join(config.dataDir, 'literary-compiler', 'classics-compiled.db')
+        : join(process.cwd(), 'data', 'literary-compiler', 'classics-compiled.db'));
     this.literaryCompilerDB = new LiteraryCompilerDB(litCompDbPath);
 
     // Initialize Economic DB

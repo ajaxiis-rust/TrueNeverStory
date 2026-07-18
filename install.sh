@@ -219,6 +219,71 @@ download_assets() {
     info "Assets installed"
 }
 
+# ── Install llama.cpp ─────────────────────────────────────────
+
+install_llamacpp() {
+    log "Installing llama.cpp..."
+
+    local os arch
+    case "$(uname -s)" in
+        Linux*)  os="linux" ;;
+        Darwin*) os="darwin" ;;
+        *) warn "Unsupported OS for llama.cpp: $(uname -s)"; return 1 ;;
+    esac
+
+    case "$(uname -m)" in
+        x86_64|amd64) arch="x64" ;;
+        aarch64|arm64) arch="arm64" ;;
+        *) warn "Unsupported arch for llama.cpp: $(uname -m)"; return 1 ;;
+    esac
+
+    local release="${os}-${arch}"
+
+    # Get latest llama.cpp release tag
+    local tag
+    tag=$(curl -fsSL "https://api.github.com/repos/ggerganov/llama.cpp/releases/latest" 2>/dev/null \
+        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+    if [[ -z "$tag" ]]; then
+        err "Could not determine latest llama.cpp release"
+        return 1
+    fi
+
+    info "Downloading llama.cpp ${tag} for ${release}..."
+
+    local url="https://github.com/ggerganov/llama.cpp/releases/download/${tag}/llama-${tag}-bin-${release}.zip"
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    if ! curl -fsSL "$url" -o "$tmpdir/llamacpp.zip" 2>/dev/null; then
+        err "Failed to download llama.cpp"
+        rm -rf "$tmpdir"
+        return 1
+    fi
+
+    unzip -qo "$tmpdir/llamacpp.zip" -d "$tmpdir/" 2>/dev/null
+
+    # Copy binaries to local-models/ (portable, no sudo needed)
+    local bin_dir="${INSTALL_DIR}/local-models"
+    mkdir -p "$bin_dir"
+
+    for bin in llama-server llama-cli; do
+        local src
+        src=$(find "$tmpdir" -name "$bin" -type f 2>/dev/null | head -1)
+        if [[ -n "$src" ]]; then
+            cp -f "$src" "$bin_dir/$bin"
+            chmod +x "$bin_dir/$bin"
+        fi
+    done
+
+    rm -rf "$tmpdir"
+
+    if [[ -x "$bin_dir/llama-server" ]]; then
+        info "llama.cpp installed to ${bin_dir}/llama-server"
+    else
+        warn "llama-server not found in archive"
+    fi
+}
+
 # ── Update Mode ───────────────────────────────────────────────
 
 update_databases() {
@@ -245,6 +310,21 @@ full_install() {
     download_databases "$tag"
     extract_databases
     download_assets "$tag"
+
+    # Ask about llama.cpp
+    echo ""
+    echo -e "${BOLD}Install llama.cpp (local LLM server)?${NC}"
+    echo -e "  Enables running AI models locally without external API."
+    echo -e "  Requires ~500MB disk space for the binary."
+    echo ""
+    read -rp "Install llama.cpp? [y/N] " -n 1 answer
+    echo ""
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+        install_llamacpp
+    else
+        info "Skipped llama.cpp installation"
+        info "You can install later: bash install.sh --llamacpp"
+    fi
 
     echo ""
     log "Installation complete!"

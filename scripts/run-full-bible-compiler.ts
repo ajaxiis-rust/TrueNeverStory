@@ -10,6 +10,7 @@ import { LLMClient } from '../src/lib/llm-client';
 import { join } from 'path';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
+import { ProgressBar } from '../src/lib/progress-bar';
 
 const BIBLE_DIR = join(process.cwd(), 'sources', 'bible');
 const OUTPUT_DB = join(process.cwd(), 'data', 'bible-compiler-output', 'literary-full.db');
@@ -61,6 +62,9 @@ async function main() {
   let totalTemplates = 0;
   const archetypeCounts: Record<string, number> = {};
 
+  // Count total chapters for progress bar
+  let totalChapters = 0;
+  const bookData = new Map<string, Map<number, string[]>>();
   for (const book of KEY_BOOKS) {
     const verses = bibleParser.search('', { book, limit: 10000 });
     const chapters = new Map<number, string[]>();
@@ -69,8 +73,19 @@ async function main() {
       existing.push(v.text);
       chapters.set(v.chapter, existing);
     }
+    bookData.set(book, chapters);
+    totalChapters += chapters.size;
+  }
 
+  const progress = new ProgressBar(totalChapters, "Dramaturgic");
+  let chapterIdx = 0;
+
+  for (const book of KEY_BOOKS) {
+    const chapters = bookData.get(book)!;
     for (const [chapter, chapterVerses] of chapters) {
+      chapterIdx++;
+      progress.update(chapterIdx, `${book} ${chapter}`);
+
       const chapterText = chapterVerses
         .map((t, i) => `## Verse ${i + 1}\n${t}`)
         .join('\n\n');
@@ -87,7 +102,7 @@ async function main() {
       }
     }
   }
-  console.log(`  ${totalTemplates} templates generated (${Date.now() - t2}ms)`);
+  progress.finish(`${totalTemplates} templates`);
 
   // 4. Show cross-references WITH verse text
   console.log('\n[4/5] Cross-references with verse text (multi-translation):\n');

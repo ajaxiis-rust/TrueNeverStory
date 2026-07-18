@@ -10,6 +10,7 @@ import { StylisticPass } from '../src/mcp/literary-compiler/stylistic-pass';
 import { EmotionalPass } from '../src/mcp/literary-compiler/emotional-pass';
 import { MetadataPass } from '../src/mcp/literary-compiler/metadata-pass';
 import { join } from 'path';
+import { ProgressBar } from '../src/lib/progress-bar';
 
 const DATA_DIR = join(process.cwd(), 'data', 'bible');
 const LIT_DB = join(process.cwd(), 'data', 'bible-compiler-output', 'literary-cached.db');
@@ -44,6 +45,9 @@ async function main() {
   const moodCounts: Record<string, number> = {};
   const bookStats: Array<{ book: string; chapters: number; templates: number }> = [];
 
+  // Count total chapters for progress bar
+  let totalChapters = 0;
+  const bookChapters = new Map<string, Map<number, string[]>>();
   for (const book of KEY_BOOKS) {
     const verses = parser.search('', { book, limit: 10000 });
     const chapters = new Map<number, string[]>();
@@ -52,9 +56,21 @@ async function main() {
       existing.push(v.text);
       chapters.set(v.chapter, existing);
     }
+    bookChapters.set(book, chapters);
+    totalChapters += chapters.size;
+  }
 
+  const progress = new ProgressBar(totalChapters, "Pipeline");
+  let chapterIdx = 0;
+
+  for (const book of KEY_BOOKS) {
+    const chapters = bookChapters.get(book)!;
     let bookTemplates = 0;
+
     for (const [chapter, chapterVerses] of chapters) {
+      chapterIdx++;
+      progress.update(chapterIdx, `${book} ${chapter}`);
+
       const chapterText = chapterVerses
         .map((t, i) => `## Verse ${i + 1}\n${t}`)
         .join('\n\n');
@@ -76,6 +92,8 @@ async function main() {
 
     bookStats.push({ book, chapters: chapters.size, templates: bookTemplates });
   }
+
+  progress.finish(`${totalTemplates} templates in ${((performance.now() - t1) / 1000).toFixed(1)}s`);
 
   const elapsed = Date.now() - t1;
   console.log(`  ${totalTemplates} templates in ${elapsed}ms (${Math.round(totalTemplates / elapsed * 1000)} templates/sec)`);
