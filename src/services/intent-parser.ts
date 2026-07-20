@@ -9,7 +9,7 @@ const logger = getLogger('IntentParser');
 const MOVE_PATTERNS = /^(?:go|move|travel|walk|run|head|пойти|идти|переместиться)\s+(?:to|toward|into|for|в|к|на)\s+(.+)/i;
 const TALK_PATTERNS = /^(?:say to|talk to|ask|tell|shout at|whisper to|сказать|поговорить|спросить)\s+(\S+)\s+(.+)/i;
 const OBSERVE_PATTERNS = /^(?:look at|examine|inspect|осмотреть|изучить|посмотреть)\s+(.+)/i;
-const COMMAND_PATTERN = /^\/(\w+)\s*(.*)?$/;
+const COMMAND_PATTERN = /^\/(\w+)(?:\s+(.*))?$/;
 
 // ─── Intent Parser ───────────────────────────────────────────────────────────
 

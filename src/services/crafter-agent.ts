@@ -4,6 +4,7 @@
  * Evaluates item uniqueness and assigns boosts.
  */
 
+import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { UnifiedEntityStore } from "../store/entity-store";
@@ -188,7 +189,7 @@ export class CrafterAgent {
     }
 
     // Add result to inventory
-    const uid = `item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const uid = `item_${randomUUID()}`;
     const resultNode = new EntityNode({
       uid,
       name: recipe.result,

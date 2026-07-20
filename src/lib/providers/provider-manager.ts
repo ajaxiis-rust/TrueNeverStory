@@ -185,7 +185,7 @@ class ProviderManager {
       });
     }
     // Google Gemini
-    else if (cfg.WORLD_LLM_BASE_URL.includes("googleapis.com")) {
+    else if (new URL(cfg.WORLD_LLM_BASE_URL).hostname.endsWith("googleapis.com")) {
       this._createProvider({
         id: "google",
         name: "Google Gemini",

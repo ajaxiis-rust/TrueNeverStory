@@ -13,6 +13,11 @@
   let popupContainer = null;
   let popupTimeout = null;
 
+  function escapeHtml(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function init() {
     // Create popup container
     popupContainer = document.createElement('div');
@@ -86,25 +91,25 @@
     popup.innerHTML = `
       <div class="rate-limit-popup-header">
         <span class="rate-limit-popup-icon">⚠️</span>
-        <span class="rate-limit-popup-title">${data.providerId} rate limit</span>
+        <span class="rate-limit-popup-title">${escapeHtml(data.providerId)} rate limit</span>
         <button class="rate-limit-popup-close" onclick="window.RateLimitPopup.close()">×</button>
       </div>
       <div class="rate-limit-popup-body">
         <div class="rate-limit-popup-message">
-          Ключ ${data.key} достиг лимита запросов.
+          Ключ ${escapeHtml(data.key)} достиг лимита запросов.
         </div>
         <div class="rate-limit-popup-details">
           <div class="rate-limit-popup-detail-row">
             <span class="rate-limit-popup-detail-label">Провайдер:</span>
-            <span class="rate-limit-popup-detail-value">${data.providerId}</span>
+            <span class="rate-limit-popup-detail-value">${escapeHtml(data.providerId)}</span>
           </div>
           <div class="rate-limit-popup-detail-row">
             <span class="rate-limit-popup-detail-label">Ключ:</span>
-            <span class="rate-limit-popup-detail-value">${data.key}</span>
+            <span class="rate-limit-popup-detail-value">${escapeHtml(data.key)}</span>
           </div>
           <div class="rate-limit-popup-detail-row">
             <span class="rate-limit-popup-detail-label">Fallback:</span>
-            <span class="rate-limit-popup-detail-value">${data.fallbackProvider}/${data.fallbackModel}</span>
+            <span class="rate-limit-popup-detail-value">${escapeHtml(data.fallbackProvider)}/${escapeHtml(data.fallbackModel)}</span>
           </div>
         </div>
         <div class="rate-limit-popup-switch">

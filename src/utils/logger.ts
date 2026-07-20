@@ -54,11 +54,20 @@ class Logger {
     if (Array.isArray(data)) return data.map((item) => this._serializeError(item));
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
-      result[key] = value instanceof Error
-        ? { name: value.name, message: value.message, stack: value.stack, ...(value.cause ? { cause: this._serializeError(value.cause) } : {}) }
-        : value;
+      if (this._isSensitiveKey(key)) {
+        result[key] = typeof value === "string" && value.length > 4 ? value.slice(0, 2) + "***" + value.slice(-2) : "***";
+      } else {
+        result[key] = value instanceof Error
+          ? { name: value.name, message: value.message, stack: value.stack, ...(value.cause ? { cause: this._serializeError(value.cause) } : {}) }
+          : value;
+      }
     }
     return result;
+  }
+
+  private _isSensitiveKey(key: string): boolean {
+    const lower = key.toLowerCase();
+    return lower.includes("key") || lower.includes("token") || lower.includes("secret") || lower.includes("password") || lower.includes("credential") || lower.includes("authorization");
   }
 
   trace(data: unknown, msg?: string): void {

@@ -56,7 +56,7 @@ const log = getLogger('roleplay-engine');
 
 // ─── Agent Mention Pattern (kept for backward compat during migration) ──────
 
-const AGENT_MENTION = /^@(\S+)\s+(.+)$/;
+const AGENT_MENTION = /^@([^\s]+)\s+(.+)$/s;
 
 // ─── Service Message Agent Interface ─────────────────────────────────────────
 
