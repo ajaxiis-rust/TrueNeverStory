@@ -1,4 +1,4 @@
-# TrueNeverStory v0.28.0
+# TrueNeverStory v0.28.5
 
 ### Пиши свою книгу просто играя.
 
@@ -9,6 +9,25 @@ TrueNeverStory — ИИ-движок интерактивных нарратив
 **[English](../../README.md) | [Deutsch](../de/README.md) | [Français](../fr/README.md) | [Español](../es/README.md) | [日本語](../ja/README.md) | [中文](../zh/README.md)**
 
 ---
+
+## Что нового в v0.28.5
+
+### Оптимизация LLM — Двойная модель + Батчинг перевода
+- **Сокращено LLM-запросов** с 4-5 до 2-3 на каждый ввод пользователя
+- **`translateAndClassify()`** — объединяет перевод и классификацию намерений в один LLM-запрос
+- **Двойная модель** — маленькая модель (phi-3, gemma-2) для перевода/intent, основная — для нарратива
+- **Исправлен баг кэша LLM** — удалён `LRUCache`, вызывавший контаминацию между агентами
+
+### Конфигурация двойной модели
+```json
+{
+  "agentId": "translation",
+  "providerId": "ollama",
+  "modelId": "qwen2.5:14b",
+  "translationProviderId": "ollama",
+  "translationModelId": "phi3:mini"
+}
+```
 
 ## Что нового в v0.28.0
 

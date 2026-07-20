@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.28.5 (2026-07-20)
+
+### LLM Performance Optimization — Dual Model + Translation Batching
+
+Reduced LLM requests per user input from 4-5 to 2-3 for non-English languages.
+
+#### Translation + Intent Batching
+- **`TranslationService.translateAndClassify()`** — combines translation and intent classification into a single LLM call
+- **`RoleplayEngine.processInput()`** — uses `translateAndClassify` for non-English input, falls back to separate calls on failure
+- Saves 1 LLM request per non-English user input
+
+#### Dual Model Support
+- **`AgentConfig`** — added `translationProviderId` and `translationModelId` fields
+- **`AgentAssignment`** — added `translationProviderId` and `translationModelId` fields
+- **`LLMClientOptions`** — added `useTranslationModel` flag
+- **`LLMClient._getProvider()`** — uses translation provider when `useTranslationModel=true`
+- **`LLMClient._getModel()`** — uses translation model when `useTranslationModel=true`
+- **`LLMQueue.getAgentClient()`** — separates translation clients from regular clients in cache
+
+#### LLM Cache Bug Fix (from v0.28.4)
+- Removed `LRUCache` from `LLMClient` — cache was causing cross-agent hallucinations
+- Cache key did not include `systemPrompt` or `agentId`, so different agents got cached responses from each other
+- For local models, cache hit rate was ~0% anyway (prompts are unique each tick)
+
+#### Tests
+- `src/services/translation-service.test.ts` — 19 tests for TranslationService (detectLanguage, translate, translateToEnglish, translateAndClassify, translateResponse)
+- `src/lib/llm-client-translation.test.ts` — 2 tests for LLMClientOptions.useTranslationModel
+- Total: 944 tests pass (5 pre-existing failures unrelated to changes)
+
 ## v0.28.0 (2026-07-18)
 
 ### Full Audit — Silent Errors, Type Safety, Performance, Security

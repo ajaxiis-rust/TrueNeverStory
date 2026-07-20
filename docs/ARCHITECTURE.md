@@ -1,7 +1,7 @@
 # TrueNeverStory — Architecture Document
 
 > A Domain-Driven Design analysis of the TrueNeverStory narrative RPG engine.
-> Updated for v0.25.3 — Literary Compiler, Economic Models, State-First Architecture with MCP Integration.
+> Updated for v0.28.5 — Dual Model LLM Optimization, Translation Batching, MCP Function Calling.
 
 ---
 
@@ -21,22 +21,22 @@ The pattern fits because:
 
 The **event bus** (`EventBus` in `src/lib/event-bus.ts`) adds an asynchronous decoupling layer between bounded contexts, enabling the Director Loop to orchestrate narrative events without direct coupling to NPC, Social, or Quest subsystems.
 
-### State-First Pipeline (v0.25.0)
+### State-First Pipeline (v0.28.5)
 
 ```
-Player Input
+Player Input (any language)
   │
   ▼
-Intent Parser (Zod validation)
-  │
+Translate + Classify Intent (1 LLM call — small model)
+  │ translated text + intent
   ▼
-Simulation Engine (Mojo FFI)
+Simulation Engine (deterministic — no LLM)
   │ outcome, probability, stateChanges
   ▼
 State Mutator (EntityStore L1-L3)
   │
   ▼
-Context Builder (shared game state)
+Context Builder (shared game state — no LLM)
   │
   ▼
 Dramaturg (Bible pattern selection via MCP)
@@ -48,11 +48,37 @@ Stylist (Gutenberg style rendering via MCP)
 Censor (AI cliché removal)
   │
   ▼
-Translation Service (English → user language)
+Translate Response (1 LLM call — small model)
   │
   ▼
 Response to User
+
+Total: 2-3 LLM calls (was 4-5 in v0.28.0)
 ```
+
+### Dual Model Architecture (v0.28.5)
+
+The engine supports two LLM models per agent:
+
+| Model | Purpose | Examples |
+|-------|---------|----------|
+| **Main model** | Narrative generation, NPC dialogue, story planning | llama-3.1-8b, qwen2.5-14b |
+| **Translation model** | Translation, intent classification (fast, small) | phi-3-mini, gemma-2-2b, qwen2.5-3b |
+
+**Configuration** (per agent in `conf/agents.json`):
+```json
+{
+  "agentId": "translation",
+  "providerId": "ollama",
+  "modelId": "qwen2.5:14b",
+  "translationProviderId": "ollama",
+  "translationModelId": "phi3:mini"
+}
+```
+
+**LLMClient** resolves the model via `useTranslationModel` flag:
+- `LLMQueue.getAgentClient("translation", { useTranslationModel: true })` → uses `translationModelId`
+- `LLMQueue.getAgentClient("narrator")` → uses `modelId`
 
 ```
 ┌─────────────────────────────────────────────────┐

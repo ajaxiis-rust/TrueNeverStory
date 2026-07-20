@@ -275,19 +275,30 @@ export class RoleplayEngine {
       visitedLocations: this.visitedLocations,
     };
 
-    // Step 0: Reverse translate non-English input
+    // Step 0+1: Translate + classify intent in one call (saves 1 LLM request)
     let parsedInput = stripped;
-    if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
-      const inputLang = this.translationService.detectLanguage(stripped);
-      if (inputLang !== 'en') {
+    let intent: Intent;
+    const needsTranslation = this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en';
+    const inputLang = needsTranslation ? this.translationService.detectLanguage(stripped) : 'en';
+
+    if (needsTranslation && inputLang !== 'en') {
+      const combined = await this.translationService.translateAndClassify(stripped, inputLang);
+      if (combined) {
+        parsedInput = combined.translated;
+        intent = combined.intent;
+      } else {
+        // Fallback: translate separately, then parse
         parsedInput = await this.translationService.translateToEnglish(stripped, inputLang);
+        const parserContext = this.contextBuilder.buildParserContext(engineState);
+        intent = await this.intentParser.parse(parsedInput, parserContext);
       }
+    } else {
+      // English input: parse intent normally
+      const parserContext = this.contextBuilder.buildParserContext(engineState);
+      intent = await this.intentParser.parse(parsedInput, parserContext);
     }
 
-    // Step 1: Parse intent
     this._eventBus.publishSimple(EventTopic.HEARTBEAT_INTENT_PARSED, { input: stripped }, 'engine');
-    const parserContext = this.contextBuilder.buildParserContext(engineState);
-    const intent = await this.intentParser.parse(parsedInput, parserContext);
 
     // Step 2: Handle commands directly (no simulation needed)
     if (isCommandIntent(intent)) {

@@ -33,6 +33,8 @@ export interface AgentConfig {
   maxTokens: number;
   priority: number;
   prompts: AgentPromptConfig;
+  translationProviderId?: string;
+  translationModelId?: string;
 }
 
 export interface AgentAssignment {
@@ -42,6 +44,8 @@ export interface AgentAssignment {
   temperature: number;
   maxTokens: number;
   enabled: boolean;
+  translationProviderId?: string;
+  translationModelId?: string;
 }
 
 // ── Global config paths ──
@@ -331,6 +335,8 @@ export function loadAgentConfig(agentId: string, world?: string): AgentConfig {
     maxTokens: assignment?.maxTokens ?? 2048,
     priority: meta?.priority ?? 5,
     prompts,
+    translationProviderId: assignment?.translationProviderId,
+    translationModelId: assignment?.translationModelId,
   };
 }
 
@@ -345,6 +351,8 @@ export async function saveAgentConfig(agentId: string, config: AgentConfig, worl
     temperature: config.temperature,
     maxTokens: config.maxTokens,
     enabled: config.enabled,
+    translationProviderId: config.translationProviderId,
+    translationModelId: config.translationModelId,
   };
   if (idx >= 0) assignments[idx] = assignment;
   else assignments.push(assignment);

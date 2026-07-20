@@ -89,10 +89,12 @@ export class LLMQueue {
   }
 
   getAgentClient(agentId: string, options?: LLMClientOptions): LLMClient {
-    if (!this._agentClients.has(agentId)) {
-      this._agentClients.set(agentId, new LLMClient({ ...options, agentId }));
+    // Include useTranslationModel in cache key to separate translation clients
+    const key = options?.useTranslationModel ? `${agentId}:translation` : agentId;
+    if (!this._agentClients.has(key)) {
+      this._agentClients.set(key, new LLMClient({ ...options, agentId }));
     }
-    return this._agentClients.get(agentId)!;
+    return this._agentClients.get(key)!;
   }
 
   async start(): Promise<void> {

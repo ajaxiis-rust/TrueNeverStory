@@ -1,4 +1,4 @@
-# TrueNeverStory v0.27.0
+# TrueNeverStory v0.28.5
 
 ### Write your book just by playing.
 
@@ -9,6 +9,25 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 **[Русский](docs/ru/README.md) | [Deutsch](docs/de/README.md) | [Français](docs/fr/README.md) | [Español](docs/es/README.md) | [日本語](docs/ja/README.md) | [中文](docs/zh/README.md)**
 
 ---
+
+## What's New in v0.28.5
+
+### LLM Performance Optimization — Dual Model + Translation Batching
+- **Reduced LLM requests** from 4-5 to 2-3 per user input
+- **`translateAndClassify()`** — combines translation and intent classification into one LLM call
+- **Dual model support** — small model (phi-3, gemma-2) for translation/intent, main model for narrative
+- **Fixed LLM cache bug** — removed `LRUCache` that caused cross-agent hallucinations
+
+### Dual Model Configuration
+```json
+{
+  "agentId": "translation",
+  "providerId": "ollama",
+  "modelId": "qwen2.5:14b",
+  "translationProviderId": "ollama",
+  "translationModelId": "phi3:mini"
+}
+```
 
 ## What's New in v0.27.0
 

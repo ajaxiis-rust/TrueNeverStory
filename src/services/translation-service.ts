@@ -1,5 +1,6 @@
 import { LLMQueue } from '@/lib/llm-queue';
 import { getLogger } from '@/utils/logger';
+import type { Intent } from '@/models/intent';
 
 const logger = getLogger('TranslationService');
 
@@ -139,5 +140,61 @@ Return ONLY the translated command, no explanation.`;
     if (/[ñ¿¡]/i.test(text)) return 'es';
 
     return 'en';
+  }
+
+  /**
+   * Combined translate + intent classification in one LLM call.
+   * Saves one LLM request by doing both tasks simultaneously.
+   * Returns null if input is English (caller should parse intent normally).
+   */
+  async translateAndClassify(
+    text: string,
+    sourceLang: LanguageCode,
+  ): Promise<{ translated: string; intent: Intent } | null> {
+    if (sourceLang === 'en') return null;
+    if (!SUPPORTED_LANGUAGES[sourceLang]) {
+      logger.warn(`Unsupported source language: ${sourceLang}`);
+      return null;
+    }
+
+    const langName = SUPPORTED_LANGUAGES[sourceLang];
+
+    const prompt = `You are a game command translator and intent classifier.
+Translate the following command from ${langName} to English AND classify the player's intent.
+
+Command: ${text}
+
+Respond in EXACTLY this JSON format (no other text):
+{
+  "translated": "the English translation",
+  "intent": {
+    "type": "movement|dialogue|action|observation|command",
+    "target": "target of the action if any",
+    "detail_level": "brief|normal|detailed"
+  }
+}
+
+Intent types:
+- movement: going somewhere, traveling, entering, leaving
+- dialogue: talking to someone, asking, telling, greeting
+- action: attacking, crafting, picking up, using, casting
+- observation: looking, examining, checking, listening
+- command: game commands like inventory, stats, save, help`;
+
+    try {
+      const result = await this.llmQueue.generateJson(prompt, 1, 0.3, 'translation');
+      const translated = (result.translated as string) ?? text;
+      const intent = result.intent as Intent;
+
+      if (!translated || !intent?.type) {
+        logger.warn('Invalid translate+classify response, falling back');
+        return null;
+      }
+
+      return { translated: translated.trim(), intent };
+    } catch (err) {
+      logger.warn({ err }, 'translateAndClassify failed');
+      return null;
+    }
   }
 }

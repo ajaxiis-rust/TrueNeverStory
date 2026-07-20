@@ -1,11 +1,10 @@
 /**
- * TrueNeverStory — Advanced LLM client with provider support and response caching.
+ * TrueNeverStory — Advanced LLM client with provider support.
  * Supports multiple LLM providers with per-agent model assignment.
  */
 
 import { getConfig } from "../config/env";
 import { getSettings } from "../services/settings";
-import { sha256Short } from "../utils/hash";
 import { getLogger } from "../utils/logger";
 import { getProviderManager, type LLMProvider } from "./providers";
 import { loadAgentConfig } from "../services/agent-config";
@@ -13,62 +12,22 @@ import { parseJsonWithRetry } from "./json-retry";
 
 const log = getLogger("llm-client");
 
-interface CacheEntry {
-  value: unknown;
-  expiresAt: number;
-}
-
-class LRUCache {
-  private _cache: Map<string, CacheEntry> = new Map();
-  private _maxSize: number;
-  private _hits = 0;
-  private _misses = 0;
-
-  constructor(maxSize = 256) {
-    this._maxSize = maxSize;
-  }
-
-  get(key: string): unknown | null {
-    const entry = this._cache.get(key);
-    if (entry && entry.expiresAt > Date.now()) {
-      this._hits++;
-      this._cache.delete(key);
-      this._cache.set(key, entry);
-      return entry.value;
-    }
-    this._misses++;
-    return null;
-  }
-
-  put(key: string, value: unknown, ttlMs = 5 * 60 * 1000): void {
-    this._cache.delete(key);
-    this._cache.set(key, { value, expiresAt: Date.now() + ttlMs });
-    while (this._cache.size > this._maxSize) {
-      const first = this._cache.keys().next().value;
-      if (first) this._cache.delete(first);
-    }
-  }
-
-  get stats() {
-    return { hits: this._hits, misses: this._misses, size: this._cache.size };
-  }
-}
-
 export interface LLMClientOptions {
   agentId?: string;
   providerId?: string;
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  useTranslationModel?: boolean;
 }
 
 export class LLMClient {
-  private _cache = new LRUCache(256);
   private _agentId?: string;
   private _providerId?: string;
   private _model?: string;
   private _temperature?: number;
   private _maxTokens?: number;
+  private _useTranslationModel: boolean;
   private _fallbackBaseUrl: string;
   private _fallbackApiKey: string;
   private _fallbackModel: string;
@@ -83,6 +42,7 @@ export class LLMClient {
     this._model = options?.model;
     this._temperature = options?.temperature;
     this._maxTokens = options?.maxTokens;
+    this._useTranslationModel = options?.useTranslationModel ?? false;
 
     this._fallbackBaseUrl = s.llmBaseUrl || cfg.WORLD_LLM_BASE_URL;
     this._fallbackApiKey = s.llmApiKey || cfg.WORLD_LLM_API_KEY;
@@ -96,8 +56,12 @@ export class LLMClient {
     // Try agent-specific provider first (read from config file each time)
     if (this._agentId) {
       const agentCfg = loadAgentConfig(this._agentId);
-      if (agentCfg.providerId) {
-        const provider = manager.getProvider(agentCfg.providerId);
+      // Use translation provider if requested and configured
+      const providerId = this._useTranslationModel && agentCfg.translationProviderId
+        ? agentCfg.translationProviderId
+        : agentCfg.providerId;
+      if (providerId) {
+        const provider = manager.getProvider(providerId);
         if (provider) return provider;
       }
     }
@@ -118,6 +82,10 @@ export class LLMClient {
     // Read from agent config file
     if (this._agentId) {
       const agentCfg = loadAgentConfig(this._agentId);
+      // Use translation model if requested and configured
+      if (this._useTranslationModel && agentCfg.translationModelId) {
+        return agentCfg.translationModelId;
+      }
       if (agentCfg.modelId) return agentCfg.modelId;
     }
 
@@ -157,10 +125,6 @@ export class LLMClient {
     const maxTok = options.maxTokens ?? this._getMaxTokens();
     const model = this._getModel(provider);
 
-    const cacheKey = await sha256Short(`${model}|${temp}|${options.jsonMode ?? false}|${prompt}`);
-    const cached = this._cache.get(cacheKey);
-    if (cached !== null) return cached as string;
-
     // Use provider if available
     if (provider) {
       try {
@@ -172,7 +136,6 @@ export class LLMClient {
           timeout: options.timeout,
         });
 
-        this._cache.put(cacheKey, result);
         return result;
       } catch (err) {
         log.warn({ provider: provider.id, err }, "Provider failed, falling back to direct");
@@ -248,10 +211,7 @@ export class LLMClient {
         }
 
         const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-        const content = data.choices?.[0]?.message?.content ?? "";
-        const cacheKey = await sha256Short(`${this._fallbackModel}|${temp}|${options.jsonMode ?? false}|${prompt}`);
-        this._cache.put(cacheKey, content);
-        return content;
+        return data.choices?.[0]?.message?.content ?? "";
       } catch (err) {
         if (attempt === this._maxRetries) throw err;
         const delay = Math.min(1000 * 2 ** attempt, 10000);
@@ -311,9 +271,5 @@ export class LLMClient {
 
     const data = await res.json() as { data?: Array<{ embedding?: number[] }> };
     return data.data?.[0]?.embedding ?? [];
-  }
-
-  get cacheStats() {
-    return this._cache.stats;
   }
 }
