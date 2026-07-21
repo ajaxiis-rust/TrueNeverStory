@@ -3,6 +3,7 @@
  */
 
 export type { LLMProvider, LLMProviderConfig, LLMRequestOptions, ProviderKey, OAuthConfig } from "./llm-provider";
+export { isLocalProvider } from "./llm-provider";
 export { OpenAIProvider } from "./openai-provider";
 export { AnthropicProvider } from "./anthropic-provider";
 export { GoogleProvider } from "./google-provider";

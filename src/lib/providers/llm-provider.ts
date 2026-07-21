@@ -39,6 +39,10 @@ export interface LLMProviderConfig {
   priority: number;
 }
 
+export function isLocalProvider(type: string): boolean {
+  return type === "ollama" || type === "llamacpp";
+}
+
 export interface LLMRequestOptions {
   temperature?: number;
   maxTokens?: number;

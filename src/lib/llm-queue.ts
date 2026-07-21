@@ -89,8 +89,12 @@ export class LLMQueue {
   }
 
   getAgentClient(agentId: string, options?: LLMClientOptions): LLMClient {
-    // Include useTranslationModel in cache key to separate translation clients
-    const key = options?.useTranslationModel ? `${agentId}:translation` : agentId;
+    // Build cache key from flags that affect model selection
+    const parts = [agentId];
+    if (options?.useTranslationModel) parts.push('translation');
+    if (options?.enableFunctionCalling) parts.push('fc');
+    const key = parts.join(':');
+
     if (!this._agentClients.has(key)) {
       this._agentClients.set(key, new LLMClient({ ...options, agentId }));
     }

@@ -19,6 +19,7 @@ export interface LLMClientOptions {
   temperature?: number;
   maxTokens?: number;
   useTranslationModel?: boolean;
+  enableFunctionCalling?: boolean;
 }
 
 export class LLMClient {
@@ -28,6 +29,7 @@ export class LLMClient {
   private _temperature?: number;
   private _maxTokens?: number;
   private _useTranslationModel: boolean;
+  private _enableFunctionCalling: boolean;
   private _fallbackBaseUrl: string;
   private _fallbackApiKey: string;
   private _fallbackModel: string;
@@ -43,6 +45,7 @@ export class LLMClient {
     this._temperature = options?.temperature;
     this._maxTokens = options?.maxTokens;
     this._useTranslationModel = options?.useTranslationModel ?? false;
+    this._enableFunctionCalling = options?.enableFunctionCalling ?? false;
 
     this._fallbackBaseUrl = s.llmBaseUrl || cfg.WORLD_LLM_BASE_URL;
     this._fallbackApiKey = s.llmApiKey || cfg.WORLD_LLM_API_KEY;
@@ -271,5 +274,9 @@ export class LLMClient {
 
     const data = await res.json() as { data?: Array<{ embedding?: number[] }> };
     return data.data?.[0]?.embedding ?? [];
+  }
+
+  get enableFunctionCalling(): boolean {
+    return this._enableFunctionCalling;
   }
 }
