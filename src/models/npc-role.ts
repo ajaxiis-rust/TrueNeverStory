@@ -1,8 +1,8 @@
 /**
- * NPC Economy System — Archetypes
+ * NPC Economy System — NPC Roles
  */
 
-export interface ArchetypeConfig {
+export interface NPCRoleConfig {
   name: string;
   weight: number;
   unique: boolean;
@@ -23,7 +23,7 @@ export const CONTEXT_GROUPS: Record<ContextType, string[]> = {
 
 export const CONTEXT_MULTIPLIER = 2;
 
-export const DEFAULT_ARCHETYPES: ArchetypeConfig[] = [
+export const DEFAULT_NPC_ROLES: NPCRoleConfig[] = [
   { name: "farmer", weight: 10, unique: false, contexts: ["wild"], description: "Земледелец" },
   { name: "fisherman", weight: 8, unique: false, contexts: ["wild", "sea"], description: "Рыбак" },
   { name: "craftsman", weight: 8, unique: false, contexts: ["market"], description: "Ремесленник" },
@@ -48,7 +48,7 @@ export const DEFAULT_ARCHETYPES: ArchetypeConfig[] = [
   { name: "smuggler", weight: 0.3, unique: false, contexts: ["sea", "market"], description: "Контрабандист" },
 ];
 
-export const UNIQUE_ARCHETYPES: ArchetypeConfig[] = [
+export const UNIQUE_NPC_ROLES: NPCRoleConfig[] = [
   { name: "emperor", weight: 0.01, unique: true, contexts: ["court"], description: "Император" },
   { name: "king", weight: 0.05, unique: true, contexts: ["court"], description: "Король" },
   { name: "duke", weight: 0.1, unique: true, contexts: ["court"], description: "Герцог" },
@@ -63,21 +63,21 @@ export const UNIQUE_ARCHETYPES: ArchetypeConfig[] = [
   { name: "dragon_rider", weight: 0.1, unique: true, contexts: ["wild"], description: "Верхом на драконе" },
 ];
 
-export const ALL_ARCHETYPES = [...DEFAULT_ARCHETYPES, ...UNIQUE_ARCHETYPES];
+export const ALL_NPC_ROLES = [...DEFAULT_NPC_ROLES, ...UNIQUE_NPC_ROLES];
 
-export function selectArchetype(
-  archetypes: ArchetypeConfig[],
+export function selectNPCRole(
+  roles: NPCRoleConfig[],
   context?: string,
   existingNPCs: string[] = [],
 ): string {
-  let filtered = archetypes;
+  let filtered = roles;
 
   if (context) {
     const ctxLower = context.toLowerCase();
-    filtered = archetypes.filter(
+    filtered = roles.filter(
       (a) => a.contexts.some((c) => c.toLowerCase() === ctxLower) || a.contexts.length === 0,
     );
-    if (filtered.length === 0) filtered = archetypes;
+    if (filtered.length === 0) filtered = roles;
   }
 
   filtered = filtered.filter((a) => {
@@ -89,13 +89,13 @@ export function selectArchetype(
 
   const totalWeight = filtered.reduce((sum, a) => sum + a.weight, 0);
   let random = Math.random() * totalWeight;
-  for (const archetype of filtered) {
-    random -= archetype.weight;
-    if (random <= 0) return archetype.name;
+  for (const role of filtered) {
+    random -= role.weight;
+    if (random <= 0) return role.name;
   }
   return filtered[filtered.length - 1]?.name ?? "commoner";
 }
 
-export function getArchetypeByName(name: string): ArchetypeConfig | undefined {
-  return ALL_ARCHETYPES.find((a) => a.name === name);
+export function getNPCRoleByName(name: string): NPCRoleConfig | undefined {
+  return ALL_NPC_ROLES.find((a) => a.name === name);
 }

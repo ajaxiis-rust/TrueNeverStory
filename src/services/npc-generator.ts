@@ -10,11 +10,11 @@ import { EventTopic } from "../lib/event-bus";
 import { TaskPriority } from "../models/director";
 import { LayeredProfile, EntityNode } from "../models/entity";
 import {
-  type ArchetypeConfig,
-  ALL_ARCHETYPES,
-  DEFAULT_ARCHETYPES,
-  selectArchetype as weightedSelectArchetype,
-} from "../models/archetype";
+  type NPCRoleConfig,
+  ALL_NPC_ROLES,
+  DEFAULT_NPC_ROLES,
+  selectNPCRole as weightedSelectNPCRole,
+} from "../models/npc-role";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("npc-generator");
@@ -65,10 +65,10 @@ export class NPCGenerator {
     this._agentId = deps.agentId;
   }
 
-  private _getArchetypes(): ArchetypeConfig[] {
+  private _getArchetypes(): NPCRoleConfig[] {
     const custom = this._worldFrame?.npc_archetypes;
     if (custom && typeof custom === "object" && !Array.isArray(custom)) {
-      const result: ArchetypeConfig[] = [];
+      const result: NPCRoleConfig[] = [];
       for (const [k, v] of Object.entries(custom as Record<string, unknown>)) {
         if (typeof v === "string") {
           result.push({ name: k, weight: 1, unique: false, contexts: [], description: v });
@@ -85,7 +85,7 @@ export class NPCGenerator {
       }
       if (result.length > 0) return result;
     }
-    return [...ALL_ARCHETYPES];
+    return [...ALL_NPC_ROLES];
   }
 
   selectArchetype(context?: string): string {
@@ -94,7 +94,7 @@ export class NPCGenerator {
       const tags = (n.profile.l1.tags as string[]) ?? [];
       return tags[0] ?? "";
     });
-    return weightedSelectArchetype(archetypes, context, existing);
+    return weightedSelectNPCRole(archetypes, context, existing);
   }
 
   private _getExistingNPCContext(): string {

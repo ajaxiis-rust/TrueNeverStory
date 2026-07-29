@@ -5,7 +5,7 @@
 import { type NPCWithEconomy, createNPCWithEconomy, updateNPCStats, processFood, processTreasury, bribeRisk, checkBetrayalRisk, losePowerToSlavery } from "./npc-economy";
 import { RankType, getRankConfig, getRankIndex, RANK_CONFIGS } from "../models/rank";
 import { type Vices, type Temperament, createDefaultVices, ageDecay, viceDecay } from "../models/npc-stats";
-import { type ArchetypeConfig, ALL_ARCHETYPES, selectArchetype } from "../models/archetype";
+import { type NPCRoleConfig, ALL_NPC_ROLES, selectNPCRole } from "../models/npc-role";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("npc-economy-runtime");

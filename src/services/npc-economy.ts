@@ -24,7 +24,7 @@ import {
   getRankIndex,
   calculateTaxCollectorsCount,
 } from "../models/rank";
-import { type ArchetypeConfig, ALL_ARCHETYPES, selectArchetype } from "../models/archetype";
+import { type NPCRoleConfig, ALL_NPC_ROLES, selectNPCRole } from "../models/npc-role";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("npc-economy");
