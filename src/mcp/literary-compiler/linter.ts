@@ -1,5 +1,7 @@
 import { getLogger } from '@/utils/logger';
 import type { QuestTemplate } from './types';
+import type { SceneTemplate, StylePattern } from './schema';
+import { isValidArchetype } from './archetypes';
 
 const logger = getLogger('Linter');
 
@@ -233,5 +235,74 @@ export class Linter {
     }
 
     return issues;
+  }
+
+  /**
+   * Validate a SceneTemplate (v2)
+   */
+  validateSceneTemplate(template: SceneTemplate): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!template.id || template.id.trim() === '') {
+      errors.push('missing id');
+    }
+
+    if (!isValidArchetype(template.archetype_primary)) {
+      errors.push(`invalid archetype: ${template.archetype_primary}`);
+    }
+
+    if (!template.template_text || template.template_text.length < 10) {
+      errors.push('template_text too short (min 10 chars)');
+    }
+
+    if (!template.variables || template.variables.length === 0) {
+      errors.push('no variables');
+    }
+
+    if (template.template_text) {
+      const estimatedTokens = template.template_text.length / 4;
+      if (estimatedTokens > 120) {
+        errors.push(`template_text too long (estimated ${Math.round(estimatedTokens)} tokens, max 120)`);
+      }
+    }
+
+    const MORALIZING_PHRASES = [
+      'you should',
+      'you must',
+      'you ought',
+      'it is right to',
+      'it is wrong to',
+      'the correct choice',
+      'the righteous',
+      'do what is right',
+      'follow the path of virtue',
+      'embrace the good',
+    ];
+    if (template.template_text) {
+      const lower = template.template_text.toLowerCase();
+      const found = MORALIZING_PHRASES.filter(p => lower.includes(p));
+      if (found.length > 0) {
+        errors.push(`moralizing phrases detected: ${found.join(', ')}`);
+      }
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+
+  /**
+   * Validate a StylePattern (v2)
+   */
+  validateStylePattern(pattern: StylePattern): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!pattern.id || pattern.id.trim() === '') {
+      errors.push('missing id');
+    }
+
+    if (!pattern.example_snippets || pattern.example_snippets.length === 0) {
+      errors.push('no example_snippets (at least 1 required)');
+    }
+
+    return { valid: errors.length === 0, errors };
   }
 }
