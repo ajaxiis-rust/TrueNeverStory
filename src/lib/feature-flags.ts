@@ -68,6 +68,48 @@ const DEFAULT_FLAGS: FeatureFlag[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: "literary-compiler-v2",
+    name: "Literary Compiler V2",
+    description: "Use v2 pipeline with BGE-M3 + small LLM extractor",
+    enabled: false,
+    percentage: 0,
+    conditions: [],
+    variants: [
+      { id: "control", name: "Control", weight: 50 },
+      { id: "v2", name: "V2", weight: 50 },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "literary-v2-retrieval",
+    name: "Literary V2 Retrieval",
+    description: "Use hybrid FTS+BGE-M3 retrieval at runtime",
+    enabled: false,
+    percentage: 0,
+    conditions: [],
+    variants: [
+      { id: "control", name: "Control", weight: 50 },
+      { id: "v2", name: "V2", weight: 50 },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "literary-v2-stylist",
+    name: "Literary V2 Stylist",
+    description: "Use micro-prompt contract for StylistAgent",
+    enabled: false,
+    percentage: 0,
+    conditions: [],
+    variants: [
+      { id: "control", name: "Control", weight: 50 },
+      { id: "v2", name: "V2", weight: 50 },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 class FeatureFlagManager {
