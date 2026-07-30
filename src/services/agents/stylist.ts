@@ -196,4 +196,51 @@ export class StylistAgent extends BaseAgentV2 {
         return '\nDescribe what happens next in the story.';
     }
   }
+
+  /**
+   * V2 micro-prompt contract: short, constrained input for 1 LLM call.
+   */
+  buildMicroPrompt(
+    filledSkeleton: string,
+    style: { register: string; pacing: string; sensory: string[]; snippets: string[]; forbidden: string[] },
+    context: { world: string; location: string; time?: string },
+    outcome: string,
+    playerVoice?: string,
+  ): { system: string; user: string } {
+    const system = `You are a literary narrator for a living world simulator.
+Render the given scene. Do not invent new plot beats.
+Respect the outcome exactly.
+Write 2-3 paragraphs (~200-280 words).
+No moralizing. No summary. No modern slang unless style allows.
+Vary sentence length according to style constraints.
+Prefer concrete sensory detail over abstract emotion.
+Follow the style constraints strictly.`;
+
+    const styleBlock = `Style constraints:
+- register: ${style.register}
+- pacing: ${style.pacing}
+- sensory focus: ${style.sensory.join(', ')}
+- prefer constructions like:
+${style.snippets.map((s, i) => `  ${i + 1}) ${s}`).join('\n')}
+- avoid: ${style.forbidden.join(', ')}`;
+
+    const voiceBlock = playerVoice
+      ? `\nPlayer voice notes (soft prior):\n${playerVoice}`
+      : '';
+
+    const user = `Scene skeleton:
+${filledSkeleton}
+
+Outcome (must respect):
+${outcome}
+
+Minimal facts:
+- world: ${context.world}
+- location: ${context.location}${context.time ? `\n- time: ${context.time}` : ''}
+${styleBlock}${voiceBlock}
+
+Write 2-3 paragraphs continuing this scene.`;
+
+    return { system, user };
+  }
 }

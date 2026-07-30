@@ -550,6 +550,18 @@ export class LiteraryCompilerDB {
     ).run(cacheKey, archetype, confidence);
   }
 
+  getStyleForTemplate(templateId: string): Record<string, unknown> | null {
+    const link = this.db.prepare(
+      'SELECT style_id FROM template_style_links WHERE template_id = ? LIMIT 1'
+    ).get(templateId) as { style_id: string } | undefined;
+
+    if (!link) return null;
+
+    return this.db.prepare(
+      'SELECT * FROM style_patterns WHERE id = ?'
+    ).get(link.style_id) as Record<string, unknown> | undefined ?? null;
+  }
+
   close(): void {
     this.db.close();
   }

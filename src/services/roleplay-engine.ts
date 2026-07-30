@@ -51,6 +51,11 @@ import { ChroniclerAgent } from './agents/chronicler-agent';
 import { AgentRegistryV2, getAgentRegistryV2 } from './agent-registry-v2';
 import type { TNSServer } from '../mcp/server';
 import { TranslationService, type LanguageCode } from './translation-service';
+import { getFeatureFlagManager } from '../lib/feature-flags';
+import { searchTemplates, type RetrievalKeys } from '../mcp/literary-compiler/retrieval';
+import { fillTemplate } from '../mcp/literary-compiler/fill-template';
+import { isValidArchetype, type Archetype } from '../mcp/literary-compiler/archetypes';
+import { LiteraryCompilerDB } from '../mcp/literary-compiler/schema';
 
 const log = getLogger('roleplay-engine');
 
@@ -334,17 +339,63 @@ export class RoleplayEngine {
 
     // Step 6: Generate prose based on intent type
     this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
-    let narrative: string;
+    let narrative = '';
 
-    if (isMovementIntent(intent)) {
-      narrative = await this._handleMovementWithIntent(intent, gameContext);
-    } else if (isDialogueIntent(intent)) {
-      narrative = await this._handleDialogueWithIntent(intent, gameContext);
-    } else if (isObservationIntent(intent)) {
-      narrative = await this._handleObservation(intent, gameContext);
-    } else {
-      // Action or fallback — use narrator with simulation constraints
-      narrative = await this._handleActionWithSimulation(intent, simResult, gameContext);
+    // V2 pipeline: try literary-compiler-v2 if enabled
+    const featureFlags = getFeatureFlagManager();
+    let v2Used = false;
+    if (featureFlags.isEnabled('literary-compiler-v2')) {
+      try {
+        const literaryDb = this.getLiteraryDb();
+        if (literaryDb) {
+          const v2Start = Date.now();
+          const keys: RetrievalKeys = {
+            archetype: undefined, // Intent doesn't have narrativeArchetype; derive from simulation
+            mood: undefined,      // SimulationResult doesn't have mood
+            domain: undefined,
+            position: undefined,
+          };
+
+          const results = await searchTemplates(literaryDb, keys, 2);
+          if (results.length > 0) {
+            const ranked = results[0]!;
+            const template = ranked.template;
+            const filled = fillTemplate(template.template_text, this._extractVariables(gameContext));
+
+            const style = await this._getStyleForTemplate(template.id);
+            const prompt = this.stylist.buildMicroPrompt(
+              filled,
+              style,
+              { world: (this._worldFrame.name as string) ?? 'unknown', location: gameContext.location?.name ?? 'unknown' },
+              simResult.outcome,
+            );
+
+            narrative = await this._llmQueue.generateText(
+              prompt.system + '\n\n' + prompt.user,
+              1,
+              0.6,
+              'stylist',
+            );
+            v2Used = true;
+            log.info({ templateId: template.id, ms: Date.now() - v2Start }, 'v2 pipeline used');
+          }
+        }
+      } catch (err) {
+        log.warn({ err }, 'v2 pipeline failed, falling back to legacy');
+      }
+    }
+
+    if (!v2Used) {
+      if (isMovementIntent(intent)) {
+        narrative = await this._handleMovementWithIntent(intent, gameContext);
+      } else if (isDialogueIntent(intent)) {
+        narrative = await this._handleDialogueWithIntent(intent, gameContext);
+      } else if (isObservationIntent(intent)) {
+        narrative = await this._handleObservation(intent, gameContext);
+      } else {
+        // Action or fallback — use narrator with simulation constraints
+        narrative = await this._handleActionWithSimulation(intent, simResult, gameContext);
+      }
     }
 
     this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_COMPLETE, {}, 'engine');
@@ -945,6 +996,62 @@ Player request: "${ctx.message}"`;
     if (hour >= 7 && hour < 18) return 'day';
     if (hour >= 18 && hour < 21) return 'dusk';
     return 'night';
+  }
+
+  // ─── V2 Literary Compiler helpers ─────────────────────────────────────
+
+  private _literaryDb: LiteraryCompilerDB | null = null;
+
+  getLiteraryDb(): LiteraryCompilerDB | null {
+    if (!this._literaryDb) {
+      try {
+        const dbPath = join(this._dbPath, 'literary.db');
+        this._literaryDb = new LiteraryCompilerDB(dbPath);
+      } catch {
+        log.warn('Could not open literary.db for v2 pipeline');
+      }
+    }
+    return this._literaryDb;
+  }
+
+  private _extractVariables(ctx: GameContext): Record<string, string> {
+    return {
+      current_hero: ctx.character?.name ?? 'the hero',
+      location: ctx.location?.name ?? 'unknown',
+      world: (this._worldFrame.name as string) ?? 'the world',
+      time: this.currentTime.toISOString(),
+      nearby_npcs: ctx.nearbyNpcs.map(n => n.name).join(', '),
+    };
+  }
+
+  private async _getStyleForTemplate(templateId: string): Promise<{
+    register: string;
+    pacing: string;
+    sensory: string[];
+    snippets: string[];
+    forbidden: string[];
+  }> {
+    const db = this.getLiteraryDb();
+    if (!db) {
+      return { register: 'plain', pacing: 'mixed', sensory: [], snippets: [], forbidden: [] };
+    }
+
+    try {
+      const style = db.getStyleForTemplate(templateId);
+      if (style) {
+        return {
+          register: (style.register as string) ?? 'plain',
+          pacing: (style.pacing as string) ?? 'mixed',
+          sensory: style.sensory_ratio ? JSON.parse(style.sensory_ratio as string) : [],
+          snippets: style.example_snippets ? JSON.parse(style.example_snippets as string) : [],
+          forbidden: style.forbidden_phrases ? JSON.parse(style.forbidden_phrases as string) : [],
+        };
+      }
+    } catch {
+      log.debug({ templateId }, 'no linked style found');
+    }
+
+    return { register: 'plain', pacing: 'mixed', sensory: [], snippets: [], forbidden: [] };
   }
 
   getSessionState(): Record<string, unknown> {
