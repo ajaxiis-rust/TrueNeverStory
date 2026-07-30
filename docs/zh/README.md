@@ -1,4 +1,4 @@
-# TrueNeverStory v0.28.0
+# TrueNeverStory v0.28.5
 
 ### 玩着写你的书。
 
@@ -10,7 +10,7 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架�
 
 ---
 
-## v0.28.0 新功能
+## v0.28.5 新功能
 
 ### 圣经数据库优化
 - **FTS5搜索** — 将 `LIKE '%query%'` 替换为 FTS5 `MATCH` 实现 O(1) 全文查询（支持 LIKE 回退）
@@ -22,7 +22,7 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架�
 - **Git清理** — 移除 177MB 原始文件和 59MB 编译数据库的跟踪
 - **构建脚本** — `download-sources.sh` + `bootstrap-bible-db.ts` 用于客户端初始化
 
-### v0.28.0 新功能
+### v0.28.5 新功能
 
 ### State-First 管道
 引擎现在在**生成文本之前确定性地处理行动**：
@@ -212,7 +212,7 @@ TrueNeverStory/
 │   ├── routes/           # API路由 (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # 规则引擎 (14条规则、协同矩阵、技术依赖)
 │   ├── services/         # 60+服务 (角色扮演引擎、代理、经济、世界隔离、跨世界总线)
-│   │   ├── agents/       # v0.28.0 新代理 (编剧、验证者、风格师、演员、审查员、编年史官)
+│   │   ├── agents/       # v0.28.5 新代理 (编剧、验证者、风格师、演员、审查员、编年史官)
 │   │   └── ...
 │   ├── intelligence/     # 图分析、重复检测、推荐系统
 │   ├── i18n/             # 语言包 (7种语言)

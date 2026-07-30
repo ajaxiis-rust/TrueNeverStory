@@ -31,7 +31,6 @@ worlds/*/agents/
 worlds/default/
 .llama-server.pid
 worlds/levant/world_frame.json
-docs/compose/
 
 # Bible DB — sources and compiled database (use scripts/download-sources.sh + bun run scripts/bootstrap-bible-db.ts)
 sources/bible/*.json

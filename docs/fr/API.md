@@ -477,4 +477,4 @@ Lorsque l'authentification par mot de passe est activée, les sessions utilisent
 
 ---
 
-*Généré : 2026-06-27 | TrueNeverStory v0.12.0*
+*Généré : 2026-06-27 | TrueNeverStory v0.28.5*

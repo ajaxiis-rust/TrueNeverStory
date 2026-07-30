@@ -9,7 +9,7 @@
 
 **Layered Onion Architecture with Event-Driven Extensions + State-First Pipeline**
 
-TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.25.0, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
+TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.28.5, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
 
 The pattern fits because:
 
@@ -53,7 +53,7 @@ Translate Response (1 LLM call — small model)
   ▼
 Response to User
 
-Total: 2-3 LLM calls (was 4-5 in v0.28.0)
+Total: 2-3 LLM calls (was 4-5 in v0.28.5)
 ```
 
 ### Dual Model Architecture (v0.28.5)
