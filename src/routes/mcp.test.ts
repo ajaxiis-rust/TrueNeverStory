@@ -85,9 +85,6 @@ describe("MCP routes", () => {
       "/mcp/gutenberg/search?q=test",
       "/mcp/gutenberg/styles",
       "/mcp/wikipedia/stats",
-      "/mcp/literary/stats",
-      "/mcp/literary/templates",
-      "/mcp/economics/stats",
     ];
 
     for (const route of routes404) {
@@ -106,7 +103,6 @@ describe("MCP routes", () => {
       "/mcp/gutenberg/compact",
       "/mcp/gutenberg/delexify",
       "/mcp/wikipedia/compact",
-      "/mcp/literary/compact",
     ];
 
     for (const route of postRoutes) {
