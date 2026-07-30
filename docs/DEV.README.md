@@ -421,7 +421,7 @@ Templates use `{variable}` placeholders resolved by `resolveTemplate()`.
 
 ---
 
-## MCP Integration (v0.28.5)
+## MCP Integration (v0.29.0)
 
 TNSServer (`src/mcp/tns-server.ts`) provides MCP tools for external data access.
 

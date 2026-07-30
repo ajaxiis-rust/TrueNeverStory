@@ -1,5 +1,146 @@
 # Changelog
 
+## v0.29.0 (2026-07-30)
+
+### Literary Compiler v2 — Hybrid Retrieval Pipeline
+
+Complete rewrite of the Literary Compiler with a new data model, offline extraction pipeline, and runtime retrieval system. The v2 pipeline reduces LLM calls per turn from 4-5 to 1-2 by pre-computing narrative structure offline and using deterministic template filling at runtime.
+
+#### New Data Model (6 tables)
+
+| Table | Purpose |
+|-------|---------|
+| `scene_templates` | Narrative skeletons with archetype, mood, beat sequence, tension curve |
+| `style_patterns` | Writing style metadata: register, pacing, sensory ratio, forbidden phrases, delexified snippets |
+| `template_style_links` | Weighted many-to-many link between templates and styles |
+| `chunk_index` | Source text chunks with dictionary pre-scores and cluster assignments |
+| `player_style_profiles` | Per-player writing style analysis for personalization (Phase 3, deferred) |
+| `retrieval_cache` | Cached retrieval results with TTL |
+
+All tables have FTS5 indexes on searchable columns.
+
+#### 12 Canonical Narrative Archetypes
+
+Replaced the old 10-archetype system with 12 controlled primary archetypes + `everyday_life` fallback:
+
+| # | Archetype | Covers |
+|---|-----------|--------|
+| 1 | `escape_liberation` | Flight, emancipation from bondage |
+| 2 | `judgment_trial` | Trial, proof of innocence, verdict |
+| 3 | `loyalty` | Faithfulness, devotion, service |
+| 4 | `betrayal` | Treachery, treason, deception |
+| 5 | `inheritance_return` | Legacy, restoration of status |
+| 6 | `endurance_suffering` | Suffering, patience, ordeal |
+| 7 | `rescue` | Salvation, deliverance |
+| 8 | `rise_fall_rise` | Exaltation → fall → exaltation |
+| 9 | `wisdom_counsel` | Wisdom, instruction, parable |
+| 10 | `political_intrigue` | Power, conspiracy, intrigue |
+| 11 | `quest_journey` | Journey, search, quest |
+| 12 | `temptation_fall` | Temptation, sin, fall from grace |
+
+Removed: `confrontation` (too broad), `restoration_healing` (overlaps `endurance_suffering`), `covenant_bargain` (biblical-specific).
+
+Each archetype has keyword sets for dictionary pre-scoring, default variable slots, and applicable world positions.
+
+#### Offline Pipeline Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **Chunker** | `chunker.ts` | Sentence-based text splitting with configurable overlap (200-400 tokens, 40-80 overlap) |
+| **Dictionary Pre-Score** | `pre-score.ts` | Keyword-based archetype scoring + narrative density (dialogue, action, conflict) |
+| **LLM Extractor** | `extractor.ts` | Structured JSON extraction via small local LLM (Qwen3-8B, temp=0.1) |
+| **Linter** | `linter.ts` | Validation for v2 templates: archetype validity, moralizing detection, token limits |
+| **Migration Script** | `scripts/migrate-v1-to-v2.ts` | Archetype mapping from v1 → v2 canonical names |
+
+#### Runtime Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **Hybrid Retrieval** | `retrieval.ts` | Composite scoring: archetype (0.40) + mood (0.15) + domain (0.15) + quality (0.10) + freshness (0.05) + tags (0.15) |
+| **Template Fill** | `fill-template.ts` | Deterministic `[placeholder]` replacement from game context |
+| **Micro-Prompt** | `stylist.ts` | Constrained Stylist prompt: system (~50 tokens) + style block + filled skeleton + outcome lock |
+| **Runtime Metrics** | `runtime-metrics.ts` | Per-turn latency tracking: retrieval, fill, stylist, censor, total |
+| **Feature Flags** | `feature-flags.ts` | Gradual rollout flags: `literary-compiler-v2`, `literary-v2-retrieval`, `literary-v2-stylist` |
+
+#### Runtime Flow
+
+```
+Player input
+  → Intent + Simulation + State mutation (0 LLM)
+  → Build retrieval keys: position, archetype, mood, domain
+  → FTS + dictionary hybrid retrieval → top-1 template
+  → Get linked style_pattern
+  → fillTemplate (deterministic)
+  → Stylist micro-prompt → 1 LLM call → 2-3 paragraphs
+  → Rule-based Censor
+  → Optional translation (small model)
+```
+
+**Hard budget:** 1-2 LLM calls per turn (down from 4-5).
+
+#### Retrieval Scoring Formula
+
+```
+score =
+  0.40 * archetype_match     (binary: 1 if same, 0 if different)
++ 0.15 * mood_match           (binary: 1 if same, 0.05 otherwise)
++ 0.15 * domain_match         (binary: 1 if same, 0.05 otherwise)
++ 0.10 * quality_score        (normalized 0-1 from extraction)
++ 0.05 * freshness            (1 / (1 + use_count))
++ 0.15 * tags_overlap         (binary: 1 if domain in tags)
+```
+
+#### NPC Role System Rename
+
+- `ArchetypeConfig` → `NPCRoleConfig`
+- `ALL_ARCHETYPES` → `ALL_NPC_ROLES`
+- `src/models/archetype.ts` → `src/models/npc-role.ts`
+- No logic changes — only naming to avoid collision with narrative archetypes
+
+#### Files Added
+
+- `src/mcp/literary-compiler/archetypes.ts` — 12 canonical archetypes + keywords + variables + positions
+- `src/mcp/literary-compiler/archetypes.test.ts` — 122 tests
+- `src/mcp/literary-compiler/chunker.ts` — Sentence-based text chunker
+- `src/mcp/literary-compiler/chunker.test.ts` — 107 tests
+- `src/mcp/literary-compiler/pre-score.ts` — Dictionary pre-scoring
+- `src/mcp/literary-compiler/pre-score.test.ts` — 77 tests
+- `src/mcp/literary-compiler/extractor.ts` — LLM JSON extractor with validation
+- `src/mcp/literary-compiler/extractor.test.ts` — 92 tests
+- `src/mcp/literary-compiler/retrieval.ts` — Hybrid retrieval with composite scoring
+- `src/mcp/literary-compiler/retrieval.test.ts` — 229 tests
+- `src/mcp/literary-compiler/fill-template.ts` — Deterministic template filling
+- `src/mcp/literary-compiler/fill-template.test.ts` — 54 tests
+- `src/mcp/literary-compiler/runtime-metrics.ts` — Per-turn metrics tracking
+- `src/mcp/literary-compiler/runtime-metrics.test.ts` — 46 tests
+- `src/mcp/literary-compiler/schema.ts` — V2 tables (scene_templates, style_patterns, etc.)
+- `src/mcp/literary-compiler/linter.ts` — V2 validation (moralizing detection, token limits)
+- `src/lib/feature-flags.ts` — Feature flag system with A/B testing
+- `src/services/agents/stylist.ts` — `buildMicroPrompt()` for v2 constrained generation
+- `scripts/migrate-v1-to-v2.ts` — Archetype migration script
+
+#### Files Modified
+
+- `src/services/roleplay-engine.ts` — V2 pipeline wiring with feature flag gate
+- `src/models/npc-role.ts` — Renamed from `archetype.ts`
+- `src/models/npc-role.test.ts` — Renamed from `archetype.test.ts`
+- `src/services/npc-generator.ts` — Updated imports
+- `src/services/npc-economy.ts` — Updated imports
+- `src/services/npc-economy-runtime.ts` — Updated imports
+
+#### Tests
+
+- 727 new tests across all v2 components
+- All existing tests pass (no regressions)
+
+#### Docs
+
+- `docs/compose/specs/2026-07-29-literary-compiler-v2-design.md` — Full design spec
+- `docs/compose/plans/2026-07-29-literary-compiler-v2.md` — Implementation plan
+- `docs/literary-compiler/README.md` — Updated with v2 architecture
+
+---
+
 ## v0.28.5 (2026-07-20)
 
 ### LLM Performance Optimization — Dual Model + Translation Batching

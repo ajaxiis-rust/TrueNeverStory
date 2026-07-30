@@ -1,7 +1,7 @@
 # TrueNeverStory — Architecture Document
 
 > A Domain-Driven Design analysis of the TrueNeverStory narrative RPG engine.
-> Updated for v0.28.5 — Dual Model LLM Optimization, Translation Batching, MCP Function Calling.
+> Updated for v0.29.0 — Literary Compiler v2, Hybrid Retrieval Pipeline, 12 Canonical Archetypes.
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Layered Onion Architecture with Event-Driven Extensions + State-First Pipeline**
 
-TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.28.5, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
+TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.29.0, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
 
 The pattern fits because:
 
@@ -21,7 +21,7 @@ The pattern fits because:
 
 The **event bus** (`EventBus` in `src/lib/event-bus.ts`) adds an asynchronous decoupling layer between bounded contexts, enabling the Director Loop to orchestrate narrative events without direct coupling to NPC, Social, or Quest subsystems.
 
-### State-First Pipeline (v0.28.5)
+### State-First Pipeline (v0.29.0)
 
 ```
 Player Input (any language)
@@ -53,10 +53,10 @@ Translate Response (1 LLM call — small model)
   ▼
 Response to User
 
-Total: 2-3 LLM calls (was 4-5 in v0.28.5)
+Total: 2-3 LLM calls (was 4-5 in v0.29.0)
 ```
 
-### Dual Model Architecture (v0.28.5)
+### Dual Model Architecture (v0.29.0)
 
 The engine supports two LLM models per agent:
 
@@ -410,6 +410,70 @@ The engine supports two LLM models per agent:
 - `src/intelligence/scene-generator.ts` — Procedural scene generation
 - `src/intelligence/rule-checker.ts` — World rule enforcement
 - `src/intelligence/subgraph-expander.ts` — Subgraph expansion
+
+---
+
+### BC12: Literary Compiler v2 (v0.29.0)
+
+**Purpose:** Offline narrative extraction from literary sources and runtime hybrid retrieval for constrained prose generation. Replaces the LLM-heavy v1 pipeline with a deterministic template + style pattern system.
+
+| Aspect | Detail |
+|--------|--------|
+| **Key Aggregates** | `LiteraryCompilerDB` (aggregate root for all v2 tables) |
+| **Key Entities** | `SceneTemplate`, `StylePattern`, `ChunkIndex`, `TemplateStyleLink` |
+| **Value Objects** | `RetrievalKeys`, `RankedTemplate`, `ExtractResult`, `PreScoreResult`, `TurnMetrics` |
+| **Domain Events** | None (offline pipeline + runtime retrieval) |
+| **Persistence** | `literary.db` (SQLite with FTS5 indexes) |
+
+**Key files:**
+- `src/mcp/literary-compiler/schema.ts` — `LiteraryCompilerDB`: 6 v2 tables, FTS5, CRUD methods
+- `src/mcp/literary-compiler/archetypes.ts` — 12 canonical archetypes + keyword sets + variables + positions
+- `src/mcp/literary-compiler/chunker.ts` — Sentence-based text splitting (200-400 tokens, 40-80 overlap)
+- `src/mcp/literary-compiler/pre-score.ts` — Dictionary keyword scoring + narrative density (dialogue/action/conflict)
+- `src/mcp/literary-compiler/extractor.ts` — LLM JSON extractor with Zod-style validation
+- `src/mcp/literary-compiler/retrieval.ts` — Composite scoring: archetype (0.40) + mood (0.15) + domain (0.15) + quality (0.10) + freshness (0.05) + tags (0.15)
+- `src/mcp/literary-compiler/fill-template.ts` — Deterministic `[placeholder]` replacement
+- `src/mcp/literary-compiler/linter.ts` — V2 validation: moralizing detection, token limits, archetype validity
+- `src/mcp/literary-compiler/runtime-metrics.ts` — Per-turn latency tracking
+- `src/services/agents/stylist.ts` — `buildMicroPrompt()` for v2 constrained generation
+- `src/lib/feature-flags.ts` — `literary-compiler-v2`, `literary-v2-retrieval`, `literary-v2-stylist` flags
+- `scripts/migrate-v1-to-v2.ts` — Archetype name migration (escape → escape_liberation, etc.)
+
+**Domain Rules:**
+- All templates use English (Interlingua) for RAG-optimization
+- Templates are anonymized (no character names from source)
+- Anti-moralizing constraint enforced at linter + prompt level
+- Each template has ≤ 120 tokens skeleton
+- Retrieval returns top-1 template (top-2 if near-tied)
+- Hard budget: 1-2 LLM calls per turn (down from 4-5 in v1)
+- Feature-flagged for gradual rollout
+
+**Offline Pipeline:**
+```
+Source text
+  → A. Chunker (pure code, 200-400 tokens, overlap 40-80)
+  → B. BGE-M3 embed + store
+  → C. Dictionary/heuristic candidate pass
+  → D. Cluster / near-dup collapse (vectors)
+  → E. Select representatives
+  → F. Small local LLM JSON extract (Qwen3-8B, temp=0.1)
+  → G. Role consistency map
+  → H. Linter / quality gate
+  → I. Write scene_templates + style_patterns + links
+  → J. Emit metrics report
+```
+
+**Runtime Flow:**
+```
+Player input
+  → Intent + Simulation + State mutation (0 LLM)
+  → Build retrieval keys (position, archetype, mood, domain)
+  → FTS + dictionary hybrid retrieval → top-1 template
+  → Get linked style_pattern
+  → fillTemplate (deterministic)
+  → Stylist micro-prompt → 1 LLM call → 2-3 paragraphs
+  → Rule-based Censor
+```
 
 ---
 
@@ -905,6 +969,12 @@ Query flow:
 │  Memory & Knowledge  │◀──▶│  Intelligence        │
 │  (BC7)               │    │  (BC11)              │
 └─────────────────────┘    └─────────────────────┘
+        │
+        ▼
+┌─────────────────────┐
+│  Literary Compiler   │  (BC12, v0.29.0)
+│  v2                  │
+└─────────────────────┘
 ```
 
 **Key Dependencies:**
@@ -918,9 +988,11 @@ Query flow:
 | BC3 (Narrative) | BC6 (Quest) | `QuestManager` injected into `StoryEngine` |
 | BC3 (Narrative) | BC10 (Villain) | `VillainManager` injected into `DirectorLoop` |
 | BC3 (Narrative) | BC9 (Probability) | `ProbabilityEngine` in `RoleplayEngine` |
+| BC3 (Narrative) | BC12 (LitCompiler) | `RoleplayEngine` calls `searchTemplates` + `fillTemplate` |
 | BC4 (NPC) | BC7 (Memory) | `NPCRuntime` uses `EpisodicMemory` |
 | BC5 (Social) | BC2 (Entity) | `SocialGraph` reads from `UnifiedEntityStore` |
 | BC8 (LLM) | All BCs | `LLMQueue` is shared across all agents |
+| BC8 (LLM) | BC12 (LitCompiler) | Offline extractor uses `LLMClient` for structured extraction |
 | BC7 (Memory) | BC8 (LLM) | `EmbeddingQueue` calls `LLMClient` for embeddings |
 | BC11 (Intelligence) | BC2 (Entity) | Graph analysis reads `GraphStore` |
 

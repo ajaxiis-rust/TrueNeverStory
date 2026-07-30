@@ -1,4 +1,4 @@
-# TrueNeverStory v0.28.5
+# TrueNeverStory v0.29.0
 
 ### Write your book just by playing.
 
@@ -10,7 +10,7 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ---
 
-## What's New in v0.28.5
+## What's New in v0.29.0
 
 ### LLM Performance Optimization — Dual Model + Translation Batching
 - **Reduced LLM requests** from 4-5 to 2-3 per user input
@@ -29,7 +29,7 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 }
 ```
 
-## What's New in v0.28.5
+## What's New in v0.29.0
 
 ### Bible DB Optimization
 - **FTS5 search** — replaced `LIKE '%query%'` with FTS5 `MATCH` for O(1) full-text lookups (with LIKE fallback)
@@ -253,7 +253,7 @@ TrueNeverStory/
 │   ├── routes/           # API routes (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Social/economic rules engine (14 rules, synergy matrix, tech deps)
 │   ├── services/         # 60+ services (roleplay engine, agents, economy, world isolator, cross-world bus)
-│   │   ├── agents/       # v0.28.5 new agents (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+│   │   ├── agents/       # v0.29.0 new agents (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
 │   │   └── ...
 │   ├── intelligence/     # Graph analyzer, duplicate detector, recommender
 │   ├── i18n/             # Language packs (7 languages)

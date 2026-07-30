@@ -1,4 +1,4 @@
-# TrueNeverStory v0.28.5
+# TrueNeverStory v0.29.0
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
@@ -10,7 +10,7 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskriti
 
 ---
 
-## Was ist neu in v0.28.5
+## Was ist neu in v0.29.0
 
 ### Bibel-DB-Optimierung
 - **FTS5-Suche** — Ersetzt `LIKE '%query%'` durch FTS5 `MATCH` fuer O(1) Volltextanfragen (mit Fallback auf LIKE)
@@ -22,7 +22,7 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskriti
 - **Git-Bereinigung** — 177MB Quelldateien + 59MB kompilierte DB aus dem Tracking entfernt
 - **Build-Skripte** — `download-sources.sh` + `bootstrap-bible-db.ts` fuer die Client-Einrichtung
 
-## Was ist neu in v0.28.5
+## Was ist neu in v0.29.0
 
 ### State-First-Pipeline
 Die Engine verarbeitet Aktionen nun **deterministisch, bevor Text generiert wird**:
@@ -214,7 +214,7 @@ TrueNeverStory/
 │   ├── routes/           # API-Routen (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Regel-Engine (14 Regeln, Synergie-Matrix, Technologie-Abhaengigkeiten)
 │   ├── services/         # 60+ Dienste (Rollenspiel-Engine, Agenten, Oekonomie, Welt-Isolierung, Cross-Welt-Bus)
-│   │   ├── agents/       # v0.28.5 neue Agenten (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+│   │   ├── agents/       # v0.29.0 neue Agenten (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
 │   │   └── ...
 │   ├── intelligence/     # Graph-Analyse, Duplikaterkennung, Empfehlungssystem
 │   ├── i18n/             # Sprachpakete (7 Sprachen)
