@@ -2,6 +2,10 @@
  * Health check and system routes.
  */
 import { Hono } from "hono";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../../package.json");
 
 const health = new Hono();
 
@@ -10,7 +14,7 @@ health.get("/health", async (c) => {
     status: "ok",
     engine_ready: true,
     uptime: process.uptime(),
-    version: "v0.28.0",
+    version: "v" + pkg.version,
   });
 });
 

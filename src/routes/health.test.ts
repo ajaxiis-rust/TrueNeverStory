@@ -15,6 +15,12 @@ describe("health routes", () => {
     expect(typeof body.uptime).toBe("number");
   });
 
+  test("GET /health returns version from package.json", async () => {
+    const res = await app.request("/health");
+    const body = await res.json();
+    expect(body.version).toMatch(/^v\d+\.\d+\.\d+$/);
+  });
+
   test("GET /system-check returns ok", async () => {
     const res = await app.request("/system-check");
     expect(res.status).toBe(200);
