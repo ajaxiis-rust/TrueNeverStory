@@ -269,7 +269,7 @@ mcpRouter.get("/gutenberg/styles", (c) => {
 });
 
 mcpRouter.post("/gutenberg/download", (c) => {
-  const result = runScriptWithJob(["python3", "scripts/download-gutenberg-corpus.py"]);
+  const result = runScriptWithJob(["bun", "run", "scripts/download-gutenberg.ts"]);
   return c.json(result);
 });
 
