@@ -54,14 +54,17 @@ file_size() {
 
 # ── Parse flags ────────────────────────────────────────────────
 MODE_FLAGS="remote"
+MCP_MODE=false
 for arg in "$@"; do
     case "$arg" in
         --local|-l)   MODE_FLAGS="local" ;;
         --remote|-r)  MODE_FLAGS="remote" ;;
+        --mcp|-m)     MCP_MODE=true ;;
         --help|-h)
-            echo "Usage: bash startgame.sh [--local|--remote]"
+            echo "Usage: bash startgame.sh [--local|--remote|--mcp]"
             echo "  --local, -l   CORS=localhost only (safe for dev)"
             echo "  --remote, -r  CORS=* (default, allows external access)"
+            echo "  --mcp, -m     MCP mode: database management server only (no game)"
             exit 0
             ;;
     esac
@@ -71,6 +74,12 @@ if [[ "$MODE_FLAGS" == "local" ]]; then
     export TNS_CORS_ORIGIN="http://localhost:8000"
 else
     export TNS_CORS_ORIGIN="*"
+fi
+
+# MCP mode flag
+if [[ "$MCP_MODE" == true ]]; then
+    export TNS_MCP_MODE=1
+    echo -e "${CYAN}MCP mode enabled — database management server${NC}"
 fi
 
 # Auto-create .env from example if missing
@@ -754,21 +763,88 @@ if [[ "$BEST_PROVIDER" == "llamacpp" && -z "$EMBED_URL" && -n "$LLAMA_BIN" ]]; t
 fi
 
 # ═══════════════════════════════════════════════════════════════
+#  §11b  MCP MODE — START LLAMA.CPP (BGE3M + LLM small)
+# ═══════════════════════════════════════════════════════════════
+
+if [[ "$MCP_MODE" == true && -n "$LLAMA_BIN" ]]; then
+    # BGE3M embedding server (port 5001) — critical for MCP
+    if ! port_in_use "$EMBED_PORT"; then
+        EMBED_PATH=""
+        if [[ -d "./local-models" ]]; then
+            EMBED_PATH=$(find ./local-models -maxdepth 1 \( -iname "*bge*" -o -iname "*embed*" \) -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+        fi
+        if [[ -n "$EMBED_PATH" ]]; then
+            echo -e "${CYAN}Starting BGE3M embedding server on port ${EMBED_PORT}...${NC}"
+            "$LLAMA_BIN" \
+                --model "$EMBED_PATH" \
+                --host 127.0.0.1 \
+                --port "$EMBED_PORT" \
+                --ctx-size 8192 \
+                --embedding \
+                --pooling mean \
+                --threads 2 &
+            PIDS+=($!)
+        else
+            echo -e "${YELLOW}No BGE3M model found in local-models/ — embeddings disabled${NC}"
+        fi
+    fi
+
+    # LLM small server (port 5001) — optional for text processing
+    if ! port_in_use "$LLM_PORT"; then
+        LLM_PATH=""
+        if [[ -d "./local-models" ]]; then
+            # Find smallest non-embed GGUF
+            best_size=999999999
+            while IFS= read -r -d '' f; do
+                fname=$(basename "$f")
+                if [[ "$fname" == *[Ee]mbed* || "$fname" == *BGE* || "$fname" == *bge* ]]; then
+                    continue
+                fi
+                fsize=$(file_size "$f")
+                if [[ "$fsize" -lt "$best_size" && "$fsize" -gt 0 ]]; then
+                    best_size="$fsize"
+                    LLM_PATH="$f"
+                fi
+            done < <(find ./local-models -maxdepth 1 -name "*.gguf" -type f -print0 2>/dev/null)
+        fi
+        if [[ -n "$LLM_PATH" ]]; then
+            echo -e "${CYAN}Starting LLM small server on port ${LLM_PORT}...${NC}"
+            "$LLAMA_BIN" \
+                --model "$LLM_PATH" \
+                --host 127.0.0.1 \
+                --port "$LLM_PORT" \
+                --ctx-size 4096 \
+                --threads 2 &
+            PIDS+=($!)
+        else
+            echo -e "${YELLOW}No LLM model found in local-models/ — text processing disabled (optional)${NC}"
+        fi
+    fi
+
+    # Wait for servers to be ready
+    sleep 2
+fi
+
+# ═══════════════════════════════════════════════════════════════
 #  §12  CHECK LLM CONFIG & LAUNCH GAME SERVER
 # ═══════════════════════════════════════════════════════════════
 
 LLM_URL=$(env_get "WORLD_LLM_BASE_URL" "")
 LLM_MODEL=$(env_get "WORLD_LLM_MODEL" "")
 
-if [[ -z "$LLM_URL" || -z "$LLM_MODEL" ]]; then
-    echo ""
-    echo -e "${YELLOW}  LLM not configured!${NC}"
-    echo -e "${CYAN}  Open http://localhost:${PORT}/settings to configure your LLM provider.${NC}"
-    echo -e "${CYAN}  Supported: Ollama, llama.cpp, OpenAI, vLLM, LM Studio, or any OpenAI-compatible API.${NC}"
-    echo ""
+if [[ "$MCP_MODE" == true ]]; then
+    echo -e "${CYAN}Starting MCP database server on port ${PORT}...${NC}"
+    echo -e "${DIM}Open http://localhost:${PORT} for MCP Console${NC}"
+else
+    if [[ -z "$LLM_URL" || -z "$LLM_MODEL" ]]; then
+        echo ""
+        echo -e "${YELLOW}  LLM not configured!${NC}"
+        echo -e "${CYAN}  Open http://localhost:${PORT}/settings to configure your LLM provider.${NC}"
+        echo -e "${CYAN}  Supported: Ollama, llama.cpp, OpenAI, vLLM, LM Studio, or any OpenAI-compatible API.${NC}"
+        echo ""
+    fi
+    echo -e "${DIM}Starting game server...${NC}"
 fi
-
-echo -e "${DIM}Starting game server...${NC}"
 
 if [[ "$MODE" == "binary" ]]; then
     "$BIN" &

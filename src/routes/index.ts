@@ -28,6 +28,7 @@ import { v1Router } from "./v1";
 import { v2Router } from "./v2";
 import crossWorldRoutes from "./cross-world";
 import pluginRoutes from "./plugins";
+import { mcpRouter } from "./mcp";
 
 export function createRoutes(): Hono {
   const routes = new Hono();
@@ -115,6 +116,9 @@ export function createRoutes(): Hono {
 
   // Plugin System
   routes.route("/api/plugins", pluginRoutes);
+
+  // MCP Console (database management)
+  routes.route("/mcp", mcpRouter);
 
   return routes;
 }

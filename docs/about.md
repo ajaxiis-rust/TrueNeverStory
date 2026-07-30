@@ -79,6 +79,20 @@ Source Texts → LiteraryCompiler → SQLite Databases → Runtime Queries
 | `gutenberg.db` | Project Gutenberg | Style patterns, sensory descriptions, pacing | Literary quality |
 | `literary.db` | Compiled output | Unified templates with FTS5 search | Runtime access |
 
+### MCP Console
+
+The MCP Console provides a web-based interface for managing all project databases:
+
+```bash
+bash startgame.sh --mcp
+```
+
+This launches only the database management server on port 8000 (no game). llama.cpp auto-starts BGE3M (embeddings, port 5001) and LLM small (text processing, port 5002) from `local-models/`.
+
+**Web UI:** `http://localhost:8000` — tabs for each database (Bible, Gutenberg, Wikipedia, LiteraryCompiler, Economics, System) with search, CRUD, and pipeline operations (download, convert, compact).
+
+**API:** All endpoints under `/mcp/*` — see `src/routes/mcp.ts` for full list. SSE progress tracking at `/mcp/stream/:jobId` for long operations.
+
 ### Token Savings
 
 **Without pre-processing:**

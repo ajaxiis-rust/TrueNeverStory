@@ -1,5 +1,10 @@
 # MCP Console — Design Spec
 
+> [!NOTE]
+> This document may not reflect the current implementation.
+> See the final report for up-to-date state:
+> [Final Report](../reports/mcp-console.md)
+
 ## [S1] Problem
 
 Нет единого инструмента для управления базами данных проекта (Bible, Gutenberg, Wikipedia, LiteraryCompiler, Economics). Все операции (скачивание, конвертация, парсинг, просмотр, поиск, компактизация) выполняются через CLI-скрипты. Нужен веб-интерфейс + REST API для полного CRUD и пайплайнов.

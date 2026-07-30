@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrueNeverStory — MCP Console</title>
+<link href="/static/fonts/fonts.css" rel="stylesheet">
+<link href="/static/theme-dark.css" rel="stylesheet">
+<link href="/static/theme-light.css" rel="stylesheet">
+<link href="/static/theme-terminal.css" rel="stylesheet">
+<link href="/static/theme-cyberpunk.css" rel="stylesheet">
+<link href="/static/theme-custom.css" rel="stylesheet">
+<link href="/static/theme.css" rel="stylesheet">
+<script src="/static/theme.js"></script>
+<style>
+:root{--font-body:'Space Grotesk',system-ui,sans-serif;--font-mono:'Space Mono',monospace;--radius-md:8px;--radius-lg:12px;--radius-pill:999px;--ease-out:cubic-bezier(.22,.61,.36,1);--dur-fast:120ms;--dur-normal:200ms;--dur-slow:340ms}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;background:var(--black);overflow:hidden}
+body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:14px;color:var(--text-primary);display:flex;flex-direction:column;overflow:hidden;user-select:none}
+
+.topbar{display:flex;align-items:center;gap:12px;padding:0 20px;height:48px;border-bottom:1px solid var(--border);flex-shrink:0}
+.topbar__brand{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-disabled)}
+.topbar__brand span{color:var(--text-display);font-weight:700}
+.topbar__sep{width:1px;height:18px;background:var(--border)}
+.topbar__title{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary)}
+.topbar__spacer{flex:1}
+.topbar__btn{background:transparent;border:1px solid var(--border-visible);color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:6px 16px;cursor:pointer;border-radius:var(--radius-pill);transition:all var(--dur-fast);text-decoration:none;display:inline-flex;align-items:center}
+.topbar__btn:hover{border-color:var(--text-secondary);color:var(--text-primary)}
+
+.tabs{display:flex;gap:4px;padding:8px 20px;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto}
+.tab{background:transparent;border:1px solid transparent;color:var(--text-tertiary);font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:6px 16px;cursor:pointer;border-radius:var(--radius-pill);transition:all var(--dur-fast);white-space:nowrap}
+.tab:hover{color:var(--text-secondary);border-color:var(--border)}
+.tab.active{color:var(--text-display);border-color:var(--accent);background:rgba(var(--accent-rgb),.1)}
+
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+.content::-webkit-scrollbar{width:2px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--border-visible);border-radius:2px}
+
+.panel{display:none}
+.panel.active{display:block}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;flex-direction:column;gap:4px}
+.stat-card__value{font-family:var(--font-body);font-size:28px;font-weight:700;color:var(--text-display);line-height:1}
+.stat-card__label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-disabled)}
+
+.section{margin-bottom:20px}
+.section__title{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section__title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.btn{background:var(--surface-raised);border:1px solid var(--border-visible);color:var(--text-primary);font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:8px 20px;cursor:pointer;border-radius:var(--radius-md);transition:all var(--dur-fast)}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn--danger{border-color:var(--error);color:var(--error)}
+.btn--success{border-color:var(--success);color:var(--success)}
+
+.input{background:var(--surface);border:1px solid var(--border);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:8px 12px;border-radius:var(--radius-md);width:100%;outline:none;transition:border-color var(--dur-fast)}
+.input:focus{border-color:var(--accent)}
+.input::placeholder{color:var(--text-disabled)}
+
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+.search-row .input{flex:1}
+
+.result-table{width:100%;border-collapse:collapse;font-size:13px}
+.result-table th{text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+.result-table td{padding:8px 12px;border-bottom:1px solid var(--border-light);color:var(--text-primary)}
+.result-table tr:hover td{background:var(--surface-raised)}
+
+.toast-container{position:fixed;top:60px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 16px;font-size:13px;color:var(--text-primary);animation:slideIn var(--dur-normal) var(--ease-out);min-width:280px;max-width:400px}
+.toast--success{border-color:var(--success)}
+.toast--error{border-color:var(--error)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+.empty{color:var(--text-disabled);font-style:italic;padding:20px;text-align:center}
+
+.result-box{margin-top:8px;padding:12px;background:var(--surface-raised);border-radius:var(--radius-md);font-size:13px;white-space:pre-wrap;max-height:300px;overflow-y:auto}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__brand">TrueNeverStory &mdash; <span>MCP Console</span></div>
+  <div class="topbar__sep"></div>
+  <div class="topbar__title" data-i18n="mcp.title">Database Management</div>
+  <div class="topbar__spacer"></div>
+  <a href="/" class="topbar__btn" data-i18n="mcp.back">&larr; Back</a>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="dashboard" data-i18n="mcp.tab.dashboard">Dashboard</button>
+  <button class="tab" data-tab="bible" data-i18n="mcp.tab.bible">Bible</button>
+  <button class="tab" data-tab="gutenberg" data-i18n="mcp.tab.gutenberg">Gutenberg</button>
+  <button class="tab" data-tab="wikipedia" data-i18n="mcp.tab.wikipedia">Wikipedia</button>
+  <button class="tab" data-tab="literary" data-i18n="mcp.tab.literary">Literary</button>
+  <button class="tab" data-tab="economics" data-i18n="mcp.tab.economics">Economics</button>
+  <button class="tab" data-tab="system" data-i18n="mcp.tab.system">System</button>
+</div>
+
+<div class="content">
+  <!-- Dashboard -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="stats-grid" id="dashboard-stats"></div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.quickActions">Quick Actions</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="compactAll()" data-i18n="mcp.compactAll">Compact All</button>
+        <button class="btn" onclick="rebuildIndex()" data-i18n="mcp.rebuildIndex">Rebuild Index</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bible -->
+  <div class="panel" id="panel-bible">
+    <div class="stats-grid" id="bible-stats"></div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.bible.search">Search Verses</div>
+      <div class="search-row">
+        <input class="input" id="bible-q" placeholder="Search verses..." data-i18n-placeholder="mcp.bible.searchPlaceholder">
+        <button class="btn" onclick="searchBible()" data-i18n="mcp.search">Search</button>
+      </div>
+      <div id="bible-results"></div>
+    </div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.bible.characters">Characters</div>
+      <div class="search-row">
+        <input class="input" id="bible-char-q" placeholder="Search characters..." data-i18n-placeholder="mcp.bible.charPlaceholder">
+        <button class="btn" onclick="searchBibleChars()" data-i18n="mcp.search">Search</button>
+      </div>
+      <div id="bible-char-results"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn--success" onclick="runAction('bible/bootstrap')" data-i18n="mcp.bible.bootstrap">Bootstrap</button>
+      <button class="btn" onclick="runAction('bible/compact')" data-i18n="mcp.bible.compact">Compact</button>
+    </div>
+  </div>
+
+  <!-- Gutenberg -->
+  <div class="panel" id="panel-gutenberg">
+    <div class="stats-grid" id="gutenberg-stats"></div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.gutenberg.search">Search Styles</div>
+      <div class="search-row">
+        <input class="input" id="gutenberg-q" placeholder="Search styles..." data-i18n-placeholder="mcp.gutenberg.searchPlaceholder">
+        <button class="btn" onclick="searchGutenberg()" data-i18n="mcp.search">Search</button>
+      </div>
+      <div id="gutenberg-results"></div>
+    </div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.gutenberg.delexify">Delexify Text</div>
+      <textarea class="input" id="gutenberg-delex" rows="4" placeholder="Paste text to delexify..." data-i18n-placeholder="mcp.gutenberg.delexifyPlaceholder" style="resize:vertical"></textarea>
+      <button class="btn" onclick="delexifyGutenberg()" style="margin-top:8px" data-i18n="mcp.gutenberg.delexifyBtn">Delexify</button>
+      <div id="gutenberg-delex-result"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="runAction('gutenberg/download')" data-i18n="mcp.gutenberg.download">Download Corpus</button>
+      <button class="btn" onclick="runAction('gutenberg/convert')" data-i18n="mcp.gutenberg.convert">Convert</button>
+      <button class="btn" onclick="runAction('gutenberg/compact')" data-i18n="mcp.gutenberg.compact">Compact</button>
+    </div>
+  </div>
+
+  <!-- Wikipedia -->
+  <div class="panel" id="panel-wikipedia">
+    <div class="stats-grid" id="wikipedia-stats"></div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.wikipedia.search">Search Articles</div>
+      <div class="search-row">
+        <input class="input" id="wikipedia-q" placeholder="Search Wikipedia..." data-i18n-placeholder="mcp.wikipedia.searchPlaceholder">
+        <button class="btn" onclick="searchWikipedia()" data-i18n="mcp.search">Search</button>
+      </div>
+      <div id="wikipedia-results"></div>
+    </div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.wikipedia.verify">Fact Verification</div>
+      <div class="search-row">
+        <input class="input" id="wikipedia-claim" placeholder="Enter a claim to verify..." data-i18n-placeholder="mcp.wikipedia.claimPlaceholder">
+        <button class="btn" onclick="verifyWikipedia()" data-i18n="mcp.wikipedia.verifyBtn">Verify</button>
+      </div>
+      <div id="wikipedia-verify-result"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="runAction('wikipedia/download')" data-i18n="mcp.wikipedia.download">Download</button>
+      <button class="btn" onclick="runAction('wikipedia/convert')" data-i18n="mcp.wikipedia.convert">Convert</button>
+      <button class="btn" onclick="runAction('wikipedia/compact')" data-i18n="mcp.wikipedia.compact">Compact</button>
+    </div>
+  </div>
+
+  <!-- Literary -->
+  <div class="panel" id="panel-literary">
+    <div class="stats-grid" id="literary-stats"></div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.literary.templates">Quest Templates</div>
+      <div class="search-row">
+        <input class="input" id="literary-q" placeholder="Search templates..." data-i18n-placeholder="mcp.literary.searchPlaceholder">
+        <button class="btn" onclick="searchLiterary()" data-i18n="mcp.search">Search</button>
+      </div>
+      <div id="literary-results"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn--success" onclick="runAction('literary/compile')" data-i18n="mcp.literary.compile">Compile</button>
+      <button class="btn" onclick="runAction('literary/compact')" data-i18n="mcp.literary.compact">Compact</button>
+    </div>
+  </div>
+
+  <!-- Economics -->
+  <div class="panel" id="panel-economics">
+    <div class="stats-grid" id="economics-stats"></div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.economics.phase">Current Phase</div>
+      <div id="economics-phase" class="empty">Loading...</div>
+    </div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.economics.dilemma">Generate Dilemma</div>
+      <button class="btn" onclick="generateDilemma()" data-i18n="mcp.economics.generateBtn">Generate</button>
+      <div id="economics-dilemma"></div>
+    </div>
+  </div>
+
+  <!-- System -->
+  <div class="panel" id="panel-system">
+    <div class="stats-grid" id="system-stats"></div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.system.logs">Operation Logs</div>
+      <div id="system-logs" style="max-height:300px;overflow-y:auto;font-size:12px"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="runAction('rebuild-index')" data-i18n="mcp.system.rebuildIndex">Rebuild Index</button>
+      <button class="btn btn--danger" onclick="runAction('clean-orphans')" data-i18n="mcp.system.cleanOrphans">Clean Orphans</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ── i18n ──────────────────────────────────────────────────────
+const I18N = {
+  en: {
+    "mcp.title": "Database Management", "mcp.back": "\u2190 Back",
+    "mcp.tab.dashboard": "Dashboard", "mcp.tab.bible": "Bible",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.literary": "Literary", "mcp.tab.economics": "Economics",
+    "mcp.tab.system": "System",
+    "mcp.quickActions": "Quick Actions", "mcp.compactAll": "Compact All",
+    "mcp.rebuildIndex": "Rebuild Index", "mcp.search": "Search",
+    "mcp.bible.search": "Search Verses", "mcp.bible.searchPlaceholder": "Search verses...",
+    "mcp.bible.characters": "Characters", "mcp.bible.charPlaceholder": "Search characters...",
+    "mcp.bible.bootstrap": "Bootstrap", "mcp.bible.compact": "Compact",
+    "mcp.gutenberg.search": "Search Styles", "mcp.gutenberg.searchPlaceholder": "Search styles...",
+    "mcp.gutenberg.delexify": "Delexify Text", "mcp.gutenberg.delexifyPlaceholder": "Paste text to delexify...",
+    "mcp.gutenberg.delexifyBtn": "Delexify", "mcp.gutenberg.download": "Download Corpus",
+    "mcp.gutenberg.convert": "Convert Parquet\u2192SQLite", "mcp.gutenberg.compact": "Compact",
+    "mcp.wikipedia.search": "Search Articles", "mcp.wikipedia.searchPlaceholder": "Search Wikipedia...",
+    "mcp.wikipedia.verify": "Fact Verification", "mcp.wikipedia.claimPlaceholder": "Enter a claim to verify...",
+    "mcp.wikipedia.verifyBtn": "Verify", "mcp.wikipedia.download": "Download",
+    "mcp.wikipedia.convert": "Convert", "mcp.wikipedia.compact": "Compact",
+    "mcp.literary.templates": "Quest Templates", "mcp.literary.searchPlaceholder": "Search templates...",
+    "mcp.literary.compile": "Compile", "mcp.literary.compact": "Compact",
+    "mcp.economics.phase": "Current Phase", "mcp.economics.generateBtn": "Generate",
+    "mcp.economics.dilemma": "Generate Dilemma",
+    "mcp.system.logs": "Operation Logs", "mcp.system.rebuildIndex": "Rebuild Index",
+    "mcp.system.cleanOrphans": "Clean Orphans",
+  },
+  ru: {
+    "mcp.title": "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0431\u0430\u0437\u0430\u043c\u0438 \u0434\u0430\u043d\u043d\u044b\u0445", "mcp.back": "\u2190 \u041d\u0430\u0437\u0430\u0434",
+    "mcp.tab.dashboard": "\u041e\u0431\u0437\u043e\u0440", "mcp.tab.bible": "\u0411\u0438\u0431\u043b\u0438\u044f",
+    "mcp.tab.gutenberg": "\u0413\u0443\u0442\u0435\u043d\u0431\u0435\u0440\u0433", "mcp.tab.wikipedia": "\u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u044f",
+    "mcp.tab.literary": "\u041b\u0438\u0442\u0435\u0440\u0430\u0442\u0443\u0440\u0430", "mcp.tab.economics": "\u042d\u043a\u043e\u043d\u043e\u043c\u0438\u043a\u0430",
+    "mcp.tab.system": "\u0421\u0438\u0441\u0442\u0435\u043c\u0430",
+    "mcp.quickActions": "\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f", "mcp.compactAll": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0441\u0451",
+    "mcp.rebuildIndex": "\u041f\u0435\u0440\u0435\u0438\u043d\u0434\u0435\u043a\u0441\u0430\u0446\u0438\u044f", "mcp.search": "\u041f\u043e\u0438\u0441\u043a",
+    "mcp.bible.search": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u0445\u043e\u0432", "mcp.bible.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u0445\u043e\u0432...",
+    "mcp.bible.characters": "\u041f\u0435\u0440\u0441\u043e\u043d\u0430\u0436\u0438", "mcp.bible.charPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u0436\u0435\u0439...",
+    "mcp.bible.bootstrap": "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c", "mcp.bible.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
+    "mcp.gutenberg.search": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u043b\u0435\u0439", "mcp.gutenberg.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u043b\u0435\u0439...",
+    "mcp.gutenberg.delexify": "\u0414\u0435\u043b\u0435\u043a\u0441\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f", "mcp.gutenberg.delexifyPlaceholder": "\u0412\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u0442\u0435\u043a\u0441\u0442...",
+    "mcp.gutenberg.delexifyBtn": "\u0414\u0435\u043b\u0435\u043a\u0441\u0438\u0444\u0438\u0446\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.gutenberg.download": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u043a\u043e\u0440\u043f\u0443\u0441",
+    "mcp.gutenberg.convert": "\u041a\u043e\u043d\u0432\u0435\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.gutenberg.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
+    "mcp.wikipedia.search": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0430\u0442\u0435\u0439", "mcp.wikipedia.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u0438...",
+    "mcp.wikipedia.verify": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0444\u0430\u043a\u0442\u043e\u0432", "mcp.wikipedia.claimPlaceholder": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0443\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435...",
+    "mcp.wikipedia.verifyBtn": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c", "mcp.wikipedia.download": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c",
+    "mcp.wikipedia.convert": "\u041a\u043e\u043d\u0432\u0435\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.wikipedia.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
+    "mcp.literary.templates": "\u0428\u0430\u0431\u043b\u043e\u043d\u044b \u043a\u0432\u0435\u0441\u0442\u043e\u0432", "mcp.literary.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u0448\u0430\u0431\u043b\u043e\u043d\u043e\u0432...",
+    "mcp.literary.compile": "\u041a\u043e\u043c\u043f\u0438\u043b\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.literary.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
+    "mcp.economics.phase": "\u0422\u0435\u043a\u0443\u0449\u0430\u044f \u0444\u0430\u0437\u0430", "mcp.economics.generateBtn": "\u0421\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
+    "mcp.economics.dilemma": "\u0413\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f \u0434\u0438\u043b\u0435\u043c\u043c\u044b",
+    "mcp.system.logs": "\u041b\u043e\u0433\u0438 \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0439", "mcp.system.rebuildIndex": "\u041f\u0435\u0440\u0435\u0438\u043d\u0434\u0435\u043a\u0441\u0430\u0446\u0438\u044f",
+    "mcp.system.cleanOrphans": "\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u043e\u0441\u0438\u0440\u043e\u0442\u0435\u0432\u0448\u0438\u0435",
+  },
+};
+
+let currentLang = localStorage.getItem("tns-lang") || "en";
+function t(k) { return I18N[currentLang]?.[k] || I18N.en[k] || k; }
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => el.placeholder = t(el.dataset.i18nPlaceholder));
+}
+
+// ── Tabs ──────────────────────────────────────────────────────
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+    loadTab(tab.dataset.tab);
+  });
+});
+
+// ── Toast ─────────────────────────────────────────────────────
+function toast(msg, type) {
+  const el = document.createElement("div");
+  el.className = "toast" + (type ? " toast--" + type : "");
+  el.textContent = msg;
+  document.getElementById("toasts").appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── API ───────────────────────────────────────────────────────
+async function api(path, opts) {
+  try {
+    const res = await fetch("/mcp/" + path, { headers: { "Content-Type": "application/json" }, ...opts });
+    return await res.json();
+  } catch (err) { toast("API error: " + err.message, "error"); return null; }
+}
+
+function fmtBytes(b) {
+  if (!b) return "0 B";
+  const k = 1024, s = ["B","KB","MB","GB"];
+  const i = Math.floor(Math.log(b) / Math.log(k));
+  return (b / Math.pow(k, i)).toFixed(1) + " " + s[i];
+}
+
+// ── Dashboard ─────────────────────────────────────────────────
+async function loadDashboard() {
+  const d = await api("status");
+  if (!d) return;
+  const g = document.getElementById("dashboard-stats");
+  g.innerHTML = "";
+  for (const db of d.databases || []) {
+    g.innerHTML += `<div class="stat-card"><div class="stat-card__value" style="color:${db.exists?"var(--success)":"var(--error)"}">${db.exists?"\u25cf":"\u25cb"}</div><div class="stat-card__label">${db.name}</div><div style="font-size:11px;color:var(--text-disabled)">${db.exists?fmtBytes(db.size):"not found"}</div></div>`;
+  }
+}
+
+// ── Bible ─────────────────────────────────────────────────────
+async function loadBibleStats() {
+  const d = await api("bible/stats");
+  const el = document.getElementById("bible-stats");
+  if (!d?.exists) { el.innerHTML = '<div class="empty">Bible DB not found</div>'; return; }
+  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${d.verses}</div><div class="stat-card__label">Verses</div></div><div class="stat-card"><div class="stat-card__value">${d.books}</div><div class="stat-card__label">Books</div></div><div class="stat-card"><div class="stat-card__value">${d.characters}</div><div class="stat-card__label">Characters</div></div>`;
+}
+async function searchBible() {
+  const q = document.getElementById("bible-q").value;
+  if (!q) return;
+  const d = await api("bible/search?q=" + encodeURIComponent(q));
+  const el = document.getElementById("bible-results");
+  if (!d?.results?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
+  el.innerHTML = '<table class="result-table"><tr><th>Ref</th><th>Text</th></tr>' + d.results.map(r => `<tr><td>${r.book} ${r.chapter}:${r.verse}</td><td>${r.text}</td></tr>`).join("") + '</table>';
+}
+async function searchBibleChars() {
+  const q = document.getElementById("bible-char-q").value;
+  if (!q) return;
+  const d = await api("bible/characters?q=" + encodeURIComponent(q));
+  const el = document.getElementById("bible-char-results");
+  if (!d?.results?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
+  el.innerHTML = '<table class="result-table"><tr><th>Name</th><th>Role</th></tr>' + d.results.map(r => `<tr><td>${r.canonical_name||r.name}</td><td>${r.role||"-"}</td></tr>`).join("") + '</table>';
+}
+
+// ── Gutenberg ─────────────────────────────────────────────────
+async function loadGutenbergStats() {
+  const d = await api("gutenberg/stats");
+  const el = document.getElementById("gutenberg-stats");
+  if (!d?.exists) { el.innerHTML = '<div class="empty">Gutenberg DB not found</div>'; return; }
+  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${d.styles}</div><div class="stat-card__label">Styles</div></div><div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size)}</div><div class="stat-card__label">Size</div></div>`;
+}
+async function searchGutenberg() {
+  const q = document.getElementById("gutenberg-q").value;
+  if (!q) return;
+  const d = await api("gutenberg/search?q=" + encodeURIComponent(q));
+  const el = document.getElementById("gutenberg-results");
+  if (!d?.results?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
+  el.innerHTML = '<table class="result-table"><tr><th>Style</th><th>Mood</th><th>Description</th></tr>' + d.results.map(r => `<tr><td>${r.name||"-"}</td><td>${r.mood||r.mood_tags||"-"}</td><td>${(r.description||"").slice(0,100)}</td></tr>`).join("") + '</table>';
+}
+async function delexifyGutenberg() {
+  const text = document.getElementById("gutenberg-delex").value;
+  if (!text) return;
+  const d = await api("gutenberg/delexify", { method: "POST", body: JSON.stringify({ text }) });
+  if (!d) return;
+  document.getElementById("gutenberg-delex-result").innerHTML = '<div class="result-box">' + (d.delexified || d.error || JSON.stringify(d)) + '</div>';
+}
+
+// ── Wikipedia ─────────────────────────────────────────────────
+async function loadWikipediaStats() {
+  const d = await api("wikipedia/stats");
+  const el = document.getElementById("wikipedia-stats");
+  if (!d?.exists) { el.innerHTML = '<div class="empty">Wikipedia DB not found</div>'; return; }
+  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size)}</div><div class="stat-card__label">Size</div></div>`;
+}
+async function searchWikipedia() {
+  const q = document.getElementById("wikipedia-q").value;
+  if (!q) return;
+  const d = await api("wikipedia/search?q=" + encodeURIComponent(q));
+  const el = document.getElementById("wikipedia-results");
+  if (!d?.results) { el.innerHTML = '<div class="empty">No results</div>'; return; }
+  const r = d.results;
+  el.innerHTML = `<div class="result-box"><strong>${r.topic}</strong> ${r.found ? "(found)" : "(not found)"}\n${r.summary || "No summary"}\n${r.url ? '<a href="' + r.url + '" target="_blank">' + r.url + '</a>' : ""}</div>`;
+}
+async function verifyWikipedia() {
+  const claim = document.getElementById("wikipedia-claim").value;
+  if (!claim) return;
+  const d = await api("wikipedia/verify", { method: "POST", body: JSON.stringify({ claim }) });
+  if (!d) return;
+  document.getElementById("wikipedia-verify-result").innerHTML = `<div class="result-box"><strong>Verified:</strong> ${d.verified ? "\u2713 Yes" : "\u2717 No"}\n<strong>Confidence:</strong> ${d.confidence}\n<strong>Evidence:</strong> ${(d.evidence||[]).join("; ")}</div>`;
+}
+
+// ── Literary ──────────────────────────────────────────────────
+async function loadLiteraryStats() {
+  const d = await api("literary/stats");
+  const el = document.getElementById("literary-stats");
+  if (!d?.exists) { el.innerHTML = '<div class="empty">LiteraryCompiler DB not found</div>'; return; }
+  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${d.templates}</div><div class="stat-card__label">Templates</div></div><div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size)}</div><div class="stat-card__label">Size</div></div>`;
+}
+async function searchLiterary() {
+  const q = document.getElementById("literary-q").value;
+  if (!q) return;
+  const d = await api("literary/templates?q=" + encodeURIComponent(q));
+  const el = document.getElementById("literary-results");
+  if (!d?.templates?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
+  el.innerHTML = '<table class="result-table"><tr><th>Name</th><th>Archetype</th><th>Description</th></tr>' + d.templates.map(r => `<tr><td>${r.name||"-"}</td><td>${r.archetype||"-"}</td><td>${(r.description||"").slice(0,80)}</td></tr>`).join("") + '</table>';
+}
+
+// ── Economics ─────────────────────────────────────────────────
+async function loadEconomicsStats() {
+  const d = await api("economics/stats");
+  const el = document.getElementById("economics-stats");
+  if (!d?.exists) { el.innerHTML = '<div class="empty">Economics DB not found</div>'; return; }
+  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size)}</div><div class="stat-card__label">Size</div></div>`;
+  const phase = await api("economics/phase");
+  if (phase) document.getElementById("economics-phase").textContent = phase.phase || JSON.stringify(phase);
+}
+async function generateDilemma() {
+  const d = await api("economics/dilemma");
+  if (!d) return;
+  document.getElementById("economics-dilemma").innerHTML = '<div class="result-box">' + JSON.stringify(d.dilemma || d, null, 2) + '</div>';
+}
+
+// ── System ────────────────────────────────────────────────────
+const LOGS = [];
+async function loadSystemStats() {
+  const d = await api("status");
+  if (!d) return;
+  document.getElementById("system-stats").innerHTML = `<div class="stat-card"><div class="stat-card__value">${Math.floor(d.uptime)}s</div><div class="stat-card__label">Uptime</div></div><div class="stat-card"><div class="stat-card__value">${fmtBytes(d.memory?.rss)}</div><div class="stat-card__label">RSS</div></div><div class="stat-card"><div class="stat-card__value">${d.mcpMode?"MCP":"Game"}</div><div class="stat-card__label">Mode</div></div>`;
+}
+function addLog(msg) {
+  LOGS.unshift({ time: new Date().toLocaleTimeString(), msg });
+  if (LOGS.length > 50) LOGS.pop();
+  const el = document.getElementById("system-logs");
+  if (el) el.innerHTML = LOGS.map(l => `<div style="padding:4px 0;border-bottom:1px solid var(--border-light)"><span style="color:var(--text-disabled)">${l.time}</span> ${l.msg}</div>`).join("");
+}
+
+// ── Actions ───────────────────────────────────────────────────
+async function runAction(path) {
+  toast("Starting: " + path);
+  addLog("Starting: " + path);
+  try {
+    const res = await fetch("/mcp/" + path, { method: "POST" });
+    const data = await res.json();
+    if (data.jobId) {
+      trackProgress(data.jobId, path);
+    } else {
+      toast("Done: " + path, "success");
+      addLog("Completed: " + path);
+      loadTab(document.querySelector(".tab.active").dataset.tab);
+    }
+  } catch (err) {
+    toast("Error: " + err.message, "error");
+    addLog("Error: " + path + " \u2014 " + err.message);
+  }
+}
+
+function trackProgress(jobId, path) {
+  const es = new EventSource("/mcp/stream/" + jobId);
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    addLog(path + ": " + d.message + " (" + d.progress + "%)");
+    if (d.status === "done" || d.status === "error") {
+      es.close();
+      toast(d.status === "done" ? "Completed: " + path : "Error: " + path, d.status === "done" ? "success" : "error");
+      loadTab(document.querySelector(".tab.active").dataset.tab);
+    }
+  };
+  es.onerror = () => es.close();
+}
+
+async function compactAll() {
+  for (const p of ["bible/compact","gutenberg/compact","wikipedia/compact","literary/compact"]) await runAction(p);
+}
+async function rebuildIndex() { await runAction("rebuild-index"); }
+
+// ── Tab loader ────────────────────────────────────────────────
+const loaders = { dashboard: loadDashboard, bible: loadBibleStats, gutenberg: loadGutenbergStats, wikipedia: loadWikipediaStats, literary: loadLiteraryStats, economics: loadEconomicsStats, system: loadSystemStats };
+function loadTab(tab) { loaders[tab]?.(); }
+
+// ── Init ──────────────────────────────────────────────────────
+applyI18n();
+loadDashboard();
+setInterval(() => { const a = document.querySelector(".tab.active")?.dataset.tab; if (a) loadTab(a); }, 10000);
+</script>
+</body>
+</html>

@@ -11,6 +11,7 @@ import { rateLimiter } from "./middleware/rate-limiter";
 import { securityHeaders } from "./middleware/security-headers";
 import { authMiddleware, loginPage, loginHandler, logoutHandler } from "./middleware/auth";
 import { createRoutes } from "./routes";
+import { mcpRouter } from "./routes/mcp";
 
 const PUBLIC_DIR = join(process.cwd(), "public");
 
@@ -81,6 +82,14 @@ export function createApp(): Hono {
     }
     return new Response("Not Found", { status: 404 });
   });
+
+  // ── MCP mode: database management only ──
+  if (process.env.TNS_MCP_MODE === "1") {
+    app.route("/mcp", mcpRouter);
+    app.get("/", (c) => c.redirect("/mcp.html"));
+    app.get("/mcp.html", (c) => serveHtml("mcp.html"));
+    return app;
+  }
 
   // ── WebSocket upgrade (no auth for WS handshake — auth handled in handler) ──
 
