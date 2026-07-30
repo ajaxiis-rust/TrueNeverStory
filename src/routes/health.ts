@@ -2,10 +2,14 @@
  * Health check and system routes.
  */
 import { Hono } from "hono";
-import { createRequire } from "module";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-const require = createRequire(import.meta.url);
-const pkg = require("../../package.json");
+let version = "0.0.0";
+try {
+  const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf-8"));
+  version = pkg.version;
+} catch { /* compiled binary or missing file */ }
 
 const health = new Hono();
 
@@ -14,7 +18,7 @@ health.get("/health", async (c) => {
     status: "ok",
     engine_ready: true,
     uptime: process.uptime(),
-    version: "v" + pkg.version,
+    version: "v" + version,
   });
 });
 

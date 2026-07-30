@@ -11,6 +11,8 @@ worlds/*/tns.db-wal
 *.log
 .server.pid
 local-models/
+tns-server
+tns-mcp
 .mimocode/
 *.swp
 .test_*.json
