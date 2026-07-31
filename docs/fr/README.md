@@ -1,4 +1,4 @@
-# TrueNeverStory v0.29.6
+# TrueNeverStory v0.29.7
 
 ### Ecris ton livre en jouant.
 
@@ -10,7 +10,21 @@ Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les o
 
 ---
 
-## Nouveautes de v0.29.6
+## Nouveautes de v0.29.7
+
+### Console MCP — Correction des cases a cocher + Authentification
+- **Cases a cocher des livres** dans l'onglet Catalogue — la selection persiste correctement
+- **Authentification par mot de passe** pour le mode MCP — meme mot de passe que le serveur principal
+- **[Guide de la Console MCP](MCP-HELP.md)** — guide utilisateur complet en 7 langues
+
+### Catalogue web — Telechargez vos auteurs preferes
+Configurez tout le pipeline MCP depuis le navigateur. Creez une bibliotheque personnelle depuis Project Gutenberg pour ameliorer le style narratif :
+1. Entrez les noms d'auteurs (Mark Twain, Jack London, Edgar Allan Poe...) ou des sujets
+2. Parcourez, recherchez et filtrez le catalogue
+3. Selectionnez les livres avec les cases a cocher
+4. Telechargez et laissez l'agent Stylisateur apprendre de vos auteurs preferes
+
+Voir le **[Guide de la Console MCP](MCP-HELP.md)** pour le workflow complet.
 
 ### Optimisation de la BD Biblique
 - **Recherche FTS5** — remplacement de `LIKE '%query%'` par `MATCH` FTS5 pour des requetes textuelles en O(1) (avec fallback sur LIKE)

@@ -521,10 +521,8 @@ function clearCatalogFilter() {
 }
 
 async function toggleCatalogBook(etextno, selected) {
-  const endpoint = selected ? "gutenberg/catalog/select-all" : "gutenberg/catalog/deselect-all";
-  // For individual toggle, we need a different approach - use filter with etextno
-  // Actually, let's just reload the page to keep it simple
-  loadCatalogPage(catalogPage);
+  await api("gutenberg/catalog/select", { method: "POST", body: JSON.stringify({ etextnos: [etextno], selected }) });
+  loadCatalogStats();
 }
 
 function toggleAllCatalog(checked) {

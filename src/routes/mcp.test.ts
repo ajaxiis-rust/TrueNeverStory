@@ -270,6 +270,35 @@ describe("MCP routes", () => {
       expect(body.ok).toBe(true);
     });
 
+    test("POST /mcp/gutenberg/catalog/select toggles individual book", async () => {
+      // First select-all so we have books with selected=1
+      await app.request("/mcp/gutenberg/catalog/select-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      // Deselect one book
+      const res = await app.request("/mcp/gutenberg/catalog/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ etextnos: [74], selected: false }),
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+      expect(body.changed).toBeNumber();
+    });
+
+    test("POST /mcp/gutenberg/catalog/select with empty etextnos returns 400", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ etextnos: [], selected: true }),
+      });
+      expect(res.status).toBe(400);
+    });
+
     test("POST /mcp/gutenberg/download-selected with empty list returns error", async () => {
       const res = await app.request("/mcp/gutenberg/download-selected", {
         method: "POST",

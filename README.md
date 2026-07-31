@@ -1,4 +1,4 @@
-# TrueNeverStory v0.29.6
+# TrueNeverStory v0.29.7
 
 ### Write your book just by playing.
 
@@ -10,7 +10,21 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ---
 
-## What's New in v0.29.6
+## What's New in v0.29.7
+
+### MCP Console — Checkbox Fix + Password Auth
+- **Fixed per-book checkbox** in Catalog tab — selection now persists correctly
+- **Password authentication** for MCP mode — same password as the main server
+- **[MCP Console Help](docs/MCP-HELP.md)** — full user guide in 7 languages
+
+### Web-Based Catalog — Download Favorite Authors
+Configure the entire MCP pipeline through the browser. Build a personal library from Project Gutenberg to improve narrative style:
+1. Enter author names (Mark Twain, Jack London, Edgar Allan Poe...) or topics
+2. Browse, search, and filter the catalog
+3. Select books via checkboxes
+4. Download and let the Stylist agent learn from your chosen authors
+
+See **[MCP Console Help](docs/MCP-HELP.md)** for the complete workflow.
 
 ### LLM Performance Optimization — Dual Model + Translation Batching
 - **Reduced LLM requests** from 4-5 to 2-3 per user input

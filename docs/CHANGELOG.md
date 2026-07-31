@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.29.7 (2026-07-31)
+
+### MCP Console — Checkbox Fix + Password Auth
+
+Fixed per-book checkbox toggle in the Catalog tab and added password authentication to MCP mode.
+
+**Bug Fixes:**
+- `toggleCatalogBook()` now correctly calls `POST /mcp/gutenberg/catalog/select` instead of silently reloading the page
+- New endpoint `POST /mcp/gutenberg/catalog/select` accepts `{ etextnos: number[], selected: boolean }` for granular selection
+
+**Security:**
+- MCP mode (`TNS_MCP_MODE=1`) now requires the same password as the main server via `authMiddleware`
+- Login/logout routes (`/login`, `/logout`) are available in MCP mode
+- No password configured = open access (same behavior as main server)
+
+**Documentation:**
+- New MCP Console help guide in all 7 languages (EN, RU, ZH, FR, DE, ES, JA)
+- Updated README with web-based catalog configuration and author download workflow
+
+### Web-Based Catalog — Download Favorite Authors
+
+Users can now configure the entire MCP pipeline through the browser, including downloading Gutenberg texts by favorite authors to improve narrative style.
+
+**Workflow:**
+1. Open MCP Console (`/mcp.html`) → Catalog tab
+2. Enter author names (e.g., "Mark Twain, Jack London") or topics (e.g., "adventure")
+3. Click "Build Catalog" to fetch metadata from Gutendex API
+4. Browse, search, filter by author/year/downloads/subject
+5. Select books via checkboxes (individual or bulk)
+6. Click "Download Selected" to fetch full texts
+7. Styles are automatically extracted for the Stylist agent
+
+---
+
 ## v0.29.6 (2026-07-31)
 
 ### MCP Console — Database Management Web UI

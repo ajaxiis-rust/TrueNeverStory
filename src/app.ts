@@ -85,6 +85,10 @@ export function createApp(): Hono {
 
   // ── MCP mode: database management only ──
   if (process.env.TNS_MCP_MODE === "1") {
+    app.get("/login", loginPage);
+    app.post("/login", loginHandler);
+    app.post("/logout", logoutHandler);
+    app.use("*", authMiddleware);
     app.route("/mcp", mcpRouter);
     app.get("/", (c) => c.redirect("/mcp.html"));
     app.get("/mcp.html", (c) => serveHtml("mcp.html"));

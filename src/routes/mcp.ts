@@ -436,6 +436,24 @@ mcpRouter.post("/gutenberg/catalog/deselect-all", (c) => {
   }
 });
 
+mcpRouter.post("/gutenberg/catalog/select", async (c) => {
+  const { etextnos, selected } = await c.req.json<{ etextnos: number[]; selected: boolean }>();
+  if (!etextnos || etextnos.length === 0) {
+    return c.json({ error: 'No etextnos provided' }, 400);
+  }
+  const catalog = new GutenbergCatalog(GUTENBERG_CATALOG_DB);
+  try {
+    if (selected) {
+      catalog.select(etextnos);
+    } else {
+      catalog.deselect(etextnos);
+    }
+    return c.json({ ok: true, changed: etextnos.length });
+  } finally {
+    catalog.close();
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════
 //  Wikipedia
 // ═══════════════════════════════════════════════════════════════

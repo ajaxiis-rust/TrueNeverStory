@@ -1,4 +1,4 @@
-# TrueNeverStory v0.29.6
+# TrueNeverStory v0.29.7
 
 ### 玩着写你的书。
 
@@ -10,7 +10,21 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架�
 
 ---
 
-## v0.29.6 新功能
+## v0.29.7 新功能
+
+### MCP 控制台 — 复选框修复 + 密码认证
+- **目录复选框**现在正常工作 — 选择后不会重置
+- **MCP 模式密码保护** — 使用与主服务器相同的密码
+- **[MCP 控制台帮助](MCP-HELP.md)** — 7 种语言的完整用户指南
+
+### 网页目录 — 下载喜爱的作者
+通过浏览器配置整个 MCP 流程。从 Project Gutenberg 构建个人图书馆以提升叙事风格：
+1. 输入作者名（Mark Twain、Jack London、Edgar Allan Poe...）或主题
+2. 浏览、搜索和筛选目录
+3. 通过复选框选择书籍
+4. 下载并让风格师代理从您选择的作者学习
+
+完整流程请参阅 **[MCP 控制台帮助](MCP-HELP.md)**。
 
 ### 圣经数据库优化
 - **FTS5搜索** — 将 `LIKE '%query%'` 替换为 FTS5 `MATCH` 实现 O(1) 全文查询（支持 LIKE 回退）
