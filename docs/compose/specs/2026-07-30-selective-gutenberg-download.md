@@ -1,5 +1,10 @@
 # Selective Gutenberg Download — Design Spec (v2)
 
+> [!NOTE]
+> This document may not reflect the current implementation.
+> See the final report for up-to-date state:
+> [Final Report](../reports/selective-gutenberg-download.md)
+
 ## [S1] Problem
 
 The current Gutenberg pipeline downloads the entire corpus (51K books, 12.9 GB parquet) before any filtering. This wastes bandwidth and time when only specific genres, authors, or books are needed.
@@ -37,13 +42,27 @@ Gutenberg.org
 
 ## [S3] Data Flow
 
-### Phase 1: Catalog Build (by author list)
+### Phase 1: Catalog Build (by author or topic)
 
+**By author:**
 1. For each author in list, call Gutendex API: `GET /books/?search=<author>&languages=en`
 2. Paginate through all results (32 per page)
-3. Extract: id, title, authors, subjects, bookshelves, summaries, download_count
+3. Filter: only books where author name matches (case-insensitive)
+4. Extract: id, title, authors, subjects, bookshelves, summaries, download_count
+5. Save to local `gutenberg-catalog.db`
+6. SSE progress: "Fetching Mark Twain: 150/213..."
+
+**By topic:**
+1. Call Gutendex API: `GET /books/?topic=<topic>&languages=en`
+2. Paginate through all results (32 per page)
+3. Extract: same fields as author mode
 4. Save to local `gutenberg-catalog.db`
-5. SSE progress: "Fetching Mark Twain: 150/213..."
+5. SSE progress: "Fetching adventure: page 5/12..."
+
+**By popular:**
+1. Call Gutendex API: `GET /books/?sort=popular&languages=en`
+2. Paginate, extract, save
+3. Apply `--limit` to take top N by download count
 
 ### Phase 2: Browse & Select
 
@@ -68,7 +87,7 @@ Gutenberg.org
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/mcp/gutenberg/catalog/build` | POST | Fetch metadata via Gutendex API → local catalog. Body: `{ authors: ["Mark Twain", "Jack London"] }` |
+| `/mcp/gutenberg/catalog/build` | POST | Fetch metadata via Gutendex API → local catalog. Body: `{ authors?: ["Mark Twain"], topic?: "adventure", limit?: 500 }` |
 | `/mcp/gutenberg/catalog/stats` | GET | `{ total: 545, downloaded: 100, selected: 25 }` |
 | `/mcp/gutenberg/catalog` | GET | Paginated: `?page=1&limit=50&sort=download_count&order=desc` |
 | `/mcp/gutenberg/catalog/search` | GET | FTS: `?q=adventures&limit=50` |

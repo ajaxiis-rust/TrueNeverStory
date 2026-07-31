@@ -1,10 +1,27 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect, beforeAll } from "bun:test";
 import { Hono } from "hono";
 import { mcpRouter } from "./mcp";
+import { GutenbergCatalog } from "@/mcp/gutenberg/catalog";
+import { join } from "node:path";
 
 describe("MCP routes", () => {
   const app = new Hono();
   app.route("/mcp", mcpRouter);
+
+  // Clear catalog DB before tests
+  beforeAll(() => {
+    const catalogDbPath = join(process.cwd(), 'data', 'mcp', 'gutenberg-catalog.db');
+    try {
+      const catalog = new GutenbergCatalog(catalogDbPath);
+      catalog.deselectAll();
+      // Delete all books to start fresh
+      const db = (catalog as any).db;
+      db.run('DELETE FROM books');
+      catalog.close();
+    } catch {
+      // DB might not exist yet
+    }
+  });
 
   // ── System ──────────────────────────────────────────────────
 
@@ -162,6 +179,114 @@ describe("MCP routes", () => {
   describe("POST /mcp/bible/bootstrap", () => {
     test("returns jobId and stream URL", async () => {
       const res = await app.request("/mcp/bible/bootstrap", { method: "POST" });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.jobId).toBeString();
+      expect(body.stream).toContain("/mcp/stream/");
+    });
+  });
+
+  // ── Gutenberg Catalog ───────────────────────────────────────
+
+  describe("Gutenberg Catalog", () => {
+    test("GET /mcp/gutenberg/catalog/stats returns zero when empty", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/stats");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.total).toBe(0);
+      expect(body.downloaded).toBe(0);
+      expect(body.selected).toBe(0);
+    });
+
+    test("POST /mcp/gutenberg/catalog/build starts job", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/build", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authors: ["Mark Twain"] }),
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.jobId).toBeString();
+      expect(body.stream).toContain("/mcp/stream/");
+    });
+
+    test("GET /mcp/gutenberg/catalog returns paginated results", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog?page=1&limit=50");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.books).toBeArray();
+      expect(body.total).toBeNumber();
+      expect(body.page).toBe(1);
+      expect(body.totalPages).toBeNumber();
+    });
+
+    test("GET /mcp/gutenberg/catalog/search finds by title", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/search?q=adventures");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.results).toBeArray();
+      expect(body.query).toBe("adventures");
+    });
+
+    test("GET /mcp/gutenberg/catalog/search finds by author", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/search?q=Twain");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.results).toBeArray();
+    });
+
+    test("GET /mcp/gutenberg/catalog/filter filters by author", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/filter?author=Twain");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.results).toBeArray();
+      expect(body.filter.author).toBe("Twain");
+    });
+
+    test("GET /mcp/gutenberg/catalog/filter filters by year range", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/filter?year_from=1850&year_to=1910");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.results).toBeArray();
+      expect(body.filter.year_from).toBe(1850);
+      expect(body.filter.year_to).toBe(1910);
+    });
+
+    test("POST /mcp/gutenberg/catalog/select-all selects matching", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/select-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.selected).toBeNumber();
+    });
+
+    test("POST /mcp/gutenberg/catalog/deselect-all clears selections", async () => {
+      const res = await app.request("/mcp/gutenberg/catalog/deselect-all", { method: "POST" });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+    });
+
+    test("POST /mcp/gutenberg/download-selected with empty list returns error", async () => {
+      const res = await app.request("/mcp/gutenberg/download-selected", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ etextnos: [] }),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toContain("No etextnos");
+    });
+
+    test("POST /mcp/gutenberg/download-selected starts job", async () => {
+      const res = await app.request("/mcp/gutenberg/download-selected", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ etextnos: [74, 76] }),
+      });
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.jobId).toBeString();

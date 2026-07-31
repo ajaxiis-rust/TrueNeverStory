@@ -1,5 +1,10 @@
 # Selective Gutenberg Download — Implementation Plan
 
+> [!NOTE]
+> This document may not reflect the current implementation.
+> See the final report for up-to-date state:
+> [Final Report](../reports/selective-gutenberg-download.md)
+
 > Spec: `docs/compose/specs/2026-07-30-selective-gutenberg-download.md`
 > Experiment validated: 449 books, 4 authors, ~50MB, ~25 min
 
@@ -150,15 +155,26 @@ bun scripts/build-gutenberg-catalog.ts --popular --limit 500
 
 ```
 1. Parse args: --authors, --topic, --popular, --limit, --db
-2. For each author:
+2. Fetch mode selection:
+   - --authors: fetch by author search (default)
+   - --topic: fetch by Gutendex topic filter
+   - --popular: fetch top N by download count (no filter)
+   - --authors + --topic: fetch both, merge results
+3. For each author (--authors mode):
    a. GET gutendex.com/books/?search=<author>&languages=en
    b. Paginate: follow `next` URL until null
    c. Filter: only books where author name matches (case-insensitive)
    d. Extract: id, title, authors[0], subjects, bookshelves, summaries[0], download_count
    e. Rate limit: 200ms between requests
-3. Deduplicate by etextno (same book may appear in multiple author searches)
-4. Batch upsert into catalog DB (transaction per page)
-5. Emit JSON progress lines to stdout (for SSE integration)
+4. For topic (--topic mode):
+   a. GET gutendex.com/books/?topic=<topic>&languages=en
+   b. Paginate: follow `next` URL until null
+   c. Extract: same fields as author mode
+   d. Rate limit: 200ms between requests
+5. Deduplicate by etextno (same book may appear in multiple searches)
+6. If --limit > 0: sort by download_count desc, take top N
+7. Batch upsert into catalog DB (transaction per page)
+8. Emit JSON progress lines to stdout (for SSE integration)
 ```
 
 ### Progress format
@@ -264,13 +280,13 @@ Add REST endpoints for catalog browsing and management.
 
 ```typescript
 // POST /mcp/gutenberg/catalog/build
-// Body: { authors: string[] }
+// Body: { authors?: string[], topic?: string, limit?: number }
 // → spawns build-gutenberg-catalog.ts as child process
 // → returns { job_id: "..." } for SSE tracking
 router.post("/mcp/gutenberg/catalog/build", async (c) => {
-  const { authors } = await c.req.json();
+  const { authors, topic, limit } = await c.req.json();
   // Use runScriptWithJob() to spawn script with SSE progress
-  // Script: "bun scripts/build-gutenberg-catalog.ts --authors ..."
+  // Script: "bun scripts/build-gutenberg-catalog.ts --authors ... --topic ... --limit ..."
 });
 
 // GET /mcp/gutenberg/catalog/stats
@@ -376,6 +392,7 @@ Add a new "Catalog" tab to the existing MCP web interface.
 │                                                 │
 │ ┌─ Build Catalog ─────────────────────────────┐ │
 │ │ Authors: [Mark Twain, Jack London, ...    ] │ │
+│ │ Topic:   [adventure                       ] │ │
 │ │ [Build Catalog]  [Popular 500]              │ │
 │ │ ████████████░░░░░░░░ 60% Fetching Twain...  │ │
 │ └─────────────────────────────────────────────┘ │
@@ -405,7 +422,7 @@ Add a new "Catalog" tab to the existing MCP web interface.
 
 ```typescript
 // Build catalog
-async function buildCatalog(authors: string): Promise<void>;
+async function buildCatalog(authors: string, topic?: string): Promise<void>;
 
 // Load catalog page
 async function loadCatalogPage(page: number, sort?: string): Promise<void>;
