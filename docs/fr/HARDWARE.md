@@ -190,6 +190,69 @@ OLLAMA_NUM_PARALLEL=1
 
 ---
 
+## Moteurs : Ollama vs llama.cpp
+
+TrueNeverStory prend en charge les deux moteurs, mais **recommande llama.cpp** pour le déploiement local.
+
+### Pourquoi llama.cpp plutôt qu'Ollama
+
+| | Ollama | llama.cpp |
+|--|--------|-----------|
+| **Contrôle mémoire** | Le démon consomme **toute la RAM disponible** pour le cache des modèles | Limité explicitement via `--ctx-size`, `--threads`, `--parallel` |
+| **Cœurs CPU** | Utilise tous les cœurs, le système peut ralentir | `startgame.sh` laisse **au moins 1 cœur** pour l'OS |
+| **Contrôle** | Minimal — le démon décide de tout | Total — chaque paramètre est configurable |
+| **Serveur** | Tourne en tant que démon (toujours actif) | Démarré par le script, s'arrête avec le jeu |
+| **Modèles** | `ollama pull` — pratique mais le cache grossit | Fichiers `.gguf` dans `local-models/` — téléchargement manuel |
+| **API** | Compatible OpenAI (`localhost:11434/v1`) | Même protocole (`127.0.0.1:5001/v1`) |
+
+### Comment startgame.sh configure llama.cpp
+
+Le script détecte automatiquement le matériel et adapte les paramètres :
+
+| Matériel | Threads | Parallèle | Contexte |
+|----------|---------|-----------|----------|
+| 2-4 cœurs, ≤4 Go RAM | CPU-1 | 1 | 4096 |
+| 4-8 cœurs, ≤8 Go RAM | CPU-2 | 2 | 8192 |
+| 8+ cœurs, ≤16 Go RAM | 6 | 3 | 16384 |
+| GPU 4+ Go VRAM | 6 | 3 | 16384 |
+| GPU 8+ Go VRAM | 6 | 3 | 32768 |
+
+**Point clé :** le script réserve toujours des ressources pour le système — le démon Ollama ne le fait pas.
+
+### Serveur d'embeddings (processus séparé)
+
+Pour la recherche sémantique, `startgame.sh` lance un **serveur séparé** avec les flags `--embedding --pooling mean` :
+
+```bash
+llama-server --model BGE-M3.gguf --port 5002 \
+    --embedding --pooling mean --threads 1
+```
+
+Ces flags sont **obligatoires** — sans eux le serveur fonctionne comme un LLM classique et produit du texte au lieu de vecteurs.
+
+### Ordre de détection automatique des fournisseurs
+
+`startgame.sh` vérifie les fournisseurs par ordre de priorité :
+
+1. **Ollama** (port 11434) — si installé et démon actif
+2. **LM Studio** (port 1234)
+3. **vLLM** (port 8080)
+4. **OpenAI API** — si `OPENAI_API_KEY` est défini
+5. **llama.cpp** — si le binaire `llama-server` + des fichiers `.gguf` existent dans `local-models/`
+
+**Astuce :** pour utiliser llama.cpp au lieu d'Ollama, arrêtez le démon Ollama (`ollama stop`) avant le lancement — le script trouvera alors llama.cpp.
+
+### Structure de fichiers recommandée
+
+```
+local-models/
+├── Qwen2.5-7B-Q4_K_M.gguf      # LLM pour la narration
+├── BGE-M3-Q8_0.gguf             # Embeddings pour la recherche
+└── NLLB-200-600M-Q4_K_M.gguf   # Traductions (optionnel)
+```
+
+---
+
 ## Support des langues
 
 | Modèle | Langues | Meilleur pour |

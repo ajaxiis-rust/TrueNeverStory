@@ -190,6 +190,69 @@ OLLAMA_NUM_PARALLEL=1
 
 ---
 
+## 引擎：Ollama vs llama.cpp
+
+TrueNeverStory 支持两种引擎，但**推荐 llama.cpp** 用于本地部署。
+
+### 为什么选择 llama.cpp 而非 Ollama
+
+| | Ollama | llama.cpp |
+|--|--------|-----------|
+| **内存控制** | 守护进程占用**所有可用内存**作为模型缓存 | 通过 `--ctx-size`、`--threads`、`--parallel` 显式限制 |
+| **CPU 核心** | 使用所有核心，系统可能卡顿 | `startgame.sh` 为系统**保留至少 1 个核心** |
+| **控制力** | 最少 — 守护进程自行决定 | 完全 — 每个参数都可配置 |
+| **服务器** | 作为后台守护进程运行（始终开启） | 由脚本启动，随游戏停止 |
+| **模型** | `ollama pull` — 方便但缓存增长 | `local-models/` 中的 `.gguf` 文件 — 手动下载 |
+| **API** | OpenAI 兼容（`localhost:11434/v1`） | 相同协议（`127.0.0.1:5001/v1`） |
+
+### startgame.sh 如何配置 llama.cpp
+
+脚本自动检测硬件并调整参数：
+
+| 硬件 | Threads | Parallel | Context |
+|------|---------|----------|---------|
+| 2-4 核，≤4 GB RAM | CPU-1 | 1 | 4096 |
+| 4-8 核，≤8 GB RAM | CPU-2 | 2 | 8192 |
+| 8+ 核，≤16 GB RAM | 6 | 3 | 16384 |
+| GPU 4+ GB VRAM | 6 | 3 | 16384 |
+| GPU 8+ GB VRAM | 6 | 3 | 32768 |
+
+**关键点：** 脚本始终为系统保留资源 — Ollama 的守护进程不会这样做。
+
+### Embedding 服务器（独立进程）
+
+用于语义搜索，`startgame.sh` 启动一个**独立的** llama-server，带有 `--embedding --pooling mean` 标志：
+
+```bash
+llama-server --model BGE-M3.gguf --port 5002 \
+    --embedding --pooling mean --threads 1
+```
+
+这些标志是**必需的** — 没有它们，服务器会像普通 LLM 一样输出文本而非向量。
+
+### 提供者自动检测顺序
+
+`startgame.sh` 按优先级检查提供者：
+
+1. **Ollama**（端口 11434）— 如果已安装且守护进程运行中
+2. **LM Studio**（端口 1234）
+3. **vLLM**（端口 8080）
+4. **OpenAI API** — 如果设置了 `OPENAI_API_KEY`
+5. **llama.cpp** — 如果存在 `llama-server` 二进制文件 + `local-models/` 中的 `.gguf` 文件
+
+**提示：** 要使用 llama.cpp 而非 Ollama，请在启动前停止 Ollama 守护进程（`ollama stop`）— 脚本将找到 llama.cpp。
+
+### 推荐文件结构
+
+```
+local-models/
+├── Qwen2.5-7B-Q4_K_M.gguf      # 叙事 LLM
+├── BGE-M3-Q8_0.gguf             # 搜索用 Embeddings
+└── NLLB-200-600M-Q4_K_M.gguf   # 翻译（可选）
+```
+
+---
+
 ## 语言支持
 
 | 模型 | 语言 | 最佳用途 |

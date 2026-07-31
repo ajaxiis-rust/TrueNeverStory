@@ -180,6 +180,69 @@ OLLAMA_NUM_PARALLEL=1
 
 ---
 
+## Engines: Ollama vs llama.cpp
+
+TrueNeverStory supports both engines, but **recommends llama.cpp** for local deployment.
+
+### Why llama.cpp over Ollama
+
+| | Ollama | llama.cpp |
+|--|--------|-----------|
+| **Memory control** | Daemon consumes **all available RAM** for model cache | Explicitly limited via `--ctx-size`, `--threads`, `--parallel` |
+| **CPU cores** | Uses all cores, system may lag | `startgame.sh` leaves **at least 1 core** for the OS |
+| **Control** | Minimal — daemon decides everything | Full — every parameter is configurable |
+| **Server** | Runs as background daemon (always on) | Started by script, stops with the game |
+| **Models** | `ollama pull` — convenient but cache grows | `.gguf` files in `local-models/` — manual download |
+| **API** | OpenAI-compatible (`localhost:11434/v1`) | Same protocol (`127.0.0.1:5001/v1`) |
+
+### How startgame.sh configures llama.cpp
+
+The script auto-detects hardware and adapts parameters:
+
+| Hardware | Threads | Parallel | Context |
+|----------|---------|----------|---------|
+| 2-4 cores, ≤4 GB RAM | CPU-1 | 1 | 4096 |
+| 4-8 cores, ≤8 GB RAM | CPU-2 | 2 | 8192 |
+| 8+ cores, ≤16 GB RAM | 6 | 3 | 16384 |
+| GPU 4+ GB VRAM | 6 | 3 | 16384 |
+| GPU 8+ GB VRAM | 6 | 3 | 32768 |
+
+**Key point:** the script always reserves resources for the system — Ollama's daemon does not.
+
+### Embedding server (separate process)
+
+For semantic search, `startgame.sh` launches a **separate** llama-server with `--embedding --pooling mean` flags:
+
+```bash
+llama-server --model BGE-M3.gguf --port 5002 \
+    --embedding --pooling mean --threads 1
+```
+
+These flags are **mandatory** — without them the server acts as a regular LLM and outputs text instead of vectors.
+
+### Provider auto-detection order
+
+`startgame.sh` checks providers in priority order:
+
+1. **Ollama** (port 11434) — if installed and daemon is running
+2. **LM Studio** (port 1234)
+3. **vLLM** (port 8080)
+4. **OpenAI API** — if `OPENAI_API_KEY` is set
+5. **llama.cpp** — if `llama-server` binary + `.gguf` files exist in `local-models/`
+
+**Tip:** to use llama.cpp instead of Ollama, stop the Ollama daemon (`ollama stop`) before launching — the script will then find llama.cpp.
+
+### Recommended file structure
+
+```
+local-models/
+├── Qwen2.5-7B-Q4_K_M.gguf      # LLM for narrative
+├── BGE-M3-Q8_0.gguf             # Embeddings for search
+└── NLLB-200-600M-Q4_K_M.gguf   # Translations (optional)
+```
+
+---
+
 ## Performance Tips
 
 1. **CPU-only:** Use Q4_K_M quantization for best speed/quality ratio

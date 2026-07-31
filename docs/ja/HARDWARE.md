@@ -190,6 +190,69 @@ OLLAMA_NUM_PARALLEL=1
 
 ---
 
+## エンジン：Ollama vs llama.cpp
+
+TrueNeverStoryは両方のエンジンをサポートしていますが、**ローカルデプロイにはllama.cppを推奨**します。
+
+### llama.cppを推奨する理由
+
+| | Ollama | llama.cpp |
+|--|--------|-----------|
+| **メモリ制御** | デーモンが**利用可能な全RAM**をモデルキャッシュに使用 | `--ctx-size`、`--threads`、`--parallel`で明示的に制限 |
+| **CPUコア** | 全コアを使用、システムがフリーズする可能性 | `startgame.sh`がOS用に**最低1コア**を確保 |
+| **制御力** | 最小限 — デーモンが全て決定 | 完全 — 全パラメータが設定可能 |
+| **サーバー** | バックグラウンドデーモンとして常時稼働 | スクリプトで起動、ゲーム終了と同時に停止 |
+| **モデル** | `ollama pull` — 便利だがキャッシュが増大 | `local-models/`の`.gguf`ファイル — 手動ダウンロード |
+| **API** | OpenAI互換（`localhost:11434/v1`） | 同一プロトコル（`127.0.0.1:5001/v1`） |
+
+### startgame.shのllama.cpp設定方法
+
+スクリプトがハードウェアを自動検出し、パラメータを調整：
+
+| ハードウェア | Threads | Parallel | Context |
+|------------|---------|----------|---------|
+| 2-4コア、≤4 GB RAM | CPU-1 | 1 | 4096 |
+| 4-8コア、≤8 GB RAM | CPU-2 | 2 | 8192 |
+| 8+コア、≤16 GB RAM | 6 | 3 | 16384 |
+| GPU 4+ GB VRAM | 6 | 3 | 16384 |
+| GPU 8+ GB VRAM | 6 | 3 | 32768 |
+
+**重要:** スクリプトは常にシステム用にリソースを確保 — Ollamaのデーモンはこれをしません。
+
+### Embeddingサーバー（別プロセス）
+
+セマンティック検索用に、`startgame.sh`は`--embedding --pooling mean`フラグ付きの**別サーバー**を起動：
+
+```bash
+llama-server --model BGE-M3.gguf --port 5002 \
+    --embedding --pooling mean --threads 1
+```
+
+これらのフラグは**必須** — なしではサーバーは通常のLLMとして動作し、ベクトルではなくテキストを出力します。
+
+### プロバイダー自動検出順序
+
+`startgame.sh`は優先順位でプロバイダーを確認：
+
+1. **Ollama**（ポート11434）— インストール済みかつデーモン稼働中
+2. **LM Studio**（ポート1234）
+3. **vLLM**（ポート8080）
+4. **OpenAI API** — `OPENAI_API_KEY`が設定されている場合
+5. **llama.cpp** — `llama-server`バイナリ + `local-models/`に`.gguf`ファイルが存在する場合
+
+**ヒント:** Ollamaの代わりにllama.cppを使用するには、起動前にOllamaデーモンを停止（`ollama stop`）— スクリプトがllama.cppを見つけます。
+
+### 推奨ファイル構成
+
+```
+local-models/
+├── Qwen2.5-7B-Q4_K_M.gguf      # ナラティブ用LLM
+├── BGE-M3-Q8_0.gguf             # 検索用Embeddings
+└── NLLB-200-600M-Q4_K_M.gguf   # 翻訳（オプション）
+```
+
+---
+
 ## 言語サポート
 
 | モデル | 言語 | 最適用途 |

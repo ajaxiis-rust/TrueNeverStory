@@ -190,6 +190,69 @@ OLLAMA_NUM_PARALLEL=1
 
 ---
 
+## Engines: Ollama vs llama.cpp
+
+TrueNeverStory unterstützt beide Engines, aber **empfiehlt llama.cpp** für lokale Bereitstellung.
+
+### Warum llama.cpp statt Ollama
+
+| | Ollama | llama.cpp |
+|--|--------|-----------|
+| **Speicherkontrolle** | Daemon verbraucht **den gesamten verfügbaren RAM** für Modell-Cache | Explizit begrenzt über `--ctx-size`, `--threads`, `--parallel` |
+| **CPU-Kerne** | Nutzt alle Kerne, System kann hängen | `startgame.sh` lässt **mindestens 1 Kern** für das OS frei |
+| **Kontrolle** | Minimal — Daemon entscheidet alles | Vollständig — jeder Parameter ist konfigurierbar |
+| **Server** | Läuft als Hintergrund-Daemon (immer an) | Wird vom Script gestartet, stoppt mit dem Spiel |
+| **Modelle** | `ollama pull` — bequem, aber Cache wächst | `.gguf`-Dateien in `local-models/` — manueller Download |
+| **API** | OpenAI-kompatibel (`localhost:11434/v1`) | Gleiches Protokoll (`127.0.0.1:5001/v1`) |
+
+### Wie startgame.sh llama.cpp konfiguriert
+
+Das Script erkennt Hardware automatisch und passt Parameter an:
+
+| Hardware | Threads | Parallel | Kontext |
+|----------|---------|----------|---------|
+| 2-4 Kerne, ≤4 GB RAM | CPU-1 | 1 | 4096 |
+| 4-8 Kerne, ≤8 GB RAM | CPU-2 | 2 | 8192 |
+| 8+ Kerne, ≤16 GB RAM | 6 | 3 | 16384 |
+| GPU 4+ GB VRAM | 6 | 3 | 16384 |
+| GPU 8+ GB VRAM | 6 | 3 | 32768 |
+
+**Wichtig:** Das Script reserviert immer Ressourcen für das System — Ollamas Daemon tut das nicht.
+
+### Embedding-Server (separater Prozess)
+
+Für die semantische Suche startet `startgame.sh` einen **separaten** llama-server mit `--embedding --pooling mean` Flags:
+
+```bash
+llama-server --model BGE-M3.gguf --port 5002 \
+    --embedding --pooling mean --threads 1
+```
+
+Diese Flags sind **zwingend erforderlich** — ohne sie arbeitet der Server als normale LLM und gibt Text statt Vektoren aus.
+
+### Automatische Provider-Erkennungsreihenfolge
+
+`startgame.sh` prüft Provider nach Priorität:
+
+1. **Ollama** (Port 11434) — wenn installiert und Daemon läuft
+2. **LM Studio** (Port 1234)
+3. **vLLM** (Port 8080)
+4. **OpenAI API** — wenn `OPENAI_API_KEY` gesetzt ist
+5. **llama.cpp** — wenn `llama-server` Binary + `.gguf`-Dateien in `local-models/` vorhanden
+
+**Tipp:** Um llama.cpp statt Ollama zu verwenden, stoppen Sie den Ollama-Daemon (`ollama stop`) vor dem Start — das Script findet dann llama.cpp.
+
+### Empfohlene Dateistruktur
+
+```
+local-models/
+├── Qwen2.5-7B-Q4_K_M.gguf      # LLM für Narration
+├── BGE-M3-Q8_0.gguf             # Embeddings für Suche
+└── NLLB-200-600M-Q4_K_M.gguf   # Übersetzungen (optional)
+```
+
+---
+
 ## Sprachunterstützung
 
 | Modell | Sprachen | Am besten für |
