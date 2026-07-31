@@ -3,7 +3,7 @@
  * Download Gutenberg BookCorpus from HuggingFace → SQLite.
  *
  * Uses direct HTTP (bypasses xet/2FA) — public repos only.
- * Replaces: download-gutenberg.py + download-gutenberg-corpus.py
+ * Outputs JSON progress lines to stdout for SSE integration.
  *
  * Usage: bun scripts/download-gutenberg.ts [--dir path] [--db path] [--workers N]
  */
@@ -29,22 +29,17 @@ const RETRY = 3;
 
 const DATASET_ID = "incredible45/Gutenberg-BookCorpus-Cleaned-Data-English";
 
-// ── Progress ──────────────────────────────────────────────────
+// ── Progress: JSON lines to stdout ────────────────────────────
 
-const WIDTH = 40;
-let lastLineLen = 0;
-
-function progressBar(pct: number, msg: string) {
-  const filled = Math.round((pct / 100) * WIDTH);
-  const bar = "█".repeat(filled) + "░".repeat(WIDTH - filled);
-  const line = `[${bar}] ${pct.toFixed(1)}% | ${msg}`;
-  const pad = Math.max(0, lastLineLen - line.length);
-  process.stdout.write("\r" + line + " ".repeat(pad));
-  lastLineLen = line.length;
+interface ProgressMsg {
+  phase: string;
+  pct: number;
+  message: string;
 }
 
-function clearBar() {
-  process.stdout.write("\r" + " ".repeat(lastLineLen + 2) + "\r");
+function emit(phase: string, pct: number, message: string) {
+  const msg: ProgressMsg = { phase, pct: Math.round(pct), message };
+  console.log(JSON.stringify(msg));
 }
 
 // ── Step 1: List parquet files from HF API ────────────────────
@@ -95,16 +90,15 @@ async function downloadAll(files: string[]): Promise<number> {
   }
 
   if (tasks.length === 0) {
-    console.log(`  All ${skipped} files already cached`);
+    emit("download", 100, `All ${skipped} files already cached`);
     return skipped;
   }
 
-  console.log(`  ${skipped} cached, ${tasks.length} to download (${MAX_WORKERS} workers)`);
+  emit("download", 0, `${skipped} cached, ${tasks.length} to download (${MAX_WORKERS} workers)`);
 
   let done = 0;
   const total = tasks.length;
 
-  // Simple concurrency pool
   const executing = new Set<Promise<void>>();
 
   for (const task of tasks) {
@@ -112,7 +106,7 @@ async function downloadAll(files: string[]): Promise<number> {
       executing.delete(p);
       done++;
       const mb = statSync(task.dest).size / 1048576;
-      progressBar((done / total) * 100, `${done}/${total} ${basename(task.name)} (${mb.toFixed(0)}MB)`);
+      emit("download", (done / total) * 100, `${done}/${total} ${basename(task.name)} (${mb.toFixed(0)}MB)`);
     });
     executing.add(p);
 
@@ -122,9 +116,7 @@ async function downloadAll(files: string[]): Promise<number> {
   }
 
   await Promise.all(executing);
-  clearBar();
-
-  console.log(`  ${done} downloaded + ${skipped} cached = ${done + skipped} files`);
+  emit("download", 100, `${done} downloaded + ${skipped} cached = ${done + skipped} files`);
   return done + skipped;
 }
 
@@ -137,11 +129,10 @@ function convertToSqlite(): void {
     .map((f) => join(PARQUET_DIR, f));
 
   if (files.length === 0) {
-    console.error(`No parquet files in ${PARQUET_DIR}`);
-    process.exit(1);
+    throw new Error(`No parquet files in ${PARQUET_DIR}`);
   }
 
-  console.log(`\n[2/2] Converting ${files.length} parquets → ${basename(DB_PATH)}`);
+  emit("convert", 0, `Converting ${files.length} parquets → ${basename(DB_PATH)}`);
 
   const db = new Database(DB_PATH);
   db.exec("PRAGMA journal_mode = OFF");
@@ -195,9 +186,8 @@ function convertToSqlite(): void {
         batchInsert(batch);
         totalRows += batch.length;
         batch = [];
-        const elapsed = (performance.now() - t0) / 1000;
         const pct = ((i + r / table.numRows) / files.length) * 100;
-        progressBar(pct, `File ${i + 1}/${files.length} | ${totalRows.toLocaleString()} rows`);
+        emit("convert", pct, `File ${i + 1}/${files.length} | ${totalRows.toLocaleString()} rows`);
       }
     }
     if (batch.length > 0) {
@@ -206,35 +196,29 @@ function convertToSqlite(): void {
     }
   }
 
-  clearBar();
-  console.log(`  Creating index...`);
+  emit("index", 95, "Creating index...");
   db.exec("CREATE INDEX idx_etextno ON gutenberg(etextno)");
-  console.log(`  Compacting (VACUUM)...`);
+  emit("compact", 98, "Compacting (VACUUM)...");
   db.exec("VACUUM");
 
   const elapsed = (performance.now() - t0) / 1000;
   const count = db.query("SELECT COUNT(*) as n FROM gutenberg").get() as { n: number };
-  console.log(`  Done: ${count.n.toLocaleString()} rows in ${elapsed.toFixed(1)}s`);
-  console.log(`  Output: ${DB_PATH}`);
+  emit("done", 100, `${count.n.toLocaleString()} rows in ${elapsed.toFixed(1)}s → ${DB_PATH}`);
   db.close();
 }
 
 // ── Main ──────────────────────────────────────────────────────
 
 async function main() {
-  console.log("=".repeat(60));
-  console.log("  Gutenberg BookCorpus → SQLite");
-  console.log("=".repeat(60));
-
-  console.log("\n[1/2] Listing parquet files...");
+  emit("init", 0, "Listing parquet files...");
   const files = await listParquetFiles();
-  console.log(`  Found ${files.length} parquet files`);
+  emit("init", 5, `Found ${files.length} parquet files`);
 
   await downloadAll(files);
   convertToSqlite();
 }
 
 main().catch((err) => {
-  console.error("\nFATAL:", err);
+  emit("error", 0, String(err));
   process.exit(1);
 });

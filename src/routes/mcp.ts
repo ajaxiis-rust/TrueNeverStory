@@ -80,6 +80,12 @@ function failJob(job: Job, error: string) {
 
 // ── Helper: run script with job tracking ──────────────────────
 
+interface ScriptProgress {
+  phase?: string;
+  pct?: number;
+  message?: string;
+}
+
 function runScriptWithJob(
   command: string[],
   cwd: string = process.cwd(),
@@ -90,14 +96,41 @@ function runScriptWithJob(
   (async () => {
     try {
       const proc = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "pipe" });
-      updateJob(job, 50, "Running...");
-      const stdout = await new Response(proc.stdout).text();
-      const stderr = await new Response(proc.stderr).text();
+
+      // Stream stdout line by line for JSON progress
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const reader = proc.stdout.getReader();
+
+      const readLoop = async () => {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            try {
+              const msg = JSON.parse(trimmed) as ScriptProgress;
+              if (typeof msg.pct === "number" && msg.message) {
+                updateJob(job, msg.pct, msg.message);
+              }
+            } catch {
+              // non-JSON line — ignore
+            }
+          }
+        }
+      };
+
+      await readLoop();
       const exitCode = await proc.exited;
+
       if (exitCode === 0) {
-        completeJob(job, { stdout, stderr });
+        completeJob(job, { status: "ok" });
       } else {
-        failJob(job, `Exit code: ${exitCode}${stderr ? "\n" + stderr : ""}`);
+        failJob(job, `Exit code: ${exitCode}`);
       }
     } catch (err) {
       failJob(job, String(err));
