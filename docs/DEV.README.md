@@ -421,7 +421,7 @@ Templates use `{variable}` placeholders resolved by `resolveTemplate()`.
 
 ---
 
-## MCP Integration (v0.29.0)
+## MCP Integration (v0.29.6)
 
 TNSServer (`src/mcp/tns-server.ts`) provides MCP tools for external data access.
 
@@ -434,6 +434,22 @@ TNSServer (`src/mcp/tns-server.ts`) provides MCP tools for external data access.
 | apply_style | Gutenberg | Apply style to text (delexify and return suggestions) |
 | verify_fact | Wikipedia | Verify a factual claim |
 | get_context | Wikipedia | Get Wikipedia context for a topic |
+| get_economic_phase | Economic DB | Current economic cycle phase |
+| calculate_price | Economic DB | Price with phase modifier |
+| generate_dilemma | Economic DB | Faction tax dilemma |
+| check_jubilee | Economic DB | Jubilee cycle check |
+
+### MCP Console (v0.29.6)
+
+Web-based database management console for all project databases.
+
+**Launch:** `./startgame.sh --mcp` (starts only DB management server on port 8000, no game)
+
+**Web UI:** `http://localhost:8000` — tabs for Bible, Gutenberg, Wikipedia, LiteraryCompiler, Economics, System
+
+**API:** All endpoints under `/mcp/*` — see `src/routes/mcp.ts` for full list. SSE progress at `/mcp/stream/:jobId`.
+
+**Selective Gutenberg Download:** Catalog-based download with genre/author filtering. TypeScript-based download scripts with SSE progress tracking.
 
 ---
 

@@ -2,15 +2,15 @@
 
 This guide covers the migration from JSON file storage to SQLite for world data.
 
-## v0.29.0 Migration: Literary Compiler & Economic Models
+## v0.29.6 Migration: Literary Compiler & Economic Models
 
-The v0.29.0 release adds the Literary Compiler and Economic Models. No migration required — these are additive features that extend the existing State-First pipeline.
+The v0.29.6 release adds the Literary Compiler and Economic Models. No migration required — these are additive features that extend the existing State-First pipeline.
 
-## v0.29.0 Migration: State-First Pipeline
+## v0.29.6 Migration: State-First Pipeline
 
 ### What Changed
 
-The v0.29.0 release introduces a state-first pipeline architecture that consolidates the previous 14-agent system into 6 specialized agents (The Big Six).
+The v0.29.6 release introduces a state-first pipeline architecture that consolidates the previous 14-agent system into 6 specialized agents (The Big Six).
 
 **Old Pipeline:**
 ```
@@ -37,7 +37,7 @@ User Intent → Simulation → Pattern Selection (Dramaturg) → Fact Check (Val
 
 ### MCP Integration
 
-v0.29.0 introduces Model Context Protocol (MCP) tools for external knowledge access:
+v0.29.6 introduces Model Context Protocol (MCP) tools for external knowledge access:
 
 | MCP Server | Tools | Purpose |
 |------------|-------|---------|

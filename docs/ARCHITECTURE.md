@@ -1,7 +1,7 @@
 # TrueNeverStory — Architecture Document
 
 > A Domain-Driven Design analysis of the TrueNeverStory narrative RPG engine.
-> Updated for v0.29.0 — Literary Compiler v2, Hybrid Retrieval Pipeline, 12 Canonical Archetypes.
+> Updated for v0.29.6 — Literary Compiler v2, Hybrid Retrieval Pipeline, 12 Canonical Archetypes, MCP Console.
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Layered Onion Architecture with Event-Driven Extensions + State-First Pipeline**
 
-TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.29.0, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
+TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.29.6, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
 
 The pattern fits because:
 
@@ -21,7 +21,7 @@ The pattern fits because:
 
 The **event bus** (`EventBus` in `src/lib/event-bus.ts`) adds an asynchronous decoupling layer between bounded contexts, enabling the Director Loop to orchestrate narrative events without direct coupling to NPC, Social, or Quest subsystems.
 
-### State-First Pipeline (v0.29.0)
+### State-First Pipeline (v0.29.6)
 
 ```
 Player Input (any language)
@@ -53,10 +53,10 @@ Translate Response (1 LLM call — small model)
   ▼
 Response to User
 
-Total: 2-3 LLM calls (was 4-5 in v0.29.0)
+Total: 2-3 LLM calls (was 4-5 in v0.29.6)
 ```
 
-### Dual Model Architecture (v0.29.0)
+### Dual Model Architecture (v0.29.6)
 
 The engine supports two LLM models per agent:
 
@@ -413,7 +413,7 @@ The engine supports two LLM models per agent:
 
 ---
 
-### BC12: Literary Compiler v2 (v0.29.0)
+### BC12: Literary Compiler v2 (v0.29.6)
 
 **Purpose:** Offline narrative extraction from literary sources and runtime hybrid retrieval for constrained prose generation. Replaces the LLM-heavy v1 pipeline with a deterministic template + style pattern system.
 
@@ -972,7 +972,7 @@ Query flow:
         │
         ▼
 ┌─────────────────────┐
-│  Literary Compiler   │  (BC12, v0.29.0)
+│  Literary Compiler   │  (BC12, v0.29.6)
 │  v2                  │
 └─────────────────────┘
 ```

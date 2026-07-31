@@ -41,3 +41,7 @@ data/bible/bible-normalized.db
 data/bible/bible-normalized.db-shm
 data/bible/bible-normalized.db-wal
 data/bible/test-*.db*
+data/gutenberg/
+data/literary-compiler/
+data/mcp/
+worlds/_sessions/

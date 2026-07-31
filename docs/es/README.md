@@ -1,4 +1,4 @@
-# TrueNeverStory v0.29.0
+# TrueNeverStory v0.29.6
 
 ### Escribe tu libro solo jugando.
 
@@ -10,7 +10,7 @@ Construido en TypeScript (Bun + Hono) con kernels de computo C FFI para operacio
 
 ---
 
-## Novedades en v0.29.0
+## Novedades en v0.29.6
 
 ### Optimizacion de la BD Biblica
 - **Busqueda FTS5** — reemplazo de `LIKE '%query%'` por FTS5 `MATCH` para consultas de texto completo O(1) (con fallback a LIKE)
@@ -22,7 +22,7 @@ Construido en TypeScript (Bun + Hono) con kernels de computo C FFI para operacio
 - **Limpieza de git** — eliminados 177MB de fuentes raw + 59MB de BD compilada del seguimiento
 - **Scripts de compilacion** — `download-sources.sh` + `bootstrap-bible-db.ts` para configuracion del cliente
 
-## Novedades en v0.29.0
+## Novedades en v0.29.6
 
 ### Pipeline State-First
 El motor ahora procesa acciones **de forma determinista antes de generar texto**:
@@ -212,7 +212,7 @@ TrueNeverStory/
 │   ├── routes/           # Rutas API (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Motor de reglas (14 reglas, matriz sinergia, dependencias tech)
 │   ├── services/         # 60+ servicios (motor de juego, agentes, economia, aislamiento mundos, bus inter-mundos)
-│   │   ├── agents/       # Nuevos agentes v0.29.0 (Dramaturgo, Validador, Estilista, Actor, Censor, Cronista)
+│   │   ├── agents/       # Nuevos agentes v0.29.6 (Dramaturgo, Validador, Estilista, Actor, Censor, Cronista)
 │   │   └── ...
 │   ├── intelligence/     # Analisis grafo, deteccion duplicados, sistema de recomendacion
 │   ├── i18n/             # Paquetes de idiomas (7 idiomas)
