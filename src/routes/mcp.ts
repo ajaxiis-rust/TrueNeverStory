@@ -330,6 +330,113 @@ mcpRouter.post("/gutenberg/delexify", async (c) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+//  Gutenberg Catalog (Selective Download)
+// ═══════════════════════════════════════════════════════════════
+
+import { GutenbergCatalog } from '@/mcp/gutenberg/catalog';
+
+const GUTENBERG_CATALOG_DB = join(process.cwd(), 'data', 'mcp', 'gutenberg-catalog.db');
+
+mcpRouter.post("/gutenberg/catalog/build", async (c) => {
+  const { authors, topic, limit } = await c.req.json<{ authors?: string[]; topic?: string; limit?: number }>();
+  const args = ['bun', 'run', 'scripts/build-gutenberg-catalog.ts'];
+  if (authors && authors.length > 0) {
+    args.push('--authors', authors.join(','));
+  }
+  if (topic) {
+    args.push('--topic', topic);
+  }
+  if (limit) {
+    args.push('--limit', String(limit));
+  }
+  const result = runScriptWithJob(args);
+  return c.json(result);
+});
+
+mcpRouter.get("/gutenberg/catalog/stats", (c) => {
+  const catalog = new GutenbergCatalog(GUTENBERG_CATALOG_DB);
+  try {
+    const stats = catalog.getStats();
+    return c.json(stats);
+  } finally {
+    catalog.close();
+  }
+});
+
+mcpRouter.get("/gutenberg/catalog", (c) => {
+  const page = parseInt(c.req.query('page') || '1', 10);
+  const limit = parseInt(c.req.query('limit') || '50', 10);
+  const sort = c.req.query('sort') || 'download_count';
+  const order = c.req.query('order') || 'desc';
+  const catalog = new GutenbergCatalog(GUTENBERG_CATALOG_DB);
+  try {
+    const result = catalog.getPage(page, limit, sort, order);
+    return c.json(result);
+  } finally {
+    catalog.close();
+  }
+});
+
+mcpRouter.get("/gutenberg/catalog/search", (c) => {
+  const q = c.req.query('q') || '';
+  const limit = parseInt(c.req.query('limit') || '50', 10);
+  const catalog = new GutenbergCatalog(GUTENBERG_CATALOG_DB);
+  try {
+    const results = catalog.search(q, limit);
+    return c.json({ results, query: q, limit });
+  } finally {
+    catalog.close();
+  }
+});
+
+mcpRouter.get("/gutenberg/catalog/filter", (c) => {
+  const opts = {
+    author: c.req.query('author') || undefined,
+    year_from: c.req.query('year_from') ? parseInt(c.req.query('year_from')!, 10) : undefined,
+    year_to: c.req.query('year_to') ? parseInt(c.req.query('year_to')!, 10) : undefined,
+    min_downloads: c.req.query('min_downloads') ? parseInt(c.req.query('min_downloads')!, 10) : undefined,
+    subject: c.req.query('subject') || undefined,
+  };
+  const catalog = new GutenbergCatalog(GUTENBERG_CATALOG_DB);
+  try {
+    const results = catalog.filter(opts);
+    return c.json({ results, filter: opts });
+  } finally {
+    catalog.close();
+  }
+});
+
+mcpRouter.post("/gutenberg/download-selected", async (c) => {
+  const { etextnos } = await c.req.json<{ etextnos: number[] }>();
+  if (!etextnos || etextnos.length === 0) {
+    return c.json({ error: 'No etextnos provided' }, 400);
+  }
+  const result = runScriptWithJob(['bun', 'run', 'scripts/download-gutenberg-selected.ts', '--etextnos', etextnos.join(',')]);
+  return c.json(result);
+});
+
+mcpRouter.post("/gutenberg/catalog/select-all", async (c) => {
+  const { filter } = await c.req.json<{ filter?: { author?: string; year_from?: number; year_to?: number } }>();
+  const catalog = new GutenbergCatalog(GUTENBERG_CATALOG_DB);
+  try {
+    const count = catalog.selectAll(filter);
+    return c.json({ selected: count });
+  } finally {
+    catalog.close();
+  }
+});
+
+mcpRouter.post("/gutenberg/catalog/deselect-all", (c) => {
+  const catalog = new GutenbergCatalog(GUTENBERG_CATALOG_DB);
+  try {
+    catalog.deselectAll();
+    return c.json({ ok: true });
+  } finally {
+    catalog.close();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 //  Wikipedia
 // ═══════════════════════════════════════════════════════════════
 

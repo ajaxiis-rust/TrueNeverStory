@@ -410,7 +410,7 @@ CREATE TABLE agent_prompts (
 
 > **Reminder:** If you add a new agent that needs simple prompt templating, add it to the "Using userTemplate" list. If it needs complex multi-branch logic, keep it on PromptBuilder and add it to this list instead.
 
-## Item Boost System (v0.29.0)
+## Item Boost System (v0.29.6)
 
 When a player crafts an item, the system evaluates its uniqueness and potential benefits:
 

@@ -596,4 +596,4 @@ Get all routes registered by plugins.
 
 ---
 
-*Generated: 2026-07-14 | TrueNeverStory v0.29.0*
+*Generated: 2026-07-31 | TrueNeverStory v0.29.6*

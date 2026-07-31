@@ -477,4 +477,4 @@ API キーを削除。
 
 ---
 
-*生成日: 2026-06-27 | TrueNeverStory v0.29.0*
+*生成日: 2026-06-27 | TrueNeverStory v0.29.6*

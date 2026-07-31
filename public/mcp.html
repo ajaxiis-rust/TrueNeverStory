@@ -92,6 +92,7 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
   <button class="tab active" data-tab="dashboard" data-i18n="mcp.tab.dashboard">Dashboard</button>
   <button class="tab" data-tab="bible" data-i18n="mcp.tab.bible">Bible</button>
   <button class="tab" data-tab="gutenberg" data-i18n="mcp.tab.gutenberg">Gutenberg</button>
+  <button class="tab" data-tab="catalog" data-i18n="mcp.tab.catalog">Catalog</button>
   <button class="tab" data-tab="wikipedia" data-i18n="mcp.tab.wikipedia">Wikipedia</button>
   <button class="tab" data-tab="literary" data-i18n="mcp.tab.literary">Literary</button>
   <button class="tab" data-tab="economics" data-i18n="mcp.tab.economics">Economics</button>
@@ -157,6 +158,52 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <button class="btn" onclick="runAction('gutenberg/download')" data-i18n="mcp.gutenberg.download">Download Corpus</button>
       <button class="btn" onclick="runAction('gutenberg/convert')" data-i18n="mcp.gutenberg.convert">Convert</button>
       <button class="btn" onclick="runAction('gutenberg/compact')" data-i18n="mcp.gutenberg.compact">Compact</button>
+    </div>
+  </div>
+
+  <!-- Catalog (Selective Download) -->
+  <div class="panel" id="panel-catalog">
+    <div class="stats-grid" id="catalog-stats"></div>
+    <div class="section">
+      <div class="section__title">Build Catalog</div>
+      <div class="search-row">
+        <input class="input" id="catalog-authors" placeholder="Authors (comma-separated): Mark Twain, Jack London...">
+        <input class="input" id="catalog-topic" placeholder="Topic (optional): adventure, romance..." style="max-width:200px">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn btn--success" onclick="buildCatalog()">Build Catalog</button>
+        <button class="btn" onclick="buildCatalogPopular()">Popular 500</button>
+      </div>
+      <div id="catalog-build-progress" style="display:none">
+        <div style="background:var(--surface);border-radius:var(--radius-md);padding:8px 12px;font-size:12px">
+          <div id="catalog-build-status">Starting...</div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section__title">Search & Filter</div>
+      <div class="search-row">
+        <input class="input" id="catalog-q" placeholder="Search by title, author, subjects...">
+        <button class="btn" onclick="searchCatalog()">Search</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input class="input" id="catalog-filter-author" placeholder="Author" style="max-width:200px">
+        <input class="input" id="catalog-filter-year-from" placeholder="Year from" style="max-width:120px" type="number">
+        <input class="input" id="catalog-filter-year-to" placeholder="Year to" style="max-width:120px" type="number">
+        <input class="input" id="catalog-filter-min-dl" placeholder="Min downloads" style="max-width:140px" type="number">
+        <button class="btn" onclick="filterCatalog()">Apply</button>
+        <button class="btn" onclick="clearCatalogFilter()">Clear</button>
+      </div>
+    </div>
+    <div class="section">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn" onclick="selectAllCatalog()">Select All</button>
+        <button class="btn" onclick="deselectAllCatalog()">Deselect All</button>
+        <button class="btn btn--success" onclick="downloadSelectedCatalog()">Download Selected</button>
+        <span id="catalog-selected-count" style="color:var(--text-secondary);font-size:12px;display:flex;align-items:center"></span>
+      </div>
+      <div id="catalog-results"></div>
+      <div id="catalog-pagination" style="display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px"></div>
     </div>
   </div>
 
@@ -239,7 +286,7 @@ const I18N = {
   en: {
     "mcp.title": "Database Management", "mcp.back": "\u2190 Back",
     "mcp.tab.dashboard": "Dashboard", "mcp.tab.bible": "Bible",
-    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.catalog": "Catalog", "mcp.tab.wikipedia": "Wikipedia",
     "mcp.tab.literary": "Literary", "mcp.tab.economics": "Economics",
     "mcp.tab.system": "System",
     "mcp.quickActions": "Quick Actions", "mcp.compactAll": "Compact All",
@@ -265,7 +312,7 @@ const I18N = {
   ru: {
     "mcp.title": "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0431\u0430\u0437\u0430\u043c\u0438 \u0434\u0430\u043d\u043d\u044b\u0445", "mcp.back": "\u2190 \u041d\u0430\u0437\u0430\u0434",
     "mcp.tab.dashboard": "\u041e\u0431\u0437\u043e\u0440", "mcp.tab.bible": "\u0411\u0438\u0431\u043b\u0438\u044f",
-    "mcp.tab.gutenberg": "\u0413\u0443\u0442\u0435\u043d\u0431\u0435\u0440\u0433", "mcp.tab.wikipedia": "\u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u044f",
+    "mcp.tab.gutenberg": "\u0413\u0443\u0442\u0435\u043d\u0431\u0435\u0440\u0433", "mcp.tab.catalog": "\u041a\u0430\u0442\u0430\u043b\u043e\u0433", "mcp.tab.wikipedia": "\u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u044f",
     "mcp.tab.literary": "\u041b\u0438\u0442\u0435\u0440\u0430\u0442\u0443\u0440\u0430", "mcp.tab.economics": "\u042d\u043a\u043e\u043d\u043e\u043c\u0438\u043a\u0430",
     "mcp.tab.system": "\u0421\u0438\u0441\u0442\u0435\u043c\u0430",
     "mcp.quickActions": "\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f", "mcp.compactAll": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0441\u0451",
@@ -390,6 +437,124 @@ async function delexifyGutenberg() {
   document.getElementById("gutenberg-delex-result").innerHTML = '<div class="result-box">' + (d.delexified || d.error || JSON.stringify(d)) + '</div>';
 }
 
+// ── Catalog (Selective Download) ───────────────────────────────
+let catalogPage = 1;
+let catalogSort = 'download_count';
+let catalogOrder = 'desc';
+
+async function loadCatalogStats() {
+  const d = await api("gutenberg/catalog/stats");
+  const el = document.getElementById("catalog-stats");
+  if (!d) { el.innerHTML = '<div class="empty">Catalog DB not found</div>'; return; }
+  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${d.total||0}</div><div class="stat-card__label">Total</div></div><div class="stat-card"><div class="stat-card__value">${d.downloaded||0}</div><div class="stat-card__label">Downloaded</div></div><div class="stat-card"><div class="stat-card__value">${d.selected||0}</div><div class="stat-card__label">Selected</div></div>`;
+}
+
+async function loadCatalogPage(page) {
+  catalogPage = page || 1;
+  const d = await api(`gutenberg/catalog?page=${catalogPage}&limit=50&sort=${catalogSort}&order=${catalogOrder}`);
+  if (!d) return;
+  renderCatalogTable(d.books, d.total, d.page, d.totalPages);
+}
+
+function renderCatalogTable(books, total, page, totalPages) {
+  const el = document.getElementById("catalog-results");
+  if (!books?.length) { el.innerHTML = '<div class="empty">No books in catalog</div>'; return; }
+  el.innerHTML = '<table class="result-table"><tr><th><input type="checkbox" onchange="toggleAllCatalog(this.checked)"></th><th>#</th><th>Title</th><th>Author</th><th>Subjects</th><th>Downloads</th><th>Words</th><th>Status</th></tr>' +
+    books.map(b => `<tr><td><input type="checkbox" data-etextno="${b.etextno}" ${b.selected?'checked':''} onchange="toggleCatalogBook(${b.etextno},this.checked)"></td><td>${b.etextno}</td><td>${b.title}</td><td>${b.author}</td><td>${(b.subjects||[]).slice(0,2).join(', ')}</td><td>${(b.download_count||0).toLocaleString()}</td><td>${(b.word_count||0).toLocaleString()}</td><td>${b.downloaded?'<span style="color:var(--success)">✓</span>':'<span style="color:var(--text-disabled)">—</span>'}</td></tr>`).join("") + '</table>';
+  const pag = document.getElementById("catalog-pagination");
+  pag.innerHTML = `<button class="btn" onclick="loadCatalogPage(${page-1})" ${page<=1?'disabled':''}>Prev</button><span style="color:var(--text-secondary);font-size:12px">Page ${page}/${totalPages}</span><button class="btn" onclick="loadCatalogPage(${page+1})" ${page>=totalPages?'disabled':''}>Next</button>`;
+}
+
+async function buildCatalog() {
+  const authors = document.getElementById("catalog-authors").value;
+  const topic = document.getElementById("catalog-topic").value;
+  if (!authors && !topic) { toast("Enter authors or topic", "error"); return; }
+  const body = {};
+  if (authors) body.authors = authors.split(",").map(s => s.trim());
+  if (topic) body.topic = topic;
+  const d = await api("gutenberg/catalog/build", { method: "POST", body: JSON.stringify(body) });
+  if (d?.job_id) {
+    document.getElementById("catalog-build-progress").style.display = "block";
+    document.getElementById("catalog-build-status").textContent = "Building catalog...";
+    toast("Catalog build started", "success");
+  }
+}
+
+async function buildCatalogPopular() {
+  const d = await api("gutenberg/catalog/build", { method: "POST", body: JSON.stringify({ limit: 500 }) });
+  if (d?.job_id) {
+    document.getElementById("catalog-build-progress").style.display = "block";
+    document.getElementById("catalog-build-status").textContent = "Building popular catalog...";
+    toast("Popular catalog build started", "success");
+  }
+}
+
+async function searchCatalog() {
+  const q = document.getElementById("catalog-q").value;
+  if (!q) return;
+  const d = await api("gutenberg/catalog/search?q=" + encodeURIComponent(q));
+  if (!d?.results?.length) { document.getElementById("catalog-results").innerHTML = '<div class="empty">No results</div>'; return; }
+  renderCatalogTable(d.results, d.results.length, 1, 1);
+}
+
+async function filterCatalog() {
+  const params = new URLSearchParams();
+  const author = document.getElementById("catalog-filter-author").value;
+  const yearFrom = document.getElementById("catalog-filter-year-from").value;
+  const yearTo = document.getElementById("catalog-filter-year-to").value;
+  const minDl = document.getElementById("catalog-filter-min-dl").value;
+  if (author) params.set("author", author);
+  if (yearFrom) params.set("year_from", yearFrom);
+  if (yearTo) params.set("year_to", yearTo);
+  if (minDl) params.set("min_downloads", minDl);
+  const d = await api("gutenberg/catalog/filter?" + params.toString());
+  if (!d?.results?.length) { document.getElementById("catalog-results").innerHTML = '<div class="empty">No results</div>'; return; }
+  renderCatalogTable(d.results, d.results.length, 1, 1);
+}
+
+function clearCatalogFilter() {
+  document.getElementById("catalog-filter-author").value = "";
+  document.getElementById("catalog-filter-year-from").value = "";
+  document.getElementById("catalog-filter-year-to").value = "";
+  document.getElementById("catalog-filter-min-dl").value = "";
+  loadCatalogPage(1);
+}
+
+async function toggleCatalogBook(etextno, selected) {
+  const endpoint = selected ? "gutenberg/catalog/select-all" : "gutenberg/catalog/deselect-all";
+  // For individual toggle, we need a different approach - use filter with etextno
+  // Actually, let's just reload the page to keep it simple
+  loadCatalogPage(catalogPage);
+}
+
+function toggleAllCatalog(checked) {
+  const checkboxes = document.querySelectorAll("#catalog-results input[type=checkbox][data-etextno]");
+  checkboxes.forEach(cb => cb.checked = checked);
+}
+
+async function selectAllCatalog() {
+  await api("gutenberg/catalog/select-all", { method: "POST", body: JSON.stringify({}) });
+  toast("All selected", "success");
+  loadCatalogPage(catalogPage);
+  loadCatalogStats();
+}
+
+async function deselectAllCatalog() {
+  await api("gutenberg/catalog/deselect-all", { method: "POST" });
+  toast("All deselected", "success");
+  loadCatalogPage(catalogPage);
+  loadCatalogStats();
+}
+
+async function downloadSelectedCatalog() {
+  const d = await api("gutenberg/download-selected", { method: "POST", body: JSON.stringify({}) });
+  if (d?.job_id) {
+    toast("Download started", "success");
+  } else if (d?.error) {
+    toast(d.error, "error");
+  }
+}
+
 // ── Wikipedia ─────────────────────────────────────────────────
 async function loadWikipediaStats() {
   const d = await api("wikipedia/stats");
@@ -499,7 +664,7 @@ async function compactAll() {
 async function rebuildIndex() { await runAction("rebuild-index"); }
 
 // ── Tab loader ────────────────────────────────────────────────
-const loaders = { dashboard: loadDashboard, bible: loadBibleStats, gutenberg: loadGutenbergStats, wikipedia: loadWikipediaStats, literary: loadLiteraryStats, economics: loadEconomicsStats, system: loadSystemStats };
+const loaders = { dashboard: loadDashboard, bible: loadBibleStats, gutenberg: loadGutenbergStats, catalog: () => { loadCatalogStats(); loadCatalogPage(1); }, wikipedia: loadWikipediaStats, literary: loadLiteraryStats, economics: loadEconomicsStats, system: loadSystemStats };
 function loadTab(tab) { loaders[tab]?.(); }
 
 // ── Init ──────────────────────────────────────────────────────

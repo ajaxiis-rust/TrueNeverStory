@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.29.6 (2026-07-31)
+
+### MCP Console — Database Management Web UI
+
+New web-based console for managing all project databases without leaving the browser.
+
+**Features:**
+- Tab-based UI: Bible, Gutenberg, Wikipedia, LiteraryCompiler, Economics, System
+- CRUD operations on all database tables
+- Pipeline operations: download, convert, compact, compile
+- SSE progress streaming for long-running operations (`/mcp/stream/:jobId`)
+- Selective Gutenberg download with catalog system (genre/author filtering)
+- Full REST API under `/mcp/*` endpoints
+
+**Tests:**
+- MCP Console integration tests with 404 handling for existing DB files
+
+### Selective Gutenberg Download
+
+New catalog-based download system for Gutenberg texts with genre and author filtering.
+
+**Features:**
+- Gutenberg catalog parser with Parquet format support
+- Selective download by genre, author, or custom filter
+- TypeScript rewrite of download scripts (was Python)
+- SSE progress tracking for download operations
+
+### Bug Fixes
+
+- `health.ts` now reads version from `package.json` correctly in compiled binary
+- MCP test 404 expectations adjusted for existing DB files
+
+---
+
 ## v0.29.0 (2026-07-30)
 
 ### Literary Compiler v2 — Hybrid Retrieval Pipeline

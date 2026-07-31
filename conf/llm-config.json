@@ -1,11 +1,11 @@
 {
   "llmPort": 5001,
-  "llmModel": "",
+  "llmModel": "deepseek-r1:1.5b",
   "llmThreads": 3,
   "llmParallel": 1,
-  "llmCtxSize": 11264,
+  "llmCtxSize": 3584,
   "embedPort": 5002,
   "embedModel": "BGE M3",
   "embedThreads": 1,
-  "embedCtxSize": 8192
+  "embedCtxSize": 3584
 }
