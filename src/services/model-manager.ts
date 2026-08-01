@@ -3,7 +3,7 @@
  * Integrates with Ollama for local model serving.
  */
 
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, renameSync, openSync, readSync, closeSync } from "node:fs";
 import { join } from "node:path";
 import { spawn, exec } from "node:child_process";
 import { promisify } from "node:util";
@@ -47,6 +47,49 @@ const MODELS_DB = "models.json";
 let _modelsPath: string;
 let _ggufDir: string;
 let _activeDownloads: Map<string, DownloadProgress> = new Map();
+
+// ── Download Queue (max concurrent) ──
+const MAX_CONCURRENT_DOWNLOADS = 3;
+let _downloadQueue: Array<() => Promise<void>> = [];
+let _activeDownloadCount = 0;
+
+function processDownloadQueue(): void {
+  while (_activeDownloadCount < MAX_CONCURRENT_DOWNLOADS && _downloadQueue.length > 0) {
+    const task = _downloadQueue.shift()!;
+    _activeDownloadCount++;
+    task().finally(() => {
+      _activeDownloadCount--;
+      processDownloadQueue();
+    });
+  }
+}
+
+// ── GGUF Validation ──
+const GGUF_MAGIC = 0x46554747; // "GGUF" in little-endian
+const MIN_GGUF_SIZE = 10 * 1024 * 1024; // 10MB minimum — real models are always larger
+
+function isGgufValid(filePath: string): boolean {
+  try {
+    const stat = statSync(filePath);
+    if (stat.size < MIN_GGUF_SIZE) return false;
+    const fd = openSync(filePath, "r");
+    const buf = Buffer.alloc(4);
+    readSync(fd, buf, 0, 4, 0);
+    closeSync(fd);
+    return buf.readUInt32LE(0) === GGUF_MAGIC;
+  } catch {
+    return false;
+  }
+}
+
+function cleanupCorruptedGguf(filePath: string): void {
+  try {
+    unlinkSync(filePath);
+    log.warn({ path: filePath }, "Removed corrupted/incomplete GGUF file");
+  } catch (err) {
+    log.error({ err, path: filePath }, "Failed to remove corrupted GGUF");
+  }
+}
 
 function getModelsPath(): string {
   if (!_modelsPath) {
@@ -184,6 +227,7 @@ async function deleteOllamaModel(name: string): Promise<boolean> {
 async function downloadGguf(url: string, filename: string, onProgress?: (p: DownloadProgress) => void): Promise<string | null> {
   const dir = getGgufDir();
   const filePath = join(dir, filename);
+  const tmpPath = filePath + ".downloading";
   let downloaded = 0;
 
   const now = Date.now();
@@ -205,13 +249,14 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
     if (!res.ok || !res.body) {
       log.error({ status: res.status, url }, "GGUF download HTTP error");
       _activeDownloads.delete(filename);
+      if (existsSync(tmpPath)) unlinkSync(tmpPath);
       return null;
     }
 
     const contentLength = Number(res.headers.get("content-length") ?? 0);
     const reader = res.body.getReader();
     const { createWriteStream } = await import("node:fs");
-    const fileStream = createWriteStream(filePath);
+    const fileStream = createWriteStream(tmpPath);
 
     let lastReport = Date.now();
 
@@ -256,6 +301,17 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
       fileStream.on("error", reject);
     });
 
+    // Validate downloaded file before renaming
+    if (!isGgufValid(tmpPath)) {
+      log.error({ path: tmpPath, size: downloaded }, "Downloaded GGUF failed validation — deleting");
+      _activeDownloads.delete(filename);
+      if (existsSync(tmpPath)) unlinkSync(tmpPath);
+      return null;
+    }
+
+    // Atomic rename: .downloading → final name
+    renameSync(tmpPath, filePath);
+
     const finalEntry = _activeDownloads.get(filename);
     if (finalEntry) {
       finalEntry.percent = 100;
@@ -267,6 +323,11 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
     return filePath;
   } catch (err) {
     _activeDownloads.delete(filename);
+    // Clean up partial file
+    if (existsSync(tmpPath)) {
+      unlinkSync(tmpPath);
+      log.warn({ path: tmpPath }, "Removed partial download");
+    }
     const errDetail = err instanceof Error ? err.message : String(err);
     const errName = err instanceof Error ? err.name : "unknown";
     log.error({ errName, errDetail, url, downloaded }, "GGUF download failed");
@@ -319,12 +380,23 @@ export async function listModels(): Promise<ModelInfo[]> {
 
   saveModels(models);
 
-  // Scan local GGUF files
+  // Scan local GGUF files (with validation — auto-remove corrupted/incomplete)
   const dir = getGgufDir();
   if (existsSync(dir)) {
-    const files = readdirSync(dir).filter((f) => f.endsWith(".gguf"));
+    const files = readdirSync(dir).filter((f) => f.endsWith(".gguf") && !f.endsWith(".downloading"));
     for (const file of files) {
       const filePath = join(dir, file);
+      // Validate GGUF header — if corrupted, delete and skip
+      if (!isGgufValid(filePath)) {
+        cleanupCorruptedGguf(filePath);
+        // Also remove from models DB if tracked
+        const idx = models.findIndex((m) => m.path === filePath);
+        if (idx >= 0) {
+          log.warn({ id: models[idx].id }, "Removed corrupted model from DB");
+          models.splice(idx, 1);
+        }
+        continue;
+      }
       const stat = statSync(filePath);
       const existing = byPath.get(filePath);
       if (existing) {
@@ -345,6 +417,12 @@ export async function listModels(): Promise<ModelInfo[]> {
           backend: "llamacpp",
         });
       }
+    }
+    // Also clean up any orphaned .downloading files
+    for (const f of readdirSync(dir).filter((f) => f.endsWith(".downloading"))) {
+      const tmpPath = join(dir, f);
+      unlinkSync(tmpPath);
+      log.warn({ path: tmpPath }, "Removed orphaned partial download");
     }
   }
 
@@ -428,24 +506,41 @@ export async function installModel(
     await saveModels(models);
     return model;
   } else {
-    // Direct GGUF download
+    // Direct GGUF download — queued with concurrency limit
     const filename = name.endsWith(".gguf") ? name : `${name}.gguf`;
-    const filePath = await downloadGguf(source, filename, onProgress);
 
-    const model: ModelInfo = {
+    // Register in DB as "downloading" immediately
+    const pendingModel: ModelInfo = {
       id: `local:${filename}`,
       name: filename.replace(".gguf", ""),
       size: 0,
       sizeHuman: "?",
       source,
-      status: filePath ? "installed" : "available",
-      path: filePath ?? "",
+      status: "downloading",
+      path: "",
       format: "gguf",
-      downloadedAt: filePath ? new Date().toISOString() : undefined,
       backend: "llamacpp",
     };
+    models.push(pendingModel);
+    await saveModels(models);
 
-    models.push(model);
+    // Queue the download
+    const filePath = await new Promise<string | null>((resolve) => {
+      _downloadQueue.push(async () => {
+        resolve(await downloadGguf(source, filename, onProgress));
+      });
+      processDownloadQueue();
+    });
+
+    const model: ModelInfo = {
+      ...pendingModel,
+      status: filePath ? "installed" : "available",
+      path: filePath ?? "",
+      downloadedAt: filePath ? new Date().toISOString() : undefined,
+    };
+
+    const idx = models.findIndex((m) => m.id === pendingModel.id);
+    if (idx >= 0) models[idx] = model;
     await saveModels(models);
     return model;
   }

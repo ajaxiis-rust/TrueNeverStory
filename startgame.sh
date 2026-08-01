@@ -52,6 +52,17 @@ file_size() {
     echo 0
 }
 
+# Validate GGUF file: magic header + minimum 10MB
+is_gguf_valid() {
+    local path="$1"
+    local size
+    size=$(file_size "$path")
+    [[ "$size" -gt 10485760 ]] || return 1
+    local magic
+    magic=$(xxd -l 4 -p "$path" 2>/dev/null)
+    [[ "$magic" == "47475546" ]]
+}
+
 # ── Parse flags ────────────────────────────────────────────────
 MODE_FLAGS="remote"
 MCP_MODE=false
@@ -191,7 +202,14 @@ detect_providers() {
             while IFS= read -r -d '' f; do
                 local fname
                 fname=$(basename "$f")
+                # Skip embedding models
                 if [[ "$fname" == *[Ee]mbed* || "$fname" == *BGE* || "$fname" == *bge* ]]; then
+                    continue
+                fi
+                # Validate GGUF integrity
+                if ! is_gguf_valid "$f"; then
+                    echo -e "${YELLOW}  Skipping corrupted/incomplete: $fname${NC}"
+                    rm -f "$f"
                     continue
                 fi
                 local fsize
@@ -203,7 +221,16 @@ detect_providers() {
             done < <(find ./local-models -maxdepth 1 -name "*.gguf" -type f -print0 2>/dev/null)
 
             if [[ -z "$best_file" ]]; then
-                best_file=$(find ./local-models -maxdepth 1 -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+                # Fallback: any valid GGUF (including embed models)
+                while IFS= read -r -d '' f; do
+                    if is_gguf_valid "$f"; then
+                        best_file="$f"
+                        break
+                    else
+                        echo -e "${YELLOW}  Skipping corrupted/incomplete: $(basename "$f")${NC}"
+                        rm -f "$f"
+                    fi
+                done < <(find ./local-models -maxdepth 1 -name "*.gguf" -type f -print0 2>/dev/null)
             fi
 
             model_path="$best_file"
@@ -771,7 +798,16 @@ if [[ "$MCP_MODE" == true && -n "$LLAMA_BIN" ]]; then
     if ! port_in_use "$EMBED_PORT"; then
         EMBED_PATH=""
         if [[ -d "./local-models" ]]; then
-            EMBED_PATH=$(find ./local-models -maxdepth 1 \( -iname "*bge*" -o -iname "*embed*" \) -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+            # Find first valid embedding model
+            while IFS= read -r -d '' f; do
+                if is_gguf_valid "$f"; then
+                    EMBED_PATH="$f"
+                    break
+                else
+                    echo -e "${YELLOW}  Skipping corrupted embedding model: $(basename "$f")${NC}"
+                    rm -f "$f"
+                fi
+            done < <(find ./local-models -maxdepth 1 \( -iname "*bge*" -o -iname "*embed*" \) -name "*.gguf" -type f -print0 2>/dev/null)
         fi
         if [[ -n "$EMBED_PATH" ]]; then
             echo -e "${CYAN}Starting BGE3M embedding server on port ${EMBED_PORT}...${NC}"
@@ -793,11 +829,16 @@ if [[ "$MCP_MODE" == true && -n "$LLAMA_BIN" ]]; then
     if ! port_in_use "$LLM_PORT"; then
         LLM_PATH=""
         if [[ -d "./local-models" ]]; then
-            # Find smallest non-embed GGUF
+            # Find smallest valid non-embed GGUF
             best_size=999999999
             while IFS= read -r -d '' f; do
                 fname=$(basename "$f")
                 if [[ "$fname" == *[Ee]mbed* || "$fname" == *BGE* || "$fname" == *bge* ]]; then
+                    continue
+                fi
+                if ! is_gguf_valid "$f"; then
+                    echo -e "${YELLOW}  Skipping corrupted model: $fname${NC}"
+                    rm -f "$f"
                     continue
                 fi
                 fsize=$(file_size "$f")
