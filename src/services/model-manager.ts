@@ -376,6 +376,14 @@ export async function listModels(): Promise<ModelInfo[]> {
     }
   }
 
+  // Clean up stale "downloading" models (server was restarted during download)
+  for (const m of models) {
+    if (m.status === "downloading" && !_activeDownloads.has(m.name) && !_activeDownloads.has(m.id)) {
+      m.status = "available";
+      log.warn({ id: m.id }, "Reset stale downloading model to available");
+    }
+  }
+
   saveModels(models);
 
   // Scan local GGUF files (with validation — auto-remove corrupted/incomplete)
