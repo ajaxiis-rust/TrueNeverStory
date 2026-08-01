@@ -255,55 +255,53 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
 
     const contentLength = Number(res.headers.get("content-length") ?? 0);
     const reader = res.body.getReader();
-    const { createWriteStream } = await import("node:fs");
-    const fileStream = createWriteStream(tmpPath);
+    const fd = openSync(tmpPath, "w");
 
     let lastReport = Date.now();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      fileStream.write(value);
-      downloaded += value.length;
+        writeSync(fd, value);
+        downloaded += value.length;
 
-      const now = Date.now();
-      if (now - lastReport < 1000) continue;
-      lastReport = now;
+        const now = Date.now();
+        if (now - lastReport < 1000) continue;
+        lastReport = now;
 
-      const entry = _activeDownloads.get(filename);
-      if (!entry) break;
+        const entry = _activeDownloads.get(filename);
+        if (!entry) break;
 
-      const elapsed = (now - (entry._startTime ?? now)) / 1000;
-      const instantSpeed = ((downloaded - (entry._lastBytes ?? 0)) / ((now - (entry._lastTime ?? now)) / 1000));
-      entry._lastBytes = downloaded;
-      entry._lastTime = now;
+        const elapsed = (now - (entry._startTime ?? now)) / 1000;
+        const instantSpeed = ((downloaded - (entry._lastBytes ?? 0)) / ((now - (entry._lastTime ?? now)) / 1000));
+        entry._lastBytes = downloaded;
+        entry._lastTime = now;
 
-      const avgSpeed = elapsed > 0 ? downloaded / elapsed : 0;
-      const smoothSpeed = avgSpeed * 0.3 + instantSpeed * 0.7;
+        const avgSpeed = elapsed > 0 ? downloaded / elapsed : 0;
+        const smoothSpeed = avgSpeed * 0.3 + instantSpeed * 0.7;
 
-      const rawPercent = contentLength > 0 ? (downloaded / contentLength) * 100 : 0;
-      entry._smoothPercent = (entry._smoothPercent ?? 0) * 0.6 + rawPercent * 0.4;
-      entry.percent = Math.round(entry._smoothPercent);
-      entry.downloaded = downloaded;
-      entry.total = contentLength;
-      entry.speed = formatBytes(smoothSpeed) + "/s";
+        const rawPercent = contentLength > 0 ? (downloaded / contentLength) * 100 : 0;
+        entry._smoothPercent = (entry._smoothPercent ?? 0) * 0.6 + rawPercent * 0.4;
+        entry.percent = Math.round(entry._smoothPercent);
+        entry.downloaded = downloaded;
+        entry.total = contentLength;
+        entry.speed = formatBytes(smoothSpeed) + "/s";
 
-      if (contentLength > 0 && smoothSpeed > 0) {
-        const remaining = (contentLength - downloaded) / smoothSpeed;
-        entry.eta = formatTime(remaining);
+        if (contentLength > 0 && smoothSpeed > 0) {
+          const remaining = (contentLength - downloaded) / smoothSpeed;
+          entry.eta = formatTime(remaining);
+        }
       }
+    } finally {
+      closeSync(fd);
     }
 
-    fileStream.end();
-    await new Promise<void>((resolve, reject) => {
-      fileStream.on("finish", resolve);
-      fileStream.on("error", reject);
-    });
-
-    // Validate downloaded file before renaming
-    if (!isGgufValid(tmpPath)) {
-      log.error({ path: tmpPath, size: downloaded }, "Downloaded GGUF failed validation — deleting");
+    // Validate downloaded file (fd is closed, data is on disk)
+    const finalSize = existsSync(tmpPath) ? statSync(tmpPath).size : 0;
+    if (finalSize < MIN_GGUF_SIZE || !isGgufValid(tmpPath)) {
+      log.error({ path: tmpPath, size: finalSize }, "Downloaded GGUF failed validation — deleting");
       _activeDownloads.delete(filename);
       if (existsSync(tmpPath)) unlinkSync(tmpPath);
       return null;

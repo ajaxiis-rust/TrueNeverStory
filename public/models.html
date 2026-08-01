@@ -413,23 +413,35 @@ async function loadModels() {
       ollamaStatus.textContent = L.ollamaOff;
     }
 
-    // Installed
-    const installed = data.models.filter(m => m.status === 'installed');
+    // Installed + Downloading
+    const installed = data.models.filter(m => m.status === 'installed' || m.status === 'downloading');
+    const hasDownloading = data.models.some(m => m.status === 'downloading');
+    if (hasDownloading) startProgressPolling();
     const grid = document.getElementById('installedModels');
     if (installed.length === 0) {
       grid.innerHTML = '<div class="empty">' + L.noModels + '</div>';
     } else {
       grid.innerHTML = installed.map(m => {
         const isActive = m.name === _activeModel;
+        const isDownloading = m.status === 'downloading';
+        const progress = window._downloadProgress?.[m.name] || window._downloadProgress?.[m.id];
+        const pct = progress?.percent || 0;
+        const speed = progress?.speed || '';
+        const eta = progress?.eta || '';
         return `
         <div class="model-card" ${isActive ? 'style="border-color:var(--success)"' : ''}>
           <div class="model-card__head">
             <span class="model-card__name tooltip-wrap">${esc(m.name)}${makeTooltip(m)}</span>
             <div class="model-card__badges">
               ${isActive ? '<span class="model-card__badge model-card__badge--installed">active</span>' : ''}
+              ${isDownloading ? '<span class="model-card__badge model-card__badge--downloading">downloading</span>' : ''}
               <span class="model-card__badge model-card__badge--type-installed">${esc(m.backend)}</span>
             </div>
           </div>
+          ${isDownloading ? `
+          <div class="progress" style="margin:4px 0"><div class="progress__fill" style="width:${pct}%"></div></div>
+          <div style="font-size:11px;color:var(--text-disabled);font-family:var(--font-mono)">${pct}%${speed ? ' | ' + speed : ''}${eta ? ' | ETA: ' + eta : ''}</div>
+          ` : `
           <div class="model-card__meta">
             <span>${m.sizeHuman || '?'}</span>
             <span>${m.format || ''}</span>
@@ -442,6 +454,7 @@ async function loadModels() {
             }
             <button class="btn btn--sm btn--danger" onclick="removeModel('${esc(m.id)}')">Remove</button>
           </div>
+          `}
         </div>
       `}).join('');
     }
@@ -532,39 +545,9 @@ async function installModel() {
   const url = document.getElementById('installUrl').value.trim();
   if (!name) { toast('Enter a model name', false); return; }
 
-  const progress = document.getElementById('installProgress');
-  const fill = document.getElementById('progressFill');
-  const text = document.getElementById('progressText');
-  progress.style.display = 'block';
-  fill.style.width = '0%';
-  text.textContent = L.starting;
-
   const payload = backend === 'llamacpp' && url
     ? { source: url, name, backend: 'llamacpp' }
     : { source: 'ollama', name, backend: 'ollama' };
-
-  let downloadFinished = false;
-  const pollInterval = setInterval(async () => {
-    try {
-      const res = await fetch(API + '/models/progress', { credentials: 'include' });
-      const data = await res.json();
-      if (data.downloads && data.downloads.length > 0) {
-        const d = data.downloads[data.downloads.length - 1];
-        fill.style.width = d.percent + '%';
-        const mb = (d.downloaded / 1048576).toFixed(1);
-        const total = d.total > 0 ? (d.total / 1048576).toFixed(0) : '?';
-        const speed = d.speed || '';
-        const eta = d.eta ? ` | ETA: ${d.eta}` : '';
-        text.textContent = `${mb} / ${total} MB (${d.percent}%)${speed ? ' | ' + speed : ''}${eta}`;
-      } else if (downloadFinished) {
-        clearInterval(pollInterval);
-        fill.style.width = '100%';
-        text.textContent = L.installed;
-        loadModels();
-        setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 3000);
-      }
-    } catch {}
-  }, 1000);
 
   try {
     const res = await fetch(API + '/models/install', {
@@ -573,12 +556,11 @@ async function installModel() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Install failed');
-    downloadFinished = true;
     toast('Download started: ' + name, true);
+    startProgressPolling();
+    loadModels();
   } catch (e) {
-    clearInterval(pollInterval);
     toast('Install failed: ' + e.message, false);
-    setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 3000);
   }
 }
 
@@ -781,6 +763,40 @@ loadLang();
 fbBrowse(fbCurrentPath);
 loadModels();
 setInterval(loadModels, 30000);
+
+// Download progress polling (every 2s when downloads are active)
+window._downloadProgress = {};
+let _progressPoller = null;
+
+function startProgressPolling() {
+  if (_progressPoller) return;
+  _progressPoller = setInterval(async () => {
+    try {
+      const res = await fetch(API + '/models/progress', { credentials: 'include' });
+      const data = await res.json();
+      const downloads = data.downloads || [];
+      window._downloadProgress = {};
+      for (const d of downloads) {
+        window._downloadProgress[d.modelId] = d;
+      }
+      // Refresh installed section if there are active downloads
+      if (downloads.length > 0) {
+        loadModels();
+      } else {
+        stopProgressPolling();
+        loadModels(); // final refresh to show installed state
+      }
+    } catch {}
+  }, 2000);
+}
+
+function stopProgressPolling() {
+  if (_progressPoller) {
+    clearInterval(_progressPoller);
+    _progressPoller = null;
+  }
+  window._downloadProgress = {};
+}
 </script>
 </body>
 </html>
