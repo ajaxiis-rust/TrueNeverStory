@@ -141,6 +141,49 @@ All agent-to-agent and agent-to-MCP operations use English for token efficiency 
 | **SQLite Storage** | Entities, embeddings, memories, prompts, translations — all in SQLite |
 | **Circuit Breaker** | Automatic LLM provider failover with fallback chain |
 | **Structured Logging** | Trace IDs, correlation IDs, metrics for debugging multi-agent workflows |
+| **Wikipedia RAG** | Automatic world enrichment from Wikipedia with progress tracking |
+
+---
+
+## Wikipedia RAG Enrichment
+
+TrueNeverStory automatically enriches game worlds with real-world knowledge from Wikipedia during world creation.
+
+### How It Works
+
+1. **World Creation** - LLM generates the world frame
+2. **Keyword Extraction** - System extracts relevant keywords from world description
+3. **Wikipedia Research** - Fetches articles for each keyword
+4. **RAG Building** - Chunks articles and builds vector index
+5. **Idle Enrichment** - Continues research when player is idle (>1 hour)
+
+### Features
+
+- **Automatic Research** - No manual intervention needed
+- **Progress Tracking** - Real-time progress via SSE
+- **Pause/Resume** - Control research from UI
+- **Retry Logic** - 5 attempts with exponential backoff
+- **Graceful Degradation** - World creates even if Wikipedia is unavailable
+
+### API Endpoints
+
+```
+GET  /api/wiki/research/:worldId/progress  # SSE progress stream
+POST /api/wiki/research/:worldId           # Start research
+POST /api/wiki/research/:worldId/pause     # Pause research
+POST /api/wiki/research/:worldId/resume    # Resume research
+GET  /api/wiki/research/:worldId/status    # Get current status
+```
+
+### CLI Progress
+
+```
+[Stage 2/3: Wikipedia Research] Researching medieval knighthood...
+  [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 50% (15/30)
+  → Current: Knight
+```
+
+See **[Wikipedia RAG Documentation](docs/wikipedia-rag.md)** for details.
 
 ---
 
