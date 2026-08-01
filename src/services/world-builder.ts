@@ -18,6 +18,9 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { getLogger } from "../utils/logger";
 import { NPCGenerator } from "./npc-generator";
+import { WikipediaResearcher } from "./wikipedia-researcher";
+import { WikiRAGBuilder } from "./wiki-rag-builder";
+import { WorldCreationProgressManager } from "./world-creation-progress";
 
 const log = getLogger("world-builder");
 
@@ -39,6 +42,9 @@ export class WorldBuilder {
   private _eventBus: EventBus;
   private _dbPath: string;
   private _agentId: string | undefined;
+  private _wikiResearcher?: WikipediaResearcher;
+  private _ragBuilder?: WikiRAGBuilder;
+  private _progressManager?: WorldCreationProgressManager;
   worldFrame: Record<string, unknown> | null = null;
 
   constructor(deps: WorldBuilderDeps) {
@@ -47,6 +53,90 @@ export class WorldBuilder {
     this._eventBus = deps.eventBus;
     this._dbPath = deps.dbPath;
     this._agentId = deps.agentId;
+  }
+
+  enableWikipediaResearch(worldId: string): void {
+    this._wikiResearcher = new WikipediaResearcher();
+    this._ragBuilder = new WikiRAGBuilder(worldId);
+    this._progressManager = new WorldCreationProgressManager(worldId);
+    log.info(`Wikipedia research enabled for world ${worldId}`);
+  }
+
+  async enrichWithWikipedia(): Promise<void> {
+    if (!this._wikiResearcher || !this._ragBuilder || !this._progressManager || !this.worldFrame) {
+      log.warn('Wikipedia research not enabled or world not created');
+      return;
+    }
+
+    const keywords = this.extractKeywords(JSON.stringify(this.worldFrame));
+    log.info(`Starting Wikipedia research with ${keywords.length} keywords`);
+
+    this._progressManager.update({
+      stage: 'researching',
+      current: 0,
+      total: keywords.length,
+      message: 'Starting Wikipedia research...',
+    });
+
+    for (let i = 0; i < keywords.length; i++) {
+      if (this._progressManager.isPaused()) {
+        await this._progressManager.waitForResume();
+      }
+
+      const keyword = keywords[i];
+      this._progressManager.update({
+        current: i + 1,
+        message: `Researching: ${keyword}`,
+        currentArticle: keyword,
+      });
+
+      try {
+        const articles = await this._wikiResearcher.search(keyword, 5);
+        for (const result of articles) {
+          const article = await this._wikiResearcher.getArticle(result.title);
+          if (article) {
+            this._ragBuilder.addArticle(article);
+          }
+        }
+      } catch (error) {
+        log.error(`Failed to research keyword "${keyword}":`, error as string);
+        this._progressManager.update({
+          errors: [...(this._progressManager.getProgress().errors || []), `Failed: ${keyword}`],
+        });
+      }
+    }
+
+    const stats = this._ragBuilder.getStats();
+    this._progressManager.update({
+      stage: 'complete',
+      message: `Wikipedia research complete: ${stats.articles} articles, ${stats.chunks} chunks`,
+    });
+
+    log.info(`Wikipedia research complete: ${stats.articles} articles, ${stats.chunks} chunks`);
+  }
+
+  private extractKeywords(text: string): string[] {
+    const stopWords = new Set([
+      'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+      'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+      'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can', 'this', 'that', 'these', 'those',
+    ]);
+
+    return text
+      .toLowerCase()
+      .split(/\s+/)
+      .map(w => w.replace(/[^a-z]/g, ''))
+      .filter(w => w.length > 3 && !stopWords.has(w))
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .slice(0, 20);
+  }
+
+  getRAGBuilder(): WikiRAGBuilder | undefined {
+    return this._ragBuilder;
+  }
+
+  getProgressManager(): WorldCreationProgressManager | undefined {
+    return this._progressManager;
   }
 
   async loadWorldFrame(): Promise<Record<string, unknown>> {
