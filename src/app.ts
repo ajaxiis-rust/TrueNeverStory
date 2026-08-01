@@ -12,6 +12,7 @@ import { securityHeaders } from "./middleware/security-headers";
 import { authMiddleware, loginPage, loginHandler, logoutHandler } from "./middleware/auth";
 import { createRoutes } from "./routes";
 import { mcpRouter } from "./routes/mcp";
+import { wikiResearchRoutes } from "./routes/wiki-research";
 
 const PUBLIC_DIR = join(process.cwd(), "public");
 
@@ -111,6 +112,9 @@ export function createApp(): Hono {
   app.get("/graph.html", (c) => serveHtml("graph.html"));
   app.get("/dashboard", (c) => serveHtml("dashboard.html"));
   app.get("/theme-builder", (c) => serveHtml("theme-builder.html"));
+
+  // ── Wiki Research Routes ──
+  app.route("/", wikiResearchRoutes);
 
   // ── API Routes (rate limited) ──
   app.use("/api/*", rateLimiter);
