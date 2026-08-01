@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.29.8 (2026-08-01)
+
+### Wikipedia RAG Enrichment — Automatic World Knowledge
+
+TrueNeverStory now automatically enriches game worlds with real-world knowledge from Wikipedia during world creation.
+
+**Features:**
+- **WikipediaResearcher** — Fetches articles from Wikipedia API with retry logic (5 attempts, 2min timeout, exponential backoff)
+- **WikiRAGBuilder** — Chunks articles into ~500 token pieces with overlap for RAG index
+- **WorldCreationProgressManager** — Real-time progress tracking via SSE and CLI progress bar
+- **IdleResearchScheduler** — Background enrichment when player is idle >1 hour
+- **WikiSearchTool** — MCP tool for agents to query the RAG index
+- **SSE Endpoints** — `/api/wiki/research/{worldId}/progress` for real-time progress
+- **Chat Controls** — Start, pause, resume research from the web UI
+
+**How It Works:**
+1. User creates a world (e.g., "medieval knights")
+2. System extracts keywords from world description
+3. Wikipedia articles are fetched and parsed
+4. Content is chunked and stored in RAG index
+5. Agents use RAG for accurate, detailed narratives
+
+**Example:**
+```
+User: "I want a world of knights and medieval times"
+System: Researches castles, weapons, rulers, daily life, catastrophes from Wikipedia
+Agents: Generate narratives with real historical details
+```
+
+**Documentation:**
+- New `WIKI-MCP-HELP.md` guide in all 7 languages (EN, RU, ZH, FR, DE, ES, JA)
+- Updated README with Wikipedia RAG section
+
+---
+
 ## v0.29.7 (2026-07-31)
 
 ### MCP Console — Checkbox Fix + Password Auth
