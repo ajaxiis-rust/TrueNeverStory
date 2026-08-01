@@ -6,6 +6,7 @@ import { GutenbergMCPTools } from './tools/gutenberg';
 import { WikipediaMCPTools } from './tools/wikipedia';
 import { LiteraryCompilerMCPTools } from './tools/literary-compiler';
 import { EconomicMCPTools } from './tools/economic';
+import { WikiSearchTool } from './wiki/wiki-search';
 import { LiteraryCompilerDB } from './literary-compiler/schema';
 import { EconomicDB } from './literary-compiler/economic-schema';
 import { EconomicService } from '@/services/economic-service';
@@ -58,6 +59,7 @@ export class TNSServer {
   private economicDB: EconomicDB;
   private economicService: EconomicService;
   private economicTools: EconomicMCPTools;
+  private wikiSearchTool: WikiSearchTool;
   private entityStore: UnifiedEntityStore;
   private initialized = false;
 
@@ -96,6 +98,7 @@ export class TNSServer {
     this.wikipediaTools = new WikipediaMCPTools();
     this.literaryCompilerTools = new LiteraryCompilerMCPTools(this.literaryCompilerDB);
     this.economicTools = new EconomicMCPTools(this.economicService);
+    this.wikiSearchTool = new WikiSearchTool();
   }
 
   /**
