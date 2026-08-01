@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.30.0 (2026-08-01)
+
+### Provider Priority & llama.cpp Installation Fixes
+
+Restructured LLM provider detection priority and fixed llama.cpp installation from the web UI.
+
+**Breaking Changes:**
+- Provider priority changed: **llama.cpp → Ollama → LM Studio → vLLM → OpenAI** (was: Ollama first)
+
+**Fixes:**
+- `install-llamacpp.sh`: Fixed GitHub URL (`ggerganov` → `ggml-org`), asset format (`.zip` → `.tar.gz`), naming (`linux-x64` → `ubuntu-x64`)
+- `install-llamacpp.sh`: Added GitHub API rate-limit fallback (redirect-based tag detection)
+- `install-llamacpp.sh`: Installs to `dist/<arch>/` instead of `/usr/local/bin/` (no root required)
+- `startgame.sh`: Added `LD_LIBRARY_PATH` export for llama-server `.so` files
+- `model-manager.ts`: `getBackendsStatus()` now checks binary existence instead of server health (fixes "Install backend" loop)
+- `models.html`: GGUF catalog models now visible when llama.cpp binary is installed (not only when server is running)
+- `models.html`: Fixed `installCatalog` to use model ID (not name) for GGUF filenames
+- `models.ts`: Auto-applies llamacpp settings after successful GGUF download
+- `session-store.ts`: Fixed `sessions.db` Git LFS pointer issue (runtime file excluded from LFS tracking)
+- `.gitattributes`: Added exception for `worlds/_sessions/sessions.db`
+
+**Provider Priority (new order):**
+1. llama.cpp — local GGUF models (direct, no middleware)
+2. Ollama — if no GGUF models found
+3. LM Studio — port 1234
+4. vLLM — port 8080
+5. OpenAI — API key fallback
+
+---
+
 ## v0.29.8 (2026-08-01)
 
 ### Wikipedia RAG Enrichment — Automatic World Knowledge

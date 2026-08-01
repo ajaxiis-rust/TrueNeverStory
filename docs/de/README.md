@@ -1,4 +1,4 @@
-# TrueNeverStory v0.29.7
+# TrueNeverStory v0.30.0
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
@@ -10,7 +10,7 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskriti
 
 ---
 
-## Was ist neu in v0.29.7
+## Was ist neu in v0.30.0
 
 ### MCP Console — Checkbox-Fix + Passwort-Auth
 - **Buch-Checkboxen** im Katalog-Tab funktionieren jetzt richtig — Auswahl bleibt erhalten

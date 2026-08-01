@@ -585,7 +585,7 @@ async function installModel() {
 async function installCatalog(id) {
   const catalogItem = (window._catalogData || []).find(m => m.id === id);
   if (catalogItem && catalogItem.backend === 'llamacpp' && catalogItem.url) {
-    document.getElementById('installName').value = catalogItem.name;
+    document.getElementById('installName').value = catalogItem.id;
     document.getElementById('installBackend').value = 'llamacpp';
     document.getElementById('installUrl').value = catalogItem.url;
     document.getElementById('urlField').style.display = '';

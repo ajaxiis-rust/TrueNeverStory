@@ -2,32 +2,60 @@
 set -euo pipefail
 
 # Install llama.cpp binary — downloads pre-built release
+# Installs to dist/<arch>/ so startgame.sh finds it automatically
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 OS="$(uname -s)"
 ARCH="$(uname -m)"
-INSTALL_DIR="/usr/local/bin"
 
 case "$OS-$ARCH" in
-  Linux-x86_64)  RELEASE="linux-x64" ;;
-  Linux-aarch64) RELEASE="linux-arm64" ;;
-  Darwin-arm64)  RELEASE="macos-arm64" ;;
-  Darwin-x86_64) RELEASE="macos-x64" ;;
+  Linux-x86_64)  RELEASE="ubuntu-x64";   DIST_ARCH="linux-x64" ;;
+  Linux-aarch64) RELEASE="ubuntu-arm64";  DIST_ARCH="linux-arm64" ;;
+  Darwin-arm64)  RELEASE="macos-arm64";   DIST_ARCH="macos-arm64" ;;
+  Darwin-x86_64) RELEASE="macos-x64";     DIST_ARCH="macos-x64" ;;
   *)
     echo "Unsupported: $OS $ARCH"
-    echo "Build from source: https://github.com/ggerganov/llama.cpp#build"
+    echo "Build from source: https://github.com/ggml-org/llama.cpp#build"
     exit 1
     ;;
 esac
 
+INSTALL_DIR="${PROJECT_DIR}/dist/${DIST_ARCH}"
+mkdir -p "$INSTALL_DIR"
+
 echo "Downloading llama.cpp for $RELEASE..."
-TAG=$(curl -sL "https://api.github.com/repos/ggerganov/llama.cpp/releases/latest" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"//;s/".*//')
-URL="https://github.com/ggerganov/llama.cpp/releases/download/${TAG}/llama-${TAG}-bin-${RELEASE}.zip"
 
-curl -L -o /tmp/llamacpp.zip "$URL"
-unzip -o /tmp/llamacpp.zip -d /tmp/llamacpp/
-cp -f /tmp/llamacpp/llama-server "$INSTALL_DIR/llama-server" 2>/dev/null || true
-cp -f /tmp/llamacpp/llama-cli "$INSTALL_DIR/llama-cli" 2>/dev/null || true
+# Try API first, fallback to redirect trick if rate-limited
+TAG=$(curl -sL "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest" 2>/dev/null | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"//;s/".*//' || true)
+if [[ -z "$TAG" ]]; then
+  # Fallback: follow redirect from /releases/latest to get tag
+  TAG=$(curl -sI "https://github.com/ggml-org/llama.cpp/releases/latest" 2>/dev/null | grep -i '^location:' | sed 's|.*/releases/tag/||;s|\r||g' || true)
+fi
+if [[ -z "$TAG" ]]; then
+  echo "ERROR: Could not determine latest llama.cpp release tag"
+  echo "Try again later or download manually from: https://github.com/ggml-org/llama.cpp/releases"
+  exit 1
+fi
+echo "Latest release: $TAG"
+
+URL="https://github.com/ggml-org/llama.cpp/releases/download/${TAG}/llama-${TAG}-bin-${RELEASE}.tar.gz"
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
+
+echo "Downloading $URL ..."
+curl -fL --progress-bar -o "$TMPDIR/llamacpp.tar.gz" "$URL"
+echo "Extracting..."
+mkdir -p "$TMPDIR/extracted"
+tar xzf "$TMPDIR/llamacpp.tar.gz" -C "$TMPDIR/extracted" --strip-components=1
+
+# Copy binary + shared libs
+cp -f "$TMPDIR/extracted/llama-server" "$INSTALL_DIR/llama-server"
+cp -f "$TMPDIR/extracted/llama-cli" "$INSTALL_DIR/llama-cli" 2>/dev/null || true
+cp -f "$TMPDIR/extracted"/*.so* "$INSTALL_DIR/" 2>/dev/null || true
 chmod +x "$INSTALL_DIR/llama-server" "$INSTALL_DIR/llama-cli" 2>/dev/null || true
-rm -rf /tmp/llamacpp /tmp/llamacpp.zip
 
-echo "Done. llama-server: $(which llama-server 2>/dev/null || echo "$INSTALL_DIR/llama-server")"
+echo "Done. Installed to: $INSTALL_DIR/llama-server"
+echo "llama-server version:"
+"$INSTALL_DIR/llama-server" --version 2>&1 | head -1 || true

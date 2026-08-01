@@ -174,8 +174,53 @@ BEST_PROVIDER_TYPE=""
 LLAMA_BIN=""
 
 detect_providers() {
-    # 1. Check Ollama
-    if command -v ollama &>/dev/null; then
+    # 1. Check llama.cpp binary + local GGUF models (highest priority — direct, no middleware)
+    for candidate in "dist/$ARCH/llama-server" "./llama-server"; do
+        if [[ -x "$candidate" ]]; then
+            LLAMA_BIN="$candidate"
+            # Set LD_LIBRARY_PATH so llama-server finds its .so files
+            export LD_LIBRARY_PATH="$(dirname "$(realpath "$candidate")")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+            break
+        fi
+    done
+
+    if [[ -n "$LLAMA_BIN" ]]; then
+        local model_path=""
+        if [[ -d "./local-models" ]]; then
+            local best_file="" best_bytes=0
+            while IFS= read -r -d '' f; do
+                local fname
+                fname=$(basename "$f")
+                if [[ "$fname" == *[Ee]mbed* || "$fname" == *BGE* || "$fname" == *bge* ]]; then
+                    continue
+                fi
+                local fsize
+                fsize=$(file_size "$f")
+                if [[ "$fsize" -gt "$best_bytes" ]]; then
+                    best_bytes="$fsize"
+                    best_file="$f"
+                fi
+            done < <(find ./local-models -maxdepth 1 -name "*.gguf" -type f -print0 2>/dev/null)
+
+            if [[ -z "$best_file" ]]; then
+                best_file=$(find ./local-models -maxdepth 1 -name "*.gguf" -type f 2>/dev/null | head -1 || true)
+            fi
+
+            model_path="$best_file"
+        fi
+
+        if [[ -n "$model_path" ]]; then
+            BEST_PROVIDER="llamacpp"
+            BEST_PROVIDER_URL="http://127.0.0.1:5001/v1"
+            BEST_PROVIDER_MODEL="$(basename "$model_path")"
+            BEST_PROVIDER_NAME="llama.cpp ($ARCH)"
+            BEST_PROVIDER_TYPE="llamacpp"
+            echo -e "${GREEN}  Found llama.cpp with model: $(basename "$model_path")${NC}"
+        fi
+    fi
+
+    # 2. Check Ollama
+    if [[ -z "$BEST_PROVIDER" ]] && command -v ollama &>/dev/null; then
         if curl -sf http://localhost:11434/api/tags &>/dev/null 2>&1; then
             local models
             models=$(curl -sf http://localhost:11434/api/tags 2>/dev/null | python3 -c "
@@ -215,7 +260,7 @@ except: pass
         fi
     fi
 
-    # 2. Check LM Studio (port 1234)
+    # 3. Check LM Studio (port 1234)
     if [[ -z "$BEST_PROVIDER" ]]; then
         if curl -sf http://localhost:1234/v1/models &>/dev/null 2>&1; then
             local model=""
@@ -239,7 +284,7 @@ except: pass
         fi
     fi
 
-    # 3. Check vLLM (port 8000 — but avoid collision with our own server)
+    # 4. Check vLLM (port 8000 — but avoid collision with our own server)
     if [[ -z "$BEST_PROVIDER" ]]; then
         if curl -sf http://localhost:8080/v1/models &>/dev/null 2>&1; then
             local model=""
@@ -262,7 +307,7 @@ except: pass
         fi
     fi
 
-    # 4. Check OpenAI key
+    # 5. Check OpenAI key
     if [[ -z "$BEST_PROVIDER" && -n "${OPENAI_API_KEY:-}" ]]; then
         BEST_PROVIDER="openai"
         BEST_PROVIDER_URL="https://api.openai.com/v1"
@@ -272,51 +317,6 @@ except: pass
         echo -e "${GREEN}  Found OpenAI API key${NC}"
     fi
 
-    # 5. Check llama.cpp binary + local GGUF models
-    for candidate in "dist/$ARCH/llama-server" "./llama-server"; do
-        if [[ -x "$candidate" ]]; then
-            LLAMA_BIN="$candidate"
-            break
-        fi
-    done
-
-    if [[ -z "$BEST_PROVIDER" && -n "$LLAMA_BIN" ]]; then
-        local model_path=""
-        if [[ -d "./local-models" ]]; then
-            # Find best chat model (not embedding-only), prefer larger
-            local best_file="" best_bytes=0
-            while IFS= read -r -d '' f; do
-                local fname
-                fname=$(basename "$f")
-                # Skip embedding-only models
-                if [[ "$fname" == *[Ee]mbed* || "$fname" == *BGE* || "$fname" == *bge* ]]; then
-                    continue
-                fi
-                local fsize
-                fsize=$(file_size "$f")
-                if [[ "$fsize" -gt "$best_bytes" ]]; then
-                    best_bytes="$fsize"
-                    best_file="$f"
-                fi
-            done < <(find ./local-models -maxdepth 1 -name "*.gguf" -type f -print0 2>/dev/null)
-
-            # Fallback: any GGUF if no chat model found
-            if [[ -z "$best_file" ]]; then
-                best_file=$(find ./local-models -maxdepth 1 -name "*.gguf" -type f 2>/dev/null | head -1 || true)
-            fi
-
-            model_path="$best_file"
-        fi
-
-        if [[ -n "$model_path" ]]; then
-            BEST_PROVIDER="llamacpp"
-            BEST_PROVIDER_URL="http://127.0.0.1:5001/v1"
-            BEST_PROVIDER_MODEL="$(basename "$model_path")"
-            BEST_PROVIDER_NAME="llama.cpp ($ARCH)"
-            BEST_PROVIDER_TYPE="llamacpp"
-            echo -e "${GREEN}  Found llama.cpp with model: $(basename "$model_path")${NC}"
-        fi
-    fi
 }
 
 # ═══════════════════════════════════════════════════════════════
@@ -578,7 +578,7 @@ ensure_databases
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║      TrueNeverStory v0.29.7 — Game Server        ║${NC}"
+echo -e "${BOLD}║      TrueNeverStory v0.30.0 — Game Server        ║${NC}"
 echo -e "${BOLD}╠══════════════════════════════════════════════════╣${NC}"
 echo -e "${CYAN}║  Mode:     ${MODE}${NC}"
 echo -e "${CYAN}║  URL:      http://${EXT_IP}:${PORT}${NC}"

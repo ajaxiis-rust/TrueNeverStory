@@ -107,6 +107,14 @@ models.post("/models/install", async (c) => {
 
   installModel(source, name, backend, (progress) => {
     log.info({ model: name, percent: progress.percent }, "Download progress");
+  }).then(async (model) => {
+    if (model.status === "installed" && backend === "llamacpp") {
+      await updateSettings({
+        llmBaseUrl: "http://127.0.0.1:5001/v1",
+        llmModel: model.name,
+      });
+      log.info({ model: model.name }, "Applied llamacpp settings after download");
+    }
   }).catch((err) => {
     log.error({ err, name }, "Background install failed");
   });

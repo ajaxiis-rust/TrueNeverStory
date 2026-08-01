@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────
-#  TrueNeverStory v0.29.6 — Universal build, compile & launch script
+#  TrueNeverStory v0.30.0 — Universal build, compile & launch script
 #  Detects hardware, installs deps, compiles binaries,
 #  cross-compiles for other platforms, starts server
 # ─────────────────────────────────────────────────────────────

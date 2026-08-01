@@ -1,4 +1,4 @@
-# TrueNeverStory v0.29.7
+# TrueNeverStory v0.30.0
 
 ### Ecris ton livre en jouant.
 
@@ -10,7 +10,7 @@ Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les o
 
 ---
 
-## Nouveautes de v0.29.7
+## Nouveautes de v0.30.0
 
 ### Console MCP — Correction des cases a cocher + Authentification
 - **Cases a cocher des livres** dans l'onglet Catalogue — la selection persiste correctement

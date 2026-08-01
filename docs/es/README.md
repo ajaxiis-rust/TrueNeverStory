@@ -1,4 +1,4 @@
-# TrueNeverStory v0.29.7
+# TrueNeverStory v0.30.0
 
 ### Escribe tu libro solo jugando.
 
@@ -10,7 +10,7 @@ Construido en TypeScript (Bun + Hono) con kernels de computo C FFI para operacio
 
 ---
 
-## Novedades en v0.29.7
+## Novedades en v0.30.0
 
 ### Consola MCP — Correccion de casillas + Autenticacion
 - **Casillas de libros** en pestana Catalogo — la seleccion ahora persiste correctamente

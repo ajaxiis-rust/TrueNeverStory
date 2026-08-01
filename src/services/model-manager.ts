@@ -556,12 +556,15 @@ export async function getOllamaStatus(): Promise<{ running: boolean; models: num
 }
 
 async function isLlamacppAvailable(): Promise<boolean> {
-  try {
-    const res = await fetch("http://localhost:5001/health", { signal: AbortSignal.timeout(2000) });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  // Check if llama-server binary exists (installed), not if it's running
+  const candidates = [
+    join(process.cwd(), "dist", "linux-x64", "llama-server"),
+    join(process.cwd(), "dist", "macos-arm64", "llama-server"),
+    join(process.cwd(), "dist", "macos-x64", "llama-server"),
+    join(process.cwd(), "dist", "linux-arm64", "llama-server"),
+    join(process.cwd(), "llama-server"),
+  ];
+  return candidates.some((p) => existsSync(p));
 }
 
 export async function getBackendsStatus(): Promise<{ ollama: boolean; llamacpp: boolean }> {

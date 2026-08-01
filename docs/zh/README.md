@@ -1,4 +1,4 @@
-# TrueNeverStory v0.29.7
+# TrueNeverStory v0.30.0
 
 ### 玩着写你的书。
 
@@ -10,7 +10,7 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架�
 
 ---
 
-## v0.29.7 新功能
+## v0.30.0 新功能
 
 ### MCP 控制台 — 复选框修复 + 密码认证
 - **目录复选框**现在正常工作 — 选择后不会重置
