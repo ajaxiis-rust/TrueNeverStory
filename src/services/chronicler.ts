@@ -24,6 +24,7 @@ export class Chronicler {
   private _logPath: string;
   private _maxLogSize: number;
   private _worldMemory: { addEvent?: (data: { eventDescription: string; group: string; importance: number }) => Promise<void> } | null;
+  private _logChain: Promise<any> = Promise.resolve();
 
   constructor(logPath: string, maxLogSize = MAX_LOG_SIZE, worldMemory?: { addEvent?: (data: { eventDescription: string; group: string; importance: number }) => Promise<void> } | null) {
     this._logPath = logPath;
@@ -50,37 +51,39 @@ export class Chronicler {
   }
 
   async logEvent(description: string, storyTime: Date, group = "narrative"): Promise<string> {
-    this._checkAndRotate();
+    return this._logChain = this._logChain.then(async (): Promise<string> => {
+      this._checkAndRotate();
 
-    const eventId = randomUUID();
-    const entry: TimelineEntry = {
-      id: eventId,
-      timestamp: storyTime.toISOString(),
-      group,
-      description,
-    };
+      const eventId = randomUUID();
+      const entry: TimelineEntry = {
+        id: eventId,
+        timestamp: storyTime.toISOString(),
+        group,
+        description,
+      };
 
-    try {
-      await appendFile(this._logPath, JSON.stringify(entry) + "\n", "utf-8");
-    } catch (err) {
-      log.error({ err }, "Failed to write event to log");
-      throw err;
-    }
-
-    // Sync to unified world memory if available
-    if (this._worldMemory) {
       try {
-        await this._worldMemory.addEvent?.({
-          eventDescription: description,
-          group,
-          importance: 0.4,
-        });
+        await appendFile(this._logPath, JSON.stringify(entry) + "\n", "utf-8");
       } catch (err) {
-        log.warn({ err }, "Failed to add event to world memory");
+        log.error({ err }, "Failed to write event to log");
+        throw err;
       }
-    }
 
-    return eventId;
+      // Sync to unified world memory if available
+      if (this._worldMemory) {
+        try {
+          await this._worldMemory.addEvent?.({
+            eventDescription: description,
+            group,
+            importance: 0.4,
+          });
+        } catch (err) {
+          log.warn({ err }, "Failed to add event to world memory");
+        }
+      }
+
+      return eventId;
+    });
   }
 
   async getTimeline(since?: Date, limit = 50): Promise<TimelineEntry[]> {

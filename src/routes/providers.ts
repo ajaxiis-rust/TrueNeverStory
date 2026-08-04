@@ -14,6 +14,7 @@ import {
 } from "../lib/providers";
 import { loadAgentConfig, loadAllAgentConfigs, saveAgentConfig } from "../services/agent-config";
 import { getLogger } from "../utils/logger";
+import { atomicWriteJson } from "../lib/atomic-io";
 import { safeJsonBody } from "../utils/safe-request";
 
 const log = getLogger("providers-route");
@@ -224,17 +225,21 @@ function loadRateLimitFromProviders(): Record<string, unknown> {
 }
 
 function saveRateLimitToProviders(rateLimit: Record<string, unknown>): void {
-  const path = getRateLimitPath();
-  let data: Record<string, unknown>;
-  try {
-    data = JSON.parse(readFileSync(path, "utf-8"));
-  } catch {
-    log.error({ path }, "Failed to parse providers.json — refusing to overwrite");
-    return;
-  }
-  data.rateLimit = rateLimit;
-  writeFileSync(path, JSON.stringify(data, null, 2));
+  _rateLimitSaveChain = _rateLimitSaveChain.then(async () => {
+    const path = getRateLimitPath();
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(readFileSync(path, "utf-8"));
+    } catch {
+      log.error({ path }, "Failed to parse providers.json — refusing to overwrite");
+      return;
+    }
+    data.rateLimit = rateLimit;
+    await atomicWriteJson(path, data);
+  });
 }
+
+let _rateLimitSaveChain: Promise<void> = Promise.resolve();
 
 providers.get("/providers/rate-limit", async (c) => {
   return c.json(loadRateLimitFromProviders());

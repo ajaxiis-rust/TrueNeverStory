@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 export interface Relationship {
@@ -151,7 +151,10 @@ export class SocialGraph {
       alliances: Object.fromEntries(this._alliances),
       interFaction: Object.fromEntries(this._interFaction),
     };
-    writeFileSync(join(this._statePath, "social", "graph.json"), JSON.stringify(data, null, 2));
+    const path = join(this._statePath, "social", "graph.json");
+    const tmp = path + ".tmp";
+    writeFileSync(tmp, JSON.stringify(data, null, 2));
+    renameSync(tmp, path);
   }
 
   async addRelationship(source: string, target: string, type: Relationship["type"], strength: number): Promise<void> {

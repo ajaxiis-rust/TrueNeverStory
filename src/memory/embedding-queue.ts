@@ -22,6 +22,7 @@ export class EmbeddingQueue {
   private _queue: QueueItem[] = [];
   private _running = false;
   private _timer: ReturnType<typeof setInterval> | null = null;
+  private _flushInProgress = false;
 
   constructor(llm: LLMClient, batchSize = 50, flushIntervalMs = 5000, embeddingDim = 384) {
     this._llm = llm;
@@ -65,25 +66,30 @@ export class EmbeddingQueue {
   }
 
   private async _flush(): Promise<void> {
-    if (this._queue.length === 0) return;
+    if (this._queue.length === 0 || this._flushInProgress) return;
+    this._flushInProgress = true;
     const batch = this._queue.splice(0, this._batchSize);
     const texts = batch.map((q) => q.text);
 
     try {
-      // Try batch embedding via LLM
-      const embeddings: number[][] = [];
-      for (const text of texts) {
-        const emb = await this._llm.generateEmbedding(text);
-        embeddings.push(emb.length > 0 ? emb : this._generateFallback(text));
+      try {
+        // Try batch embedding via LLM
+        const embeddings: number[][] = [];
+        for (const text of texts) {
+          const emb = await this._llm.generateEmbedding(text);
+          embeddings.push(emb.length > 0 ? emb : this._generateFallback(text));
+        }
+        for (let i = 0; i < batch.length; i++) {
+          batch[i]!.resolve(embeddings[i]!);
+        }
+      } catch (err) {
+        log.warn({ err }, "Embedding API failed, using fallback");
+        for (const item of batch) {
+          item.resolve(this._generateFallback(item.text));
+        }
       }
-      for (let i = 0; i < batch.length; i++) {
-        batch[i]!.resolve(embeddings[i]!);
-      }
-    } catch (err) {
-      log.warn({ err }, "Embedding API failed, using fallback");
-      for (const item of batch) {
-        item.resolve(this._generateFallback(item.text));
-      }
+    } finally {
+      this._flushInProgress = false;
     }
   }
 

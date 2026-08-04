@@ -60,6 +60,7 @@ interface SessionData {
 class SessionHistory {
   private _path: string;
   turns: ConversationTurn[] = [];
+  private _saveChain = Promise.resolve();
 
   constructor(
     private sessionId: string,
@@ -83,19 +84,22 @@ class SessionHistory {
   }
 
   async save(): Promise<void> {
-    const data: SessionData = {
-      session_id: this.sessionId,
-      updated_at: new Date().toISOString(),
-      turn_count: this.turns.length,
-      turns: this.turns.map((t) => t.toDict()),
-    };
-    await atomicWriteJson(this._path, data);
+    this._saveChain = this._saveChain.then(async () => {
+      const data: SessionData = {
+        session_id: this.sessionId,
+        updated_at: new Date().toISOString(),
+        turn_count: this.turns.length,
+        turns: this.turns.map((t) => t.toDict()),
+      };
+      await atomicWriteJson(this._path, data);
+    });
+    await this._saveChain;
   }
 
   addTurn(role: string, content: string, metadata?: Record<string, unknown>): ConversationTurn {
     const turn = new ConversationTurn(role, content, undefined, metadata);
     this.turns.push(turn);
-    this.save(); // fire-and-forget
+    this.save();
     return turn;
   }
 

@@ -121,6 +121,7 @@ export class UnifiedEntityStore {
   private _deletedUids: Set<string> = new Set();
   private _mutationCallbacks: MutationCallback[] = [];
   private _lastSaveTime = 0;
+  private _saveChain = Promise.resolve();
 
   constructor(
     private storePath: string,
@@ -261,8 +262,9 @@ export class UnifiedEntityStore {
   }
 
   save(): void {
-    const serialized = Array.from(this._entities.values()).map((n) => n.toDict());
-    atomicWriteJson(this.storePath, serialized).then(() => {
+    this._saveChain = this._saveChain.then(async () => {
+      const serialized = Array.from(this._entities.values()).map((n) => n.toDict());
+      await atomicWriteJson(this.storePath, serialized);
       this._dirtyUids.clear();
       this._deletedUids.clear();
       this._lastSaveTime = Date.now() / 1000;

@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { NPCRuntime } from "./npc-runtime";
 import type { SocialGraph } from "./social-graph";
@@ -106,7 +106,10 @@ export class QuestSystem {
 
   private _save(): void {
     const data = { quests: Object.fromEntries(this._definitions) };
-    writeFileSync(join(this._statePath, "quests", "definitions.json"), JSON.stringify(data, null, 2));
+    const path = join(this._statePath, "quests", "definitions.json");
+    const tmp = path + ".tmp";
+    writeFileSync(tmp, JSON.stringify(data, null, 2));
+    renameSync(tmp, path);
   }
 
   createQuest(

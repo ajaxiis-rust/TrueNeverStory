@@ -66,7 +66,7 @@ export class BranchManager {
         deletions: branch.deletions,
       };
     }
-    this._lastSave = atomicWriteJson(this._branchesFile(), ser);
+    this._lastSave = this._lastSave.then(() => atomicWriteJson(this._branchesFile(), ser));
   }
 
   async flush(): Promise<void> {

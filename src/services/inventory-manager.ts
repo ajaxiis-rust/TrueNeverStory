@@ -3,7 +3,7 @@
  * Equipment slots, weight limits, trading, stacking.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { getLogger } from "../utils/logger";
@@ -130,7 +130,10 @@ export class InventoryManager {
       gold: Object.fromEntries(this._gold),
       maxWeight: Object.fromEntries(this._maxWeight),
     };
-    writeFileSync(join(this._statePath, "inventory", "inventories.json"), JSON.stringify(data, null, 2));
+    const path = join(this._statePath, "inventory", "inventories.json");
+    const tmp = path + ".tmp";
+    writeFileSync(tmp, JSON.stringify(data, null, 2));
+    renameSync(tmp, path);
   }
 
   private _ensureOwner(owner: string): void {

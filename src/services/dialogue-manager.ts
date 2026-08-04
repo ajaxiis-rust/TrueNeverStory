@@ -117,6 +117,7 @@ export class DialogueManager {
   private _social: SocialGraph;
   private _context: DialogueContext;
   private _sessions: Map<string, DialogueSession> = new Map();
+  private _saveChain = Promise.resolve();
 
   constructor(statePath: string, runtime: NPCRuntime, social: SocialGraph, context: DialogueContext) {
     this._statePath = statePath;
@@ -149,8 +150,11 @@ export class DialogueManager {
   }
 
   private async _save(): Promise<void> {
-    const data = { sessions: Object.fromEntries(this._sessions) };
-    await atomicWriteJson(join(this._statePath, "dialogue", "sessions.json"), data);
+    this._saveChain = this._saveChain.then(async () => {
+      const data = { sessions: Object.fromEntries(this._sessions) };
+      await atomicWriteJson(join(this._statePath, "dialogue", "sessions.json"), data);
+    });
+    await this._saveChain;
   }
 
   private _getRelationship(npc: string, player: string): string {
