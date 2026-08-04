@@ -69,6 +69,7 @@ export class DirectorLoop {
   private _paused = false;
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _lastMajorBeatTime: Date | null = null;
+  private _tickInProgress = false;
 
   constructor(deps: DirectorDeps) {
     this._storyEngine = deps.storyEngine;
@@ -108,7 +109,11 @@ export class DirectorLoop {
     this._running = true;
     this._paused = false;
     this._timer = setInterval(() => {
-      this._runTick().catch((err) => log.error({ err }, "Director tick failed"));
+      if (this._tickInProgress) return;
+      this._tickInProgress = true;
+      this._runTick()
+        .catch((err) => log.error({ err }, "Director tick failed"))
+        .finally(() => { this._tickInProgress = false; });
     }, this._config.wakeIntervalSeconds * 1000);
     log.info("Director started");
   }
@@ -237,7 +242,7 @@ export class DirectorLoop {
         log.error({ err: err instanceof Error ? err : new Error(String(err ?? "scheduled beats failed")) }, "Scheduled beats failed");
       }
 
-      this._save();
+      await this._save();
     } catch (err) {
       log.error({ err: err instanceof Error ? err : new Error(String(err ?? "Director tick failed")) }, "Director loop error");
     }
