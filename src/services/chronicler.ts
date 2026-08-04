@@ -3,7 +3,8 @@
  * Replaces world_narrative/chronicler.py.
  */
 
-import { appendFileSync, readFileSync, existsSync, mkdirSync, renameSync, statSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, renameSync, statSync } from "node:fs";
+import { appendFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { getLogger } from "../utils/logger";
@@ -60,7 +61,7 @@ export class Chronicler {
     };
 
     try {
-      appendFileSync(this._logPath, JSON.stringify(entry) + "\n", "utf-8");
+      await appendFile(this._logPath, JSON.stringify(entry) + "\n", "utf-8");
     } catch (err) {
       log.error({ err }, "Failed to write event to log");
       throw err;

@@ -192,9 +192,10 @@ export class LLMClient {
     }
 
     for (let attempt = 0; attempt <= this._maxRetries; attempt++) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
       try {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), (options.timeout ?? 300) * 1000);
+        timer = setTimeout(() => controller.abort(), (options.timeout ?? 300) * 1000);
 
         const res = await fetch(`${this._fallbackBaseUrl}/chat/completions`, {
           method: "POST",
@@ -206,7 +207,7 @@ export class LLMClient {
           signal: controller.signal,
         });
 
-        clearTimeout(timer);
+        clearTimeout(timer!);
 
         if (!res.ok) {
           const text = await res.text();
@@ -216,6 +217,7 @@ export class LLMClient {
         const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
         return data.choices?.[0]?.message?.content ?? "";
       } catch (err) {
+        clearTimeout(timer!);
         if (attempt === this._maxRetries) throw err;
         const delay = Math.min(1000 * 2 ** attempt, 10000);
         log.warn({ attempt, delay, err }, "LLM request failed, retrying");

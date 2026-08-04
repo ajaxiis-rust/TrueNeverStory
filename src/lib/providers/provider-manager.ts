@@ -429,13 +429,18 @@ class ProviderManager {
 
 // Singleton
 let _manager: ProviderManager | null = null;
+let _managerPromise: Promise<ProviderManager> | null = null;
 
 export async function getProviderManager(): Promise<ProviderManager> {
-  if (!_manager) {
-    _manager = new ProviderManager();
-    await _manager.init();
+  if (_manager) return _manager;
+  if (!_managerPromise) {
+    _managerPromise = (async () => {
+      _manager = new ProviderManager();
+      await _manager.init();
+      return _manager;
+    })();
   }
-  return _manager;
+  return _managerPromise;
 }
 
 export function resetProviderManager(): void {

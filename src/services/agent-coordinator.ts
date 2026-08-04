@@ -58,22 +58,21 @@ export class AgentCoordinator {
         reject(new Error(`Task ${task.id} timed out after ${timeoutMs}ms`));
       }, timeoutMs);
 
-      const originalHandler = this._handlers.get(task.type);
+      const handlerKey = `wait:${task.type}:${task.id}`;
       const wrapped: TaskHandler = async (t) => {
         try {
-          const result = await (originalHandler?.(t) ?? Promise.resolve(null));
+          const result = await (this._handlers.get(task.type)?.(t) ?? Promise.resolve(null));
           clearTimeout(timer);
           resolve(result);
         } catch (err) {
           clearTimeout(timer);
           reject(err);
         } finally {
-          if (originalHandler) this._handlers.set(task.type, originalHandler);
-          else this._handlers.delete(task.type);
+          this._handlers.delete(handlerKey);
         }
       };
 
-      this._handlers.set(task.type, wrapped);
+      this._handlers.set(handlerKey, wrapped);
       this.submit(task);
     });
   }
@@ -93,7 +92,8 @@ export class AgentCoordinator {
   }
 
   private async _execute(task: DirectorTask): Promise<void> {
-    const handler = this._handlers.get(task.type);
+    let handler = this._handlers.get(`wait:${task.type}:${task.id}`);
+    if (!handler) handler = this._handlers.get(task.type);
     if (!handler) {
       log.error("No handler for task type %s", task.type);
       return;

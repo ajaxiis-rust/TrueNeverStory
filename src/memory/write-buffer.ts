@@ -15,6 +15,7 @@ export class WriteBehindBuffer<T> {
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _flushCallback: ((items: T[]) => Promise<void>) | null = null;
   private _stats = { flushCount: 0, totalFlushed: 0 };
+  private _tickInProgress = false;
 
   constructor(flushIntervalMs = 5000, maxSize = 100) {
     this._flushInterval = flushIntervalMs;
@@ -60,8 +61,10 @@ export class WriteBehindBuffer<T> {
   }
 
   private async _tick(): Promise<void> {
-    if (this._running && this._buffer.length > 0) {
-      await this.flushNow();
+    if (this._running && this._buffer.length > 0 && !this._tickInProgress) {
+      this._tickInProgress = true;
+      try { await this.flushNow(); }
+      finally { this._tickInProgress = false; }
     }
   }
 

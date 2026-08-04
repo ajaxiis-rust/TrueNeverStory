@@ -6,3 +6,7 @@ worlds/**/*.db filter=lfs diff=lfs merge=lfs -text
 worlds/**/*.db-* filter=lfs diff=lfs merge=lfs -text
 # Runtime DB — recreated by code, must not be LFS-tracked
 worlds/_sessions/sessions.db filter= diff= merge= text
+data/bible/bible-normalized.db filter=lfs diff=lfs merge=lfs -text
+data/gutenberg/gutenberg-normalized.db filter=lfs diff=lfs merge=lfs -text
+data/bible-compiler-output/*.db filter=lfs diff=lfs merge=lfs -text
+data/literary-compiler/*.db filter=lfs diff=lfs merge=lfs -text

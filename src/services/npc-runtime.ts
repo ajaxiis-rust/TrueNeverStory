@@ -131,7 +131,7 @@ export class NPCRuntime {
         profile.longTermEpisodic.push(mem);
       }
     }
-    profile.shortTerm = profile.shortTerm.filter((m) => m.importance >= this._importanceThreshold || profile.shortTerm.indexOf(m) < this._shortTermLimit);
+    profile.shortTerm = profile.shortTerm.filter((m) => !m.consolidated && m.importance >= this._importanceThreshold);
     if (profile.shortTerm.length > this._shortTermLimit) {
       profile.shortTerm.sort((a, b) => b.importance - a.importance);
       profile.shortTerm = profile.shortTerm.slice(0, this._shortTermLimit);

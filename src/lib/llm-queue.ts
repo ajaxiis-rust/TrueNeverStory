@@ -213,8 +213,8 @@ export class LLMQueue {
     try {
       const agentCfg = loadAgentConfig(agentId);
       if (agentCfg.providerId) return agentCfg.providerId;
-    } catch {
-      // ignore
+    } catch (err) {
+      log.warn({ err, agentId }, "Failed to load agent config for provider resolution");
     }
     return "ollama";
   }
@@ -299,15 +299,16 @@ export class LLMQueue {
     const item = this._queue.shift();
     if (!item) return;
 
-    // Per-provider rate limiting
+    this._running++;
     const providerId = this._resolveProviderId(item.agentId);
-    await this._waitForProvider(providerId);
-
-    if (this._rateLimiter) {
-      await this._rateLimiter.acquire();
+    try {
+      await this._waitForProvider(providerId);
+      if (this._rateLimiter) await this._rateLimiter.acquire();
+    } catch {
+      this._running--;
+      return;
     }
 
-    this._running++;
     try {
       const { task, agentId, resolve, reject } = item;
       try {

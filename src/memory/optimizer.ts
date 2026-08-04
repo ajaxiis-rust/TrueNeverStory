@@ -37,6 +37,7 @@ export class MemoryOptimizer {
   private _minKeepDays: number;
   private _running = false;
   private _timer: ReturnType<typeof setInterval> | null = null;
+  private _runInProgress = false;
   private _stats: OptimizerStats = {
     prunedCount: 0,
     mergedCount: 0,
@@ -65,7 +66,7 @@ export class MemoryOptimizer {
     if (this._running) return;
     this._running = true;
     this._stats.running = true;
-    this._timer = setInterval(() => this._run(), this._intervalMs);
+    this._timer = setInterval(() => { if (!this._runInProgress) { this._runInProgress = true; this._run().finally(() => { this._runInProgress = false; }); } }, this._intervalMs);
     log.info("MemoryOptimizer started");
   }
 

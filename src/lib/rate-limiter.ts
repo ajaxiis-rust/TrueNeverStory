@@ -84,7 +84,7 @@ export class RateLimiter {
           this._waiters.splice(idx, 1);
           resolve();
         }
-      }, waitMs + 1000);
+      }, waitMs);
     });
 
     this._refill();

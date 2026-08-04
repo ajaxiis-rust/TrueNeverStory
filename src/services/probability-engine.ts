@@ -104,7 +104,7 @@ export class ProbabilityEngine {
         result.push(group.reduce((a, b) => (a.value < b.value ? a : b)));
       } else if (rule === StackingRule.OVERRIDE) {
         const sorted = group.sort(
-          (a, b) => (a.expiresAt ?? Infinity) - (b.expiresAt ?? Infinity),
+          (a, b) => (a.expiresAt ?? Infinity) - (b.expiresAt ?? Infinity) || 0,
         );
         const last = sorted[sorted.length - 1];
         if (last) result.push(last);

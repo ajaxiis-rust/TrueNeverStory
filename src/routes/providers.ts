@@ -60,7 +60,7 @@ providers.get("/providers/models", async (c) => {
 
 providers.post("/providers/health", async (c) => {
   const manager = await getProviderManager();
-  manager.healthCheckAll().catch(() => {});
+  manager.healthCheckAll().catch((err) => log.warn({ err }, "Provider health check failed"));
   return c.json({ status: "health check started" });
 });
 

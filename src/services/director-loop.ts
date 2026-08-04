@@ -111,9 +111,11 @@ export class DirectorLoop {
     this._timer = setInterval(() => {
       if (this._tickInProgress) return;
       this._tickInProgress = true;
-      this._runTick()
-        .catch((err) => log.error({ err }, "Director tick failed"))
-        .finally(() => { this._tickInProgress = false; });
+      (async () => {
+        try { await this._runTick(); }
+        catch (err) { log.error({ err }, "Director tick failed"); }
+        finally { this._tickInProgress = false; }
+      })();
     }, this._config.wakeIntervalSeconds * 1000);
     log.info("Director started");
   }
@@ -261,6 +263,7 @@ export class DirectorLoop {
       const factions = this._config.factionNames ?? ["Blacksmiths", "Farmers", "Merchants", "Guards", "Scholars"];
       const factionA = factions[Math.floor(Math.random() * factions.length)]!;
       const remaining = factions.filter(f => f !== factionA);
+      if (remaining.length === 0) return {};
       const factionB = remaining[Math.floor(Math.random() * remaining.length)]!;
 
       const dilemma = this._economicService.generateDilemma("default", factionA, factionB);
@@ -280,6 +283,7 @@ export class DirectorLoop {
     }
 
     const npcs = Array.from(this._npcRuntime.listAll().keys());
+    if (npcs.length === 0) return {};
     const involved = npcs.length >= 2
       ? [npcs[Math.floor(Math.random() * npcs.length)]!, npcs[Math.floor(Math.random() * npcs.length)]!]
       : npcs;

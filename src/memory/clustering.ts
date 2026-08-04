@@ -128,9 +128,9 @@ export class ClusterEngine {
       return { count: 0, avgImportance: 0, timeRange: null, sources: [], totalAccesses: 0 };
     }
 
-    const timestamps = cluster.map((e) => e.timestamp);
-    const oldest = timestamps.reduce((a, b) => a < b ? a : b);
-    const newest = timestamps.reduce((a, b) => a > b ? a : b);
+    const timestamps = cluster.map((e) => new Date(e.timestamp).getTime());
+    const oldest = new Date(Math.min(...timestamps));
+    const newest = new Date(Math.max(...timestamps));
 
     return {
       count: cluster.length,
