@@ -3,7 +3,7 @@ import { WikipediaResearcher } from '../../src/services/wikipedia-researcher';
 
 describe('WikipediaResearcher', () => {
   it('should search articles by query', async () => {
-    const researcher = new WikipediaResearcher();
+    const researcher = new WikipediaResearcher({ retryCount: 1, retryDelay: 1000 });
     const results = await researcher.search('medieval knighthood', 5);
     expect(results).toBeArray();
     expect(results.length).toBeLessThanOrEqual(5);
@@ -15,7 +15,7 @@ describe('WikipediaResearcher', () => {
   });
 
   it('should get full article by title', async () => {
-    const researcher = new WikipediaResearcher();
+    const researcher = new WikipediaResearcher({ retryCount: 1, retryDelay: 1000 });
     const article = await researcher.getArticle('Knight');
     expect(article).not.toBeNull();
     if (article) {
@@ -26,7 +26,7 @@ describe('WikipediaResearcher', () => {
   });
 
   it('should handle API errors gracefully', async () => {
-    const researcher = new WikipediaResearcher();
+    const researcher = new WikipediaResearcher({ retryCount: 1, retryDelay: 1000 });
     const article = await researcher.getArticle('NonExistentArticle12345');
     expect(article).toBeNull();
   });

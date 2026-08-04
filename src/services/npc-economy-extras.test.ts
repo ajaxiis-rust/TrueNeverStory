@@ -154,6 +154,18 @@ describe("processInheritance", () => {
     expect(heirs[0]!.rank).toBe(RankType.BARON);
   });
 
+  test("transfers wealth to children", () => {
+    const npc = makeNPC(RankType.BARON);
+    npc.stats.wealth = 10000;
+    npc.children = 2;
+    const heirs = processInheritance(npc);
+    expect(heirs[0]!.stats.wealth).toBeGreaterThan(0);
+    expect(heirs[1]!.stats.wealth).toBeGreaterThan(0);
+    // Total inherited wealth should not exceed parent's wealth
+    const totalInherited = heirs.reduce((sum, h) => sum + h.stats.wealth, 0);
+    expect(totalInherited).toBeLessThanOrEqual(npc.stats.wealth);
+  });
+
   test("no children = empty array", () => {
     const npc = makeNPC();
     npc.children = 0;

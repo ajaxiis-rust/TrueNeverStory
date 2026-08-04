@@ -26,12 +26,24 @@ export interface WikiSection {
   content: string;
 }
 
+export interface WikipediaResearcherOptions {
+  retryCount?: number;
+  retryDelay?: number;
+  timeout?: number;
+}
+
 export class WikipediaResearcher {
   private baseUrl = 'https://en.wikipedia.org/w/api.php';
   private restUrl = 'https://en.wikipedia.org/api/rest_v1';
-  private retryCount = 5;
-  private retryDelay = 5000;
-  private timeout = 120000;
+  private retryCount: number;
+  private retryDelay: number;
+  private timeout: number;
+
+  constructor(opts: WikipediaResearcherOptions = {}) {
+    this.retryCount = opts.retryCount ?? 5;
+    this.retryDelay = opts.retryDelay ?? 5000;
+    this.timeout = opts.timeout ?? 120000;
+  }
 
   async search(query: string, limit = 10): Promise<WikiSearchResult[]> {
     const params = new URLSearchParams({

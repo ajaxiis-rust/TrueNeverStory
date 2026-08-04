@@ -299,22 +299,23 @@ export function processTreasury(npc: NPCWithEconomy): Treasury {
 }
 
 export function processInheritance(parent: NPCWithEconomy): NPCWithEconomy[] {
-  const inheritance = {
-    wealth: Math.floor(parent.stats.wealth * (0.5 + Math.random() * 0.5)),
-  };
+  const totalWealth = Math.floor(parent.stats.wealth * (0.5 + Math.random() * 0.5));
 
   const childrenNPCs: NPCWithEconomy[] = [];
+  const childCount = parent.children || 1;
+  const wealthPerChild = Math.floor(totalWealth / childCount);
+
   for (let i = 0; i < parent.children; i++) {
-    childrenNPCs.push(
-      createNPCWithEconomy(
-        `${parent.id}_child_${i}`,
-        `${parent.name}_младший`,
-        parent.rank,
-        parent.archetype,
-        18,
-        parent.temperament,
-      ),
+    const child = createNPCWithEconomy(
+      `${parent.id}_child_${i}`,
+      `${parent.name}_младший`,
+      parent.rank,
+      parent.archetype,
+      18,
+      parent.temperament,
     );
+    child.stats.wealth = wealthPerChild;
+    childrenNPCs.push(child);
   }
 
   return childrenNPCs;
