@@ -282,15 +282,16 @@ export function processFood(npc: NPCWithEconomy): FoodProduction {
 }
 
 export function processTreasury(npc: NPCWithEconomy): Treasury {
-  const rankConfig = getRankConfig(npc.rank);
   const income = npc.income;
   const taxes = Math.floor(income * npc.taxRate);
   const tribute = Math.floor(npc.stats.power * 0.01);
 
+  const totalExpenses = npc.familyExpenses.wife + npc.familyExpenses.children + npc.familyExpenses.food + npc.familyExpenses.clothing;
+
   return {
-    balance: npc.treasury.balance + income + tribute - taxes,
+    balance: npc.treasury.balance + income + tribute - taxes - totalExpenses,
     income: income + tribute,
-    expenses: npc.familyExpenses.wife + npc.familyExpenses.children + npc.familyExpenses.food + npc.familyExpenses.clothing,
+    expenses: totalExpenses,
     taxes,
     tribute,
   };

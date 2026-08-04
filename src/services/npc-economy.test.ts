@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import {
-  createNPCWithEconomy, processBribe,
+  createNPCWithEconomy, processBribe, processTreasury,
 } from "./npc-economy";
 import { RankType } from "../models/rank";
 import { createDefaultVices } from "../models/npc-stats";
@@ -31,5 +31,20 @@ describe("processBribe", () => {
   test("loyaltyCost is 10% of amount", () => {
     const bribe = processBribe(makeNPC(), makeNPC(), 1000, "silence");
     expect(bribe.loyaltyCost).toBe(100);
+  });
+});
+
+describe("processTreasury", () => {
+  test("deducts family expenses from balance", () => {
+    const npc = makeNPC();
+    npc.treasury.balance = 1000;
+    npc.income = 200;
+    npc.familyExpenses = { wife: 50, children: 100, food: 80, clothing: 30, spouse: 0 };
+    npc.taxRate = 0.1;
+
+    const result = processTreasury(npc);
+    // balance = 1000 + 200 + 0 - 20 - 260 = 920
+    expect(result.balance).toBe(920);
+    expect(result.expenses).toBe(260);
   });
 });
