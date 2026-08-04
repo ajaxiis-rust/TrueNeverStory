@@ -259,6 +259,100 @@ This gives us **database speed** with **LLM quality** where it matters.
 
 ---
 
+## Mojo Compute Layer
+
+For compute-intensive operations, TrueNeverStory uses **Mojo kernels** with TypeScript fallbacks:
+
+| Kernel | Purpose |
+|--------|---------|
+| `probability_ffi.mojo` | Success chances, roll outcomes, batch probability |
+| `vector_ffi.mojo` | 4-dim vector operations (cosine, L2, dot) |
+| `vector_full.mojo` | Full 768-dim BGE-M3 embeddings |
+| `batch_ops.mojo` | Batch NPC operations (age decay, vice, tax, loyalty) |
+| `graph_ops.mojo` | Graph traversal, RRF fusion, reputation |
+
+When Mojo is unavailable, all kernels fall back to TypeScript — no hard dependency.
+
+---
+
+## Multi-Agent Architecture
+
+Narrative generation is split across **6 core agents** (The Big Six) plus **5 specialist agents**:
+
+### The Big Six
+
+| Agent | Role | MCP Tools |
+|-------|------|-----------|
+| **Dramaturg** | Selects narrative patterns from Bible archetypes | `search_verses`, `get_pattern`, `get_archetype` |
+| **Validator** | Verifies facts via Wikipedia | `verify_fact`, `get_context` |
+| **Stylist** | Renders prose using Gutenberg style patterns | `get_style_pattern`, `apply_style` |
+| **Actor** | NPC interactions, dialogue, trading, social dynamics | — |
+| **Censor** | Removes AI clichés, enforces style consistency | — |
+| **Chronicler** | Updates world memory, maintains timeline | — |
+
+### Specialist Agents
+
+| Agent | Purpose |
+|-------|---------|
+| **Cartographer** | Location/geography: distances, paths, terrain |
+| **Historian** | World history, chronology, past events |
+| **Lorekeeper** | World facts, magic system rules, established canon |
+| **Merchant** | NPC trading, pricing, inventory |
+| **QuestGiver** | Quest generation based on world state and story threads |
+
+Each agent runs independently with its own LLM client, prompt template, and temperature.
+
+---
+
+## MCP Server & Tool-Calling
+
+Agents call structured tools through an **MCP (Model Context Protocol) server**:
+
+### Bible MCP
+- SQLite DB with 31,097 verses across 66 books
+- FTS5 full-text search + cross-reference graph traversal
+- Character extraction (43 characters, 10,446 mentions)
+- Archetype pattern matching (12 biblical archetypes)
+
+### Gutenberg MCP
+- Style patterns extracted from classic literature
+- Delexified templates preserving rhythm, vocabulary, tone
+- Mood-based pattern retrieval
+
+### Wikipedia MCP
+- Historical fact-checking with confidence levels
+- REST API integration with configurable retry
+
+### Economic MCP
+- Faction tax dilemmas, labor rules, economic cycle queries
+- Slave economy: value calculation, rebellion, liberation
+
+---
+
+## RAG / Embeddings & Vector Search
+
+Long-term memory uses **hybrid search** combining keyword and semantic retrieval:
+
+```
+Agent Request → AgentMemoryStore → SQLite Hybrid Search
+                                        ↓
+                              ┌────────┴────────┐
+                              │ FTS5 (keyword)  │ Dense Vectors (BGE-M3)
+                              │ LIKE matching   │ Cosine Similarity
+                              └────────┬────────┘
+                                       ↓
+                              RRF Fusion (Reciprocal Rank)
+                                       ↓
+                              Context for LLM Prompt
+```
+
+- **BGE-M3** embeddings via llama.cpp (768-dim)
+- **RRF** merges keyword + semantic results
+- Per-world memory isolation prevents cross-world hallucinations
+- Per-agent, per-session memory via `role` column
+
+---
+
 ## Future Expansions
 
 ### Additional Literary Sources

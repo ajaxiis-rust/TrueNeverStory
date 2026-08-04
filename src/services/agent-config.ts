@@ -14,6 +14,14 @@ import { SQLiteStore } from "../lib/sqlite-store";
 
 const log = getLogger("agent-config");
 
+// In-memory cache to avoid re-reading config from disk on every LLM call.
+// Invalidated on save/reset.
+const _configCache = new Map<string, AgentConfig>();
+
+function cacheKey(agentId: string, world?: string): string {
+  return `${world ?? "__global__"}:${agentId}`;
+}
+
 export interface AgentPromptConfig {
   systemPrompt: string;
   userTemplate: string;
@@ -315,6 +323,10 @@ async function saveWorldPrompts(agentId: string, prompts: AgentPromptConfig, wor
 // ── Public API ──
 
 export function loadAgentConfig(agentId: string, world?: string): AgentConfig {
+  const key = cacheKey(agentId, world);
+  const cached = _configCache.get(key);
+  if (cached) return cached;
+
   const meta = DEFAULT_AGENTS.find(a => a.id === agentId);
   const assignments = loadGlobalAssignments();
   const assignment = assignments.find(a => a.agentId === agentId);
@@ -324,7 +336,7 @@ export function loadAgentConfig(agentId: string, world?: string): AgentConfig {
     outputFormat: "",
   };
 
-  return {
+  const config: AgentConfig = {
     id: agentId,
     name: meta?.name ?? agentId,
     description: meta?.description ?? "",
@@ -338,6 +350,9 @@ export function loadAgentConfig(agentId: string, world?: string): AgentConfig {
     translationProviderId: assignment?.translationProviderId,
     translationModelId: assignment?.translationModelId,
   };
+
+  _configCache.set(key, config);
+  return config;
 }
 
 export async function saveAgentConfig(agentId: string, config: AgentConfig, world?: string): Promise<void> {
@@ -360,6 +375,10 @@ export async function saveAgentConfig(agentId: string, config: AgentConfig, worl
 
   // Save per-world prompts
   await saveWorldPrompts(agentId, config.prompts, world);
+
+  // Invalidate cache
+  _configCache.delete(cacheKey(agentId, world));
+  _configCache.delete(cacheKey(agentId)); // global version too
 
   log.info({ agentId }, "Agent config saved");
 }
