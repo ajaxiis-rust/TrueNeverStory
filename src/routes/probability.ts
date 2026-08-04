@@ -3,6 +3,7 @@
  * Replaces api.py probability endpoints.
  */
 import { Hono } from "hono";
+import { safeJsonBody } from "../utils/safe-request";
 import type { ProbabilityEngine } from "../services/probability-engine";
 import type { IContextResolver } from "../services/probability-types";
 import type { UnifiedEntityStore } from "../store/entity-store";
@@ -50,7 +51,7 @@ probability.get("/probability/:character/:profile", async (c) => {
  * POST /probability/modifier — Apply a probability modifier.
  */
 probability.post("/probability/modifier", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const entity = body.entity as string;
   const parameter = body.parameter as string;
   const value = body.value as number;

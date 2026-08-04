@@ -15,6 +15,7 @@ import {
 } from "../services/model-manager";
 import { updateSettings } from "../services/settings";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -94,7 +95,7 @@ models.get("/models/progress", async (c) => {
  * Body: { source: "ollama"|"gguf_url", name: string, backend: "ollama"|"llamacpp" }
  */
 models.post("/models/install", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const source = (body.source as string) ?? (body.url as string) ?? "ollama";
   const name = body.name as string;
   const backend = (body.backend as "ollama" | "llamacpp") ?? "ollama";
@@ -146,7 +147,7 @@ models.get("/models/browse", async (c) => {
  * Body: { path: string }
  */
 models.post("/models/import", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const filePath = body.path as string;
 
   if (!filePath) {
@@ -169,7 +170,7 @@ models.post("/models/import", async (c) => {
  * Body: { id: string }
  */
 models.post("/models/apply", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const modelId = body.id as string;
 
   if (!modelId) {

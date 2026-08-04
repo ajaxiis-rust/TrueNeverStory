@@ -8,6 +8,7 @@ import { ChatMessageSchema, SessionSetupSchema } from "../models/chat";
 import type { RoleplayEngine } from "../services/roleplay-engine";
 import type { WebSocketManager } from "../services/websocket-manager";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 import { sanitizeInput } from "../utils/sanitize";
 
 const log = getLogger("chat");
@@ -117,7 +118,7 @@ chat.post("/message", zValidator("json", ChatMessageSchema), async (c) => {
  * Body: { agentId: string, message: string }
  */
 chat.post("/agent", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as { agentId?: string; message?: string };
+  const body = await safeJsonBody(c) as { agentId?: string; message?: string };
   const engine = getEngine();
 
   if (!body.agentId || !body.message) {

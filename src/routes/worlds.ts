@@ -15,6 +15,7 @@ import {
 } from "../services/world-manager";
 import { getSettings } from "../services/settings";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 import { join } from "node:path";
 import { existsSync, readdirSync, readFileSync, mkdirSync, statSync } from "node:fs";
 import { readJsonFileSync } from "../lib/atomic-io";
@@ -70,7 +71,7 @@ worlds.get("/worlds/:name", async (c) => {
  * POST /worlds — Create a new world.
  */
 worlds.post("/worlds", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Partial<WorldCreateParams>;
+  const body = await safeJsonBody(c) as Partial<WorldCreateParams>;
   const name = body.name ?? "";
   if (!name.trim()) return c.json({ error: "World name is required" }, 400);
 
@@ -100,7 +101,7 @@ worlds.post("/worlds", async (c) => {
 worlds.put("/worlds/:name", async (c) => {
   const name = c.req.param("name");
   if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
-  const body = await c.req.json().catch(() => ({}));
+  const body = await safeJsonBody(c);
   try {
     const frame = await updateWorldFrame(name, body);
     return c.json({ status: "updated", frame });
@@ -139,7 +140,7 @@ worlds.post("/worlds/:name/switch", async (c) => {
       const worldFramePath = join(dbPath, "world_frame.json");
       let worldFrame: Record<string, unknown> = {};
       if (existsSync(worldFramePath)) {
-        try { worldFrame = JSON.parse(readFileSync(worldFramePath, "utf-8")); } catch (e) { log.debug({ err: e, path: worldFramePath }, "Failed to read world frame"); }
+        try { worldFrame = JSON.parse(readFileSync(worldFramePath, "utf-8")); } catch (e) { log.warn({ err: e, path: worldFramePath }, "Failed to read world frame"); }
       }
       await _narrativeCtx.reset(dbPath, worldFrame);
       _engine.reset(dbPath);
@@ -159,7 +160,7 @@ worlds.post("/worlds/:name/switch", async (c) => {
 worlds.post("/worlds/:name/chapters/generate", async (c) => {
   const name = c.req.param("name");
   if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
-  const body = await c.req.json().catch(() => ({})) as { sessionId?: string; prompt?: string };
+  const body = await safeJsonBody(c) as { sessionId?: string; prompt?: string };
   const worldPath = join(getSettings().dbPath.replace(/world_db$/, ""), name);
 
   // Resolve path through worlds root
@@ -302,7 +303,7 @@ worlds.get("/worlds/:name/detail", async (c) => {
   const entitiesPath = join(worldPath, "entities.json");
   let entities: Array<Record<string, unknown>> = [];
   if (existsSync(entitiesPath)) {
-    try { entities = readJsonFileSync(entitiesPath) ?? []; } catch (e) { log.debug({ err: e, path: entitiesPath }, "Failed to read entities"); }
+    try { entities = readJsonFileSync(entitiesPath) ?? []; } catch (e) { log.warn({ err: e, path: entitiesPath }, "Failed to read entities"); }
   }
 
   const byType: Record<string, number> = {};
@@ -341,7 +342,7 @@ worlds.get("/worlds/:name/detail", async (c) => {
     try {
       const content = readFileSync(timelinePath, "utf-8");
       eventCount = content.split("\n").filter((l) => l.trim()).length;
-    } catch (e) { log.debug({ err: e, path: timelinePath }, "Failed to read timeline"); }
+    } catch (e) { log.warn({ err: e, path: timelinePath }, "Failed to read timeline"); }
   }
 
   // Chapters
@@ -358,7 +359,7 @@ worlds.get("/worlds/:name/detail", async (c) => {
     try {
       const v = readJsonFileSync(villainsPath);
       villainCount = Array.isArray(v) ? v.length : 0;
-    } catch (e) { log.debug({ err: e, path: villainsPath }, "Failed to read villains"); }
+    } catch (e) { log.warn({ err: e, path: villainsPath }, "Failed to read villains"); }
   }
 
   return c.json({

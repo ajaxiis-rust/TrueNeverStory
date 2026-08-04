@@ -3,6 +3,7 @@
  * Replaces api.py romance endpoints.
  */
 import { Hono } from "hono";
+import { safeJsonBody } from "../utils/safe-request";
 
 interface RomanceEngine {
   getRelationship(char1: string, char2: string): Promise<{
@@ -59,7 +60,7 @@ romance.get("/romance/:character1/:character2", async (c) => {
  */
 romance.post("/romance/attempt/:action", async (c) => {
   const action = c.req.param("action");
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const character = body.character as string;
   const target = body.target as string;
   const location = (body.location as string) ?? "unknown";

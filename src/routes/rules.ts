@@ -5,6 +5,7 @@
 import { Hono } from "hono";
 import { RulesEngine, type RulesConfig } from "../rules/rules-engine";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 import { join } from "node:path";
 import { existsSync, readdirSync } from "node:fs";
 
@@ -44,7 +45,7 @@ rules.get("/rules/:id", async (c) => {
  * POST /api/rules/preview — Preview merged rules with modifiers.
  */
 rules.post("/rules/preview", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as RulesConfig;
+  const body = await safeJsonBody(c) as RulesConfig;
   try {
     const engine = new RulesEngine(body);
     return c.json({ merged: engine.getRules() });
@@ -57,7 +58,7 @@ rules.post("/rules/preview", async (c) => {
  * POST /api/rules/check — Check if an action is allowed.
  */
 rules.post("/rules/check", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as { config: RulesConfig; action: string; superiorClass?: string; subordinateClass?: string };
+  const body = await safeJsonBody(c) as { config: RulesConfig; action: string; superiorClass?: string; subordinateClass?: string };
   try {
     const engine = new RulesEngine(body.config);
     const result: Record<string, unknown> = {

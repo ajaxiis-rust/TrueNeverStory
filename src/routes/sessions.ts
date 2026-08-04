@@ -3,6 +3,7 @@
  * Replaces api.py session endpoints.
  */
 import { Hono } from "hono";
+import { safeJsonBody } from "../utils/safe-request";
 import { join } from "node:path";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
@@ -77,7 +78,7 @@ sessions.get("/sessions/:sessionId/summarize", async (c) => {
  * Body: { session_id?: string, messages: Array<{role, content, timestamp?}> }
  */
 sessions.post("/sessions/export", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const sessionId = (body.session_id as string) || `session_${Math.floor(Date.now() / 1000)}`;
   const messages = (body.messages as Array<{ role: string; content: string; timestamp?: string }>) ?? [];
 

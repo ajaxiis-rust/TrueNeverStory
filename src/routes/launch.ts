@@ -12,6 +12,7 @@ import type { NarrativeService } from "../services/narrative-service";
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 
 const log = getLogger("launch");
 const launch = new Hono();
@@ -32,7 +33,7 @@ launch.post("/launch", async (c) => {
 
   _narrativeCtx.resume();
 
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const hints = (body.hints as string) ?? "";
   const isekai = (body.isekai as boolean) ?? false;
   const startingAge = (body.starting_age as number) ?? 5;
@@ -112,7 +113,7 @@ launch.post("/continue", async (c) => {
   if (!_narrativeCtx) {
     return c.json({ status: "error", error: "Server not initialized" }, 503);
   }
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const sessionId = body.session_id as string;
   if (!sessionId) {
     return c.json({ status: "error", error: "session_id is required" }, 400);
@@ -189,7 +190,7 @@ launch.post("/snapshot", async (c) => {
   if (!_narrativeCtx) {
     return c.json({ status: "error", error: "Server not initialized" }, 503);
   }
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const sessionId = (body.session_id as string) ?? `snapshot_${Date.now()}`;
 
   const snapshotDir = join(_narrativeCtx.dbPath, "snapshots");

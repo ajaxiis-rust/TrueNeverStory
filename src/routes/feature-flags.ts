@@ -5,6 +5,7 @@
 import { Hono } from "hono";
 import { getFeatureFlagManager } from "../lib/feature-flags";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 
 const log = getLogger("feature-flags-route");
 const flags = new Hono();
@@ -31,7 +32,7 @@ flags.get("/feature-flags/:id", async (c) => {
  * POST /api/feature-flags — Create new flag.
  */
 flags.post("/feature-flags", async (c) => {
-  const body = await c.req.json().catch(() => ({}));
+  const body = await safeJsonBody(c);
   const manager = getFeatureFlagManager();
   try {
     const flag = manager.create(body);
@@ -45,7 +46,7 @@ flags.post("/feature-flags", async (c) => {
  * PUT /api/feature-flags/:id — Update flag.
  */
 flags.put("/feature-flags/:id", async (c) => {
-  const body = await c.req.json().catch(() => ({}));
+  const body = await safeJsonBody(c);
   const manager = getFeatureFlagManager();
   const updated = manager.update(c.req.param("id"), body);
   if (!updated) return c.json({ error: "Flag not found" }, 404);
@@ -66,7 +67,7 @@ flags.delete("/feature-flags/:id", async (c) => {
  * POST /api/feature-flags/:id/check — Check if flag is enabled for context.
  */
 flags.post("/feature-flags/:id/check", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as { userId?: string; [key: string]: unknown };
+  const body = await safeJsonBody(c) as { userId?: string; [key: string]: unknown };
   const manager = getFeatureFlagManager();
   const flagId = c.req.param("id");
 

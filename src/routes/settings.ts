@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import { loadSettings, updateSettings, resetSettings, type AppSettings } from "../services/settings";
 import { LANGUAGES, setLanguage } from "../i18n";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
@@ -179,7 +180,7 @@ settings.get("/languages", async (c) => {
  * PUT /api/settings — Update settings.
  */
 settings.put("/settings", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
 
   const allowed = { ...body };
   if (allowed.llmApiKey === "••••••••") delete allowed.llmApiKey;
@@ -230,7 +231,7 @@ settings.get("/agents/:id/config", async (c) => {
  */
 settings.put("/agents/:id/config", async (c) => {
   const agentId = c.req.param("id");
-  const body = await c.req.json().catch(() => ({})) as {
+  const body = await safeJsonBody(c) as {
     providerId?: string;
     modelId?: string;
     temperature?: number;
@@ -263,7 +264,7 @@ settings.get("/llm-config", async (c) => {
  * PUT /api/llm-config — Update LLM server configuration.
  */
 settings.put("/llm-config", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Partial<LLMConfig>;
+  const body = await safeJsonBody(c) as Partial<LLMConfig>;
   saveLLMConfig(body);
   return c.json({ status: "updated", config: loadLLMConfig() });
 });

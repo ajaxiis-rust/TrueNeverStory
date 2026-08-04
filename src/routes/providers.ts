@@ -14,6 +14,7 @@ import {
 } from "../lib/providers";
 import { loadAgentConfig, loadAllAgentConfigs, saveAgentConfig } from "../services/agent-config";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 
 const log = getLogger("providers-route");
 const providers = new Hono();
@@ -37,7 +38,7 @@ providers.get("/providers", async (c) => {
 });
 
 providers.post("/providers", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as LLMProviderConfig;
+  const body = await safeJsonBody(c) as LLMProviderConfig;
   if (!body.id || !body.baseUrl) return c.json({ error: "id and baseUrl are required" }, 400);
   if (!body.authType) body.authType = "apikey";
   const manager = await getProviderManager();
@@ -76,7 +77,7 @@ providers.get("/providers/agents", async (c) => {
 });
 
 providers.post("/providers/assign", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as {
+  const body = await safeJsonBody(c) as {
     agentId: string; providerId: string; modelId: string;
     temperature?: number; maxTokens?: number;
   };
@@ -98,7 +99,7 @@ providers.post("/providers/assign", async (c) => {
       maxTokens: body.maxTokens ?? current.maxTokens,
     });
   } catch (err) {
-    log.debug({ err }, "Failed to sync agent assignment to config");
+    log.warn({ err }, "Failed to sync agent assignment to config");
   }
 
   return c.json({ status: "assigned" });
@@ -113,7 +114,7 @@ providers.delete("/providers/assign/:agentId", async (c) => {
     const current = loadAgentConfig(c.req.param("agentId"));
     await saveAgentConfig(c.req.param("agentId"), { ...current, providerId: "", modelId: "" });
   } catch (err) {
-    log.debug({ err }, "Failed to sync agent config removal");
+    log.warn({ err }, "Failed to sync agent config removal");
   }
 
   return c.json({ status: "removed" });
@@ -161,7 +162,7 @@ providers.get("/providers/:id", async (c) => {
 });
 
 providers.put("/providers/:id", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Partial<LLMProviderConfig>;
+  const body = await safeJsonBody(c) as Partial<LLMProviderConfig>;
   const manager = await getProviderManager();
   const success = await manager.updateProvider(c.req.param("id"), body);
   if (!success) return c.json({ error: "Provider not found" }, 404);
@@ -183,7 +184,7 @@ providers.post("/providers/:id/default", async (c) => {
 });
 
 providers.post("/providers/:id/keys", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as {
+  const body = await safeJsonBody(c) as {
     label: string; apiKey?: string;
     oauth?: { clientId: string; clientSecret: string; authUrl: string; tokenUrl: string; scopes: string[] };
   };
@@ -240,7 +241,7 @@ providers.get("/providers/rate-limit", async (c) => {
 });
 
 providers.put("/providers/rate-limit", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  const body = await safeJsonBody(c) as Record<string, unknown>;
   const current = loadRateLimitFromProviders();
   const merged = { ...current, ...body };
 
@@ -266,7 +267,7 @@ providers.get("/providers/rate-limit/status", async (c) => {
 providers.post("/providers/rate-limit/reset", async (c) => {
   const providerRateLimiter = globalThis.__narrativeService?.providerRateLimiter;
   if (!providerRateLimiter) return c.json({ error: "Provider rate limiter not initialized" }, 500);
-  const body = await c.req.json().catch(() => ({})) as { providerId?: string };
+  const body = await safeJsonBody(c) as { providerId?: string };
   if (body.providerId) {
     providerRateLimiter.resetProvider(body.providerId);
   } else {
@@ -276,7 +277,7 @@ providers.post("/providers/rate-limit/reset", async (c) => {
 });
 
 providers.post("/providers/rate-limit/switch", async (c) => {
-  const body = await c.req.json().catch(() => ({})) as {
+  const body = await safeJsonBody(c) as {
     agentId: string;
     providerId: string;
     modelId: string;

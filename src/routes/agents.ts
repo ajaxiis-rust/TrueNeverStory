@@ -15,6 +15,7 @@ import {
 import { getProviderManager } from "../lib/providers";
 import { getAgentRegistry } from "../services/agent-registry";
 import { getLogger } from "../utils/logger";
+import { safeJsonBody } from "../utils/safe-request";
 
 const log = getLogger("agents-route");
 const agents = new Hono();
@@ -82,7 +83,7 @@ agents.put("/agents/:id", async (c) => {
     return c.json({ error: "Rate limit exceeded for config writes" }, 429);
   }
 
-  const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig>;
+  const body = await safeJsonBody(c) as Partial<AgentConfig>;
   const agentId = c.req.param("id");
   const world = c.req.query("world") ?? undefined;
   const current = loadAgentConfig(agentId, world);
@@ -105,7 +106,7 @@ agents.put("/agents/:id", async (c) => {
         maxTokens: updated.maxTokens,
       });
     } catch (err) {
-      log.debug({ err }, "Failed to sync agent config");
+      log.warn({ err }, "Failed to sync agent config");
     }
   }
 
@@ -122,7 +123,7 @@ agents.put("/agents/:id/prompts", async (c) => {
     return c.json({ error: "Too many writes, wait a minute and try again" }, 429);
   }
 
-  const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig["prompts"]>;
+  const body = await safeJsonBody(c) as Partial<AgentConfig["prompts"]>;
   const agentId = c.req.param("id");
   const world = c.req.query("world") ?? undefined;
   const current = loadAgentConfig(agentId, world);
@@ -158,7 +159,7 @@ agents.put("/agents/:id/prompts/:lang", async (c) => {
   const agentId = c.req.param("id");
   const lang = c.req.param("lang");
   const world = c.req.query("world") ?? getActiveWorld();
-  const body = await c.req.json().catch(() => ({})) as Partial<AgentConfig["prompts"]>;
+  const body = await safeJsonBody(c) as Partial<AgentConfig["prompts"]>;
   const current = loadAgentConfig(agentId, world);
   current.prompts = { ...current.prompts, ...body };
   log.info({ agentId, ip, lang, world, promptKeys: Object.keys(body) }, "Agent prompts updated for language");
@@ -213,7 +214,7 @@ agents.put("/agents/registry/:id", async (c) => {
     return c.json({ error: "Rate limit exceeded" }, 429);
   }
 
-  const body = await c.req.json().catch(() => ({})) as { name?: string; description?: string; priority?: number; enabled?: boolean };
+  const body = await safeJsonBody(c) as { name?: string; description?: string; priority?: number; enabled?: boolean };
   const registry = await getAgentRegistry();
   const updated = registry.update(c.req.param("id"), body);
   if (!updated) return c.json({ error: "Agent not found" }, 404);
