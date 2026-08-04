@@ -63,8 +63,8 @@ export function chunkText(
     const words = countWords(sentence.text);
 
     if (bufferWords + words > maxWords && buffer.length > 0) {
-      const start = buffer[0].start;
-      const end = buffer[buffer.length - 1].end;
+      const start = buffer[0]!.start;
+      const end = buffer[buffer.length - 1]!.end;
       const chunkId = `chunk-${chunks.length}`;
       chunks.push({
         id: chunkId,
@@ -94,8 +94,8 @@ export function chunkText(
 
   // Flush remaining
   if (buffer.length > 0) {
-    const start = buffer[0].start;
-    const end = buffer[buffer.length - 1].end;
+    const start = buffer[0]!.start;
+    const end = buffer[buffer.length - 1]!.end;
     const lastChunk: Chunk = {
       id: `chunk-${chunks.length}`,
       text: text.slice(start, end),
@@ -106,7 +106,7 @@ export function chunkText(
 
     // Merge small tail into previous chunk
     if (chunks.length > 0 && countWords(lastChunk.text) < minTokens) {
-      const prev = chunks[chunks.length - 1];
+      const prev = chunks[chunks.length - 1]!;
       const tailText = text.slice(prev.endOffset, lastChunk.endOffset);
       if (tailText.trim().length > 0) {
         chunks[chunks.length - 1] = {

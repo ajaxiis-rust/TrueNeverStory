@@ -192,7 +192,7 @@ describe('searchTemplates', () => {
 
     expect(results.length).toBeGreaterThan(0);
     // escape-1 matches archetype, mood, domain → should be first
-    expect(results[0].template.id).toBe('escape-1');
+    expect(results[0]!.template.id).toBe('escape-1');
   });
 
   it('respects limit parameter', async () => {
@@ -214,8 +214,8 @@ describe('searchTemplates', () => {
     const results = await searchTemplates(db, keys, 5);
 
     expect(results.length).toBeGreaterThan(0);
-    expect(typeof results[0].score).toBe('number');
-    expect(results[0].score).toBeGreaterThanOrEqual(0);
+    expect(typeof results[0]!.score).toBe('number');
+    expect(results[0]!.score).toBeGreaterThanOrEqual(0);
   });
 
   it('ranked results are sorted by score descending', async () => {
@@ -223,7 +223,7 @@ describe('searchTemplates', () => {
     const results = await searchTemplates(db, keys, 10);
 
     for (let i = 1; i < results.length; i++) {
-      expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score);
+      expect(results[i - 1]!.score).toBeGreaterThanOrEqual(results[i]!.score);
     }
   });
 });

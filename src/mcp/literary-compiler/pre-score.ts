@@ -59,8 +59,8 @@ export function preScoreChunk(chunk: Chunk): PreScoreResult {
 
   const archetypeScores: Record<string, number> = {};
   for (const archetype of ARCHETYPES) {
-    const count = archetypeMatches[archetype];
-    const total = ARCHETYPE_KEYWORDS[archetype].length;
+    const count = archetypeMatches[archetype]!;
+    const total = ARCHETYPE_KEYWORDS[archetype]!.length;
     archetypeScores[archetype] = total > 0 ? count / total : 0;
   }
 

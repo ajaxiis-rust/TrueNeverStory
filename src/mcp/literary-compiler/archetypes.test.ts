@@ -33,7 +33,7 @@ describe('ARCHETYPES', () => {
       'quest_journey',
       'temptation_fall',
     ];
-    expect(ARCHETYPES).toEqual(expected);
+    expect(ARCHETYPES as readonly string[]).toEqual(expected);
   });
 });
 

@@ -102,13 +102,13 @@ describe("TranslationService", () => {
     it("returns translated text and intent for valid input", async () => {
       const generateJson = mock(() => Promise.resolve({
         translated: "Go to the tavern",
-        intent: { type: "movement", target: "tavern", detail_level: "normal" },
+        intent: { type: "movement", destination: "tavern", speed: "walk" },
       }));
       const svc = new TranslationService(createMockQueue({ generateJson }));
       const result = await svc.translateAndClassify("Иди в таверну", "ru");
       expect(result).toEqual({
         translated: "Go to the tavern",
-        intent: { type: "movement", target: "tavern", detail_level: "normal" },
+        intent: { type: "movement", destination: "tavern", speed: "walk" },
       });
     });
 

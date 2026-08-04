@@ -94,7 +94,7 @@ export interface RetrievalCacheEntry {
 }
 
 export class LiteraryCompilerDB {
-  private db: Database;
+  readonly db: Database;
 
   constructor(dbPath: string) {
     const dir = dirname(dbPath);

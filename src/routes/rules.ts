@@ -45,7 +45,7 @@ rules.get("/rules/:id", async (c) => {
  * POST /api/rules/preview — Preview merged rules with modifiers.
  */
 rules.post("/rules/preview", async (c) => {
-  const body = await safeJsonBody(c) as RulesConfig;
+  const body = await safeJsonBody<RulesConfig>(c);
   try {
     const engine = new RulesEngine(body);
     return c.json({ merged: engine.getRules() });

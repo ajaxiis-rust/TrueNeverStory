@@ -39,7 +39,7 @@ describe("processTreasury", () => {
     const npc = makeNPC();
     npc.treasury.balance = 1000;
     npc.income = 200;
-    npc.familyExpenses = { wife: 50, children: 100, food: 80, clothing: 30, spouse: 0 };
+    npc.familyExpenses = { wife: 50, children: 100, food: 80, clothing: 30 };
     npc.taxRate = 0.1;
 
     const result = processTreasury(npc);

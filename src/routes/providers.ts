@@ -38,7 +38,7 @@ providers.get("/providers", async (c) => {
 });
 
 providers.post("/providers", async (c) => {
-  const body = await safeJsonBody(c) as LLMProviderConfig;
+  const body = await safeJsonBody<LLMProviderConfig>(c);
   if (!body.id || !body.baseUrl) return c.json({ error: "id and baseUrl are required" }, 400);
   if (!body.authType) body.authType = "apikey";
   const manager = await getProviderManager();

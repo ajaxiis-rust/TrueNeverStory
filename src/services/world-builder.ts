@@ -83,7 +83,7 @@ export class WorldBuilder {
         await this._progressManager.waitForResume();
       }
 
-      const keyword = keywords[i];
+      const keyword = keywords[i]!;
       this._progressManager.update({
         current: i + 1,
         message: `Researching: ${keyword}`,

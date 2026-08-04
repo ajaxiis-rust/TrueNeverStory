@@ -105,7 +105,7 @@ export class IdleResearchScheduler {
           await this.progress.waitForResume();
         }
 
-        const topic = topicsToResearch[i];
+        const topic = topicsToResearch[i]!;
         this.progress.update({
           current: i + 1,
           message: `Idle research: ${topic}`,

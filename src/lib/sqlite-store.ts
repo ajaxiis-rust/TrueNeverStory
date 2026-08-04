@@ -49,7 +49,7 @@ export interface AgentPromptConfig {
 }
 
 export class SQLiteStore {
-  private db: Database;
+  readonly db: Database;
 
   constructor(dbPath: string) {
     mkdirSync(dbPath, { recursive: true });

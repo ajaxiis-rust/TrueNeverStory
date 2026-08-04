@@ -101,7 +101,7 @@ worlds.post("/worlds", async (c) => {
 worlds.put("/worlds/:name", async (c) => {
   const name = c.req.param("name");
   if (!isValidWorldName(name)) return c.json({ error: "Invalid world name" }, 400);
-  const body = await safeJsonBody(c);
+  const body = await safeJsonBody<Partial<Record<string, unknown>>>(c);
   try {
     const frame = await updateWorldFrame(name, body);
     return c.json({ status: "updated", frame });

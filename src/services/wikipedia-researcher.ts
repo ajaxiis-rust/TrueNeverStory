@@ -134,7 +134,7 @@ export class WikipediaResearcher {
       const data = await this.fetchWithRetry(`${this.baseUrl}?${params}`);
       const pages = data?.query?.pages;
       if (pages) {
-        const pageId = Object.keys(pages)[0];
+        const pageId = Object.keys(pages)[0]!;
         const links = pages[pageId]?.links || [];
         for (const link of links) {
           related.push(link.title);

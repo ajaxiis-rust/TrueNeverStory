@@ -397,7 +397,7 @@ export async function listModels(): Promise<ModelInfo[]> {
         // Also remove from models DB if tracked
         const idx = models.findIndex((m) => m.path === filePath);
         if (idx >= 0) {
-          log.warn({ id: models[idx].id }, "Removed corrupted model from DB");
+          log.warn({ id: models[idx]!.id }, "Removed corrupted model from DB");
           models.splice(idx, 1);
         }
         continue;

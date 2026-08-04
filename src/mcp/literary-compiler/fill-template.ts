@@ -8,6 +8,6 @@ export function fillTemplate(
   context: Record<string, string>,
 ): string {
   return skeleton.replace(/\[([a-zA-Z_][a-zA-Z0-9_]*)\]/g, (match, key) => {
-    return key in context ? context[key] : match;
+    return context[key as string] ?? match;
   });
 }

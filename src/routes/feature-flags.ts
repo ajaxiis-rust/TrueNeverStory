@@ -32,7 +32,7 @@ flags.get("/feature-flags/:id", async (c) => {
  * POST /api/feature-flags — Create new flag.
  */
 flags.post("/feature-flags", async (c) => {
-  const body = await safeJsonBody(c);
+  const body = await safeJsonBody(c) as any;
   const manager = getFeatureFlagManager();
   try {
     const flag = manager.create(body);
@@ -46,7 +46,7 @@ flags.post("/feature-flags", async (c) => {
  * PUT /api/feature-flags/:id — Update flag.
  */
 flags.put("/feature-flags/:id", async (c) => {
-  const body = await safeJsonBody(c);
+  const body = await safeJsonBody(c) as any;
   const manager = getFeatureFlagManager();
   const updated = manager.update(c.req.param("id"), body);
   if (!updated) return c.json({ error: "Flag not found" }, 404);

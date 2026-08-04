@@ -52,9 +52,9 @@ describe('chunkText', () => {
     const chunks = chunkText(text, defaultOptions);
 
     expect(chunks).toHaveLength(1);
-    expect(chunks[0].text).toBe(text);
-    expect(chunks[0].startOffset).toBe(0);
-    expect(chunks[0].endOffset).toBe(text.length);
+    expect(chunks[0]!.text).toBe(text);
+    expect(chunks[0]!.startOffset).toBe(0);
+    expect(chunks[0]!.endOffset).toBe(text.length);
   });
 
   it('overlap contains sentences from adjacent chunks', () => {
@@ -71,8 +71,8 @@ describe('chunkText', () => {
 
     // Check that overlap exists: last N sentences of chunk[i] appear in chunk[i+1]
     for (let i = 0; i < chunks.length - 1; i++) {
-      const currentChunk = chunks[i];
-      const nextChunk = chunks[i + 1];
+      const currentChunk = chunks[i]!;
+      const nextChunk = chunks[i + 1]!;
 
       // The end of current chunk should overlap with start of next chunk
       // Find overlapping content

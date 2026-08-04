@@ -7,7 +7,7 @@ import { getLogger } from "./logger";
 
 const log = getLogger("safe-request");
 
-export async function safeJsonBody<T extends Record<string, unknown>>(c: Context): Promise<T> {
+export async function safeJsonBody<T>(c: Context): Promise<T> {
   return (c.req.json() as Promise<T>).catch((e) => {
     log.warn({ err: e, path: c.req.path }, "Failed to parse request body, using {}");
     return {} as T;
