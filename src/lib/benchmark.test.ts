@@ -251,7 +251,7 @@ describe('Performance: SQLite vs File DB', () => {
     console.log(`   Note: SQLite hybrid includes real BGE-M3 embedding calls`);
   });
 
-  test('concurrent reads: SQLite WAL vs File', () => {
+  test('concurrent reads: SQLite WAL vs File', async () => {
     const entities = generateEntities(500);
 
     // File DB
@@ -261,7 +261,7 @@ describe('Performance: SQLite vs File DB', () => {
 
     const fileStart = performance.now();
     const filePromises = entities.slice(0, 50).map(e => fileDB.load(e.uid));
-    Promise.all(filePromises);
+    await Promise.all(filePromises);
     const fileTime = performance.now() - fileStart;
 
     // SQLite
