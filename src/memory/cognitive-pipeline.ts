@@ -162,7 +162,7 @@ Facts (JSON array):`;
       const result = await this._llm.generateJson(prompt, { temperature: 0.3 });
       return Array.isArray(result) ? result.filter((r): r is string => typeof r === "string") : [];
     } catch (err) {
-      log.debug({ err }, "Failed to extract facts from conversation");
+      log.warn({ err }, "Failed to extract facts from conversation");
       return [];
     }
   }

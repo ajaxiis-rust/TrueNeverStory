@@ -28,7 +28,7 @@ export function readJsonFileSync<T = unknown>(filePath: string): T | null {
     const content = readFileSync(filePath, "utf-8");
     return JSON.parse(content) as T;
   } catch (e) {
-    log.debug({ err: e, path: filePath }, "Failed to read JSON file");
+    log.warn({ err: e, path: filePath }, "Failed to read JSON file");
     return null;
   }
 }

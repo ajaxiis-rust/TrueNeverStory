@@ -93,7 +93,7 @@ export class DirectorLoop {
         this._lastMajorBeatTime = new Date(data.last_major_beat);
       }
     } catch (err) {
-      log.debug({ err }, "Failed to load director state");
+      log.warn({ err }, "Failed to load director state");
     }
   }
 

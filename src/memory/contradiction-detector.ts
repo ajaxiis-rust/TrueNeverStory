@@ -67,7 +67,7 @@ If no contradictions, return [].`;
         }
       }
     } catch (err) {
-      log.debug({ err }, "Contradiction check failed");
+      log.warn({ err }, "Contradiction check failed");
     }
 
     return results;

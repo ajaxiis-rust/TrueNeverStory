@@ -107,7 +107,7 @@ export class ProbabilityContextResolver {
         context.actor_resources = 0.0;
       }
     } catch (err) {
-      log.debug({ err, actor }, "Failed to resolve actor state, using defaults");
+      log.warn({ err, actor }, "Failed to resolve actor state, using defaults");
       context.actor_health = 0.5;
       context.actor_mood_factor = 0.5;
     }
@@ -157,7 +157,7 @@ export class ProbabilityContextResolver {
         }
       }
     } catch (err) {
-      log.debug({ err, actor }, "Failed to resolve actor skills");
+      log.warn({ err, actor }, "Failed to resolve actor skills");
       context.actor_strength = 0.5;
       context.actor_dexterity = 0.5;
       context.actor_charisma = 0.5;
@@ -189,7 +189,7 @@ export class ProbabilityContextResolver {
         context.target_mood_factor = 0.5;
       }
     } catch (err) {
-      log.debug({ err, target }, "Failed to resolve target stats");
+      log.warn({ err, target }, "Failed to resolve target stats");
       context.target_defense = 0.5;
       context.target_health = 0.5;
       context.target_mood_factor = 0.5;
@@ -217,7 +217,7 @@ export class ProbabilityContextResolver {
       }
       return 0.5;
     } catch (err) {
-      log.debug({ err, actor, target }, "Failed to get relationship strength");
+      log.warn({ err, actor, target }, "Failed to get relationship strength");
       return 0.5;
     }
   }
@@ -244,7 +244,7 @@ export class ProbabilityContextResolver {
       }
       return count > 0 ? total / count : 0.5;
     } catch (err) {
-      log.debug({ err, actor }, "Failed to get faction reputation");
+      log.warn({ err, actor }, "Failed to get faction reputation");
       return 0.5;
     }
   }
@@ -268,7 +268,7 @@ export class ProbabilityContextResolver {
         context.environment_terrain_mod = 0;
       }
     } catch (err) {
-      log.debug({ err, location }, "Failed to resolve environment");
+      log.warn({ err, location }, "Failed to resolve environment");
       context.environment_light = 0.5;
       context.environment_noise = 0.5;
       context.environment_modifier = 0;
@@ -304,7 +304,7 @@ export class ProbabilityContextResolver {
         }
       }
     } catch (err) {
-      log.debug({ err, location }, "Failed to apply world rules");
+      log.warn({ err, location }, "Failed to apply world rules");
     }
   }
 
@@ -316,7 +316,7 @@ export class ProbabilityContextResolver {
       const recentFailures = (memories ?? []).filter((m) => m.content.toLowerCase().includes("failure"));
       context.actor_recent_failures = memories?.length ? recentFailures.length / memories.length : 0.0;
     } catch (err) {
-      log.debug({ err }, "Failed to get world memory context");
+      log.warn({ err }, "Failed to get world memory context");
       context.actor_recent_memories = 0;
       context.actor_recent_failures = 0.0;
     }

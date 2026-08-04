@@ -58,7 +58,7 @@ export class EventSourcingChronicler {
           },
         });
       } catch (err) {
-        log.debug({ err }, "Failed to append to event store");
+        log.warn({ err }, "Failed to append to event store");
       }
     }
 

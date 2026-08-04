@@ -73,7 +73,7 @@ export class WebSocketManager {
       try {
         socket.close();
       } catch (err) {
-        log.debug({ err }, "Error closing WebSocket");
+        log.warn({ err }, "Error closing WebSocket");
       }
     }
     this._connections.clear();

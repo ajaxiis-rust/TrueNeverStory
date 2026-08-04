@@ -103,7 +103,7 @@ export function summarizeWorld(name: string): WorldSummary | null {
       const entities = readJsonFileSync<any[]>(entitiesPath);
       entityCount = Array.isArray(entities) ? entities.length : 0;
     } catch (err) {
-      log.debug({ err, path: entitiesPath }, "Failed to count entities");
+      log.warn({ err, path: entitiesPath }, "Failed to count entities");
     }
   }
 

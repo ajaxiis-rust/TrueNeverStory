@@ -73,7 +73,7 @@ function getWorldAgentsDir(): string {
       const data = readJsonFileSync<{ activeWorld?: string }>(settingsPath);
       activeWorld = data?.activeWorld ?? "default";
     } catch (e) {
-      log.debug({ err: e, path: settingsPath }, "Failed to read active world config");
+      log.warn({ err: e, path: settingsPath }, "Failed to read active world config");
     }
   }
 
@@ -97,7 +97,7 @@ export function getActiveWorld(): string {
       const data = readJsonFileSync<{ activeWorld?: string }>(settingsPath);
       return data?.activeWorld ?? "default";
     } catch (e) {
-      log.debug({ err: e, path: settingsPath }, "Failed to read active world config");
+      log.warn({ err: e, path: settingsPath }, "Failed to read active world config");
     }
   }
   return "default";
@@ -118,7 +118,7 @@ export function getWorldLanguage(world?: string): string {
       const frame = readJsonFileSync<{ language?: string }>(worldFramePath);
       return frame?.language ?? "en";
     } catch (e) {
-      log.debug({ err: e, path: worldFramePath }, "Failed to read world language config");
+      log.warn({ err: e, path: worldFramePath }, "Failed to read world language config");
     }
   }
   return "en";

@@ -75,7 +75,7 @@ export class Chronicler {
           importance: 0.4,
         });
       } catch (err) {
-        log.debug({ err }, "Failed to add event to world memory");
+        log.warn({ err }, "Failed to add event to world memory");
       }
     }
 
@@ -96,7 +96,7 @@ export class Chronicler {
             entries.push(entry);
           }
         } catch (e) {
-          log.debug({ err: e, line }, "Failed to parse timeline entry");
+          log.warn({ err: e, line }, "Failed to parse timeline entry");
           continue;
         }
       }
