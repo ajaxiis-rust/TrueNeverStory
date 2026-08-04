@@ -76,7 +76,7 @@ export class FactionTaxDilemma {
 
     // Генерировать сумму налога
     const taxAmount = Math.floor(
-      Math.random() * (this.config.max_tax - this.config.min_tax) + this.config.min_tax,
+      Math.random() * (this.config.max_tax - this.config.min_tax + 1) + this.config.min_tax,
     );
 
     // Создать дилемму

@@ -22,9 +22,9 @@ describe("calculateTaxRate", () => {
     expect(rate).toBeLessThan(0.9);
   });
 
-  test("never goes below 0", () => {
+  test("powerful nobles still pay tax", () => {
     const rate = calculateTaxRate(100000, 100000, RankType.COMMONER);
-    expect(rate).toBeGreaterThanOrEqual(0);
+    expect(rate).toBeGreaterThan(0);
   });
 });
 
@@ -67,8 +67,10 @@ describe("checkBetrayalRisk", () => {
 
 describe("canBuyFreedom", () => {
   test("needs half of next rank's wealthMin", () => {
-    expect(canBuyFreedom(0, RankType.SLAVE)).toBe(true);
-    expect(canBuyFreedom(0, RankType.COMMONER)).toBe(true);
+    expect(canBuyFreedom(0, RankType.SLAVE)).toBe(false);
+    expect(canBuyFreedom(0, RankType.COMMONER)).toBe(false);
+    expect(canBuyFreedom(200, RankType.SLAVE)).toBe(true);
+    expect(canBuyFreedom(200, RankType.COMMONER)).toBe(true);
   });
 });
 

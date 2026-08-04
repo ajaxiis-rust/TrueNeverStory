@@ -120,7 +120,8 @@ export function calculateTaxRate(power: number, popularity: number, rank: RankTy
   const baseTax = rankConfig.baseTaxRate;
   const powerDiscount = Math.min(0.9, power / 10000);
   const popDiscount = Math.min(0.3, popularity / 3000);
-  return Math.max(0, baseTax * (1 - powerDiscount - popDiscount));
+  const discount = Math.min(0.9, powerDiscount + popDiscount);
+  return baseTax * (1 - discount);
 }
 
 export function bribeRisk(
@@ -172,7 +173,7 @@ export function processBribe(giver: NPCWithEconomy, taker: NPCWithEconomy, amoun
 
 export function canBuyFreedom(treasury: number, rank: RankType): boolean {
   const rankConfig = getRankConfig(rank);
-  const freedomCost = rankConfig.wealthMin * 0.5;
+  const freedomCost = Math.max(200, rankConfig.wealthMin * 0.5);
   return treasury >= freedomCost;
 }
 
