@@ -92,8 +92,8 @@ describe("RomanceModels", () => {
     });
 
     it("breakup uses inverted thresholds", () => {
-      expect(ROMANCE_BREAKUP.criticalSuccessThreshold).toBe(0.25);
-      expect(ROMANCE_BREAKUP.criticalFailureThreshold).toBe(0.75);
+      expect(ROMANCE_BREAKUP.criticalSuccessThreshold).toBe(0.75);
+      expect(ROMANCE_BREAKUP.criticalFailureThreshold).toBe(0.25);
     });
 
     it("confession has higher difficulty", () => {

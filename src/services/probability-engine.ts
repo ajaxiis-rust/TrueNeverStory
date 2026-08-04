@@ -276,11 +276,11 @@ export class ProbabilityEngine {
 
     if (roll < probability) {
       if (normalizedMargin < 0.1) return OutcomeQuality.MARGINAL_SUCCESS;
-      if (normalizedMargin > 0.8 && roll > profile.criticalSuccessThreshold) return OutcomeQuality.CRITICAL_SUCCESS;
+      if (normalizedMargin > 0.8 && roll < profile.criticalSuccessThreshold) return OutcomeQuality.CRITICAL_SUCCESS;
       return OutcomeQuality.SUCCESS;
     } else {
       if (normalizedMargin < 0.1) return OutcomeQuality.MARGINAL_FAILURE;
-      if (normalizedMargin > 0.8 && roll < profile.criticalFailureThreshold) return OutcomeQuality.CRITICAL_FAILURE;
+      if (normalizedMargin > 0.8 && roll > profile.criticalFailureThreshold) return OutcomeQuality.CRITICAL_FAILURE;
       return OutcomeQuality.FAILURE;
     }
   }

@@ -299,6 +299,42 @@ describe("ProbabilityEngine", () => {
     });
   });
 
+  describe("critical outcomes", () => {
+    it("produces CRITICAL_SUCCESS when roll is far below probability", () => {
+      const profile = new ProbabilityProfile({
+        name: "crit_test",
+        parameters: {
+          skill: { name: "skill", base_value: 1.0, weight: 1.0, param_type: ParameterType.STATIC },
+        },
+        formula: "sum_weighted",
+        difficulty_modifier: 1.0,
+        critical_success_threshold: 0.1,
+        critical_failure_threshold: 0.9,
+      });
+      // probability = 1.0 * 1.0 * 1.0 * (0.5 + 0.5) = 1.0
+      // roll = 0.04 → margin = 0.96, normalized = 0.96, roll < 0.1 → CRITICAL_SUCCESS
+      const result = engine.roll(profile, {}, "test", 0.04);
+      expect(result.quality).toBe(OutcomeQuality.CRITICAL_SUCCESS);
+    });
+
+    it("produces CRITICAL_FAILURE when roll is far above probability", () => {
+      const profile = new ProbabilityProfile({
+        name: "crit_fail_test",
+        parameters: {
+          skill: { name: "skill", base_value: 0.01, weight: 1.0, param_type: ParameterType.STATIC },
+        },
+        formula: "sum_weighted",
+        difficulty_modifier: 1.0,
+        critical_success_threshold: 0.1,
+        critical_failure_threshold: 0.9,
+      });
+      // probability = 0.01 * 1.0 * 1.0 * (0.5 + 0.5) = 0.01
+      // roll = 0.97 → margin = 0.96, normalized = 0.97, roll > 0.9 → CRITICAL_FAILURE
+      const result = engine.roll(profile, {}, "test", 0.97);
+      expect(result.quality).toBe(OutcomeQuality.CRITICAL_FAILURE);
+    });
+  });
+
   describe("modifier summary", () => {
     it("returns summary grouped by parameter", () => {
       engine.applyModifier("e1", new ProbabilityModifier({

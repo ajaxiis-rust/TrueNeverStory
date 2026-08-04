@@ -30,8 +30,8 @@ function profile(
   params: ProbabilityParameter[],
   formula = "sum_weighted",
   difficultyModifier = 1.0,
-  criticalSuccessThreshold = 0.9,
-  criticalFailureThreshold = 0.1,
+  criticalSuccessThreshold = 0.1,
+  criticalFailureThreshold = 0.9,
 ): ProbabilityProfile {
   return new ProbabilityProfile({
     name,
@@ -51,7 +51,7 @@ export const COMBAT = profile("combat", [
   param("target_defense", 0.5, 0.20, ParameterType.DYNAMIC, "target_defense"),
   param("terrain_modifier", 0.0, 0.10, ParameterType.EXTERNAL, "environment_terrain_mod"),
   param("luck", 0.5, 0.15, ParameterType.EXTERNAL),
-], "sum_weighted", 1.0, 0.90, 0.10);
+], "sum_weighted", 1.0, 0.10, 0.90);
 
 // ── Persuasion ──
 export const PERSUASION = profile("persuasion", [
@@ -61,7 +61,7 @@ export const PERSUASION = profile("persuasion", [
   param("target_mood", 0.5, 0.15, ParameterType.DYNAMIC, "target_mood_factor"),
   param("target_resistance", 0.5, 0.10, ParameterType.DYNAMIC, "target_resistance"),
   param("luck", 0.5, 0.10, ParameterType.EXTERNAL),
-], "logistic", 0.9, 0.85, 0.15);
+], "logistic", 0.9, 0.15, 0.85);
 
 // ── Stealth ──
 export const STEALTH = profile("stealth", [
@@ -70,7 +70,7 @@ export const STEALTH = profile("stealth", [
   param("noise_level", 0.5, 0.15, ParameterType.EXTERNAL, "environment_noise"),
   param("actor_mood", 0.5, 0.10, ParameterType.DYNAMIC, "actor_mood_factor"),
   param("luck", 0.5, 0.25, ParameterType.EXTERNAL),
-], "product", 1.0, 0.85, 0.15);
+], "product", 1.0, 0.15, 0.85);
 
 // ── Romance (generic) ──
 export const ROMANCE = profile("romance", [
@@ -80,7 +80,7 @@ export const ROMANCE = profile("romance", [
   param("actor_mood", 0.5, 0.10, ParameterType.DYNAMIC, "actor_mood_factor"),
   param("target_mood", 0.5, 0.10, ParameterType.DYNAMIC, "target_mood_factor"),
   param("luck", 0.5, 0.05, ParameterType.EXTERNAL),
-], "sum_weighted", 1.0, 0.85, 0.15);
+], "sum_weighted", 1.0, 0.15, 0.85);
 
 // ── Investigation ──
 export const INVESTIGATION = profile("investigation", [
@@ -89,7 +89,7 @@ export const INVESTIGATION = profile("investigation", [
   param("environment_light", 0.5, 0.15, ParameterType.EXTERNAL, "environment_light"),
   param("time_pressure", 0.5, 0.10, ParameterType.EXTERNAL),
   param("luck", 0.5, 0.15, ParameterType.EXTERNAL),
-], "sum_weighted", 1.0, 0.90, 0.10);
+], "sum_weighted", 1.0, 0.10, 0.90);
 
 // ── Athletics ──
 export const ATHLETICS = profile("athletics", [
@@ -98,7 +98,7 @@ export const ATHLETICS = profile("athletics", [
   param("terrain", 0.0, 0.20, ParameterType.EXTERNAL, "environment_terrain_mod"),
   param("actor_mood", 0.5, 0.10, ParameterType.DYNAMIC, "actor_mood_factor"),
   param("luck", 0.5, 0.15, ParameterType.EXTERNAL),
-], "sum_weighted", 1.0, 0.85, 0.15);
+], "sum_weighted", 1.0, 0.15, 0.85);
 
 // ── Deception ──
 export const DECEPTION = profile("deception", [
@@ -109,7 +109,7 @@ export const DECEPTION = profile("deception", [
   param("actor_mood", 0.5, 0.05, ParameterType.DYNAMIC, "actor_mood_factor"),
   param("target_mood", 0.5, 0.10, ParameterType.DYNAMIC, "target_mood_factor"),
   param("luck", 0.5, 0.05, ParameterType.EXTERNAL),
-], "logistic", 1.2, 0.85, 0.15);
+], "logistic", 1.2, 0.15, 0.85);
 
 // ── Intimidation ──
 export const INTIMIDATION = profile("intimidation", [
@@ -119,14 +119,14 @@ export const INTIMIDATION = profile("intimidation", [
   param("actor_reputation", 0.5, 0.15, ParameterType.EXTERNAL, "faction_reputation"),
   param("target_mood", 0.5, 0.10, ParameterType.DYNAMIC, "target_mood_factor"),
   param("luck", 0.5, 0.10, ParameterType.EXTERNAL),
-], "sum_weighted", 1.1, 0.85, 0.15);
+], "sum_weighted", 1.1, 0.15, 0.85);
 
 // ── Generic ──
 export const GENERIC = profile("generic", [
   param("skill", 0.5, 0.60, ParameterType.DYNAMIC, "extra_skill"),
   param("difficulty", 0.5, 0.20, ParameterType.EXTERNAL, "extra_difficulty"),
   param("luck", 0.5, 0.20, ParameterType.EXTERNAL),
-], "sum_weighted", 1.0, 0.90, 0.10);
+], "sum_weighted", 1.0, 0.10, 0.90);
 
 // ── Birth: Race ──
 export const BIRTH_RACE = profile("birth_race", [
@@ -134,7 +134,7 @@ export const BIRTH_RACE = profile("birth_race", [
   param("user_hint", 0.0, 0.30, ParameterType.EXTERNAL, "hint_weight"),
   param("demographic_weight", 0.3, 0.20, ParameterType.EXTERNAL, "race_demographic"),
   param("luck", 0.5, 0.10, ParameterType.EXTERNAL),
-], "sum_weighted", 1.0, 0.85, 0.15);
+], "sum_weighted", 1.0, 0.15, 0.85);
 
 // ── Birth: Social Class ──
 export const BIRTH_SOCIAL_CLASS = profile("birth_social_class", [
@@ -142,14 +142,14 @@ export const BIRTH_SOCIAL_CLASS = profile("birth_social_class", [
   param("parental_influence", 0.5, 0.25, ParameterType.EXTERNAL, "parent_class"),
   param("user_hint", 0.0, 0.25, ParameterType.EXTERNAL, "hint_weight"),
   param("luck", 0.5, 0.15, ParameterType.EXTERNAL),
-], "logistic", 0.9, 0.80, 0.20);
+], "logistic", 0.9, 0.20, 0.80);
 
 // ── Birth: Magic Affinity ──
 export const BIRTH_MAGIC_AFFINITY = profile("birth_magic_affinity", [
   param("world_magic_density", 0.5, 0.30, ParameterType.EXTERNAL, "magic_density"),
   param("bloodline_magic", 0.3, 0.35, ParameterType.EXTERNAL, "parent_magic_affinity"),
   param("luck", 0.5, 0.35, ParameterType.EXTERNAL),
-], "sum_weighted", 1.0, 0.85, 0.15);
+], "sum_weighted", 1.0, 0.15, 0.85);
 
 // ── Birth: Talent ──
 export const BIRTH_TALENT = profile("birth_talent", [
@@ -157,7 +157,7 @@ export const BIRTH_TALENT = profile("birth_talent", [
   param("social_class_bonus", 0.0, 0.30, ParameterType.EXTERNAL, "class_education_bonus"),
   param("race_bonus", 0.0, 0.20, ParameterType.EXTERNAL, "race_talent_bonus"),
   param("luck", 0.5, 0.10, ParameterType.EXTERNAL),
-], "logistic", 1.0, 0.90, 0.10);
+], "logistic", 1.0, 0.10, 0.90);
 
 // ── Profile Registry ──
 const PROFILES_MAP: Record<string, ProbabilityProfile> = {

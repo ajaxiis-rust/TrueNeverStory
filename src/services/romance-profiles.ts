@@ -30,8 +30,8 @@ function makeProfile(
   params: ProbabilityParameterData[],
   formula = "sum_weighted",
   difficultyModifier = 1.0,
-  criticalSuccessThreshold = 0.85,
-  criticalFailureThreshold = 0.15,
+  criticalSuccessThreshold = 0.15,
+  criticalFailureThreshold = 0.85,
 ): ProbabilityProfile {
   const paramMap: Record<string, ProbabilityParameterData> = {};
   for (const param of params) {
@@ -54,7 +54,7 @@ export const ROMANCE_ATTRACTION = makeProfile("romance_attraction", [
   p("mood", 0.5, 0.15, ParameterType.DYNAMIC, "target_mood_factor"),
   p("environment", 0.0, 0.10, ParameterType.EXTERNAL, "environment_modifier"),
   p("past_affection", 0.3, 0.20, ParameterType.EXTERNAL, "current_affection"),
-], "logistic", 1.0, 0.85, 0.15);
+], "logistic", 1.0, 0.15, 0.85);
 
 // ── Romance Confession ──
 export const ROMANCE_CONFESSION = makeProfile("romance_confession", [
@@ -63,7 +63,7 @@ export const ROMANCE_CONFESSION = makeProfile("romance_confession", [
   p("charisma", 0.5, 0.15, ParameterType.DYNAMIC, "actor_charisma"),
   p("location_romance", 0.0, 0.10, ParameterType.EXTERNAL, "environment_modifier"),
   p("luck", 0.5, 0.15, ParameterType.EXTERNAL),
-], "logistic", 1.2, 0.80, 0.20);
+], "logistic", 1.2, 0.20, 0.80);
 
 // ── Romance Date ──
 export const ROMANCE_DATE = makeProfile("romance_date", [
@@ -72,7 +72,7 @@ export const ROMANCE_DATE = makeProfile("romance_date", [
   p("compatibility", 0.5, 0.20, ParameterType.RELATIONSHIP, "compatibility"),
   p("location_romance", 0.0, 0.15, ParameterType.EXTERNAL, "environment_modifier"),
   p("timing", 0.5, 0.15, ParameterType.EXTERNAL, "time_of_day_modifier"),
-], "logistic", 1.0, 0.85, 0.15);
+], "logistic", 1.0, 0.15, 0.85);
 
 // ── Romance Kiss ──
 export const ROMANCE_KISS = makeProfile("romance_kiss", [
@@ -81,7 +81,7 @@ export const ROMANCE_KISS = makeProfile("romance_kiss", [
   p("charisma", 0.5, 0.15, ParameterType.DYNAMIC, "actor_charisma"),
   p("environment", 0.0, 0.15, ParameterType.EXTERNAL, "environment_modifier"),
   p("past_moments", 0.3, 0.15, ParameterType.EXTERNAL, "past_positive_interactions"),
-], "logistic", 1.1, 0.85, 0.15);
+], "logistic", 1.1, 0.15, 0.85);
 
 // ── Romance Proposal ──
 export const ROMANCE_PROPOSAL = makeProfile("romance_proposal", [
@@ -98,7 +98,7 @@ export const ROMANCE_BREAKUP = makeProfile("romance_breakup", [
   p("conflict_level", 0.3, 0.25, ParameterType.EXTERNAL, "conflict_level"),
   p("external_pressure", 0.0, 0.20, ParameterType.EXTERNAL, "external_pressure"),
   p("luck", 0.5, 0.20, ParameterType.EXTERNAL),
-], "sum_weighted", 0.8, 0.25, 0.75);
+], "sum_weighted", 0.8, 0.75, 0.25);
 
 // ── Profile Registry ──
 const ROMANCE_PROFILES_MAP: Record<string, ProbabilityProfile> = {

@@ -182,8 +182,8 @@ export class ProbabilityProfile {
     this.name = data.name;
     this.formula = data.formula ?? "sum_weighted";
     this.difficultyModifier = data.difficulty_modifier ?? 1.0;
-    this.criticalSuccessThreshold = data.critical_success_threshold ?? 0.9;
-    this.criticalFailureThreshold = data.critical_failure_threshold ?? 0.1;
+    this.criticalSuccessThreshold = data.critical_success_threshold ?? 0.1;
+    this.criticalFailureThreshold = data.critical_failure_threshold ?? 0.9;
 
     if (data.parameters) {
       this.parameters = {};
