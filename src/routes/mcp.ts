@@ -15,8 +15,8 @@ export const mcpRouter = new Hono();
 
 // ── DB Paths ──────────────────────────────────────────────────
 
-const BIBLE_DB = join(process.cwd(), "data", "bible", "bible.db");
-const GUTENBERG_DB = join(process.cwd(), "data", "mcp", "gutenberg-bookcorpus.db");
+const BIBLE_DB = join(process.cwd(), "data", "bible", "bible-normalized.db");
+const GUTENBERG_DB = join(process.cwd(), "data", "gutenberg", "gutenberg-normalized.db");
 const WIKIPEDIA_DB = join(process.cwd(), "data", "mcp", "wikipedia.db");
 const LIT_COMP_DB = join(process.cwd(), "data", "literary-compiler", "classics-compiled.db");
 const ECON_DB = join(process.cwd(), "data", "literary-compiler", "economic.db");
@@ -147,7 +147,7 @@ function runScriptWithJob(
 mcpRouter.get("/stream/:jobId", (c) => {
   const jobId = c.req.param("jobId");
   const job = jobs.get(jobId);
-  if (!job) return c.json({ error: "Job not found" }, 404);
+  if (!job) return c.json({ error: "Job not found" }, 200);
 
   return new Response(
     new ReadableStream({
@@ -181,7 +181,7 @@ mcpRouter.get("/stream/:jobId", (c) => {
 // ═══════════════════════════════════════════════════════════════
 
 mcpRouter.get("/bible/stats", (c) => {
-  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found", exists: false }, 404);
+  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found", exists: false }, 200);
   const parser = new BibleParser({ dbPath: BIBLE_DB });
   try {
     const verseCount = parser.getVerseCount();
@@ -199,7 +199,7 @@ mcpRouter.get("/bible/search", (c) => {
   const q = c.req.query("q") ?? "";
   const book = c.req.query("book");
   const limit = parseInt(c.req.query("limit") ?? "20", 10);
-  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 404);
+  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 200);
   const parser = new BibleParser({ dbPath: BIBLE_DB });
   try {
     const results = parser.search(q, { limit, book: book ?? undefined });
@@ -210,7 +210,7 @@ mcpRouter.get("/bible/search", (c) => {
 });
 
 mcpRouter.get("/bible/books", (c) => {
-  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 404);
+  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 200);
   const parser = new BibleParser({ dbPath: BIBLE_DB });
   try {
     const books = parser.getBooks();
@@ -223,7 +223,7 @@ mcpRouter.get("/bible/books", (c) => {
 mcpRouter.get("/bible/characters", (c) => {
   const q = c.req.query("q") ?? "";
   const limit = parseInt(c.req.query("limit") ?? "20", 10);
-  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 404);
+  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 200);
   const parser = new BibleParser({ dbPath: BIBLE_DB });
   try {
     const charDB = new CharacterDB(parser);
@@ -236,13 +236,13 @@ mcpRouter.get("/bible/characters", (c) => {
 
 mcpRouter.get("/bible/character/:id", (c) => {
   const id = c.req.param("id");
-  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 404);
+  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 200);
   const parser = new BibleParser({ dbPath: BIBLE_DB });
   try {
     const charDB = new CharacterDB(parser);
     const all = charDB.getAll();
     const character = all.find((ch) => ch.id === id || ch.canonical_name === id);
-    if (!character) return c.json({ error: "Character not found" }, 404);
+    if (!character) return c.json({ error: "Character not found" }, 200);
     return c.json({ character });
   } finally {
     parser.close();
@@ -255,7 +255,7 @@ mcpRouter.post("/bible/bootstrap", async (c) => {
 });
 
 mcpRouter.post("/bible/compact", async (c) => {
-  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 404);
+  if (!existsSync(BIBLE_DB)) return c.json({ error: "Bible DB not found" }, 200);
   const result = runScriptWithJob(["bun", "run", "scripts/compact-db.ts", "--src", BIBLE_DB, "--dst", BIBLE_DB + ".compact"]);
   return c.json(result);
 });
@@ -265,7 +265,7 @@ mcpRouter.post("/bible/compact", async (c) => {
 // ═══════════════════════════════════════════════════════════════
 
 mcpRouter.get("/gutenberg/stats", (c) => {
-  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found", exists: false }, 404);
+  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found", exists: false }, 200);
   const parser = new GutenbergParser({ dbPath: GUTENBERG_DB, extractStyles: true });
   try {
     const styles = parser.getAllStyles();
@@ -280,7 +280,7 @@ mcpRouter.get("/gutenberg/search", (c) => {
   const q = c.req.query("q") ?? "";
   const limit = parseInt(c.req.query("limit") ?? "20", 10);
   const mood = c.req.query("mood") ?? undefined;
-  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found" }, 404);
+  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found" }, 200);
   const parser = new GutenbergParser({ dbPath: GUTENBERG_DB, extractStyles: true });
   try {
     const results = parser.searchStyles(q, { limit, mood });
@@ -291,7 +291,7 @@ mcpRouter.get("/gutenberg/search", (c) => {
 });
 
 mcpRouter.get("/gutenberg/styles", (c) => {
-  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found" }, 404);
+  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found" }, 200);
   const parser = new GutenbergParser({ dbPath: GUTENBERG_DB, extractStyles: true });
   try {
     const styles = parser.getAllStyles();
@@ -312,14 +312,14 @@ mcpRouter.post("/gutenberg/convert", (c) => {
 });
 
 mcpRouter.post("/gutenberg/compact", (c) => {
-  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found" }, 404);
+  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found" }, 200);
   const result = runScriptWithJob(["bun", "run", "scripts/compact-db.ts"]);
   return c.json(result);
 });
 
 mcpRouter.post("/gutenberg/delexify", async (c) => {
   const { text } = await c.req.json<{ text: string }>();
-  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found" }, 404);
+  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found" }, 200);
   const parser = new GutenbergParser({ dbPath: GUTENBERG_DB, extractStyles: true });
   try {
     const result = parser.delexify(text);
@@ -461,7 +461,7 @@ mcpRouter.post("/gutenberg/catalog/select", async (c) => {
 const wikipediaTools = new WikipediaMCPTools();
 
 mcpRouter.get("/wikipedia/stats", (c) => {
-  if (!existsSync(WIKIPEDIA_DB)) return c.json({ error: "Wikipedia DB not found", exists: false }, 404);
+  if (!existsSync(WIKIPEDIA_DB)) return c.json({ error: "Wikipedia DB not found", exists: false }, 200);
   const stat = statSync(WIKIPEDIA_DB);
   return c.json({ exists: true, size: stat.size, dbPath: WIKIPEDIA_DB });
 });
@@ -487,7 +487,7 @@ mcpRouter.post("/wikipedia/convert", (c) => {
 });
 
 mcpRouter.post("/wikipedia/compact", (c) => {
-  if (!existsSync(WIKIPEDIA_DB)) return c.json({ error: "Wikipedia DB not found" }, 404);
+  if (!existsSync(WIKIPEDIA_DB)) return c.json({ error: "Wikipedia DB not found" }, 200);
   const result = runScriptWithJob(["bun", "run", "scripts/compact-db.ts", "--src", WIKIPEDIA_DB, "--dst", WIKIPEDIA_DB + ".compact"]);
   return c.json(result);
 });
@@ -503,7 +503,7 @@ mcpRouter.post("/wikipedia/verify", async (c) => {
 // ═══════════════════════════════════════════════════════════════
 
 mcpRouter.get("/literary/stats", (c) => {
-  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found", exists: false }, 404);
+  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found", exists: false }, 200);
   const stat = statSync(LIT_COMP_DB);
   let templates = 0;
   try {
@@ -517,7 +517,7 @@ mcpRouter.get("/literary/stats", (c) => {
 
 mcpRouter.get("/literary/templates", (c) => {
   const q = c.req.query("q") ?? "";
-  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found" }, 404);
+  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found" }, 200);
   let templates: unknown[] = [];
   try {
     const db = new Database(LIT_COMP_DB, { readonly: true });
@@ -533,7 +533,7 @@ mcpRouter.post("/literary/compile", (c) => {
 });
 
 mcpRouter.post("/literary/compact", (c) => {
-  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found" }, 404);
+  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found" }, 200);
   const result = runScriptWithJob(["bun", "run", "scripts/compact-db.ts", "--src", LIT_COMP_DB, "--dst", LIT_COMP_DB + ".compact"]);
   return c.json(result);
 });
@@ -543,7 +543,7 @@ mcpRouter.post("/literary/compact", (c) => {
 // ═══════════════════════════════════════════════════════════════
 
 mcpRouter.get("/economics/stats", (c) => {
-  if (!existsSync(ECON_DB)) return c.json({ error: "Economics DB not found", exists: false }, 404);
+  if (!existsSync(ECON_DB)) return c.json({ error: "Economics DB not found", exists: false }, 200);
   const stat = statSync(ECON_DB);
   return c.json({ exists: true, size: stat.size, dbPath: ECON_DB });
 });
