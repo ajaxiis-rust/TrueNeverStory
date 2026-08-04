@@ -1,8 +1,8 @@
 {
   "language": "ru",
-  "llmBaseUrl": "",
+  "llmBaseUrl": "http://127.0.0.1:5001/v1",
   "llmApiKey": "",
-  "llmModel": "",
+  "llmModel": "bge-m3-q8_0",
   "llmTimeout": 120,
   "llmMaxTokens": 4096,
   "llmTemperature": 0.7,

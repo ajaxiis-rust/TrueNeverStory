@@ -65,7 +65,11 @@ export class GutenbergParser {
       return { textCount: existingTexts.count, styleCount: styles.count };
     }
 
-    // Open provided database
+    // Open provided database (skip if source doesn't exist)
+    if (!existsSync(this.config.dbPath)) {
+      logger.info(`Gutenberg source DB not found at ${this.config.dbPath}, skipping import`);
+      return { textCount: 0, styleCount: 0 };
+    }
     this.providedDb = new Database(this.config.dbPath, { readonly: true });
 
     // Introspect schema

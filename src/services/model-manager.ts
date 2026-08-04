@@ -3,7 +3,7 @@
  * Integrates with Ollama for local model serving.
  */
 
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, renameSync, openSync, readSync, closeSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, renameSync, openSync, readSync, writeSync, closeSync } from "node:fs";
 import { join } from "node:path";
 import { spawn, exec } from "node:child_process";
 import { promisify } from "node:util";
@@ -231,8 +231,9 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
   let downloaded = 0;
 
   const now = Date.now();
-  _activeDownloads.set(filename, {
-    modelId: filename,
+  const modelKey = filename.replace(/\.gguf$/i, "");
+  _activeDownloads.set(modelKey, {
+    modelId: modelKey,
     percent: 0,
     downloaded: 0,
     total: 0,
@@ -248,7 +249,7 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
     const res = await fetch(url, { signal: AbortSignal.timeout(3600000) });
     if (!res.ok || !res.body) {
       log.error({ status: res.status, url }, "GGUF download HTTP error");
-      _activeDownloads.delete(filename);
+      _activeDownloads.delete(modelKey);
       if (existsSync(tmpPath)) unlinkSync(tmpPath);
       return null;
     }
@@ -271,7 +272,7 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
         if (now - lastReport < 1000) continue;
         lastReport = now;
 
-        const entry = _activeDownloads.get(filename);
+        const entry = _activeDownloads.get(modelKey);
         if (!entry) break;
 
         const elapsed = (now - (entry._startTime ?? now)) / 1000;
@@ -302,7 +303,7 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
     const finalSize = existsSync(tmpPath) ? statSync(tmpPath).size : 0;
     if (finalSize < MIN_GGUF_SIZE || !isGgufValid(tmpPath)) {
       log.error({ path: tmpPath, size: finalSize }, "Downloaded GGUF failed validation — deleting");
-      _activeDownloads.delete(filename);
+      _activeDownloads.delete(modelKey);
       if (existsSync(tmpPath)) unlinkSync(tmpPath);
       return null;
     }
@@ -310,17 +311,17 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
     // Atomic rename: .downloading → final name
     renameSync(tmpPath, filePath);
 
-    const finalEntry = _activeDownloads.get(filename);
+    const finalEntry = _activeDownloads.get(modelKey);
     if (finalEntry) {
       finalEntry.percent = 100;
       finalEntry._smoothPercent = 100;
     }
 
-    _activeDownloads.delete(filename);
+    _activeDownloads.delete(modelKey);
     log.info({ filePath, size: downloaded }, "GGUF download complete");
     return filePath;
   } catch (err) {
-    _activeDownloads.delete(filename);
+    _activeDownloads.delete(modelKey);
     // Clean up partial file
     if (existsSync(tmpPath)) {
       unlinkSync(tmpPath);
@@ -384,8 +385,6 @@ export async function listModels(): Promise<ModelInfo[]> {
     }
   }
 
-  saveModels(models);
-
   // Scan local GGUF files (with validation — auto-remove corrupted/incomplete)
   const dir = getGgufDir();
   if (existsSync(dir)) {
@@ -424,8 +423,10 @@ export async function listModels(): Promise<ModelInfo[]> {
         });
       }
     }
-    // Also clean up any orphaned .downloading files
+    // Also clean up orphaned .downloading files (but not active downloads)
     for (const f of readdirSync(dir).filter((f) => f.endsWith(".downloading"))) {
+      const baseName = f.replace(".downloading", "").replace(/\.gguf$/i, "");
+      if (_activeDownloads.has(baseName)) continue; // skip active downloads
       const tmpPath = join(dir, f);
       unlinkSync(tmpPath);
       log.warn({ path: tmpPath }, "Removed orphaned partial download");
@@ -460,8 +461,6 @@ export async function listModels(): Promise<ModelInfo[]> {
       }
     }
   }
-
-  await saveModels(models);
 
   // Deduplicate by ID
   const seen = new Set<string>();

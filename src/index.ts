@@ -122,24 +122,22 @@ async function main() {
   const heartbeatService = new HeartbeatService(eventBus, wsManager);
 
   // MCP Server (v0.28.0) — Bible & Gutenberg parsers
-  // BibleParser and GutenbergParser use data/bible/ and data/gutenberg/ by default
-  const bibleDbPath = join(dbPath, "bible.db");
-  const gutenbergDbPath = join(dbPath, "gutenberg.db");
+  // Use the normalized databases in data/ directories (created by bootstrap scripts)
   const dataBiblePath = join(process.cwd(), "data", "bible", "bible-normalized.db");
   const dataGutenbergPath = join(process.cwd(), "data", "gutenberg", "gutenberg-normalized.db");
   let mcpServer: TNSServer | null = null;
 
-  if (existsSync(dataBiblePath) || existsSync(dataGutenbergPath) || existsSync(bibleDbPath) || existsSync(gutenbergDbPath)) {
+  if (existsSync(dataBiblePath) || existsSync(dataGutenbergPath)) {
     const mcpConfig: TNSServerConfig = {
-      bibleDbPath,
-      gutenbergDbPath,
+      bibleDbPath: dataBiblePath,
+      gutenbergDbPath: dataGutenbergPath,
       entityStore: narrativeCtx.entityStore,
     };
     mcpServer = new TNSServer(mcpConfig);
     await mcpServer.initialize();
     log.info("MCP Server initialized (Bible + Gutenberg parsers)");
   } else {
-    log.info("MCP Server skipped (no bible/gutenberg databases found in data/ or worlds/)");
+    log.info("MCP Server skipped (no bible/gutenberg databases found in data/)");
   }
 
   // Translation Service (v0.25.0) — English as Interlingua

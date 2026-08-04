@@ -117,7 +117,11 @@ export class BibleParser {
       };
     }
 
-    // Open provided database
+    // Open provided database (skip if source doesn't exist)
+    if (!existsSync(this.config.dbPath)) {
+      logger.info(`Bible source DB not found at ${this.config.dbPath}, skipping import`);
+      return { verseCount: 0, bookCount: 0, books: [] };
+    }
     this.providedDb = new Database(this.config.dbPath, { readonly: true });
 
     // Introspect schema

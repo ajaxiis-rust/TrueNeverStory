@@ -1,6 +1,6 @@
 {
   "llmPort": 5001,
-  "llmModel": "deepseek-r1:1.5b",
+  "llmModel": "gemma3-1b-q4_k_m.gguf",
   "llmThreads": 3,
   "llmParallel": 1,
   "llmCtxSize": 3584,
