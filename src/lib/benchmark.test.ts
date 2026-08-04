@@ -120,13 +120,15 @@ describe('Performance: SQLite vs File DB', () => {
     }
     const fileWriteTime = performance.now() - fileStart;
 
-    // SQLite
+    // SQLite — use transaction for fair comparison
     const sqliteDir = join(BENCH_DIR, 'sqlite-db');
     const sqlite = new SQLiteStore(sqliteDir);
+    sqlite.db.exec('BEGIN TRANSACTION');
     const sqliteStart = performance.now();
     for (const e of entities) {
       sqlite.upsertEntity(e);
     }
+    sqlite.db.exec('COMMIT');
     const sqliteWriteTime = performance.now() - sqliteStart;
     sqlite.close();
 
