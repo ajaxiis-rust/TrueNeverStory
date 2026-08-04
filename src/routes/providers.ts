@@ -224,8 +224,13 @@ function loadRateLimitFromProviders(): Record<string, unknown> {
 
 function saveRateLimitToProviders(rateLimit: Record<string, unknown>): void {
   const path = getRateLimitPath();
-  let data: Record<string, unknown> = {};
-  try { data = JSON.parse(readFileSync(path, "utf-8")); } catch (e) { log.debug({ err: e, path }, "Failed to read rate limit config"); }
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(readFileSync(path, "utf-8"));
+  } catch {
+    log.error({ path }, "Failed to parse providers.json — refusing to overwrite");
+    return;
+  }
   data.rateLimit = rateLimit;
   writeFileSync(path, JSON.stringify(data, null, 2));
 }
