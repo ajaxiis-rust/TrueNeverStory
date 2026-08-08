@@ -809,8 +809,11 @@ async function deselectAllCatalog() {
 }
 
 async function downloadSelectedCatalog() {
-  const d = await api("gutenberg/download-selected", { method: "POST", body: JSON.stringify({}) });
-  if (d?.job_id) {
+  const checked = document.querySelectorAll("#catalog-results input[type=checkbox][data-etextno]:checked");
+  const etextnos = Array.from(checked).map(cb => parseInt(cb.dataset.etextno));
+  if (etextnos.length === 0) { toast("No books selected", "error"); return; }
+  const d = await api("gutenberg/download-selected", { method: "POST", body: JSON.stringify({ etextnos }) });
+  if (d?.jobId) {
     toast("Download started", "success");
   } else if (d?.error) {
     toast(d.error, "error");
