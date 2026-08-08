@@ -1,7 +1,7 @@
 # TrueNeverStory — Architecture Document
 
 > A Domain-Driven Design analysis of the TrueNeverStory narrative RPG engine.
-> Updated for v0.29.6 — Literary Compiler v2, Hybrid Retrieval Pipeline, 12 Canonical Archetypes, MCP Console.
+> Updated for v0.30.5 — RoleplayEngine refactored with SessionState, CommandHandler, PipelineRunner, Prose strategies.
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Layered Onion Architecture with Event-Driven Extensions + State-First Pipeline**
 
-TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.29.6, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
+TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.30.5, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
 
 The pattern fits because:
 
@@ -21,42 +21,46 @@ The pattern fits because:
 
 The **event bus** (`EventBus` in `src/lib/event-bus.ts`) adds an asynchronous decoupling layer between bounded contexts, enabling the Director Loop to orchestrate narrative events without direct coupling to NPC, Social, or Quest subsystems.
 
-### State-First Pipeline (v0.29.6)
+### State-First Pipeline (v0.30.5)
+
+The pipeline is now structured as composable stages managed by `PipelineRunner`:
 
 ```
 Player Input (any language)
   │
   ▼
-Translate + Classify Intent (1 LLM call — small model)
+PipelineRunner.buildContext() — snapshot engine state
+  │
+  ▼
+PipelineRunner.translateAndClassify() — IntentParser + TranslationService
   │ translated text + intent
   ▼
-Simulation Engine (deterministic — no LLM)
+CommandHandler.handle() — early exit for commands
+  │
+  ▼
+PipelineRunner.runSimulation() — SimulationEngine (deterministic)
   │ outcome, probability, stateChanges
   ▼
-State Mutator (EntityStore L1-L3)
+StateMutator.applyChanges() — apply to EntityStore
   │
   ▼
-Context Builder (shared game state — no LLM)
+PipelineRunner.buildGameContext() — ContextBuilder
   │
   ▼
-Dramaturg (Bible pattern selection via MCP)
+Prose Generators:
+  ├─ LiteraryV2Generator (feature-flag gated) → Stylist
+  └─ LegacyIntentGenerator → MovementHandler | DialogueHandler | ObservationHandler | ActionHandler
   │
   ▼
-Stylist (Gutenberg style rendering via MCP)
-  │
-  ▼
-Censor (AI cliché removal)
-  │
-  ▼
-Translate Response (1 LLM call — small model)
+TranslationService.translate() — if non-English target language
   │
   ▼
 Response to User
 
-Total: 2-3 LLM calls (was 4-5 in v0.29.6)
+Total: 2-3 LLM calls
 ```
 
-### Dual Model Architecture (v0.29.6)
+### Dual Model Architecture (v0.30.5)
 
 The engine supports two LLM models per agent:
 
@@ -413,7 +417,7 @@ The engine supports two LLM models per agent:
 
 ---
 
-### BC12: Literary Compiler v2 (v0.29.6)
+### BC12: Literary Compiler v2 (v0.30.5)
 
 **Purpose:** Offline narrative extraction from literary sources and runtime hybrid retrieval for constrained prose generation. Replaces the LLM-heavy v1 pipeline with a deterministic template + style pattern system.
 
@@ -557,7 +561,7 @@ Cross-cutting services that don't belong to a single aggregate:
 | Service | File | Purpose |
 |---------|------|---------|
 | `NarrativeService` | `src/services/narrative-service.ts` | **Composition Root** — instantiates and wires all narrative subsystems |
-| `RoleplayEngine` | `src/services/roleplay-engine.ts` | Main entry point for player input → agent dispatch |
+| `RoleplayEngine` | `src/services/roleplay-engine.ts` | Main entry point: orchestrates PipelineRunner → CommandHandler → Prose generators. SessionState extracted to `roleplay/session-state.ts`, handlers in `roleplay/handlers/` |
 | `StoryEngine` | `src/services/story-engine.ts` | Event generation from beats + effect application (NPC moves, relationship changes, quest creation) |
 | `DirectorLoop` | `src/services/director-loop.ts` | Background orchestrator: clock tick → social sim → villain → chance events → story beats |
 | `SocialSimulator` | `src/services/social-simulator.ts` | NPC pair selection + interaction generation |
@@ -617,11 +621,12 @@ All events are defined in `EventTopic` enum (`src/lib/event-bus.ts`):
    └─→ routes/chat.ts: Zod validation, input sanitization
 
 2. RoleplayEngine.processInput(sanitizedMessage)
-   ├─→ Detect intent: movement, dialogue, @agent mention, or general
-   ├─→ If movement: SceneAgent → location update → NarratorAgent
-   ├─→ If dialogue: NPCAgent → dialogue context → response
-   ├─→ If @agent: dispatch to named agent (researcher, historian, etc.)
-   └─→ Otherwise: NarratorAgent.generate(context, memories, facts, history)
+   ├─→ SessionState (activeCharacter, currentLocation, currentTime)
+   ├─→ PipelineRunner.translateAndClassify() → IntentParser
+   ├─→ CommandHandler.handle() for commands
+   ├─→ PipelineRunner.runSimulation() → SimulationEngine
+   ├─→ Prose generation: LiteraryV2Generator or LegacyIntentGenerator
+   └─→ Returns narrative string
 
 3. NarratorAgent.generate()
    ├─→ loadAgentConfig("narrator") → SQLite prompts → JSON fallback → defaults
@@ -972,7 +977,7 @@ Query flow:
         │
         ▼
 ┌─────────────────────┐
-│  Literary Compiler   │  (BC12, v0.29.6)
+│  Literary Compiler   │  (BC12, v0.30.5)
 │  v2                  │
 └─────────────────────┘
 ```
