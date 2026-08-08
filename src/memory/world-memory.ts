@@ -250,7 +250,7 @@ export class WorldMemory {
     this._speculativeCache.invalidate(fullEntry.sourceType);
 
     if (this._broadcastCallback) {
-      try { await this._broadcastCallback(fullEntry); } catch { /* */ }
+      try { await this._broadcastCallback(fullEntry); } catch (err) { log.debug({ err }, 'world memory broadcast skipped'); }
     }
 
     return fullEntry.id;

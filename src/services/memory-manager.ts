@@ -41,7 +41,7 @@ export class MemoryManager {
   }
 
   private _save(): void {
-    atomicWriteJson(this._storagePath, { history: this._history }).catch(() => {});
+    atomicWriteJson(this._storagePath, { history: this._history }).catch((err) => { log.debug({ err }, 'memory save skipped'); });
   }
 
   addEntry(userInput: string, assistantOutput: string, metadata?: Record<string, unknown>): void {

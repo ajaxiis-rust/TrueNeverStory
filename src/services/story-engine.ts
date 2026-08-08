@@ -16,6 +16,7 @@ import type { NPCRuntime } from "./npc-runtime";
 import { EventTopic } from "../lib/event-bus";
 import { TaskPriority } from "../models/director";
 import { randomUUID } from "node:crypto";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("story-engine");

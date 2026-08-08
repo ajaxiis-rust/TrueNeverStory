@@ -14,6 +14,7 @@ import {
   StackingRule,
 } from "../models/probability";
 import { getLogger } from "../utils/logger";
+import { getPRNG } from "../lib/prng";
 import { safeEval } from "./probability-expression";
 import type { IContextResolver, INpcManager, IWorldMemory, IWorldClock } from "./probability-types";
 
@@ -234,7 +235,7 @@ export class ProbabilityEngine {
   ): ProbabilityResult {
     const probability = this.compute(profile, context, entityUid);
 
-    let rollValue = explicitRoll ?? Math.random();
+    let rollValue = explicitRoll ?? getPRNG().next();
     if (this._worldClock) {
       const globalLuck = this._worldClock.getGlobalLuck?.() ?? 0.5;
       rollValue = Math.max(0, Math.min(1, rollValue + (globalLuck - 0.5) * 0.2));

@@ -10,6 +10,7 @@ import {
 import { UnifiedEntityStore } from '@/store/entity-store';
 import { EventBus } from '@/lib/event-bus';
 import { getLogger } from '@/utils/logger';
+import { getPRNG } from '@/lib/prng';
 
 const logger = getLogger('SimulationEngine');
 
@@ -56,7 +57,7 @@ export class SimulationEngine {
     // Movement and action need probability rolls
     const modifiers = this.resolveModifiers(intent, context);
     const probability = this.computeProbability(intent, modifiers, context);
-    const rawRoll = Math.random();
+    const rawRoll = getPRNG().next();
     const outcome = outcomeFromProbability(probability);
 
     const stateChanges = this.computeStateChanges(intent, outcome, context);

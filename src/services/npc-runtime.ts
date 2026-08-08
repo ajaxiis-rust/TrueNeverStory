@@ -18,6 +18,7 @@ import {
 } from "../models/npc-state";
 import { readJsonFileSync } from "../lib/atomic-io";
 import { atomicWriteJson } from "../lib/atomic-io";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("npc-runtime");

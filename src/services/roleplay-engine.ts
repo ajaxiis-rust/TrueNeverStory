@@ -167,6 +167,9 @@ export class RoleplayEngine {
   private _userAgent?: UserAgent;
   private _sqliteStore?: SQLiteStore;
 
+  // Sequential processing queue — prevents concurrent processInput/processInputStream
+  private _processingQueue: Promise<void> = Promise.resolve();
+
   constructor(deps: EngineDeps) {
     this._dbPath = deps.dbPath;
     this._entityStore = deps.entityStore;
@@ -261,6 +264,19 @@ export class RoleplayEngine {
   // ─── Main Input Processing (State-First Pipeline) ──────────────────────
 
   async processInput(userInput: string): Promise<string | { agentResponse: { response: string; agentId: string; agentName: string } }> {
+    // Sequential queue: wait for previous call to complete
+    const prev = this._processingQueue;
+    let resolve: () => void;
+    this._processingQueue = new Promise<void>(r => { resolve = r; });
+    await prev;
+    try {
+      return await this._processInputImpl(userInput);
+    } finally {
+      resolve!();
+    }
+  }
+
+  private async _processInputImpl(userInput: string): Promise<string | { agentResponse: { response: string; agentId: string; agentName: string } }> {
     const stripped = userInput.trim();
     if (!stripped) return '';
 
@@ -303,7 +319,7 @@ export class RoleplayEngine {
       intent = await this.intentParser.parse(parsedInput, parserContext);
     }
 
-    this._eventBus.publishSimple(EventTopic.HEARTBEAT_INTENT_PARSED, { input: stripped }, 'engine');
+    await this._eventBus.publishSimple(EventTopic.HEARTBEAT_INTENT_PARSED, { input: stripped }, 'engine');
 
     // Step 2: Handle commands directly (no simulation needed)
     if (isCommandIntent(intent)) {
@@ -311,7 +327,7 @@ export class RoleplayEngine {
     }
 
     // Step 3: Run deterministic simulation
-    this._eventBus.publishSimple(EventTopic.HEARTBEAT_SIMULATION_STARTED, {}, 'engine');
+    await this._eventBus.publishSimple(EventTopic.HEARTBEAT_SIMULATION_STARTED, {}, 'engine');
     const characterEntity = this._entityStore.getByNameAndType(this.activeCharacter ?? 'unknown', 'Character');
     const simContext = {
       characterLevel: typeof characterEntity?.profile?.l2?.['level'] === 'number' ? characterEntity.profile.l2['level'] : 1,
@@ -323,14 +339,14 @@ export class RoleplayEngine {
       activeDebuffs: [],
     };
     const simResult = await this.simulationEngine.simulate(intent, simContext);
-    this._eventBus.publishSimple(EventTopic.HEARTBEAT_SIMULATION_COMPLETE, {
+    await this._eventBus.publishSimple(EventTopic.HEARTBEAT_SIMULATION_COMPLETE, {
       outcome: simResult.outcome,
       probability: simResult.probability,
     }, 'engine');
 
     // Step 4: Apply state changes immediately
     if (simResult.stateChanges.length > 0) {
-      this._eventBus.publishSimple(EventTopic.HEARTBEAT_STATE_MUTATED, {}, 'engine');
+      await this._eventBus.publishSimple(EventTopic.HEARTBEAT_STATE_MUTATED, {}, 'engine');
       await this.stateMutator.applyChanges(simResult.stateChanges);
     }
 
@@ -338,7 +354,7 @@ export class RoleplayEngine {
     const gameContext = await this.contextBuilder.build(engineState);
 
     // Step 6: Generate prose based on intent type
-    this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
+    await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
     let narrative = '';
 
     // V2 pipeline: try literary-compiler-v2 if enabled
@@ -398,7 +414,7 @@ export class RoleplayEngine {
       }
     }
 
-    this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_COMPLETE, {}, 'engine');
+    await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_COMPLETE, {}, 'engine');
 
     // Step 6.5: Translate if needed
     if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
@@ -428,6 +444,19 @@ export class RoleplayEngine {
   }
 
   async *processInputStream(userInput: string): AsyncGenerator<{ type: string; content?: string; agent_id?: string; agent_name?: string; location?: string; story_time?: string; active_character?: string; error?: string }> {
+    // Sequential queue: wait for previous call to complete
+    const prev = this._processingQueue;
+    let resolve: () => void;
+    this._processingQueue = new Promise<void>(r => { resolve = r; });
+    await prev;
+    try {
+      yield* this._processInputStreamImpl(userInput);
+    } finally {
+      resolve!();
+    }
+  }
+
+  private async *_processInputStreamImpl(userInput: string): AsyncGenerator<{ type: string; content?: string; agent_id?: string; agent_name?: string; location?: string; story_time?: string; active_character?: string; error?: string }> {
     const stripped = userInput.trim();
     if (!stripped) {
       yield { type: 'done', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };

@@ -2,6 +2,8 @@
  * NPC Economy System — NPC Roles
  */
 
+import { getPRNG } from "../lib/prng";
+
 export interface NPCRoleConfig {
   name: string;
   weight: number;

@@ -10,6 +10,9 @@ import { WikipediaMCPTools } from "@/mcp/tools/wikipedia";
 import { join } from "node:path";
 import { existsSync, statSync } from "node:fs";
 import { Database } from "bun:sqlite";
+import { getLogger } from "../utils/logger";
+
+const log = getLogger("mcp-route");
 
 export const mcpRouter = new Hono();
 
@@ -188,7 +191,7 @@ mcpRouter.get("/bible/stats", (c) => {
     const books = parser.getBooks();
     const charDB = new CharacterDB(parser);
     let charCount = 0;
-    try { charCount = charDB.getAll().length; } catch { /* no char table */ }
+    try { charCount = charDB.getAll().length; } catch (err) { log.debug({ err }, 'mcp bible char table query skipped, table may not exist'); }
     return c.json({ exists: true, verses: verseCount, books: books.length, characters: charCount, dbPath: BIBLE_DB });
   } finally {
     parser.close();
@@ -511,7 +514,7 @@ mcpRouter.get("/literary/stats", (c) => {
     const row = db.query("SELECT COUNT(*) as n FROM scene_templates").get() as { n: number } | null;
     templates = row?.n ?? 0;
     db.close();
-  } catch { /* table may not exist */ }
+  } catch (err) { log.debug({ err }, 'mcp literary stats table query skipped, table may not exist'); }
   return c.json({ exists: true, templates, size: stat.size, dbPath: LIT_COMP_DB });
 });
 
@@ -524,7 +527,7 @@ mcpRouter.get("/literary/templates", (c) => {
     templates = db.query("SELECT * FROM scene_templates WHERE name LIKE ? OR description LIKE ? LIMIT 50")
       .all(`%${q}%`, `%${q}%`) as unknown[];
     db.close();
-  } catch { /* table may not exist */ }
+  } catch (err) { log.debug({ err }, 'mcp literary templates query skipped, table may not exist'); }
   return c.json({ templates, query: q });
 });
 
