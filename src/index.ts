@@ -93,6 +93,33 @@ async function main() {
   const dbPath = join(worldsRoot, activeWorld);
   log.info({ world: activeWorld, path: dbPath }, "Active world resolved");
 
+  // ── MCP mode: skip game engine, only database management ──
+  if (process.env.TNS_MCP_MODE === "1") {
+    log.info("MCP mode — skipping game engine initialization");
+
+    const app = createApp();
+    const port = cfg.WORLD_SERVER_PORT;
+    const host = cfg.WORLD_SERVER_HOST;
+
+    const server = Bun.serve({
+      fetch(req) { return app.fetch(req); },
+      port,
+      hostname: host,
+    });
+
+    log.info(`TrueNeverStory MCP server running at http://${server.hostname}:${port}`);
+    log.info("Ready to accept connections");
+
+    const shutdown = () => {
+      log.info("Shutting down...");
+      server.stop();
+      process.exit(0);
+    };
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+    return;
+  }
+
   // Load world frame
   const worldFramePath = join(dbPath, "world_frame.json");
   let worldFrame: Record<string, unknown> = {};
