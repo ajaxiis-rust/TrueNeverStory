@@ -166,7 +166,12 @@ mcpRouter.get("/stream/:jobId", (c) => {
         send(`data: ${JSON.stringify({ progress: job.progress, message: job.message, status: job.status })}\n\n`);
         job.listeners.add(send);
 
+        const keepalive = setInterval(() => {
+          try { controller.enqueue(encoder.encode(": keepalive\n\n")); } catch { /* stream closed */ }
+        }, 5000);
+
         c.req.raw.signal.addEventListener("abort", () => {
+          clearInterval(keepalive);
           job.listeners.delete(send);
           controller.close();
         });
