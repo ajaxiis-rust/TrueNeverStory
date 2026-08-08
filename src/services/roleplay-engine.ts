@@ -42,6 +42,8 @@ import { join } from 'node:path';
 import { t } from '../i18n';
 import { SessionState, type SessionParams } from './roleplay/session-state';
 import { CommandHandler } from './roleplay/handlers/command-handler';
+import { PipelineRunner } from './roleplay/pipeline-runner';
+import type { PipelineContext } from './roleplay/pipeline-context';
 
 // v0.25.0 New agents
 import { DramaturgAgent } from './agents/dramaturg';
@@ -160,6 +162,9 @@ export class RoleplayEngine {
   // Command handler
   readonly commandHandler: CommandHandler;
 
+  // Pipeline runner
+  readonly pipelineRunner: PipelineRunner;
+
   // Backward-compat getter/setter
   get activeCharacter() { return this.session.activeCharacter; }
   set activeCharacter(v: string | null) { this.session.activeCharacter = v; }
@@ -265,6 +270,19 @@ export class RoleplayEngine {
       userAgent: deps.userAgent,
       session: this.session,
     });
+
+    this.pipelineRunner = new PipelineRunner({
+      entityStore: deps.entityStore,
+      llmQueue: deps.llmQueue,
+      historyMgr: deps.historyMgr,
+      worldFrame: deps.worldFrame,
+      session: this.session,
+      translationService: this.translationService,
+      intentParser: this.intentParser,
+      simulationEngine: this.simulationEngine,
+      stateMutator: this.stateMutator,
+      contextBuilder: this.contextBuilder,
+    });
   }
 
   reset(newDbPath: string): void {
@@ -299,68 +317,29 @@ export class RoleplayEngine {
   }
 
   private async _processInputImpl(userInput: string): Promise<string | { agentResponse: { response: string; agentId: string; agentName: string } }> {
-    const stripped = userInput.trim();
-    if (!stripped) return '';
+    const ctx = this.pipelineRunner.buildContext(userInput);
+    if (!ctx.parsedInput) return '';
 
-    // Agent mentions bypass the new pipeline (backward compat)
-    const agentMatch = stripped.match(AGENT_MENTION);
+    // Agent mentions bypass the new pipeline
+    const agentMatch = ctx.parsedInput.match(AGENT_MENTION);
     if (agentMatch) {
       const result = await this.processAgentMessage(agentMatch[1]!, agentMatch[2]!);
       return { agentResponse: result };
     }
 
-    // Build engine state
-    const engineState: EngineState = {
-      activeCharacter: this.activeCharacter,
-      currentLocation: this.currentLocation,
-      currentTime: this.currentTime,
-      userRole: this.userRole,
-      visitedLocations: this.visitedLocations,
-    };
+    // Step 0+1: Translate + classify intent
+    const intent = await this.pipelineRunner.translateAndClassify(ctx);
+    await this._eventBus.publishSimple(EventTopic.HEARTBEAT_INTENT_PARSED, { input: ctx.parsedInput }, 'engine');
 
-    // Step 0+1: Translate + classify intent in one call (saves 1 LLM request)
-    let parsedInput = stripped;
-    let intent: Intent;
-    const needsTranslation = this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en';
-    const inputLang = needsTranslation ? this.translationService.detectLanguage(stripped) : 'en';
-
-    if (needsTranslation && inputLang !== 'en') {
-      const combined = await this.translationService.translateAndClassify(stripped, inputLang);
-      if (combined) {
-        parsedInput = combined.translated;
-        intent = combined.intent;
-      } else {
-        // Fallback: translate separately, then parse
-        parsedInput = await this.translationService.translateToEnglish(stripped, inputLang);
-        const parserContext = this.contextBuilder.buildParserContext(engineState);
-        intent = await this.intentParser.parse(parsedInput, parserContext);
-      }
-    } else {
-      // English input: parse intent normally
-      const parserContext = this.contextBuilder.buildParserContext(engineState);
-      intent = await this.intentParser.parse(parsedInput, parserContext);
-    }
-
-    await this._eventBus.publishSimple(EventTopic.HEARTBEAT_INTENT_PARSED, { input: stripped }, 'engine');
-
-    // Step 2: Handle commands directly (no simulation needed)
+    // Step 2: Handle commands directly
     if (isCommandIntent(intent)) {
       return this._handleCommand(intent.command + (intent.args?.raw ? ` ${intent.args.raw}` : ''));
     }
 
     // Step 3: Run deterministic simulation
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_SIMULATION_STARTED, {}, 'engine');
-    const characterEntity = this._entityStore.getByNameAndType(this.activeCharacter ?? 'unknown', 'Character');
-    const simContext = {
-      characterLevel: typeof characterEntity?.profile?.l2?.['level'] === 'number' ? characterEntity.profile.l2['level'] : 1,
-      characterStats: (characterEntity?.profile?.l2 ?? {}) as Record<string, number>,
-      locationDanger: 0,
-      timeOfDay: this._getTimeOfDay(),
-      weather: 'clear',
-      activeBuffs: [],
-      activeDebuffs: [],
-    };
-    const simResult = await this.simulationEngine.simulate(intent, simContext);
+    ctx.intent = intent;
+    const simResult = await this.pipelineRunner.runSimulation(ctx);
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_SIMULATION_COMPLETE, {
       outcome: simResult.outcome,
       probability: simResult.probability,
@@ -373,7 +352,7 @@ export class RoleplayEngine {
     }
 
     // Step 5: Build context from UPDATED state
-    const gameContext = await this.contextBuilder.build(engineState);
+    const gameContext = await this.pipelineRunner.buildGameContext(ctx);
 
     // Step 6: Generate prose based on intent type
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
@@ -448,14 +427,14 @@ export class RoleplayEngine {
 
     // Step 7: Log and persist
     await this.chronicler.logEvent(
-      `User action: ${stripped}`,
+      `User action: ${ctx.parsedInput}`,
       this.currentTime,
       'user_input',
     );
-    this.memory.addEntry(stripped, narrative);
+    this.memory.addEntry(ctx.parsedInput, narrative);
 
     if (this.activeSessionId) {
-      this._historyMgr.addTurn(this.activeSessionId, 'user', stripped);
+      this._historyMgr.addTurn(this.activeSessionId, 'user', ctx.parsedInput);
       this._historyMgr.addTurn(this.activeSessionId, 'assistant', narrative);
     }
 
