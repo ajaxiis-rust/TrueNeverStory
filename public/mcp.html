@@ -76,6 +76,12 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 .empty{color:var(--text-disabled);font-style:italic;padding:20px;text-align:center}
 
 .result-box{margin-top:8px;padding:12px;background:var(--surface-raised);border-radius:var(--radius-md);font-size:13px;white-space:pre-wrap;max-height:300px;overflow-y:auto}
+
+.progress-bar-container{display:none;margin:12px 0}
+.progress-bar-container.active{display:block}
+.progress-bar-track{background:var(--surface);border-radius:var(--radius-pill);height:6px;overflow:hidden}
+.progress-bar-fill{background:var(--accent);height:100%;border-radius:var(--radius-pill);transition:width 340ms var(--ease-out);width:0%}
+.progress-bar-label{font-size:11px;color:var(--text-disabled);margin-top:4px}
 </style>
 </head>
 <body>
@@ -165,14 +171,14 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
   <div class="panel" id="panel-catalog">
     <div class="stats-grid" id="catalog-stats"></div>
     <div class="section">
-      <div class="section__title">Build Catalog</div>
+      <div class="section__title" data-i18n="mcp.catalog.build">Build Catalog</div>
       <div class="search-row">
-        <input class="input" id="catalog-authors" placeholder="Authors (comma-separated): Mark Twain, Jack London...">
-        <input class="input" id="catalog-topic" placeholder="Topic (optional): adventure, romance..." style="max-width:200px">
+        <input class="input" id="catalog-authors" data-i18n-placeholder="mcp.catalog.authorsPlaceholder" placeholder="Authors (comma-separated): Mark Twain, Jack London...">
+        <input class="input" id="catalog-topic" data-i18n-placeholder="mcp.catalog.topicPlaceholder" placeholder="Topic (optional): adventure, romance..." style="max-width:200px">
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn btn--success" onclick="buildCatalog()">Build Catalog</button>
-        <button class="btn" onclick="buildCatalogPopular()">Popular 500</button>
+        <button class="btn btn--success" onclick="buildCatalog()" data-i18n="mcp.catalog.build">Build Catalog</button>
+        <button class="btn" onclick="buildCatalogPopular()" data-i18n="mcp.catalog.popular500">Popular 500</button>
       </div>
       <div id="catalog-build-progress" style="display:none">
         <div style="background:var(--surface);border-radius:var(--radius-md);padding:8px 12px;font-size:12px">
@@ -181,25 +187,25 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       </div>
     </div>
     <div class="section">
-      <div class="section__title">Search & Filter</div>
+      <div class="section__title" data-i18n="mcp.catalog.filter">Search & Filter</div>
       <div class="search-row">
-        <input class="input" id="catalog-q" placeholder="Search by title, author, subjects...">
-        <button class="btn" onclick="searchCatalog()">Search</button>
+        <input class="input" id="catalog-q" data-i18n-placeholder="mcp.catalog.searchPlaceholder" placeholder="Search by title, author, subjects...">
+        <button class="btn" onclick="searchCatalog()" data-i18n="mcp.catalog.searchBtn">Search</button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-        <input class="input" id="catalog-filter-author" placeholder="Author" style="max-width:200px">
-        <input class="input" id="catalog-filter-year-from" placeholder="Year from" style="max-width:120px" type="number">
-        <input class="input" id="catalog-filter-year-to" placeholder="Year to" style="max-width:120px" type="number">
-        <input class="input" id="catalog-filter-min-dl" placeholder="Min downloads" style="max-width:140px" type="number">
-        <button class="btn" onclick="filterCatalog()">Apply</button>
-        <button class="btn" onclick="clearCatalogFilter()">Clear</button>
+        <input class="input" id="catalog-filter-author" data-i18n-placeholder="mcp.catalog.authorPlaceholder" placeholder="Author" style="max-width:200px">
+        <input class="input" id="catalog-filter-year-from" data-i18n-placeholder="mcp.catalog.yearFromPlaceholder" placeholder="Year from" style="max-width:120px" type="number">
+        <input class="input" id="catalog-filter-year-to" data-i18n-placeholder="mcp.catalog.yearToPlaceholder" placeholder="Year to" style="max-width:120px" type="number">
+        <input class="input" id="catalog-filter-min-dl" data-i18n-placeholder="mcp.catalog.minDlPlaceholder" placeholder="Min downloads" style="max-width:140px" type="number">
+        <button class="btn" onclick="filterCatalog()" data-i18n="mcp.catalog.apply">Apply</button>
+        <button class="btn" onclick="clearCatalogFilter()" data-i18n="mcp.catalog.clear">Clear</button>
       </div>
     </div>
     <div class="section">
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn" onclick="selectAllCatalog()">Select All</button>
-        <button class="btn" onclick="deselectAllCatalog()">Deselect All</button>
-        <button class="btn btn--success" onclick="downloadSelectedCatalog()">Download Selected</button>
+        <button class="btn" onclick="selectAllCatalog()" data-i18n="mcp.catalog.selectAll">Select All</button>
+        <button class="btn" onclick="deselectAllCatalog()" data-i18n="mcp.catalog.deselectAll">Deselect All</button>
+        <button class="btn btn--success" onclick="downloadSelectedCatalog()" data-i18n="mcp.catalog.downloadSelected">Download Selected</button>
         <span id="catalog-selected-count" style="color:var(--text-secondary);font-size:12px;display:flex;align-items:center"></span>
       </div>
       <div id="catalog-results"></div>
@@ -258,9 +264,8 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div id="economics-phase" class="empty">Loading...</div>
     </div>
     <div class="section">
-      <div class="section__title" data-i18n="mcp.economics.dilemma">Generate Dilemma</div>
-      <button class="btn" onclick="generateDilemma()" data-i18n="mcp.economics.generateBtn">Generate</button>
-      <div id="economics-dilemma"></div>
+      <div class="section__title">Jubilee</div>
+      <div id="economics-jubilee" class="empty">Loading...</div>
     </div>
   </div>
 
@@ -279,6 +284,11 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 </div>
 
 <div class="toast-container" id="toasts"></div>
+
+<div class="progress-bar-container" id="progress-bar">
+  <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill"></div></div>
+  <div class="progress-bar-label" id="progress-label"></div>
+</div>
 
 <script>
 // ── i18n ──────────────────────────────────────────────────────
@@ -308,6 +318,23 @@ const I18N = {
     "mcp.economics.dilemma": "Generate Dilemma",
     "mcp.system.logs": "Operation Logs", "mcp.system.rebuildIndex": "Rebuild Index",
     "mcp.system.cleanOrphans": "Clean Orphans",
+    "mcp.catalog.build": "Build Catalog", "mcp.catalog.filter": "Search & Filter",
+    "mcp.catalog.selectAll": "Select All", "mcp.catalog.deselectAll": "Deselect All",
+    "mcp.catalog.downloadSelected": "Download Selected", "mcp.catalog.popular500": "Popular 500",
+    "mcp.catalog.apply": "Apply", "mcp.catalog.clear": "Clear",
+    "mcp.catalog.prev": "Prev", "mcp.catalog.next": "Next",
+    "mcp.catalog.empty": "No books in catalog", "mcp.catalog.page": "Page",
+    "mcp.catalog.colTitle": "Title", "mcp.catalog.colAuthor": "Author",
+    "mcp.catalog.colSubjects": "Subjects", "mcp.catalog.colDownloads": "Downloads",
+    "mcp.catalog.colWords": "Words", "mcp.catalog.colStatus": "Status",
+    "mcp.catalog.authorsPlaceholder": "Authors (comma-separated): Mark Twain, Jack London...",
+    "mcp.catalog.topicPlaceholder": "Topic (optional): adventure, romance...",
+    "mcp.catalog.searchPlaceholder": "Search by title, author, subjects...",
+    "mcp.catalog.authorPlaceholder": "Author",
+    "mcp.catalog.yearFromPlaceholder": "Year from",
+    "mcp.catalog.yearToPlaceholder": "Year to",
+    "mcp.catalog.minDlPlaceholder": "Min downloads",
+    "mcp.catalog.searchBtn": "Search",
   },
   ru: {
     "mcp.title": "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0431\u0430\u0437\u0430\u043c\u0438 \u0434\u0430\u043d\u043d\u044b\u0445", "mcp.back": "\u2190 \u041d\u0430\u0437\u0430\u0434",
@@ -334,6 +361,238 @@ const I18N = {
     "mcp.economics.dilemma": "\u0413\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f \u0434\u0438\u043b\u0435\u043c\u043c\u044b",
     "mcp.system.logs": "\u041b\u043e\u0433\u0438 \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0439", "mcp.system.rebuildIndex": "\u041f\u0435\u0440\u0435\u0438\u043d\u0434\u0435\u043a\u0441\u0430\u0446\u0438\u044f",
     "mcp.system.cleanOrphans": "\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u043e\u0441\u0438\u0440\u043e\u0442\u0435\u0432\u0448\u0438\u0435",
+    "mcp.catalog.build": "\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u043a\u0430\u0442\u0430\u043b\u043e\u0433", "mcp.catalog.filter": "\u041f\u043e\u0438\u0441\u043a \u0438 \u0444\u0438\u043b\u044c\u0442\u0440",
+    "mcp.catalog.selectAll": "\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0432\u0441\u0451", "mcp.catalog.deselectAll": "\u0421\u043d\u044f\u0442\u044c \u0432\u0441\u0451",
+    "mcp.catalog.downloadSelected": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u0435", "mcp.catalog.popular500": "\u0422\u043e\u043f-500",
+    "mcp.catalog.apply": "\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c", "mcp.catalog.clear": "\u0421\u0431\u0440\u043e\u0441",
+    "mcp.catalog.prev": "\u041d\u0430\u0437\u0430\u0434", "mcp.catalog.next": "\u0412\u043f\u0435\u0440\u0451\u0434",
+    "mcp.catalog.empty": "\u041a\u043d\u0438\u0433 \u0432 \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0435 \u043d\u0435\u0442", "mcp.catalog.page": "\u0421\u0442\u0440.",
+    "mcp.catalog.colTitle": "\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435", "mcp.catalog.colAuthor": "\u0410\u0432\u0442\u043e\u0440",
+    "mcp.catalog.colSubjects": "\u0422\u0435\u043c\u044b", "mcp.catalog.colDownloads": "\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0438",
+    "mcp.catalog.colWords": "\u0421\u043b\u043e\u0432", "mcp.catalog.colStatus": "\u0421\u0442\u0430\u0442\u0443\u0441",
+    "mcp.catalog.authorsPlaceholder": "\u0410\u0432\u0442\u043e\u0440\u044b (\u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e): \u041c\u0430\u0440\u043a \u0422\u0432\u0435\u043d, \u0414\u0436\u0435\u043a \u041b\u043e\u043d\u0434\u043e\u043d...",
+    "mcp.catalog.topicPlaceholder": "\u0422\u0435\u043c\u0430 (\u043e\u043f\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u043e): \u043f\u0440\u0438\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f, \u0440\u043e\u043c\u0430\u043d\u0442\u0438\u043a\u0430...",
+    "mcp.catalog.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044e, \u0430\u0432\u0442\u043e\u0440\u0443, \u0442\u0435\u043c\u0430\u043c...",
+    "mcp.catalog.authorPlaceholder": "\u0410\u0432\u0442\u043e\u0440",
+    "mcp.catalog.yearFromPlaceholder": "\u0413\u043e\u0434 \u043e\u0442",
+    "mcp.catalog.yearToPlaceholder": "\u0413\u043e\u0434 \u0434\u043e",
+    "mcp.catalog.minDlPlaceholder": "\u041c\u0438\u043d. \u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a",
+    "mcp.catalog.searchBtn": "\u041f\u043e\u0438\u0441\u043a",
+  },
+  de: {
+    "mcp.title": "Datenbankverwaltung", "mcp.back": "\u2190 Zur\u00fcck",
+    "mcp.tab.dashboard": "\u00dcbersicht", "mcp.tab.bible": "Bibel",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.catalog": "Katalog", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.literary": "Literatur", "mcp.tab.economics": "Wirtschaft",
+    "mcp.tab.system": "System",
+    "mcp.quickActions": "Schnellaktionen", "mcp.compactAll": "Alle komprimieren",
+    "mcp.rebuildIndex": "Index neu aufbauen", "mcp.search": "Suchen",
+    "mcp.bible.search": "Verse suchen", "mcp.bible.searchPlaceholder": "Verse suchen...",
+    "mcp.bible.characters": "Personen", "mcp.bible.charPlaceholder": "Personen suchen...",
+    "mcp.bible.bootstrap": "Bootstrap", "mcp.bible.compact": "Komprimieren",
+    "mcp.gutenberg.search": "Stile suchen", "mcp.gutenberg.searchPlaceholder": "Stile suchen...",
+    "mcp.gutenberg.delexify": "Delexifizieren", "mcp.gutenberg.delexifyPlaceholder": "Text einf\u00fcgen...",
+    "mcp.gutenberg.delexifyBtn": "Delexifizieren", "mcp.gutenberg.download": "Korpus herunterladen",
+    "mcp.gutenberg.convert": "Konvertieren", "mcp.gutenberg.compact": "Komprimieren",
+    "mcp.wikipedia.search": "Artikel suchen", "mcp.wikipedia.searchPlaceholder": "Wikipedia durchsuchen...",
+    "mcp.wikipedia.verify": "Faktenpr\u00fcfung", "mcp.wikipedia.claimPlaceholder": "Behauptung pr\u00fcfen...",
+    "mcp.wikipedia.verifyBtn": "Pr\u00fcfen", "mcp.wikipedia.download": "Herunterladen",
+    "mcp.wikipedia.convert": "Konvertieren", "mcp.wikipedia.compact": "Komprimieren",
+    "mcp.literary.templates": "Quest-Vorlagen", "mcp.literary.searchPlaceholder": "Vorlagen suchen...",
+    "mcp.literary.compile": "Kompilieren", "mcp.literary.compact": "Komprimieren",
+    "mcp.economics.phase": "Aktuelle Phase", "mcp.economics.generateBtn": "Generieren",
+    "mcp.economics.dilemma": "Dilemma generieren",
+    "mcp.system.logs": "Betriebsprotokolle", "mcp.system.rebuildIndex": "Index neu aufbauen",
+    "mcp.system.cleanOrphans": "Verwaiste bereinigen",
+    "mcp.catalog.build": "Katalog erstellen", "mcp.catalog.filter": "Suche & Filter",
+    "mcp.catalog.selectAll": "Alle ausw\u00e4hlen", "mcp.catalog.deselectAll": "Auswahl aufheben",
+    "mcp.catalog.downloadSelected": "Auswahl herunterladen", "mcp.catalog.popular500": "Top 500",
+    "mcp.catalog.apply": "Anwenden", "mcp.catalog.clear": "Zur\u00fccksetzen",
+    "mcp.catalog.prev": "Zur\u00fcck", "mcp.catalog.next": "Weiter",
+    "mcp.catalog.empty": "Keine B\u00fccher im Katalog", "mcp.catalog.page": "Seite",
+    "mcp.catalog.colTitle": "Titel", "mcp.catalog.colAuthor": "Autor",
+    "mcp.catalog.colSubjects": "Themen", "mcp.catalog.colDownloads": "Downloads",
+    "mcp.catalog.colWords": "W\u00f6rter", "mcp.catalog.colStatus": "Status",
+    "mcp.catalog.authorsPlaceholder": "Autoren (Komma-getrennt): Mark Twain, Jack London...",
+    "mcp.catalog.topicPlaceholder": "Thema (optional): Abenteuer, Romanze...",
+    "mcp.catalog.searchPlaceholder": "Suche nach Titel, Autor, Themen...",
+    "mcp.catalog.authorPlaceholder": "Autor",
+    "mcp.catalog.yearFromPlaceholder": "Jahr von",
+    "mcp.catalog.yearToPlaceholder": "Jahr bis",
+    "mcp.catalog.minDlPlaceholder": "Min. Downloads",
+    "mcp.catalog.searchBtn": "Suchen",
+  },
+  fr: {
+    "mcp.title": "Gestion de bases", "mcp.back": "\u2190 Retour",
+    "mcp.tab.dashboard": "Tableau de bord", "mcp.tab.bible": "Bible",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.catalog": "Catalogue", "mcp.tab.wikipedia": "Wikip\u00e9dia",
+    "mcp.tab.literary": "Litt\u00e9rature", "mcp.tab.economics": "\u00c9conomie",
+    "mcp.tab.system": "Syst\u00e8me",
+    "mcp.quickActions": "Actions rapides", "mcp.compactAll": "Tout compacter",
+    "mcp.rebuildIndex": "Reconstruire l'index", "mcp.search": "Rechercher",
+    "mcp.bible.search": "Rechercher des versets", "mcp.bible.searchPlaceholder": "Rechercher des versets...",
+    "mcp.bible.characters": "Personnages", "mcp.bible.charPlaceholder": "Rechercher des personnages...",
+    "mcp.bible.bootstrap": "Bootstrap", "mcp.bible.compact": "Compacter",
+    "mcp.gutenberg.search": "Rechercher des styles", "mcp.gutenberg.searchPlaceholder": "Rechercher des styles...",
+    "mcp.gutenberg.delexify": "D\u00e9lexifier", "mcp.gutenberg.delexifyPlaceholder": "Coller le texte \u00e0 d\u00e9lexifier...",
+    "mcp.gutenberg.delexifyBtn": "D\u00e9lexifier", "mcp.gutenberg.download": "T\u00e9l\u00e9charger le corpus",
+    "mcp.gutenberg.convert": "Convertir", "mcp.gutenberg.compact": "Compacter",
+    "mcp.wikipedia.search": "Rechercher des articles", "mcp.wikipedia.searchPlaceholder": "Rechercher sur Wikip\u00e9dia...",
+    "mcp.wikipedia.verify": "V\u00e9rification", "mcp.wikipedia.claimPlaceholder": "Entrez une affirmation...",
+    "mcp.wikipedia.verifyBtn": "V\u00e9rifier", "mcp.wikipedia.download": "T\u00e9l\u00e9charger",
+    "mcp.wikipedia.convert": "Convertir", "mcp.wikipedia.compact": "Compacter",
+    "mcp.literary.templates": "Mod\u00e8les de qu\u00eates", "mcp.literary.searchPlaceholder": "Rechercher des mod\u00e8les...",
+    "mcp.literary.compile": "Compiler", "mcp.literary.compact": "Compacter",
+    "mcp.economics.phase": "Phase actuelle", "mcp.economics.generateBtn": "G\u00e9n\u00e9rer",
+    "mcp.economics.dilemma": "G\u00e9n\u00e9rer un dilemme",
+    "mcp.system.logs": "Journaux", "mcp.system.rebuildIndex": "Reconstruire l'index",
+    "mcp.system.cleanOrphans": "Nettoyer les orphelins",
+    "mcp.catalog.build": "Construire le catalogue", "mcp.catalog.filter": "Recherche & Filtre",
+    "mcp.catalog.selectAll": "Tout s\u00e9lectionner", "mcp.catalog.deselectAll": "Tout d\u00e9s\u00e9lectionner",
+    "mcp.catalog.downloadSelected": "T\u00e9l\u00e9charger la s\u00e9lection", "mcp.catalog.popular500": "Top 500",
+    "mcp.catalog.apply": "Appliquer", "mcp.catalog.clear": "Effacer",
+    "mcp.catalog.prev": "Pr\u00e9c.", "mcp.catalog.next": "Suiv.",
+    "mcp.catalog.empty": "Aucun livre dans le catalogue", "mcp.catalog.page": "Page",
+    "mcp.catalog.colTitle": "Titre", "mcp.catalog.colAuthor": "Auteur",
+    "mcp.catalog.colSubjects": "Sujets", "mcp.catalog.colDownloads": "T\u00e9l\u00e9chargements",
+    "mcp.catalog.colWords": "Mots", "mcp.catalog.colStatus": "Statut",
+    "mcp.catalog.authorsPlaceholder": "Auteurs (s\u00e9par\u00e9s par des virgules): Mark Twain, Jack London...",
+    "mcp.catalog.topicPlaceholder": "Sujet (optionnel): aventure, romance...",
+    "mcp.catalog.searchPlaceholder": "Rechercher par titre, auteur, sujets...",
+    "mcp.catalog.authorPlaceholder": "Auteur",
+    "mcp.catalog.yearFromPlaceholder": "Ann\u00e9e de",
+    "mcp.catalog.yearToPlaceholder": "Ann\u00e9e \u00e0",
+    "mcp.catalog.minDlPlaceholder": "T\u00e9l\u00e9ch. min.",
+    "mcp.catalog.searchBtn": "Rechercher",
+  },
+  es: {
+    "mcp.title": "Gesti\u00f3n de bases", "mcp.back": "\u2190 Volver",
+    "mcp.tab.dashboard": "Panel", "mcp.tab.bible": "Biblia",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.catalog": "Cat\u00e1logo", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.literary": "Literatura", "mcp.tab.economics": "Econom\u00eda",
+    "mcp.tab.system": "Sistema",
+    "mcp.quickActions": "Acciones r\u00e1pidas", "mcp.compactAll": "Compactar todo",
+    "mcp.rebuildIndex": "Reconstruir \u00edndice", "mcp.search": "Buscar",
+    "mcp.bible.search": "Buscar vers\u00edculos", "mcp.bible.searchPlaceholder": "Buscar vers\u00edculos...",
+    "mcp.bible.characters": "Personajes", "mcp.bible.charPlaceholder": "Buscar personajes...",
+    "mcp.bible.bootstrap": "Inicializar", "mcp.bible.compact": "Compactar",
+    "mcp.gutenberg.search": "Buscar estilos", "mcp.gutenberg.searchPlaceholder": "Buscar estilos...",
+    "mcp.gutenberg.delexify": "Deslexificar", "mcp.gutenberg.delexifyPlaceholder": "Pegar texto...",
+    "mcp.gutenberg.delexifyBtn": "Deslexificar", "mcp.gutenberg.download": "Descargar corpus",
+    "mcp.gutenberg.convert": "Convertir", "mcp.gutenberg.compact": "Compactar",
+    "mcp.wikipedia.search": "Buscar art\u00edculos", "mcp.wikipedia.searchPlaceholder": "Buscar en Wikipedia...",
+    "mcp.wikipedia.verify": "Verificaci\u00f3n", "mcp.wikipedia.claimPlaceholder": "Ingrese una afirmaci\u00f3n...",
+    "mcp.wikipedia.verifyBtn": "Verificar", "mcp.wikipedia.download": "Descargar",
+    "mcp.wikipedia.convert": "Convertir", "mcp.wikipedia.compact": "Compactar",
+    "mcp.literary.templates": "Plantillas de misiones", "mcp.literary.searchPlaceholder": "Buscar plantillas...",
+    "mcp.literary.compile": "Compilar", "mcp.literary.compact": "Compactar",
+    "mcp.economics.phase": "Fase actual", "mcp.economics.generateBtn": "Generar",
+    "mcp.economics.dilemma": "Generar dilema",
+    "mcp.system.logs": "Registros", "mcp.system.rebuildIndex": "Reconstruir \u00edndice",
+    "mcp.system.cleanOrphans": "Limpiar hu\u00e9rfanos",
+    "mcp.catalog.build": "Construir cat\u00e1logo", "mcp.catalog.filter": "B\u00fasqueda y filtro",
+    "mcp.catalog.selectAll": "Seleccionar todo", "mcp.catalog.deselectAll": "Deseleccionar todo",
+    "mcp.catalog.downloadSelected": "Descargar selecci\u00f3n", "mcp.catalog.popular500": "Top 500",
+    "mcp.catalog.apply": "Aplicar", "mcp.catalog.clear": "Limpiar",
+    "mcp.catalog.prev": "Ant.", "mcp.catalog.next": "Sig.",
+    "mcp.catalog.empty": "Sin libros en el cat\u00e1logo", "mcp.catalog.page": "P\u00e1g.",
+    "mcp.catalog.colTitle": "T\u00edtulo", "mcp.catalog.colAuthor": "Autor",
+    "mcp.catalog.colSubjects": "Temas", "mcp.catalog.colDownloads": "Descargas",
+    "mcp.catalog.colWords": "Palabras", "mcp.catalog.colStatus": "Estado",
+    "mcp.catalog.authorsPlaceholder": "Autores (separados por comas): Mark Twain, Jack London...",
+    "mcp.catalog.topicPlaceholder": "Tema (opcional): aventura, romance...",
+    "mcp.catalog.searchPlaceholder": "Buscar por t\u00edtulo, autor, temas...",
+    "mcp.catalog.authorPlaceholder": "Autor",
+    "mcp.catalog.yearFromPlaceholder": "A\u00f1o desde",
+    "mcp.catalog.yearToPlaceholder": "A\u00f1o hasta",
+    "mcp.catalog.minDlPlaceholder": "Descargas m\u00edn.",
+    "mcp.catalog.searchBtn": "Buscar",
+  },
+  ja: {
+    "mcp.title": "\u30c7\u30fc\u30bf\u30d9\u30fc\u30b9\u7ba1\u7406", "mcp.back": "\u2190 \u623b\u308b",
+    "mcp.tab.dashboard": "\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9", "mcp.tab.bible": "\u8056\u66f8",
+    "mcp.tab.gutenberg": "\u30b0\u30fc\u30c6\u30f3\u30d9\u30eb\u30b0", "mcp.tab.catalog": "\u30ab\u30bf\u30ed\u30b0", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.literary": "\u6587\u5b66", "mcp.tab.economics": "\u7d4c\u6e08",
+    "mcp.tab.system": "\u30b7\u30b9\u30c6\u30e0",
+    "mcp.quickActions": "\u30af\u30a4\u30c3\u30af\u30a2\u30af\u30b7\u30e7\u30f3", "mcp.compactAll": "\u3059\u3079\u3066\u5727\u7e2e",
+    "mcp.rebuildIndex": "\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u518d\u69cb\u7bc9", "mcp.search": "\u691c\u7d22",
+    "mcp.bible.search": "\u8056\u53e5\u691c\u7d22", "mcp.bible.searchPlaceholder": "\u8056\u53e5\u3092\u691c\u7d22...",
+    "mcp.bible.characters": "\u767b\u5834\u4eba\u7269", "mcp.bible.charPlaceholder": "\u767b\u5834\u4eba\u7269\u3092\u691c\u7d22...",
+    "mcp.bible.bootstrap": "\u30d6\u30fc\u30c8\u30b9\u30c8\u30e9\u30c3\u30d7", "mcp.bible.compact": "\u5727\u7e2e",
+    "mcp.gutenberg.search": "\u30b9\u30bf\u30a4\u30eb\u691c\u7d22", "mcp.gutenberg.searchPlaceholder": "\u30b9\u30bf\u30a4\u30eb\u3092\u691c\u7d22...",
+    "mcp.gutenberg.delexify": "\u8131\u30ec\u30ad\u30b7\u30d5\u30a1\u30a4", "mcp.gutenberg.delexifyPlaceholder": "\u30c6\u30ad\u30b9\u30c8\u3092\u8cbc\u308a\u4ed8\u3051...",
+    "mcp.gutenberg.delexifyBtn": "\u8131\u30ec\u30ad\u30b7\u30d5\u30a1\u30a4", "mcp.gutenberg.download": "\u30b3\u30fc\u30d1\u30b9\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9",
+    "mcp.gutenberg.convert": "\u5909\u63db", "mcp.gutenberg.compact": "\u5727\u7e2e",
+    "mcp.wikipedia.search": "\u8a18\u4e8b\u691c\u7d22", "mcp.wikipedia.searchPlaceholder": "Wikipedia\u3092\u691c\u7d22...",
+    "mcp.wikipedia.verify": "\u4e8b\u5b9f\u78ba\u8a8d", "mcp.wikipedia.claimPlaceholder": "\u4e3b\u5f35\u3092\u5165\u529b...",
+    "mcp.wikipedia.verifyBtn": "\u78ba\u8a8d", "mcp.wikipedia.download": "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9",
+    "mcp.wikipedia.convert": "\u5909\u63db", "mcp.wikipedia.compact": "\u5727\u7e2e",
+    "mcp.literary.templates": "\u30af\u30a8\u30b9\u30c8\u30c6\u30f3\u30d7\u30ec\u30fc\u30c8", "mcp.literary.searchPlaceholder": "\u30c6\u30f3\u30d7\u30ec\u30fc\u30c8\u3092\u691c\u7d22...",
+    "mcp.literary.compile": "\u30b3\u30f3\u30d1\u30a4\u30eb", "mcp.literary.compact": "\u5727\u7e2e",
+    "mcp.economics.phase": "\u73fe\u5728\u306e\u30d5\u30a7\u30fc\u30ba", "mcp.economics.generateBtn": "\u751f\u6210",
+    "mcp.economics.dilemma": "\u30b8\u30ec\u30f3\u30de\u751f\u6210",
+    "mcp.system.logs": "\u64cd\u4f5c\u30ed\u30b0", "mcp.system.rebuildIndex": "\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u518d\u69cb\u7bc9",
+    "mcp.system.cleanOrphans": "\u5b64\u5150\u30af\u30ea\u30fc\u30f3\u30a2\u30c3\u30d7",
+    "mcp.catalog.build": "\u30ab\u30bf\u30ed\u30b0\u69cb\u7bc9", "mcp.catalog.filter": "\u691c\u7d22\u3068\u30d5\u30a3\u30eb\u30bf\u30fc",
+    "mcp.catalog.selectAll": "\u3059\u3079\u3066\u9078\u629e", "mcp.catalog.deselectAll": "\u3059\u3079\u3066\u89e3\u9664",
+    "mcp.catalog.downloadSelected": "\u9078\u629e\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9", "mcp.catalog.popular500": "\u30c8\u30c3\u30d7500",
+    "mcp.catalog.apply": "\u9069\u7528", "mcp.catalog.clear": "\u30af\u30ea\u30a2",
+    "mcp.catalog.prev": "\u524d\u3078", "mcp.catalog.next": "\u6b21\u3078",
+    "mcp.catalog.empty": "\u30ab\u30bf\u30ed\u30b0\u306b\u66f8\u7c4d\u306a\u3057", "mcp.catalog.page": "\u30da\u30fc\u30b8",
+    "mcp.catalog.colTitle": "\u30bf\u30a4\u30c8\u30eb", "mcp.catalog.colAuthor": "\u8457\u8005",
+    "mcp.catalog.colSubjects": "\u30c8\u30d4\u30c3\u30af", "mcp.catalog.colDownloads": "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9",
+    "mcp.catalog.colWords": "\u5358\u8a9e\u6570", "mcp.catalog.colStatus": "\u30b9\u30c6\u30fc\u30bf\u30b9",
+    "mcp.catalog.authorsPlaceholder": "\u8457\u8005\uff08\u30ab\u30f3\u30de\u533a\u5207\u308a\uff09: \u30de\u30fc\u30af\u30fb\u30c8\u30a6\u30a7\u30a4\u30f3, \u30b8\u30e3\u30c3\u30af\u30fb\u30ed\u30f3\u30c9\u30f3...",
+    "mcp.catalog.topicPlaceholder": "\u30c8\u30d4\u30c3\u30af\uff08\u4efb\u610f\uff09: \u5192\u967a, \u30ed\u30de\u30f3\u30b9...",
+    "mcp.catalog.searchPlaceholder": "\u30bf\u30a4\u30c8\u30eb, \u8457\u8005, \u30c8\u30d4\u30c3\u30af\u3067\u691c\u7d22...",
+    "mcp.catalog.authorPlaceholder": "\u8457\u8005",
+    "mcp.catalog.yearFromPlaceholder": "\u5e74\uff08\u4ee5\u964d\uff09",
+    "mcp.catalog.yearToPlaceholder": "\u5e74\uff08\u4ee5\u524d\uff09",
+    "mcp.catalog.minDlPlaceholder": "\u6700\u4f4e\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9",
+    "mcp.catalog.searchBtn": "\u691c\u7d22",
+  },
+  zh: {
+    "mcp.title": "\u6570\u636e\u5e93\u7ba1\u7406", "mcp.back": "\u2190 \u8fd4\u56de",
+    "mcp.tab.dashboard": "\u4eea\u8868\u76d8", "mcp.tab.bible": "\u5723\u7ecf",
+    "mcp.tab.gutenberg": "\u53e4\u767b\u5821", "mcp.tab.catalog": "\u76ee\u5f55", "mcp.tab.wikipedia": "\u7ef4\u57fa\u767e\u79d1",
+    "mcp.tab.literary": "\u6587\u5b66", "mcp.tab.economics": "\u7ecf\u6d4e",
+    "mcp.tab.system": "\u7cfb\u7edf",
+    "mcp.quickActions": "\u5feb\u6377\u64cd\u4f5c", "mcp.compactAll": "\u5168\u90e8\u538b\u7f29",
+    "mcp.rebuildIndex": "\u91cd\u5efa\u7d22\u5f15", "mcp.search": "\u641c\u7d22",
+    "mcp.bible.search": "\u641c\u7d22\u7ecf\u8282", "mcp.bible.searchPlaceholder": "\u641c\u7d22\u7ecf\u8282...",
+    "mcp.bible.characters": "\u4eba\u7269", "mcp.bible.charPlaceholder": "\u641c\u7d22\u4eba\u7269...",
+    "mcp.bible.bootstrap": "\u521d\u59cb\u5316", "mcp.bible.compact": "\u538b\u7f29",
+    "mcp.gutenberg.search": "\u641c\u7d22\u98ce\u683c", "mcp.gutenberg.searchPlaceholder": "\u641c\u7d22\u98ce\u683c...",
+    "mcp.gutenberg.delexify": "\u53bb\u8bcd\u6c47\u5316", "mcp.gutenberg.delexifyPlaceholder": "\u7c98\u8d34\u6587\u672c...",
+    "mcp.gutenberg.delexifyBtn": "\u53bb\u8bcd\u6c47\u5316", "mcp.gutenberg.download": "\u4e0b\u8f7d\u8bed\u6599\u5e93",
+    "mcp.gutenberg.convert": "\u8f6c\u6362", "mcp.gutenberg.compact": "\u538b\u7f29",
+    "mcp.wikipedia.search": "\u641c\u7d22\u6587\u7ae0", "mcp.wikipedia.searchPlaceholder": "\u641c\u7d22\u7ef4\u57fa\u767e\u79d1...",
+    "mcp.wikipedia.verify": "\u4e8b\u5b9e\u6838\u67e5", "mcp.wikipedia.claimPlaceholder": "\u8f93\u5165\u8981\u9a8c\u8bc1\u7684\u58f0\u660e...",
+    "mcp.wikipedia.verifyBtn": "\u9a8c\u8bc1", "mcp.wikipedia.download": "\u4e0b\u8f7d",
+    "mcp.wikipedia.convert": "\u8f6c\u6362", "mcp.wikipedia.compact": "\u538b\u7f29",
+    "mcp.literary.templates": "\u4efb\u52a1\u6a21\u677f", "mcp.literary.searchPlaceholder": "\u641c\u7d22\u6a21\u677f...",
+    "mcp.literary.compile": "\u7f16\u8bd1", "mcp.literary.compact": "\u538b\u7f29",
+    "mcp.economics.phase": "\u5f53\u524d\u9636\u6bb5", "mcp.economics.generateBtn": "\u751f\u6210",
+    "mcp.economics.dilemma": "\u751f\u6210\u56f0\u5883",
+    "mcp.system.logs": "\u64cd\u4f5c\u65e5\u5fd7", "mcp.system.rebuildIndex": "\u91cd\u5efa\u7d22\u5f15",
+    "mcp.system.cleanOrphans": "\u6e05\u7406\u5b64\u7acb\u8bb0\u5f55",
+    "mcp.catalog.build": "\u6784\u5efa\u76ee\u5f55", "mcp.catalog.filter": "\u641c\u7d22\u4e0e\u7b5b\u9009",
+    "mcp.catalog.selectAll": "\u5168\u9009", "mcp.catalog.deselectAll": "\u5168\u90e8\u53d6\u6d88",
+    "mcp.catalog.downloadSelected": "\u4e0b\u8f7d\u5df2\u9009", "mcp.catalog.popular500": "\u70ed\u95e8500",
+    "mcp.catalog.apply": "\u5e94\u7528", "mcp.catalog.clear": "\u6e05\u9664",
+    "mcp.catalog.prev": "\u4e0a\u4e00\u9875", "mcp.catalog.next": "\u4e0b\u4e00\u9875",
+    "mcp.catalog.empty": "\u76ee\u5f55\u4e2d\u65e0\u4e66\u7c4d", "mcp.catalog.page": "\u9875",
+    "mcp.catalog.colTitle": "\u6807\u9898", "mcp.catalog.colAuthor": "\u4f5c\u8005",
+    "mcp.catalog.colSubjects": "\u4e3b\u9898", "mcp.catalog.colDownloads": "\u4e0b\u8f7d\u91cf",
+    "mcp.catalog.colWords": "\u5355\u8bcd\u6570", "mcp.catalog.colStatus": "\u72b6\u6001",
+    "mcp.catalog.authorsPlaceholder": "\u4f5c\u8005\uff08\u9017\u53f7\u5206\u9694\uff09: \u9a6c\u514b\u00b7\u5410\u6e29, \u6770\u514b\u00b7\u4f26\u6566...",
+    "mcp.catalog.topicPlaceholder": "\u4e3b\u9898\uff08\u53ef\u9009\uff09: \u5192\u9669, \u6d6a\u6f2b...",
+    "mcp.catalog.searchPlaceholder": "\u6309\u6807\u9898\u3001\u4f5c\u8005\u3001\u4e3b\u9898\u641c\u7d22...",
+    "mcp.catalog.authorPlaceholder": "\u4f5c\u8005",
+    "mcp.catalog.yearFromPlaceholder": "\u5e74\u4efd\u4ece",
+    "mcp.catalog.yearToPlaceholder": "\u5e74\u4efd\u81f3",
+    "mcp.catalog.minDlPlaceholder": "\u6700\u4f4e\u4e0b\u8f7d",
+    "mcp.catalog.searchBtn": "\u641c\u7d22",
   },
 };
 
@@ -379,6 +638,11 @@ function fmtBytes(b) {
   return (b / Math.pow(k, i)).toFixed(1) + " " + s[i];
 }
 
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+}
+
 // ── Dashboard ─────────────────────────────────────────────────
 async function loadDashboard() {
   const d = await api("status");
@@ -386,7 +650,7 @@ async function loadDashboard() {
   const g = document.getElementById("dashboard-stats");
   g.innerHTML = "";
   for (const db of d.databases || []) {
-    g.innerHTML += `<div class="stat-card"><div class="stat-card__value" style="color:${db.exists?"var(--success)":"var(--error)"}">${db.exists?"\u25cf":"\u25cb"}</div><div class="stat-card__label">${db.name}</div><div style="font-size:11px;color:var(--text-disabled)">${db.exists?fmtBytes(db.size):"not found"}</div></div>`;
+    g.innerHTML += `<div class="stat-card"><div class="stat-card__value" style="color:${db.exists?"var(--success)":"var(--error)"}">${db.exists?"\u25cf":"\u25cb"}</div><div class="stat-card__label">${escapeHtml(db.name)}</div><div style="font-size:11px;color:var(--text-disabled)">${db.exists?fmtBytes(db.size):"not found"}</div></div>`;
   }
 }
 
@@ -403,7 +667,7 @@ async function searchBible() {
   const d = await api("bible/search?q=" + encodeURIComponent(q));
   const el = document.getElementById("bible-results");
   if (!d?.results?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
-  el.innerHTML = '<table class="result-table"><tr><th>Ref</th><th>Text</th></tr>' + d.results.map(r => `<tr><td>${r.book} ${r.chapter}:${r.verse}</td><td>${r.text}</td></tr>`).join("") + '</table>';
+  el.innerHTML = '<table class="result-table"><tr><th>Ref</th><th>Text</th></tr>' + d.results.map(r => `<tr><td>${escapeHtml(r.book)} ${r.chapter}:${r.verse}</td><td>${escapeHtml(r.text)}</td></tr>`).join("") + '</table>';
 }
 async function searchBibleChars() {
   const q = document.getElementById("bible-char-q").value;
@@ -411,7 +675,7 @@ async function searchBibleChars() {
   const d = await api("bible/characters?q=" + encodeURIComponent(q));
   const el = document.getElementById("bible-char-results");
   if (!d?.results?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
-  el.innerHTML = '<table class="result-table"><tr><th>Name</th><th>Role</th></tr>' + d.results.map(r => `<tr><td>${r.canonical_name||r.name}</td><td>${r.role||"-"}</td></tr>`).join("") + '</table>';
+  el.innerHTML = '<table class="result-table"><tr><th>Name</th><th>Role</th></tr>' + d.results.map(r => `<tr><td>${escapeHtml(r.canonical_name||r.name)}</td><td>${escapeHtml(r.role||"-")}</td></tr>`).join("") + '</table>';
 }
 
 // ── Gutenberg ─────────────────────────────────────────────────
@@ -427,14 +691,14 @@ async function searchGutenberg() {
   const d = await api("gutenberg/search?q=" + encodeURIComponent(q));
   const el = document.getElementById("gutenberg-results");
   if (!d?.results?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
-  el.innerHTML = '<table class="result-table"><tr><th>Style</th><th>Mood</th><th>Description</th></tr>' + d.results.map(r => `<tr><td>${r.name||"-"}</td><td>${r.mood||r.mood_tags||"-"}</td><td>${(r.description||"").slice(0,100)}</td></tr>`).join("") + '</table>';
+  el.innerHTML = '<table class="result-table"><tr><th>Style</th><th>Mood</th><th>Description</th></tr>' + d.results.map(r => `<tr><td>${escapeHtml(r.name||"-")}</td><td>${escapeHtml(r.mood||r.mood_tags||"-")}</td><td>${escapeHtml((r.description||"").slice(0,100))}</td></tr>`).join("") + '</table>';
 }
 async function delexifyGutenberg() {
   const text = document.getElementById("gutenberg-delex").value;
   if (!text) return;
   const d = await api("gutenberg/delexify", { method: "POST", body: JSON.stringify({ text }) });
   if (!d) return;
-  document.getElementById("gutenberg-delex-result").innerHTML = '<div class="result-box">' + (d.delexified || d.error || JSON.stringify(d)) + '</div>';
+  document.getElementById("gutenberg-delex-result").innerHTML = '<div class="result-box">' + escapeHtml(d.delexified || d.error || JSON.stringify(d)) + '</div>';
 }
 
 // ── Catalog (Selective Download) ───────────────────────────────
@@ -458,11 +722,11 @@ async function loadCatalogPage(page) {
 
 function renderCatalogTable(books, total, page, totalPages) {
   const el = document.getElementById("catalog-results");
-  if (!books?.length) { el.innerHTML = '<div class="empty">No books in catalog</div>'; return; }
-  el.innerHTML = '<table class="result-table"><tr><th><input type="checkbox" onchange="toggleAllCatalog(this.checked)"></th><th>#</th><th>Title</th><th>Author</th><th>Subjects</th><th>Downloads</th><th>Words</th><th>Status</th></tr>' +
-    books.map(b => `<tr><td><input type="checkbox" data-etextno="${b.etextno}" ${b.selected?'checked':''} onchange="toggleCatalogBook(${b.etextno},this.checked)"></td><td>${b.etextno}</td><td>${b.title}</td><td>${b.author}</td><td>${(b.subjects||[]).slice(0,2).join(', ')}</td><td>${(b.download_count||0).toLocaleString()}</td><td>${(b.word_count||0).toLocaleString()}</td><td>${b.downloaded?'<span style="color:var(--success)">✓</span>':'<span style="color:var(--text-disabled)">—</span>'}</td></tr>`).join("") + '</table>';
+  if (!books?.length) { el.innerHTML = '<div class="empty">' + t("mcp.catalog.empty") + '</div>'; return; }
+  el.innerHTML = '<table class="result-table"><tr><th><input type="checkbox" onchange="toggleAllCatalog(this.checked)"></th><th>#</th><th>' + t("mcp.catalog.colTitle") + '</th><th>' + t("mcp.catalog.colAuthor") + '</th><th>' + t("mcp.catalog.colSubjects") + '</th><th>' + t("mcp.catalog.colDownloads") + '</th><th>' + t("mcp.catalog.colWords") + '</th><th>' + t("mcp.catalog.colStatus") + '</th></tr>' +
+    books.map(b => `<tr><td><input type="checkbox" data-etextno="${b.etextno}" ${b.selected?'checked':''} onchange="toggleCatalogBook(${b.etextno},this.checked)"></td><td>${b.etextno}</td><td>${escapeHtml(b.title)}</td><td>${escapeHtml(b.author)}</td><td>${escapeHtml((b.subjects||[]).slice(0,2).join(', '))}</td><td>${(b.download_count||0).toLocaleString()}</td><td>${(b.word_count||0).toLocaleString()}</td><td>${b.downloaded?'<span style="color:var(--success)">✓</span>':'<span style="color:var(--text-disabled)">—</span>'}</td></tr>`).join("") + '</table>';
   const pag = document.getElementById("catalog-pagination");
-  pag.innerHTML = `<button class="btn" onclick="loadCatalogPage(${page-1})" ${page<=1?'disabled':''}>Prev</button><span style="color:var(--text-secondary);font-size:12px">Page ${page}/${totalPages}</span><button class="btn" onclick="loadCatalogPage(${page+1})" ${page>=totalPages?'disabled':''}>Next</button>`;
+  pag.innerHTML = `<button class="btn" onclick="loadCatalogPage(${page-1})" ${page<=1?'disabled':''}>` + t("mcp.catalog.prev") + `</button><span style="color:var(--text-secondary);font-size:12px">` + t("mcp.catalog.page") + ` ${page}/${totalPages}</span><button class="btn" onclick="loadCatalogPage(${page+1})" ${page>=totalPages?'disabled':''}>` + t("mcp.catalog.next") + `</button>`;
 }
 
 async function buildCatalog() {
@@ -567,14 +831,14 @@ async function searchWikipedia() {
   const el = document.getElementById("wikipedia-results");
   if (!d?.results) { el.innerHTML = '<div class="empty">No results</div>'; return; }
   const r = d.results;
-  el.innerHTML = `<div class="result-box"><strong>${r.topic}</strong> ${r.found ? "(found)" : "(not found)"}\n${r.summary || "No summary"}\n${r.url ? '<a href="' + r.url + '" target="_blank">' + r.url + '</a>' : ""}</div>`;
+  el.innerHTML = `<div class="result-box"><strong>${escapeHtml(r.topic)}</strong> ${r.found ? "(found)" : "(not found)"}\n${escapeHtml(r.summary || "No summary")}\n${r.url ? '<a href="' + escapeHtml(r.url) + '" target="_blank">' + escapeHtml(r.url) + '</a>' : ""}</div>`;
 }
 async function verifyWikipedia() {
   const claim = document.getElementById("wikipedia-claim").value;
   if (!claim) return;
   const d = await api("wikipedia/verify", { method: "POST", body: JSON.stringify({ claim }) });
   if (!d) return;
-  document.getElementById("wikipedia-verify-result").innerHTML = `<div class="result-box"><strong>Verified:</strong> ${d.verified ? "\u2713 Yes" : "\u2717 No"}\n<strong>Confidence:</strong> ${d.confidence}\n<strong>Evidence:</strong> ${(d.evidence||[]).join("; ")}</div>`;
+  document.getElementById("wikipedia-verify-result").innerHTML = `<div class="result-box"><strong>Verified:</strong> ${d.verified ? "\u2713 Yes" : "\u2717 No"}\n<strong>Confidence:</strong> ${escapeHtml(String(d.confidence))}\n<strong>Evidence:</strong> ${escapeHtml((d.evidence||[]).join("; "))}</div>`;
 }
 
 // ── Literary ──────────────────────────────────────────────────
@@ -590,7 +854,7 @@ async function searchLiterary() {
   const d = await api("literary/templates?q=" + encodeURIComponent(q));
   const el = document.getElementById("literary-results");
   if (!d?.templates?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
-  el.innerHTML = '<table class="result-table"><tr><th>Name</th><th>Archetype</th><th>Description</th></tr>' + d.templates.map(r => `<tr><td>${r.name||"-"}</td><td>${r.archetype||"-"}</td><td>${(r.description||"").slice(0,80)}</td></tr>`).join("") + '</table>';
+  el.innerHTML = '<table class="result-table"><tr><th>Name</th><th>Archetype</th><th>Description</th></tr>' + d.templates.map(r => `<tr><td>${escapeHtml(r.name||"-")}</td><td>${escapeHtml(r.archetype||"-")}</td><td>${escapeHtml((r.description||"").slice(0,80))}</td></tr>`).join("") + '</table>';
 }
 
 // ── Economics ─────────────────────────────────────────────────
@@ -600,12 +864,19 @@ async function loadEconomicsStats() {
   if (!d?.exists) { el.innerHTML = '<div class="empty">Economics DB not found</div>'; return; }
   el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size)}</div><div class="stat-card__label">Size</div></div>`;
   const phase = await api("economics/phase");
-  if (phase) document.getElementById("economics-phase").textContent = phase.phase || JSON.stringify(phase);
-}
-async function generateDilemma() {
-  const d = await api("economics/dilemma");
-  if (!d) return;
-  document.getElementById("economics-dilemma").innerHTML = '<div class="result-box">' + JSON.stringify(d.dilemma || d, null, 2) + '</div>';
+  if (phase) {
+    const phaseEl = document.getElementById("economics-phase");
+    phaseEl.textContent = phase.phase
+      ? `${phase.phase} (reserve: ${phase.reserve}, modifier: x${phase.price_modifier})`
+      : "No active cycle";
+  }
+  const jubilee = await api("economics/jubilee");
+  if (jubilee) {
+    const jubEl = document.getElementById("economics-jubilee");
+    jubEl.textContent = jubilee.years_until != null
+      ? `${jubilee.years_until} years until next Jubilee (year ${jubilee.next_year})`
+      : "No jubilee data";
+  }
 }
 
 // ── System ────────────────────────────────────────────────────
@@ -619,41 +890,67 @@ function addLog(msg) {
   LOGS.unshift({ time: new Date().toLocaleTimeString(), msg });
   if (LOGS.length > 50) LOGS.pop();
   const el = document.getElementById("system-logs");
-  if (el) el.innerHTML = LOGS.map(l => `<div style="padding:4px 0;border-bottom:1px solid var(--border-light)"><span style="color:var(--text-disabled)">${l.time}</span> ${l.msg}</div>`).join("");
+  if (el) el.innerHTML = LOGS.map(l => `<div style="padding:4px 0;border-bottom:1px solid var(--border-light)"><span style="color:var(--text-disabled)">${escapeHtml(l.time)}</span> ${escapeHtml(l.msg)}</div>`).join("");
 }
 
 // ── Actions ───────────────────────────────────────────────────
-async function runAction(path) {
-  toast("Starting: " + path);
-  addLog("Starting: " + path);
-  try {
-    const res = await fetch("/mcp/" + path, { method: "POST" });
-    const data = await res.json();
-    if (data.jobId) {
-      trackProgress(data.jobId, path);
-    } else {
-      toast("Done: " + path, "success");
-      addLog("Completed: " + path);
-      loadTab(document.querySelector(".tab.active").dataset.tab);
-    }
-  } catch (err) {
-    toast("Error: " + err.message, "error");
-    addLog("Error: " + path + " \u2014 " + err.message);
-  }
+function runAction(path) {
+  return new Promise((resolve, reject) => {
+    toast("Starting: " + path);
+    addLog("Starting: " + path);
+    fetch("/mcp/" + path, { method: "POST" })
+      .then(r => r.json())
+      .then(data => {
+        if (data.jobId) {
+          trackProgress(data.jobId, path, () => {
+            loadTab(document.querySelector(".tab.active").dataset.tab);
+            resolve();
+          }, reject);
+        } else {
+          toast("Done: " + path, "success");
+          addLog("Completed: " + path);
+          loadTab(document.querySelector(".tab.active").dataset.tab);
+          resolve();
+        }
+      })
+      .catch(err => {
+        toast("Error: " + err.message, "error");
+        addLog("Error: " + path + " \u2014 " + err.message);
+        reject(err);
+      });
+  });
 }
 
-function trackProgress(jobId, path) {
+function trackProgress(jobId, path, onDone, onError) {
+  const bar = document.getElementById("progress-bar");
+  const fill = document.getElementById("progress-fill");
+  const label = document.getElementById("progress-label");
+  bar.classList.add("active");
+  fill.style.width = "0%";
+  label.textContent = "Starting...";
+
   const es = new EventSource("/mcp/stream/" + jobId);
   es.onmessage = (e) => {
     const d = JSON.parse(e.data);
     addLog(path + ": " + d.message + " (" + d.progress + "%)");
+    fill.style.width = d.progress + "%";
+    label.textContent = d.message + " (" + d.progress + "%)";
     if (d.status === "done" || d.status === "error") {
       es.close();
-      toast(d.status === "done" ? "Completed: " + path : "Error: " + path, d.status === "done" ? "success" : "error");
-      loadTab(document.querySelector(".tab.active").dataset.tab);
+      if (d.status === "done") {
+        fill.style.width = "100%";
+        label.textContent = "Done";
+        setTimeout(() => bar.classList.remove("active"), 1000);
+        toast("Completed: " + path, "success");
+        onDone?.();
+      } else {
+        bar.classList.remove("active");
+        toast("Error: " + path, "error");
+        onError?.(new Error(d.message));
+      }
     }
   };
-  es.onerror = () => es.close();
+  es.onerror = () => { es.close(); bar.classList.remove("active"); toast("Connection lost", "error"); onError?.(new Error("Connection lost")); };
 }
 
 async function compactAll() {

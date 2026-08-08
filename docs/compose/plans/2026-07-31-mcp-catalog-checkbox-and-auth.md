@@ -1,5 +1,10 @@
 # MCP Catalog Checkbox Fix + Auth Guard
 
+> [!NOTE]
+> This document may not reflect the current implementation.
+> See the final report for up-to-date state:
+> [Final Report](../reports/mcp-console.md)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use compose:subagent (recommended) or compose:execute to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Fix broken per-book checkbox toggle in MCP Catalog tab and add password authentication to MCP mode.

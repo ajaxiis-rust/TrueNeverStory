@@ -74,8 +74,20 @@ describe("MCP routes", () => {
       const res = await app.request("/mcp/economics/phase");
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.phase).toBe("normal");
-      expect(body.message).toBeString();
+      expect(body).toHaveProperty("phase");
+      expect(body).toHaveProperty("reserve");
+      expect(typeof body.price_modifier).toBe("number");
+    });
+  });
+
+  describe("GET /mcp/economics/jubilee", () => {
+    test("returns jubilee info", async () => {
+      const res = await app.request("/mcp/economics/jubilee");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(typeof body.years_until).toBe("number");
+      expect(typeof body.next_year).toBe("number");
+      expect(typeof body.should_trigger).toBe("boolean");
     });
   });
 
@@ -84,15 +96,30 @@ describe("MCP routes", () => {
       const res = await app.request("/mcp/economics/dilemma");
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.dilemma).toBeNull();
+      expect(body.generated).toBe(false);
       expect(body.message).toBeString();
     });
   });
 
-  // ── 404 when DB files missing ───────────────────────────────
+  // ── Error responses when DB files missing ────────────────────
 
-  describe("404 responses when DB not found", () => {
-    const routes404 = [
+  describe("error responses when DB not found", () => {
+    const routesError = [
+      "/mcp/wikipedia/stats",
+    ];
+
+    for (const route of routesError) {
+      test(`${route} returns error when DB missing`, async () => {
+        const res = await app.request(route);
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.error).toContain("not found");
+      });
+    }
+  });
+
+  describe("existing DBs return 200 with data", () => {
+    const routes200 = [
       "/mcp/bible/stats",
       "/mcp/bible/search?q=test",
       "/mcp/bible/books",
@@ -101,20 +128,17 @@ describe("MCP routes", () => {
       "/mcp/gutenberg/stats",
       "/mcp/gutenberg/search?q=test",
       "/mcp/gutenberg/styles",
-      "/mcp/wikipedia/stats",
     ];
 
-    for (const route of routes404) {
-      test(`${route} returns 404 with error when DB missing`, async () => {
+    for (const route of routes200) {
+      test(`${route} returns 200`, async () => {
         const res = await app.request(route);
-        expect(res.status).toBe(404);
-        const body = await res.json();
-        expect(body.error).toContain("not found");
+        expect(res.status).toBe(200);
       });
     }
   });
 
-  describe("POST 404 when DB missing", () => {
+  describe("POST routes return 200", () => {
     const postRoutes = [
       "/mcp/bible/compact",
       "/mcp/gutenberg/compact",
@@ -123,13 +147,13 @@ describe("MCP routes", () => {
     ];
 
     for (const route of postRoutes) {
-      test(`${route} returns 404 when DB missing`, async () => {
+      test(`${route} returns 200`, async () => {
         const res = await app.request(route, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: "test" }),
         });
-        expect(res.status).toBe(404);
+        expect(res.status).toBe(200);
       });
     }
   });
@@ -137,9 +161,9 @@ describe("MCP routes", () => {
   // ── SSE Stream ──────────────────────────────────────────────
 
   describe("GET /mcp/stream/:jobId", () => {
-    test("returns 404 for unknown job", async () => {
+    test("returns error for unknown job", async () => {
       const res = await app.request("/mcp/stream/nonexistent-id");
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.error).toBe("Job not found");
     });
@@ -163,14 +187,13 @@ describe("MCP routes", () => {
     });
   });
 
-  // ── Literary stubs ──────────────────────────────────────────
-
-  describe("Literary compile stub", () => {
-    test("POST /mcp/literary/compile returns pending", async () => {
+  describe("Literary compile", () => {
+    test("POST /mcp/literary/compile starts job", async () => {
       const res = await app.request("/mcp/literary/compile", { method: "POST" });
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.status).toBe("pending");
+      expect(body.jobId).toBeString();
+      expect(body.stream).toContain("/mcp/stream/");
     });
   });
 
