@@ -1,0 +1,58 @@
+# Changelog
+
+## [v0.31.0] — 2026-08-08 — RoleplayEngine Refactoring
+
+### Architecture — RoleplayEngine strangled into composable services
+
+- **SessionState** (`src/services/roleplay/session-state.ts`) — 7 mutable public fields extracted into encapsulated class with backward-compat getter/setter
+- **CommandHandler** (`src/services/roleplay/handlers/command-handler.ts`) — 11 commands (/help, /look, /craft, /status, etc.) extracted from 126-line switch/case
+- **PipelineRunner** (`src/services/roleplay/pipeline-runner.ts`) — shared translateAndClassify + runSimulation + buildGameContext logic deduplicated for processInput/processInputStream
+- **PipelineContext** (`src/services/roleplay/pipeline-context.ts`) — unified state container across pipeline stages
+
+### Prose strategies (Phase 4)
+
+- **ProseGenerator** interface — pluggable prose generation strategy
+- **LiteraryV2Generator** — feature-flag gated V2 literary compiler
+- **LegacyIntentGenerator** — dispatches by intent type to specialized handlers
+- **4 intent handlers**: MovementHandler, DialogueHandler, ObservationHandler, ActionHandler (sync + stream variants)
+- Old `_handle*` methods (~200 lines) removed from RoleplayEngine
+
+### Agent infrastructure (Phase 5)
+
+- **EngineAgents** interface — 17-agent bundle for DI injection
+- **LegacyAgentAdapter** — wraps ServiceMessageAgent implementations
+- Constructor supports pre-created agents via `deps.agents`
+
+### Fixes & improvements
+
+- **SQLiteStore UI extraction** — `seedUITranslations()` (798 lines) moved to `ui-translation-seeder.ts`, SQLiteStore: 1325→532 lines
+- **Heartbeat session filtering** — `ManagedSocket.worldId/sessionId`, `broadcast(filter)` for world-scoped heartbeats
+- **publishSimple await** — 6 fire-and-forget heartbeat calls in processInput now awaited
+- **WS concurrency guard** — `_processingQueue` serializes processInput/processInputStream
+- **Seeded PRNG** (`src/lib/prng.ts`) — mulberry32 replaces Math.random() in 61 simulation calls for deterministic replay
+- **Empty catch blocks** — 11 production catch blocks now log context instead of swallowing errors silently
+
+### Tests — 24 safety-net tests
+
+- `src/services/roleplay-engine.test.ts` — covers commands, agent mentions, intents, streaming, concurrency guard, translation
+
+### Docs
+
+- `docs/ARCHITECTURE.md` updated to v0.31.0 with new pipeline stages and agent architecture
+
+---
+
+## [v0.30.1] — 2026-07-30 — Bugfix Release
+
+- fix: MCP stats endpoints — correct DB paths, 404→200
+- fix: 12 race conditions from concurrency audit
+- fix: 18 bugs from code audit
+
+---
+
+## [v0.29.6] — Literary Compiler v2
+
+- Literary Compiler v2 — deterministic template + style pattern system
+- Hybrid Retrieval Pipeline — FTS5 + vector + RRF
+- 12 Canonical Archetypes
+- MCP Console
