@@ -33,10 +33,8 @@ import type { NPCRuntime } from './npc-runtime';
 import type { WorldValidator } from './world-validator';
 import type { UserAgent } from './user-agent';
 import type { SQLiteStore } from '../lib/sqlite-store';
-import type { StoryContext } from '../models/story';
 import type { Intent } from '../models/intent';
-import { isMovementIntent, isDialogueIntent, isActionIntent, isCommandIntent, isObservationIntent } from '../models/intent';
-import { OutcomeQuality } from '../models/simulation';
+import { isActionIntent, isCommandIntent } from '../models/intent';
 import { getLogger } from '../utils/logger';
 import { join } from 'node:path';
 import { t } from '../i18n';
@@ -44,6 +42,12 @@ import { SessionState, type SessionParams } from './roleplay/session-state';
 import { CommandHandler } from './roleplay/handlers/command-handler';
 import { PipelineRunner } from './roleplay/pipeline-runner';
 import type { PipelineContext } from './roleplay/pipeline-context';
+import { MovementHandler } from './roleplay/handlers/movement-handler';
+import { DialogueHandler } from './roleplay/handlers/dialogue-handler';
+import { ObservationHandler } from './roleplay/handlers/observation-handler';
+import { ActionHandler } from './roleplay/handlers/action-handler';
+import { LegacyIntentGenerator } from './roleplay/prose/legacy-intent-generator';
+import { LiteraryV2Generator } from './roleplay/prose/literary-v2-generator';
 
 // v0.25.0 New agents
 import { DramaturgAgent } from './agents/dramaturg';
@@ -55,10 +59,6 @@ import { ChroniclerAgent } from './agents/chronicler-agent';
 import { AgentRegistryV2, getAgentRegistryV2 } from './agent-registry-v2';
 import type { TNSServer } from '../mcp/server';
 import { TranslationService, type LanguageCode } from './translation-service';
-import { getFeatureFlagManager } from '../lib/feature-flags';
-import { searchTemplates, type RetrievalKeys } from '../mcp/literary-compiler/retrieval';
-import { fillTemplate } from '../mcp/literary-compiler/fill-template';
-import { isValidArchetype, type Archetype } from '../mcp/literary-compiler/archetypes';
 import { LiteraryCompilerDB } from '../mcp/literary-compiler/schema';
 
 const log = getLogger('roleplay-engine');
@@ -164,6 +164,10 @@ export class RoleplayEngine {
 
   // Pipeline runner
   readonly pipelineRunner: PipelineRunner;
+
+  // Prose generators
+  readonly legacyGenerator: LegacyIntentGenerator;
+  readonly v2Generator: LiteraryV2Generator;
 
   // Backward-compat getter/setter
   get activeCharacter() { return this.session.activeCharacter; }
@@ -283,6 +287,14 @@ export class RoleplayEngine {
       stateMutator: this.stateMutator,
       contextBuilder: this.contextBuilder,
     });
+
+    const movement = new MovementHandler(deps.entityStore, this.sceneAgent, this.chronicler, this.session);
+    const dialogue = new DialogueHandler(deps.entityStore, this.npcAgent, this.chronicler, this.session);
+    const observation = new ObservationHandler(deps.entityStore);
+    const action = new ActionHandler(this.narrator, this.memory, this.session, deps.worldFrame);
+
+    this.legacyGenerator = new LegacyIntentGenerator(movement, dialogue, observation, action);
+    this.v2Generator = new LiteraryV2Generator(deps.llmQueue, this.stylist, deps.worldFrame, () => this.getLiteraryDb());
   }
 
   reset(newDbPath: string): void {
@@ -356,63 +368,20 @@ export class RoleplayEngine {
 
     // Step 6: Generate prose based on intent type
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
-    let narrative = '';
 
-    // V2 pipeline: try literary-compiler-v2 if enabled
-    const featureFlags = getFeatureFlagManager();
-    let v2Used = false;
-    if (featureFlags.isEnabled('literary-compiler-v2')) {
+    let narrative: string;
+    ctx.v2Used = false;
+
+    if (this.v2Generator.canHandle()) {
       try {
-        const literaryDb = this.getLiteraryDb();
-        if (literaryDb) {
-          const v2Start = Date.now();
-          const keys: RetrievalKeys = {
-            archetype: undefined, // Intent doesn't have narrativeArchetype; derive from simulation
-            mood: undefined,      // SimulationResult doesn't have mood
-            domain: undefined,
-            position: undefined,
-          };
-
-          const results = await searchTemplates(literaryDb, keys, 2);
-          if (results.length > 0) {
-            const ranked = results[0]!;
-            const template = ranked.template;
-            const filled = fillTemplate(template.template_text, this._extractVariables(gameContext));
-
-            const style = await this._getStyleForTemplate(template.id);
-            const prompt = this.stylist.buildMicroPrompt(
-              filled,
-              style,
-              { world: (this._worldFrame.name as string) ?? 'unknown', location: gameContext.location?.name ?? 'unknown' },
-              simResult.outcome,
-            );
-
-            narrative = await this._llmQueue.generateText(
-              prompt.system + '\n\n' + prompt.user,
-              1,
-              0.6,
-              'stylist',
-            );
-            v2Used = true;
-            log.info({ templateId: template.id, ms: Date.now() - v2Start }, 'v2 pipeline used');
-          }
-        }
+        narrative = await this.v2Generator.generate(ctx, gameContext, simResult.outcome);
+        ctx.v2Used = true;
       } catch (err) {
         log.warn({ err }, 'v2 pipeline failed, falling back to legacy');
+        narrative = await this.legacyGenerator.generate(intent, simResult, gameContext);
       }
-    }
-
-    if (!v2Used) {
-      if (isMovementIntent(intent)) {
-        narrative = await this._handleMovementWithIntent(intent, gameContext);
-      } else if (isDialogueIntent(intent)) {
-        narrative = await this._handleDialogueWithIntent(intent, gameContext);
-      } else if (isObservationIntent(intent)) {
-        narrative = await this._handleObservation(intent, gameContext);
-      } else {
-        // Action or fallback — use narrator with simulation constraints
-        narrative = await this._handleActionWithSimulation(intent, simResult, gameContext);
-      }
+    } else {
+      narrative = await this.legacyGenerator.generate(intent, simResult, gameContext);
     }
 
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_COMPLETE, {}, 'engine');
@@ -534,40 +503,22 @@ export class RoleplayEngine {
     // Generate prose (streaming for actions, non-streaming for movement/dialogue)
     yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
-    if (isMovementIntent(intent)) {
-      let result = await this._handleMovementWithIntent(intent, gameContext);
-      if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
-        const lang = this._worldFrame.language as LanguageCode;
-        if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
-          result = await this.translationService.translate(result, lang);
-        }
-      }
-      yield { type: 'chunk', content: result };
-    } else if (isDialogueIntent(intent)) {
-      let result = await this._handleDialogueWithIntent(intent, gameContext);
-      if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
-        const lang = this._worldFrame.language as LanguageCode;
-        if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
-          result = await this.translationService.translate(result, lang);
-        }
-      }
-      yield { type: 'chunk', content: result };
-    } else if (isObservationIntent(intent)) {
-      let result = await this._handleObservation(intent, gameContext);
-      if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
-        const lang = this._worldFrame.language as LanguageCode;
-        if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
-          result = await this.translationService.translate(result, lang);
-        }
-      }
-      yield { type: 'chunk', content: result };
-    } else {
+    if (isActionIntent(intent)) {
       // Streaming for actions
       try {
-        yield* this._handleActionStreamWithSimulation(intent, simResult, gameContext);
+        yield* this.legacyGenerator.generateStream(intent, simResult, gameContext);
       } catch (err) {
         yield { type: 'error', error: err instanceof Error ? err.message : String(err) };
       }
+    } else {
+      let result = await this.legacyGenerator.generate(intent, simResult, gameContext);
+      if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
+        const lang = this._worldFrame.language as LanguageCode;
+        if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
+          result = await this.translationService.translate(result, lang);
+        }
+      }
+      yield { type: 'chunk', content: result };
     }
 
     // Yield heartbeat: prose complete
@@ -584,198 +535,6 @@ export class RoleplayEngine {
     yield { type: 'done', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
   }
 
-  // ─── Intent-Based Handlers ─────────────────────────────────────────────
-
-  private async _handleMovementWithIntent(
-    intent: Intent & { type: 'movement' },
-    context: GameContext,
-  ): Promise<string> {
-    const destination = intent.destination;
-    const locNode = this._entityStore.getByNameAndType(destination, 'Location');
-    if (!locNode) {
-      const lang = t();
-      return lang.noPlace(destination);
-    }
-
-    // Get recent events for scene transition
-    const recentEvents = context.recentTimeline.map(e => e.description);
-    const worldRules = context.worldRules.map(r => r.description);
-
-    // Scene agent generates the journey description
-    const description = await this.sceneAgent.transition(
-      this.currentLocation,
-      destination,
-      this.activeCharacter ?? 'you',
-      recentEvents,
-      worldRules,
-    );
-
-    // Update state (already done by simulation, but ensure location is set)
-    this.currentLocation = destination;
-    this.currentTime = new Date(this.currentTime.getTime() + 10 * 60 * 1000);
-
-    await this.chronicler.logEvent(
-      `${this.activeCharacter ?? 'Player'} moved to ${destination}`,
-      this.currentTime,
-      'movement',
-    );
-
-    return description;
-  }
-
-  private async _handleDialogueWithIntent(
-    intent: Intent & { type: 'dialogue' },
-    context: GameContext,
-  ): Promise<string> {
-    const npcNode = this._entityStore.getByNameAndType(intent.target, 'Character');
-    if (!npcNode) {
-      const lang = t();
-      return lang.noNpc(intent.target);
-    }
-
-    const personality = (npcNode.profile.l2.personality as string) ?? 'friendly and neutral';
-    const recentEvents = context.recentTimeline.map(e => e.description);
-
-    const response = await this.npcAgent.respond(
-      intent.target,
-      personality,
-      this.activeCharacter ?? 'you',
-      this.currentLocation,
-      intent.content,
-      recentEvents,
-    );
-
-    await this.chronicler.logEvent(
-      `${this.activeCharacter ?? 'Player'} talked to ${intent.target}: '${intent.content}'`,
-      this.currentTime,
-      'dialogue',
-    );
-
-    return `${intent.target} says: "${response}"`;
-  }
-
-  private async _handleObservation(
-    intent: Intent & { type: 'observation' },
-    context: GameContext,
-  ): Promise<string> {
-    if (intent.target) {
-      // Observe specific target
-      const entity = this._entityStore.getByName(intent.target);
-      if (entity) {
-        const description = (entity.profile.l2.description as string) ?? (entity.profile.summary as string);
-        return `You examine ${intent.target}. ${description}`;
-      }
-      return `You look at ${intent.target} but see nothing noteworthy.`;
-    }
-
-    // General observation
-    const locNode = context.location;
-    if (locNode) {
-      const desc = (locNode.profile.l2.description as string) ?? 'You see nothing special.';
-      return `You look around. ${desc}`;
-    }
-    return 'You look around but see nothing of note.';
-  }
-
-  private async _handleActionWithSimulation(
-    intent: Intent,
-    simResult: { outcome: OutcomeQuality; narrativeHints: string[]; probability: number },
-    context: GameContext,
-  ): Promise<string> {
-    // Build story context for narrator
-    const nearbyNpcs = context.nearbyNpcs.map(n => n.name);
-    const worldRules = context.worldRules.map(r => `- ${r.name}: ${r.description}`);
-    const recentTimeline = context.recentTimeline.map(e => e.description);
-
-    const storyContext: StoryContext = {
-      worldName: context.world.name,
-      currentTime: context.time.toISOString(),
-      location: context.location?.name ?? this.currentLocation,
-      activeCharacter: this.activeCharacter,
-      userRole: this.userRole,
-      recentTimeline,
-      worldRules,
-      nearbyNpcs,
-      availableItems: [],
-      activeQuests: context.activeQuests.map(q => ({ title: q.title, status: q.status })),
-      directorPlan: null,
-      genre: (this._worldFrame.genre as string) ?? undefined,
-      language: (this._worldFrame.language as string) ?? undefined,
-      magicSystem: ((this._worldFrame.magic_system as Record<string, string>)?.rules) ?? undefined,
-      worldDescription: (this._worldFrame.description as string) ?? undefined,
-    };
-
-    const conversation = this.memory.getRecent(5);
-
-    // Add simulation hints to context
-    const hints = simResult.narrativeHints.join('\n');
-
-    const narrative = await this.narrator.generate(
-      storyContext,
-      [],
-      [`Simulation outcome: ${simResult.outcome} (${(simResult.probability * 100).toFixed(0)}%)\nHints: ${hints}`],
-      conversation,
-    );
-
-    return narrative;
-  }
-
-  private async *_handleActionStreamWithSimulation(
-    intent: Intent,
-    simResult: { outcome: OutcomeQuality; narrativeHints: string[]; probability: number },
-    context: GameContext,
-  ): AsyncGenerator<{ type: string; content?: string; location?: string; story_time?: string; active_character?: string }> {
-    const nearbyNpcs = context.nearbyNpcs.map(n => n.name);
-    const worldRules = context.worldRules.map(r => `- ${r.name}: ${r.description}`);
-    const recentTimeline = context.recentTimeline.map(e => e.description);
-
-    const storyContext: StoryContext = {
-      worldName: context.world.name,
-      currentTime: context.time.toISOString(),
-      location: context.location?.name ?? this.currentLocation,
-      activeCharacter: this.activeCharacter,
-      userRole: this.userRole,
-      recentTimeline,
-      worldRules,
-      nearbyNpcs,
-      availableItems: [],
-      activeQuests: context.activeQuests.map(q => ({ title: q.title, status: q.status })),
-      directorPlan: null,
-      genre: (this._worldFrame.genre as string) ?? undefined,
-      language: (this._worldFrame.language as string) ?? undefined,
-      magicSystem: ((this._worldFrame.magic_system as Record<string, string>)?.rules) ?? undefined,
-      worldDescription: (this._worldFrame.description as string) ?? undefined,
-    };
-
-    const conversation = this.memory.getRecent(5);
-    const hints = simResult.narrativeHints.join('\n');
-
-    const shouldTranslate = this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en'
-      && ['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(this._worldFrame.language as string);
-
-    let fullNarrative = '';
-    for await (const chunk of this.narrator.generateStream(
-      storyContext,
-      [],
-      [`Simulation outcome: ${simResult.outcome} (${(simResult.probability * 100).toFixed(0)}%)
-Hints: ${hints}`],
-      conversation,
-    )) {
-      fullNarrative += chunk;
-      if (!shouldTranslate) {
-        yield { type: 'chunk', content: chunk };
-      }
-    }
-
-    if (shouldTranslate) {
-      const lang = this._worldFrame.language as LanguageCode;
-      const translated = await this.translationService!.translate(fullNarrative, lang);
-      yield { type: 'chunk', content: translated };
-      fullNarrative = translated;
-    }
-
-    this.memory.addEntry('', fullNarrative);
-  }
 
   // ─── Legacy Agent Support (Phase 3 will replace these) ─────────────────
 
@@ -920,45 +679,6 @@ Player request: "${ctx.message}"`;
     return this._literaryDb;
   }
 
-  private _extractVariables(ctx: GameContext): Record<string, string> {
-    return {
-      current_hero: ctx.character?.name ?? 'the hero',
-      location: ctx.location?.name ?? 'unknown',
-      world: (this._worldFrame.name as string) ?? 'the world',
-      time: this.currentTime.toISOString(),
-      nearby_npcs: ctx.nearbyNpcs.map(n => n.name).join(', '),
-    };
-  }
-
-  private async _getStyleForTemplate(templateId: string): Promise<{
-    register: string;
-    pacing: string;
-    sensory: string[];
-    snippets: string[];
-    forbidden: string[];
-  }> {
-    const db = this.getLiteraryDb();
-    if (!db) {
-      return { register: 'plain', pacing: 'mixed', sensory: [], snippets: [], forbidden: [] };
-    }
-
-    try {
-      const style = db.getStyleForTemplate(templateId);
-      if (style) {
-        return {
-          register: (style.register as string) ?? 'plain',
-          pacing: (style.pacing as string) ?? 'mixed',
-          sensory: style.sensory_ratio ? JSON.parse(style.sensory_ratio as string) : [],
-          snippets: style.example_snippets ? JSON.parse(style.example_snippets as string) : [],
-          forbidden: style.forbidden_phrases ? JSON.parse(style.forbidden_phrases as string) : [],
-        };
-      }
-    } catch {
-      log.debug({ templateId }, 'no linked style found');
-    }
-
-    return { register: 'plain', pacing: 'mixed', sensory: [], snippets: [], forbidden: [] };
-  }
 
   getSessionState(): Record<string, unknown> {
     return {
