@@ -25,6 +25,7 @@ import {
   calculateTaxCollectorsCount,
 } from "../models/rank";
 import { type NPCRoleConfig, ALL_NPC_ROLES, selectNPCRole } from "../models/npc-role";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("npc-economy");

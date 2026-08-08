@@ -14,6 +14,7 @@ import type { LLMQueue } from "../lib/llm-queue";
 import type { NPCRuntime } from "./npc-runtime";
 import type { Chronicler } from "./chronicler";
 import type { WorldClock } from "./world-clock";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("birth");
@@ -166,7 +167,7 @@ const CIRCUMSTANCE_TRAITS: Record<BirthCircumstance, string> = {
 
 function weightedRandom<T>(items: T[], weights: number[]): T {
   const total = weights.reduce((s, w) => s + w, 0);
-  let r = Math.random() * total;
+  let r = getPRNG().next() * total;
   for (let i = 0; i < items.length; i++) {
     r -= weights[i]!;
     if (r <= 0) return items[i]!;
@@ -180,7 +181,7 @@ function pickGender(hints: string): Gender {
   if (h.includes("female")) return "female";
   if (h.includes("non-binary") || h.includes("nonbinary")) return "non_binary";
   const genders: Gender[] = ["male", "female", "non_binary", "other"];
-  return genders[Math.floor(Math.random() * genders.length)]!;
+  return genders[getPRNG().nextInt(0, genders.length - 1)]!;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -203,7 +204,7 @@ function rollRace(worldFrame: Record<string, unknown>, hints: string): { race: s
 
   const total = weights.reduce((s, w) => s + w, 0);
   const normalised = weights.map((w) => w / total);
-  const idx = Math.floor(Math.random() * names.length);
+  const idx = getPRNG().nextInt(0, names.length - 1);
   return { race: names[idx]!, probability: normalised[idx]! };
 }
 
@@ -216,7 +217,7 @@ function rollSocialClass(hints: string): { socialClass: SocialClass; probability
   });
   const total = weights.reduce((s, w) => s + w, 0);
   const normalised = weights.map((w) => w / total);
-  const idx = Math.floor(Math.random() * classes.length);
+  const idx = getPRNG().nextInt(0, classes.length - 1);
   return { socialClass: classes[idx]!, probability: normalised[idx]! };
 }
 
@@ -227,7 +228,7 @@ function rollMagicAffinity(worldFrame: Record<string, unknown>, parentAffinity?:
 
   const density = (magicSystem.density as number) ?? 0.5;
   const baseChance = parentAffinity ? density + 0.2 : density;
-  const roll = Math.random();
+  const roll = getPRNG().next();
   if (roll >= baseChance) return { affinity: null, probability: baseChance };
 
   const names: string[] = [];
@@ -238,7 +239,7 @@ function rollMagicAffinity(worldFrame: Record<string, unknown>, parentAffinity?:
   }
   const total = weights.reduce((s, w) => s + w, 0);
   const normalised = weights.map((w) => w / total);
-  const idx = Math.floor(Math.random() * names.length);
+  const idx = getPRNG().nextInt(0, names.length - 1);
   return { affinity: names[idx]!, probability: normalised[idx]! };
 }
 
@@ -253,12 +254,12 @@ function rollTalents(socialClass: SocialClass, hints: string): InnateSkill[] {
 
   for (const name of categories) {
     const baseChance = 0.3 + classBonus + raceBonus + (hints.toLowerCase().includes(name) ? 0.3 : 0);
-    if (Math.random() < baseChance) {
+    if (getPRNG().next() < baseChance) {
       talents.push({
         name,
-        base_value: Math.round((0.4 + Math.random() * 0.3) * 100) / 100,
-        cap: Math.round((0.85 + Math.random() * 0.15) * 100) / 100,
-        growth_rate: Math.round((0.03 + Math.random() * 0.04) * 100) / 100,
+        base_value: Math.round((0.4 + getPRNG().next() * 0.3) * 100) / 100,
+        cap: Math.round((0.85 + getPRNG().next() * 0.15) * 100) / 100,
+        growth_rate: Math.round((0.03 + getPRNG().next() * 0.04) * 100) / 100,
       });
     }
   }
@@ -552,7 +553,7 @@ function determineLocations(worldFrame: Record<string, unknown>): { birthplace: 
   const locations = (worldFrame.locations as Array<Record<string, unknown>>) ?? [];
   if (!locations.length) return { birthplace: "The Capital City", initialLocation: "The Capital City" };
   const names = locations.map((l) => (l.name as string) ?? "Unknown");
-  const idx = Math.min(Math.floor(Math.random() * names.length), 4);
+  const idx = Math.min(getPRNG().nextInt(0, names.length - 1), 4);
   const place = names[idx]!;
   return { birthplace: place, initialLocation: place };
 }
@@ -637,11 +638,11 @@ async function generateBirthParams(
   characterName?: string,
 ): Promise<BirthParameters> {
   const { race, probability: raceProb } = rollRace(deps.worldFrame, userHints);
-  const raceRoll = Math.random();
+  const raceRoll = getPRNG().next();
   const raceCritical = raceRoll < raceProb * 0.3;
 
   const { socialClass, probability: classProb } = rollSocialClass(userHints);
-  const classRoll = Math.random();
+  const classRoll = getPRNG().next();
 
   const { affinity, probability: magicProb } = rollMagicAffinity(deps.worldFrame);
 
@@ -668,7 +669,7 @@ async function generateBirthParams(
   const rolls: ProbabilityRoll[] = [
     { attribute: "race", probability: raceProb, roll_result: raceRoll, success: raceRoll < raceProb, critical: raceCritical, value: race },
     { attribute: "social_class", probability: classProb, roll_result: classRoll, success: classRoll < classProb, critical: false, value: socialClass },
-    { attribute: "magic_affinity", probability: magicProb, roll_result: Math.random(), success: affinity !== null, critical: false, value: affinity },
+    { attribute: "magic_affinity", probability: magicProb, roll_result: getPRNG().next(), success: affinity !== null, critical: false, value: affinity },
   ];
 
   return {
@@ -840,7 +841,7 @@ async function createHeirloom(
       description: params.family.heirloom_description,
       type: "heirloom",
       owned_by: params.family.family_head,
-      generations: 3 + Math.floor(Math.random() * 8),
+      generations: 3 + getPRNG().nextInt(0, 7),
     },
     {},
   );

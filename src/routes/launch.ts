@@ -64,7 +64,7 @@ launch.post("/launch", async (c) => {
     // Set initial global luck
     try {
       await _narrativeCtx.clock.setGlobalLuck(0.55);
-    } catch { /* ignore */ }
+    } catch (err) { log.debug({ err }, 'global luck set skipped'); }
 
     // Add welcome quest
     try {

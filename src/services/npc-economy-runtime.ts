@@ -6,6 +6,7 @@ import { type NPCWithEconomy, createNPCWithEconomy, updateNPCStats, processFood,
 import { RankType, getRankConfig, getRankIndex, RANK_CONFIGS } from "../models/rank";
 import { type Vices, type Temperament, createDefaultVices, ageDecay, viceDecay } from "../models/npc-stats";
 import { type NPCRoleConfig, ALL_NPC_ROLES, selectNPCRole } from "../models/npc-role";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("npc-economy-runtime");

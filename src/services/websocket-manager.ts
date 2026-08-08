@@ -12,8 +12,10 @@ export interface WSMessage {
   [key: string]: unknown;
 }
 
-interface ManagedSocket {
+export interface ManagedSocket {
   id?: string;
+  worldId?: string;
+  sessionId?: string;
   send: (data: string) => void;
   close: () => void;
 }
@@ -41,10 +43,11 @@ export class WebSocketManager {
     return this._connections.size;
   }
 
-  async broadcast(message: WSMessage): Promise<void> {
+  async broadcast(message: WSMessage, filter?: (socket: ManagedSocket) => boolean): Promise<void> {
     const data = JSON.stringify(message);
     const dead: string[] = [];
     for (const [id, socket] of this._connections) {
+      if (filter && !filter(socket)) continue;
       try {
         socket.send(data);
       } catch {

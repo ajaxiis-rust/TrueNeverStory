@@ -10,6 +10,7 @@ import type { Chronicler } from "./chronicler";
 import { readJsonFileSync, atomicWriteJson } from "../lib/atomic-io";
 import { existsSync } from "node:fs";
 import { TaskPriority } from "../models/director";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("villain-manager");
@@ -331,7 +332,7 @@ export class VillainManager {
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) return JSON.parse(jsonMatch[0]);
-    } catch { /* not json */ }
+    } catch (err) { log.debug({ err }, 'villain json parse skipped'); }
     return null;
   }
 

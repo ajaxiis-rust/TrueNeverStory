@@ -2,6 +2,8 @@
  * NPC Economy System — Stats, Vices, Family
  */
 
+import { getPRNG } from "../lib/prng";
+
 export type Temperament = "choleric" | "sanguine" | "melancholic" | "phlegmatic";
 
 export type ViceType =

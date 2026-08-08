@@ -4,12 +4,15 @@
 import { Hono } from "hono";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getLogger } from "../utils/logger";
+
+const log = getLogger("health-route");
 
 let version = "0.0.0";
 try {
   const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf-8"));
   version = pkg.version;
-} catch { /* compiled binary or missing file */ }
+} catch (err) { log.debug({ err }, 'package.json version read skipped, using fallback'); }
 
 const health = new Hono();
 

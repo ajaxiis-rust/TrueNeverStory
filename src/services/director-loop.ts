@@ -18,6 +18,7 @@ import { readJsonFileSync } from "../lib/atomic-io";
 import { atomicWriteJson } from "../lib/atomic-io";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("director-loop");

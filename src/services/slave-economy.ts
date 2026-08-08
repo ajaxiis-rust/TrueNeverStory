@@ -4,6 +4,7 @@
 
 import { type NPCWithEconomy, type FoodProduction, type Bribe } from "./npc-economy";
 import { RankType } from "../models/rank";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("slave-economy");

@@ -7,6 +7,7 @@ import type { WorldBuilder } from "./world-builder";
 import type { NPCGenerator } from "./npc-generator";
 import type { Chronicler } from "./chronicler";
 import type { EntityNode } from "../models/entity";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("world-evolver");

@@ -8,6 +8,7 @@ import type { Chronicler } from "./chronicler";
 import { readJsonFileSync, atomicWriteJson } from "../lib/atomic-io";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
 
 const log = getLogger("social-simulator");
@@ -57,7 +58,7 @@ export class SocialSimulator {
     if (!existsSync(path)) return;
     try {
       this._history = readJsonFileSync<InteractionHistory>(path) ?? this._history;
-    } catch { /* ignore */ }
+    } catch (err) { log.debug({ err }, 'social interaction history load skipped'); }
   }
 
   private _save(): void {

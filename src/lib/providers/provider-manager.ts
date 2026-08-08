@@ -14,6 +14,9 @@ import { readJsonFileSync, atomicWriteJson } from "../atomic-io";
 import { getConfig } from "../../config/env";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { getLogger } from "../../utils/logger";
+
+const log = getLogger("provider-manager");
 
 export interface AgentModelAssignment {
   agentId: string;
@@ -100,7 +103,7 @@ class ProviderManager {
     }
 
     // Fire-and-forget health check — don't block startup
-    this.healthCheckAll().catch(() => {});
+    this.healthCheckAll().catch((err) => { log.debug({ err }, 'provider health check skipped at startup'); });
   }
 
   private _loadState(): ProviderManagerState {
@@ -274,7 +277,7 @@ class ProviderManager {
 
     const provider = this._createProvider(config);
     // Don't block on health check — it's fire-and-forget
-    provider.healthCheck().catch(() => {});
+    provider.healthCheck().catch((err) => { log.debug({ err }, 'provider health check skipped for new provider'); });
     this._saveState();
     return provider;
   }

@@ -12,11 +12,17 @@ const logger = getLogger('HeartbeatService');
  * Subscribes to heartbeat events and forwards them to all connected clients.
  */
 export class HeartbeatService {
+  private activeWorld?: string;
+
   constructor(
     private eventBus: EventBus,
     private wsManager: WebSocketManager,
   ) {
     this.subscribeToEvents();
+  }
+
+  setActiveWorld(worldId: string | undefined): void {
+    this.activeWorld = worldId;
   }
 
   /**
@@ -52,11 +58,14 @@ export class HeartbeatService {
       metadata: event.payload,
     };
 
-    // Broadcast to all connected clients
+    // Broadcast to connected clients, optionally filtered by world
+    const filter = this.activeWorld
+      ? (sock: { worldId?: string }) => sock.worldId === this.activeWorld
+      : undefined;
     this.wsManager.broadcast({
       type: 'heartbeat',
       ...heartbeat,
-    });
+    }, filter);
 
     logger.debug(`Heartbeat: ${stage} (${(heartbeat.progress * 100).toFixed(0)}%)`);
   }
@@ -76,22 +85,28 @@ export class HeartbeatService {
       metadata,
     };
 
+    const filter = this.activeWorld
+      ? (sock: { worldId?: string }) => sock.worldId === this.activeWorld
+      : undefined;
     this.wsManager.broadcast({
       type: 'heartbeat',
       ...heartbeat,
-    });
+    }, filter);
   }
 
   /**
    * Send completion heartbeat.
    */
   sendComplete(location?: string, storyTime?: string, activeCharacter?: string): void {
+    const filter = this.activeWorld
+      ? (sock: { worldId?: string }) => sock.worldId === this.activeWorld
+      : undefined;
     this.wsManager.broadcast({
       type: 'heartbeat',
       stage: HeartbeatStage.COMPLETE,
       message: HEARTBEAT_MESSAGES[HeartbeatStage.COMPLETE],
       progress: 1.0,
       metadata: { location, storyTime, activeCharacter },
-    });
+    }, filter);
   }
 }
