@@ -87,6 +87,26 @@ export interface ServiceMessageAgent {
 
 // ─── Engine Dependencies ─────────────────────────────────────────────────────
 
+export interface EngineAgents {
+  narrator: NarratorAgent;
+  npcAgent: NPCAgent;
+  sceneAgent: SceneAgent;
+  directorAgent: DirectorAgent;
+  crafter: CrafterAgent;
+  researcher: ResearcherAgent;
+  cartographer: CartographerAgent;
+  historian: HistorianAgent;
+  lorekeeper: LorekeeperAgent;
+  merchant: MerchantAgent;
+  questGiver: QuestGiverAgent;
+  dramaturg: DramaturgAgent;
+  validator: ValidatorAgent;
+  stylist: StylistAgent;
+  actor: ActorAgent;
+  censor: CensorAgent;
+  chroniclerAgent: ChroniclerAgent;
+}
+
 interface EngineDeps {
   dbPath: string;
   entityStore: UnifiedEntityStore;
@@ -101,6 +121,8 @@ interface EngineDeps {
   eventBus?: EventBus;
   mcpServer?: TNSServer;
   translationService?: TranslationService;
+  /** Pre-created agents — when provided, skip construction in engine. */
+  agents?: EngineAgents;
 }
 
 interface SessionParams {
@@ -224,14 +246,47 @@ export class RoleplayEngine {
       deps.worldFrame,
     );
 
-    // Initialize v0.25.0 new agents
+    // Initialize v0.25.0 agents (from deps or constructor)
+    this.translationService = deps.translationService;
     this.agentRegistry = getAgentRegistryV2();
-    this.dramaturg = new DramaturgAgent(deps.mcpServer as TNSServer, deps.llmQueue);
-    this.validator = new ValidatorAgent(deps.mcpServer as TNSServer);
-    this.stylist = new StylistAgent(deps.mcpServer as TNSServer, deps.llmQueue);
-    this.actor = new ActorAgent(deps.entityStore, deps.llmQueue);
-    this.censor = new CensorAgent(deps.llmQueue);
-    this.chroniclerAgent = new ChroniclerAgent(deps.entityStore, this._eventBus);
+
+    if (deps.agents) {
+      this.dramaturg = deps.agents.dramaturg;
+      this.validator = deps.agents.validator;
+      this.stylist = deps.agents.stylist;
+      this.actor = deps.agents.actor;
+      this.censor = deps.agents.censor;
+      this.chroniclerAgent = deps.agents.chroniclerAgent;
+      this.narrator = deps.agents.narrator;
+      this.npcAgent = deps.agents.npcAgent;
+      this.sceneAgent = deps.agents.sceneAgent;
+      this.directorAgent = deps.agents.directorAgent;
+      this.crafter = deps.agents.crafter;
+      this.researcher = deps.agents.researcher;
+      this.cartographer = deps.agents.cartographer;
+      this.historian = deps.agents.historian;
+      this.lorekeeper = deps.agents.lorekeeper;
+      this.merchant = deps.agents.merchant;
+      this.questGiver = deps.agents.questGiver;
+    } else {
+      this.dramaturg = new DramaturgAgent(deps.mcpServer as TNSServer, deps.llmQueue);
+      this.validator = new ValidatorAgent(deps.mcpServer as TNSServer);
+      this.stylist = new StylistAgent(deps.mcpServer as TNSServer, deps.llmQueue);
+      this.actor = new ActorAgent(deps.entityStore, deps.llmQueue);
+      this.censor = new CensorAgent(deps.llmQueue);
+      this.chroniclerAgent = new ChroniclerAgent(deps.entityStore, this._eventBus);
+      this.narrator = new NarratorAgent(deps.llmQueue);
+      this.npcAgent = new NPCAgent(deps.llmQueue);
+      this.sceneAgent = new SceneAgent(deps.llmQueue);
+      this.directorAgent = new DirectorAgent(deps.llmQueue);
+      this.crafter = new CrafterAgent(deps.entityStore, deps.llmQueue, deps.dbPath);
+      this.researcher = new ResearcherAgent(deps.llmQueue);
+      this.cartographer = new CartographerAgent(deps.llmQueue);
+      this.historian = new HistorianAgent(deps.llmQueue);
+      this.lorekeeper = new LorekeeperAgent(deps.llmQueue);
+      this.merchant = new MerchantAgent(deps.llmQueue);
+      this.questGiver = new QuestGiverAgent(deps.llmQueue);
+    }
 
     // Register new agents
     this.agentRegistry.register(this.dramaturg);
@@ -240,22 +295,6 @@ export class RoleplayEngine {
     this.agentRegistry.register(this.actor);
     this.agentRegistry.register(this.censor);
     this.agentRegistry.register(this.chroniclerAgent);
-
-    // Initialize Translation Service
-    this.translationService = deps.translationService;
-
-    // Initialize legacy agents (to be replaced in Phase 3)
-    this.narrator = new NarratorAgent(deps.llmQueue);
-    this.npcAgent = new NPCAgent(deps.llmQueue);
-    this.sceneAgent = new SceneAgent(deps.llmQueue);
-    this.directorAgent = new DirectorAgent(deps.llmQueue);
-    this.crafter = new CrafterAgent(deps.entityStore, deps.llmQueue, deps.dbPath);
-    this.researcher = new ResearcherAgent(deps.llmQueue);
-    this.cartographer = new CartographerAgent(deps.llmQueue);
-    this.historian = new HistorianAgent(deps.llmQueue);
-    this.lorekeeper = new LorekeeperAgent(deps.llmQueue);
-    this.merchant = new MerchantAgent(deps.llmQueue);
-    this.questGiver = new QuestGiverAgent(deps.llmQueue);
     // DialogueManager requires SocialGraph + MemoryEngine, both backed by the same dbPath
     if (this._npcRuntime) {
       const socialGraph = new SocialGraph(deps.dbPath);
