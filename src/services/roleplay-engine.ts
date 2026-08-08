@@ -40,6 +40,7 @@ import { OutcomeQuality } from '../models/simulation';
 import { getLogger } from '../utils/logger';
 import { join } from 'node:path';
 import { t } from '../i18n';
+import { SessionState, type SessionParams } from './roleplay/session-state';
 
 // v0.25.0 New agents
 import { DramaturgAgent } from './agents/dramaturg';
@@ -153,13 +154,23 @@ export class RoleplayEngine {
   readonly memory: MemoryManager;
 
   // Session state
-  activeCharacter: string | null = null;
-  currentLocation = 'unknown';
-  currentTime = new Date();
-  userRole = 'protagonist';
-  activeSessionId: string | null = null;
-  allowAutoEvents = true;
-  visitedLocations = new Set<string>();
+  readonly session = new SessionState();
+
+  // Backward-compat getter/setter
+  get activeCharacter() { return this.session.activeCharacter; }
+  set activeCharacter(v: string | null) { this.session.activeCharacter = v; }
+  get currentLocation() { return this.session.currentLocation; }
+  set currentLocation(v: string) { this.session.currentLocation = v; }
+  get currentTime() { return this.session.currentTime; }
+  set currentTime(v: Date) { this.session.currentTime = v; }
+  get userRole() { return this.session.userRole; }
+  set userRole(v: string) { this.session.userRole = v; }
+  get activeSessionId() { return this.session.activeSessionId; }
+  set activeSessionId(v: string | null) { this.session.activeSessionId = v; }
+  get allowAutoEvents() { return this.session.allowAutoEvents; }
+  set allowAutoEvents(v: boolean) { this.session.allowAutoEvents = v; }
+  get visitedLocations() { return this.session.visitedLocations; }
+  set visitedLocations(v: Set<string>) { this.session.visitedLocations = v; }
 
   // Extended deps
   private _npcRuntime?: NPCRuntime;
@@ -247,18 +258,17 @@ export class RoleplayEngine {
   reset(newDbPath: string): void {
     this._dbPath = newDbPath;
     this.memory.reload(join(newDbPath, 'roleplay_memory.json'));
-    this.currentLocation = 'unknown';
-    this.activeSessionId = null;
-    this.activeCharacter = null;
-    this.visitedLocations.clear();
+    this.session.reset();
   }
 
   setSession(params: SessionParams): void {
-    if (params.character !== undefined) this.activeCharacter = params.character;
-    if (params.location) this.currentLocation = params.location;
-    if (params.storyTime) this.currentTime = params.storyTime;
-    if (params.role) this.userRole = params.role;
-    if (params.sessionId !== undefined) this.activeSessionId = params.sessionId;
+    this.session.set({
+      character: params.character,
+      location: params.location,
+      time: params.storyTime,
+      role: params.role,
+      sessionId: params.sessionId,
+    });
   }
 
   // ─── Main Input Processing (State-First Pipeline) ──────────────────────
