@@ -738,18 +738,20 @@ async function buildCatalog() {
   if (topic) body.topic = topic;
   const d = await api("gutenberg/catalog/build", { method: "POST", body: JSON.stringify(body) });
   if (d?.jobId) {
-    document.getElementById("catalog-build-progress").style.display = "block";
-    document.getElementById("catalog-build-status").textContent = "Building catalog...";
-    toast("Catalog build started", "success");
+    trackProgress(d.jobId, "catalog/build", () => {
+      loadCatalogStats();
+      loadCatalogPage(1);
+    });
   }
 }
 
 async function buildCatalogPopular() {
   const d = await api("gutenberg/catalog/build", { method: "POST", body: JSON.stringify({ limit: 500 }) });
   if (d?.jobId) {
-    document.getElementById("catalog-build-progress").style.display = "block";
-    document.getElementById("catalog-build-status").textContent = "Building popular catalog...";
-    toast("Popular catalog build started", "success");
+    trackProgress(d.jobId, "catalog/build/popular", () => {
+      loadCatalogStats();
+      loadCatalogPage(1);
+    });
   }
 }
 
