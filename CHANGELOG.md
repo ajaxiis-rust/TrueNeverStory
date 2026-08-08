@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.31.1] — 2026-08-08 — MCP Console Polish
+
+### MCP Console — 8-stage polish pass
+
+- **Tests:** 14 MCP tests fixed (404→200), 37/37 pass, full suite 1114 pass / 0 fail
+- **XSS protection:** `escapeHtml()` helper + applied to all 11 `innerHTML` locations in `public/mcp.html`
+- **Catalog i18n:** 26 keys en+ru, `data-i18n` attributes, `t()` calls in JS table rendering
+- **Progress bar:** CSS + DOM + visual progress in `trackProgress()` during SSE operations
+- **Sequential compact:** `runAction()` returns Promise, `compactAll()` waits for each job completion
+- **Economics read-only:** `EconomicService` lazy singleton, phase + jubilee endpoints, dilemma removed from UI
+- **5 stub endpoints:** `literary/compile` → `compile-classics.ts`, others with honest messages
+- **Translations:** de/fr/es/ja/zh added (~56 keys × 5 languages)
+
 ## [v0.31.0] — 2026-08-08 — RoleplayEngine Refactoring
 
 ### Architecture — RoleplayEngine strangled into composable services
