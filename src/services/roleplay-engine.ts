@@ -41,6 +41,7 @@ import { getLogger } from '../utils/logger';
 import { join } from 'node:path';
 import { t } from '../i18n';
 import { SessionState, type SessionParams } from './roleplay/session-state';
+import { CommandHandler } from './roleplay/handlers/command-handler';
 
 // v0.25.0 New agents
 import { DramaturgAgent } from './agents/dramaturg';
@@ -156,6 +157,9 @@ export class RoleplayEngine {
   // Session state
   readonly session = new SessionState();
 
+  // Command handler
+  readonly commandHandler: CommandHandler;
+
   // Backward-compat getter/setter
   get activeCharacter() { return this.session.activeCharacter; }
   set activeCharacter(v: string | null) { this.session.activeCharacter = v; }
@@ -253,6 +257,14 @@ export class RoleplayEngine {
     this.startResolver = new StartResolver(deps.entityStore, deps.llmQueue, 'director');
     this.chronicler = deps.chronicler ?? new Chronicler(join(deps.dbPath, 'timeline.jsonl'));
     this.memory = new MemoryManager(join(deps.dbPath, 'roleplay_memory.json'));
+
+    this.commandHandler = new CommandHandler({
+      entityStore: deps.entityStore,
+      crafter: this.crafter,
+      chronicler: this.chronicler,
+      userAgent: deps.userAgent,
+      session: this.session,
+    });
   }
 
   reset(newDbPath: string): void {
@@ -900,131 +912,7 @@ Player request: "${ctx.message}"`;
   // ─── Command Handler ───────────────────────────────────────────────────
 
   private async _handleCommand(cmd: string): Promise<string> {
-    const lang = t();
-    const parts = cmd.split(/\s+/);
-    const verb = parts[0]?.toLowerCase() ?? '';
-
-    switch (verb) {
-      case 'help':
-        return 'Commands: /look, /inventory, /craft, /status, /quests, /time, /save, /quit, /party [add|remove], /attack <target>\n@agent <id> <msg> — private message to an agent\n/craft list — available recipes\n/craft <recipe_id> — craft an item\n/craft suggest <item1> <item2> — get LLM suggestion';
-      case 'look': {
-        const locNode = this._entityStore.getByNameAndType(this.currentLocation, 'Location');
-        if (locNode) {
-          const desc = (locNode.profile.l2.description as string) ?? lang.youSee;
-          return `You look around. ${desc}`;
-        }
-        return lang.youSeeNothing;
-      }
-      case 'inventory': {
-        if (!this.activeCharacter) return lang.noCharacter;
-        const inv = this.crafter.scanInventory(this.activeCharacter);
-        if (inv.size === 0) return lang.crafterInventoryEmpty;
-        const lines = ['Inventory:'];
-        for (const [name, count] of inv) {
-          lines.push(`  ${count > 1 ? `${count}x ` : ''}${name}`);
-        }
-        const craftable = this.crafter.findCraftable(inv);
-        if (craftable.length > 0) {
-          lines.push('\nCan craft:');
-          for (const r of craftable) {
-            lines.push(`  ${r.name} (${r.nameRu}): ${r.ingredients.join(' + ')}`);
-          }
-        }
-        return lines.join('\n');
-      }
-      case 'craft': {
-        if (!this.activeCharacter) return lang.noCharacter;
-        const subcommand = parts[1]?.toLowerCase() ?? '';
-
-        if (subcommand === 'list') {
-          const recipes = this.crafter.getRecipes();
-          if (recipes.length === 0) return 'No recipes known.';
-          const inv = this.crafter.scanInventory(this.activeCharacter);
-          const lines = ['Known recipes:'];
-          for (const r of recipes) {
-            const canCraft = this.crafter.findCraftable(inv).some(cr => cr.id === r.id);
-            const mark = canCraft ? ' ✓' : '';
-            lines.push(`  ${r.id}: ${r.name} (${r.nameRu}): ${r.ingredients.join(' + ')} → ${r.result} [${r.difficulty}]${mark}`);
-          }
-          lines.push('\n/craft <recipe_id> to craft | /craft suggest <item1> <item2> for ideas');
-          return lines.join('\n');
-        }
-
-        if (subcommand === 'suggest') {
-          const item1 = parts[2] ?? '';
-          const item2 = parts[3] ?? '';
-          if (!item1 || !item2) return lang.crafterSuggestion('item1', 'item2');
-          const worldRules = this._entityStore.allNodes()
-            .filter(n => n.entityType === 'WorldRule')
-            .map(n => n.profile.summary)
-            .join('; ');
-          const suggestion = await this.crafter.suggestRecipe(item1, item2, worldRules);
-          return suggestion;
-        }
-
-        if (subcommand) {
-          const result = this.crafter.craft(subcommand, this.activeCharacter);
-          if (result.success) {
-            await this.chronicler.logEvent(
-              `${this.activeCharacter} crafted ${result.result}`,
-              this.currentTime,
-              'crafting',
-            );
-            return lang.crafterCrafted(result.result ?? subcommand, subcommand);
-          }
-          return result.message;
-        }
-
-        const inv = this.crafter.scanInventory(this.activeCharacter);
-        const craftable = this.crafter.findCraftable(inv);
-        const almost = this.crafter.findAlmostCraftable(inv);
-        const lines: string[] = [];
-
-        if (craftable.length > 0) {
-          lines.push('Can craft now:');
-          for (const r of craftable) {
-            lines.push(`  ${r.id}: ${r.name} (${r.nameRu}): ${r.ingredients.join(' + ')} → ${r.result}`);
-          }
-        }
-
-        if (almost.length > 0) {
-          lines.push('\nAlmost ready (need 1 more ingredient):');
-          for (const { recipe, missing } of almost) {
-            lines.push(`  ${recipe.id}: ${recipe.name} — need: ${missing.join(', ')}`);
-          }
-        }
-
-        if (craftable.length === 0 && almost.length === 0) {
-          return lang.crafterNothingToCraft;
-        }
-
-        lines.push('\n/craft <recipe_id> to craft');
-        return lines.join('\n');
-      }
-      case 'status':
-        return `Location: ${this.currentLocation}\nCharacter: ${this.activeCharacter ?? 'none'}\nTime: ${this.currentTime.toISOString()}`;
-      case 'quests':
-        return lang.noQuests;
-      case 'time':
-        return `Story time: ${this.currentTime.toISOString()}`;
-      case 'save':
-        return lang.sessionSaved;
-      case 'quit':
-        return lang.goodbye;
-      case 'party': {
-        if (!this._userAgent) return 'Party system not available.';
-        const subcmd = parts.slice(1);
-        return this._userAgent.handlePartyCommand(subcmd);
-      }
-      case 'attack': {
-        if (!this._userAgent) return 'Attack system not available.';
-        const target = parts[1];
-        if (!target) return 'Usage: /attack <target>';
-        return this._userAgent.handleAttack(target, this.activeCharacter, this.currentLocation, this.currentTime);
-      }
-      default:
-        return lang.unknownCommand(verb);
-    }
+    return this.commandHandler.handle(cmd);
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────
