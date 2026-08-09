@@ -10,7 +10,7 @@ const logger = getLogger('GutenbergParser');
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 export interface GutenbergParseConfig {
-  dbPath: string;
+  dbPath?: string;
   textTable?: string;
   textColumns?: {
     title?: string;
@@ -34,7 +34,7 @@ export class GutenbergParser {
   private delexifier: Delexifier;
 
   constructor(config: GutenbergParseConfig) {
-    this.config = config;
+    this.config = { dbPath: join(process.cwd(), 'data', 'gutenberg', 'classics.db'), ...config };
     this.dataDir = config.dataDir ?? join(process.cwd(), 'data', 'gutenberg');
     this.delexifier = new Delexifier();
 
@@ -66,11 +66,11 @@ export class GutenbergParser {
     }
 
     // Open provided database (skip if source doesn't exist)
-    if (!existsSync(this.config.dbPath)) {
+    if (!existsSync(this.config.dbPath!)) {
       logger.info(`Gutenberg source DB not found at ${this.config.dbPath}, skipping import`);
       return { textCount: 0, styleCount: 0 };
     }
-    this.providedDb = new Database(this.config.dbPath, { readonly: true });
+    this.providedDb = new Database(this.config.dbPath!, { readonly: true });
 
     // Introspect schema
     const schema = await this.introspectSchema();
@@ -362,7 +362,11 @@ export class GutenbergParser {
 
       // Insert into normalized database
       this.normalizedDb
-        .query('INSERT OR IGNORE INTO gutenberg_styles (id, name, description, examples, vocabulary, sentence_patterns, mood_tags, source, source_work_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .query(`INSERT OR IGNORE INTO gutenberg_styles
+          (id, name, description, examples, vocabulary, sentence_patterns, mood_tags,
+           narrative_voice, temporal_style, metaphor_density, rhetorical_devices, era,
+           source, source_work_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'third_person', 'linear', 0.5, '[]', '19th_century', ?, ?)`)
         .run(
           style.id,
           style.name,
@@ -504,6 +508,11 @@ export class GutenbergParser {
         vocabulary TEXT NOT NULL,
         sentence_patterns TEXT NOT NULL,
         mood_tags TEXT NOT NULL,
+        narrative_voice TEXT NOT NULL DEFAULT 'third_person',
+        temporal_style TEXT NOT NULL DEFAULT 'linear',
+        metaphor_density REAL NOT NULL DEFAULT 0.5,
+        rhetorical_devices TEXT NOT NULL DEFAULT '[]',
+        era TEXT NOT NULL DEFAULT '19th_century',
         source TEXT,
         source_work_id TEXT,
         created_at INTEGER DEFAULT (unixepoch())
