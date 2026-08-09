@@ -47,6 +47,16 @@ export interface StylePattern {
   forbidden_phrases: string[];
   example_snippets: string[];
   quality_score: number;
+  narrative_voice?: string;
+  temporal_style?: string;
+  dialogue_style?: string;
+  metaphor_density?: number;
+  sentence_opening_variance?: number;
+  paragraph_length_avg?: number;
+  exclamation_ratio?: number;
+  rhetorical_devices?: string;
+  era?: string;
+  literary_period?: string;
   created_at: number;
 }
 
@@ -68,6 +78,11 @@ export interface ChunkIndex {
   dict_hits: number;
   pre_score: number;
   cluster_id: number | null;
+  scene_type?: string;
+  tempo?: string;
+  sensory_tags?: string;
+  narrative_distance?: number;
+  temporal_markers?: string;
   created_at: number;
 }
 
@@ -193,6 +208,16 @@ export class LiteraryCompilerDB {
         forbidden_phrases TEXT NOT NULL DEFAULT '[]',
         example_snippets TEXT NOT NULL DEFAULT '[]',
         quality_score REAL NOT NULL DEFAULT 0.5,
+        narrative_voice TEXT NOT NULL DEFAULT 'third_person',
+        temporal_style TEXT NOT NULL DEFAULT 'linear',
+        dialogue_style TEXT NOT NULL DEFAULT 'direct',
+        metaphor_density REAL NOT NULL DEFAULT 0.5,
+        sentence_opening_variance REAL NOT NULL DEFAULT 0.5,
+        paragraph_length_avg REAL NOT NULL DEFAULT 60.0,
+        exclamation_ratio REAL NOT NULL DEFAULT 0.05,
+        rhetorical_devices TEXT NOT NULL DEFAULT '[]',
+        era TEXT NOT NULL DEFAULT '19th_century',
+        literary_period TEXT NOT NULL DEFAULT 'romanticism',
         created_at INTEGER DEFAULT (unixepoch())
       );
     `);
@@ -219,6 +244,11 @@ export class LiteraryCompilerDB {
         dict_hits INTEGER NOT NULL DEFAULT 0,
         pre_score REAL NOT NULL DEFAULT 0,
         cluster_id INTEGER,
+        scene_type TEXT,
+        tempo TEXT,
+        sensory_tags TEXT DEFAULT '[]',
+        narrative_distance REAL DEFAULT 0.5,
+        temporal_markers TEXT DEFAULT '[]',
         created_at INTEGER DEFAULT (unixepoch())
       );
     `);
@@ -287,6 +317,43 @@ export class LiteraryCompilerDB {
     `);
   }
 
+  createNarrativeTables(): void {
+    this.db.exec(`CREATE TABLE IF NOT EXISTS narrative_arcs (
+      id TEXT PRIMARY KEY, source_book TEXT NOT NULL, arc_type TEXT NOT NULL,
+      archetype TEXT NOT NULL, tension_points TEXT NOT NULL DEFAULT '[]',
+      transformation TEXT, thematic_motifs TEXT NOT NULL DEFAULT '[]',
+      moral_vector TEXT, scale TEXT NOT NULL DEFAULT 'personal',
+      quality_score REAL NOT NULL DEFAULT 0.5, created_at INTEGER DEFAULT (unixepoch())
+    )`);
+    this.db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS narrative_arcs_fts
+      USING fts5(source_book, transformation, thematic_motifs, archetype,
+                 content=narrative_arcs, content_rowid=rowid)`);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS thematic_motifs (
+      id TEXT PRIMARY KEY, source_book TEXT NOT NULL, motif_name TEXT NOT NULL,
+      occurrences TEXT NOT NULL DEFAULT '[]', symbolic_layer TEXT,
+      evolution TEXT, created_at INTEGER DEFAULT (unixepoch())
+    )`);
+    this.db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS thematic_motifs_fts
+      USING fts5(motif_name, symbolic_layer, evolution,
+                 content=thematic_motifs, content_rowid=rowid)`);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS quality_calibration (
+      source_book TEXT NOT NULL, l0_avg REAL NOT NULL, l1_avg REAL NOT NULL,
+      correlation REAL NOT NULL, template_count INTEGER NOT NULL,
+      outlier_count INTEGER NOT NULL, calibrated_at INTEGER NOT NULL,
+      PRIMARY KEY (source_book)
+    )`);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS literary_influences (
+      id TEXT PRIMARY KEY, source_author TEXT NOT NULL, influenced_by TEXT NOT NULL,
+      influence_type TEXT NOT NULL, description TEXT NOT NULL,
+      examples TEXT NOT NULL DEFAULT '[]', created_at INTEGER NOT NULL
+    )`);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS style_continuum (
+      style_id_a TEXT NOT NULL, style_id_b TEXT NOT NULL,
+      distance REAL NOT NULL, transition TEXT NOT NULL,
+      PRIMARY KEY (style_id_a, style_id_b)
+    )`);
+  }
+
   // ── V2 Insert Methods ──────────────────────────────────────────────────────
 
   insertSceneTemplate(template: SceneTemplate): void {
@@ -330,8 +397,12 @@ export class LiteraryCompilerDB {
       INSERT OR REPLACE INTO style_patterns
       (id, source_author_or_era, source_chunk_ids, avg_sentence_len, sentence_len_variance,
        sensory_ratio, register, pacing, tone, preferred_constructions, forbidden_phrases,
-       example_snippets, quality_score, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       example_snippets, quality_score,
+       narrative_voice, temporal_style, dialogue_style, metaphor_density,
+       sentence_opening_variance, paragraph_length_avg, exclamation_ratio,
+       rhetorical_devices, era, literary_period,
+       created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -348,6 +419,16 @@ export class LiteraryCompilerDB {
       JSON.stringify(pattern.forbidden_phrases),
       JSON.stringify(pattern.example_snippets),
       pattern.quality_score,
+      pattern.narrative_voice ?? 'third_person',
+      pattern.temporal_style ?? 'linear',
+      pattern.dialogue_style ?? 'direct',
+      pattern.metaphor_density ?? 0.5,
+      pattern.sentence_opening_variance ?? 0.5,
+      pattern.paragraph_length_avg ?? 60.0,
+      pattern.exclamation_ratio ?? 0.05,
+      pattern.rhetorical_devices ?? '[]',
+      pattern.era ?? '19th_century',
+      pattern.literary_period ?? 'romanticism',
       pattern.created_at,
     );
   }
@@ -359,12 +440,30 @@ export class LiteraryCompilerDB {
     `).run(link.template_id, link.style_id, link.weight);
   }
 
+  insertNarrativeArc(arc: { id: string; source_book: string; arc_type: string; archetype: string; tension_points: string; transformation: string | null; thematic_motifs: string; moral_vector: string | null; scale: string; quality_score: number; created_at: number }): void {
+    this.db.prepare(`INSERT OR REPLACE INTO narrative_arcs (id, source_book, arc_type, archetype, tension_points, transformation, thematic_motifs, moral_vector, scale, quality_score, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(arc.id, arc.source_book, arc.arc_type, arc.archetype, arc.tension_points, arc.transformation, arc.thematic_motifs, arc.moral_vector, arc.scale, arc.quality_score, arc.created_at);
+  }
+
+  insertThematicMotif(motif: { id: string; source_book: string; motif_name: string; occurrences: string; symbolic_layer: string | null; evolution: string | null; created_at: number }): void {
+    this.db.prepare(`INSERT OR REPLACE INTO thematic_motifs (id, source_book, motif_name, occurrences, symbolic_layer, evolution, created_at) VALUES (?,?,?,?,?,?,?)`).run(motif.id, motif.source_book, motif.motif_name, motif.occurrences, motif.symbolic_layer, motif.evolution, motif.created_at);
+  }
+
+  insertQualityCalibration(cal: { source_book: string; l0_avg: number; l1_avg: number; correlation: number; template_count: number; outlier_count: number; calibrated_at: number }): void {
+    this.db.prepare(`INSERT OR REPLACE INTO quality_calibration (source_book, l0_avg, l1_avg, correlation, template_count, outlier_count, calibrated_at) VALUES (?,?,?,?,?,?,?)`).run(cal.source_book, cal.l0_avg, cal.l1_avg, cal.correlation, cal.template_count, cal.outlier_count, cal.calibrated_at);
+  }
+
+  updateChunkAnalysis(chunk: { chunk_id: string; scene_type: string; tempo: string; sensory_tags: string; narrative_distance: number; temporal_markers: string; dict_hits: number; pre_score: number }): void {
+    this.db.prepare(`UPDATE chunk_index SET scene_type=?, tempo=?, sensory_tags=?, narrative_distance=?, temporal_markers=?, dict_hits=?, pre_score=? WHERE chunk_id=?`).run(chunk.scene_type, chunk.tempo, chunk.sensory_tags, chunk.narrative_distance, chunk.temporal_markers, chunk.dict_hits, chunk.pre_score, chunk.chunk_id);
+  }
+
   insertChunkIndex(chunk: ChunkIndex): void {
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO chunk_index
       (chunk_id, source_book, source_chapter, text, token_est, char_start, char_end,
-       embedding_ref, dict_hits, pre_score, cluster_id, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       embedding_ref, dict_hits, pre_score, cluster_id,
+       scene_type, tempo, sensory_tags, narrative_distance, temporal_markers,
+       created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -379,6 +478,11 @@ export class LiteraryCompilerDB {
       chunk.dict_hits,
       chunk.pre_score,
       chunk.cluster_id,
+      chunk.scene_type ?? null,
+      chunk.tempo ?? null,
+      chunk.sensory_tags ?? '[]',
+      chunk.narrative_distance ?? 0.5,
+      chunk.temporal_markers ?? '[]',
       chunk.created_at,
     );
   }
