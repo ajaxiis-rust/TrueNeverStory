@@ -25,6 +25,7 @@ const BIBLE_DB = join(process.cwd(), "data", "bible", "bible-normalized.db");
 const GUTENBERG_DB = join(process.cwd(), "data", "gutenberg", "gutenberg-normalized.db");
 const WIKIPEDIA_DB = join(process.cwd(), "data", "mcp", "wikipedia.db");
 const LIT_COMP_DB = join(process.cwd(), "data", "literary-compiler", "classics-compiled.db");
+const LITERARY_DB = join(process.cwd(), "data", "literary-compiler", "literary.db");
 const ECON_DB = join(process.cwd(), "data", "literary-compiler", "economic.db");
 
 // ── SSE Progress Tracking ─────────────────────────────────────
@@ -337,6 +338,21 @@ mcpRouter.post("/gutenberg/delexify", async (c) => {
     return c.json({ original: text, delexified: result });
   } finally {
     parser.close();
+  }
+});
+
+mcpRouter.get("/gutenberg/quality-report", (c) => {
+  if (!existsSync(LITERARY_DB)) return c.json({ error: "Literary DB not found", exists: false }, 200);
+  const db = new Database(LITERARY_DB, { readonly: true });
+  try {
+    const total = db.prepare('SELECT COUNT(*) as n FROM scene_templates').get() as { n: number };
+    const avg = db.prepare('SELECT AVG(quality_score) as avg FROM scene_templates').get() as { avg: number };
+    const dist = db.prepare(`SELECT SUM(CASE WHEN quality_score<0.3 THEN 1 ELSE 0 END) as low, SUM(CASE WHEN quality_score>=0.3 AND quality_score<=0.7 THEN 1 ELSE 0 END) as normal, SUM(CASE WHEN quality_score>0.7 THEN 1 ELSE 0 END) as high FROM scene_templates`).get() as { low:number;normal:number;high:number };
+    const byBook = db.prepare('SELECT source_book, AVG(quality_score) as avg_score, COUNT(*) as template_count FROM scene_templates GROUP BY source_book ORDER BY avg_score DESC').all();
+    const cal = db.prepare('SELECT * FROM quality_calibration').all();
+    return c.json({ total_templates: total.n, avg_score: avg.avg, distribution: dist, by_book: byBook, calibration_summary: cal });
+  } finally {
+    db.close();
   }
 });
 

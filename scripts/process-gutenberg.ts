@@ -605,6 +605,76 @@ async function runPhaseB() {
   emit({ phase: 'v2', pct: 100, message: `Phase B complete: ${totalTemplates} templates from ${books.length - skippedBooks} books` });
 }
 
+// ── Quality Calibration (S17) ────────────────────────────────────────
+
+function pearsonCorrelation(x: number[], y: number[]): number {
+  const n = Math.min(x.length, y.length);
+  if (n < 2) return 0;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumXY = x.reduce((a, b, i) => a + b * y[i], 0);
+  const sumX2 = x.reduce((a, b) => a + b * b, 0);
+  const sumY2 = y.reduce((a, b) => a + b * b, 0);
+  const num = n * sumXY - sumX * sumY;
+  const den = Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2));
+  return den === 0 ? 0 : num / den;
+}
+
+async function calibrateQualityScores(): Promise<void> {
+  emit({ phase: 'calibration', pct: 0, message: 'Starting quality calibration' });
+  let llm: { generateText(prompt: string): Promise<string> } | null = null;
+  try {
+    const { LLMQueue } = await import('../src/lib/llm-queue');
+    const { LLMClient } = await import('../src/lib/llm-client');
+    const llmClient = new LLMClient();
+    const queue = new LLMQueue(llmClient);
+    const client = queue.getAgentClient('literary-compiler');
+    llm = { generateText: (p: string) => client.generateText(p) };
+  } catch {
+    emit({ phase: 'calibration', pct: 100, message: 'LLM unavailable, skipping calibration' });
+    return;
+  }
+
+  const litDb = new LiteraryCompilerDB(LITERARY_DB);
+  const books = litDb.db.prepare('SELECT DISTINCT source_book FROM scene_templates').all() as Array<{source_book:string}>;
+
+  for (let i = 0; i < books.length; i++) {
+    const book = books[i];
+    const templates = litDb.db.prepare('SELECT id, template_text, quality_score FROM scene_templates WHERE source_book = ?').all(book.source_book) as Array<{id:string;template_text:string;quality_score:number}>;
+    if (templates.length < 3) continue;
+
+    const sample = templates.slice(0, 10);
+    try {
+      const prompt = `Rate these narrative templates on a scale of 0.0-1.0 for literary quality. Consider: originality, emotional depth, dramatic potential, language quality, and narrative structure. Return JSON array: [{"id":"...","composite_score":0.0-1.0}]`;
+
+      const raw = await llm!.generateText(prompt + '\n' + sample.map((t, i) => `${i + 1}. [${t.id}] "${t.template_text.slice(0, 200)}"`).join('\n'));
+      const jsonMatch = raw.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) continue;
+
+      const l1Result = JSON.parse(jsonMatch[0]) as Array<{id:string;composite_score:number}>;
+      const l1Map = new Map(l1Result.map(r => [r.id, r.composite_score]));
+      const paired = sample.filter(t => l1Map.has(t.id)).map(t => ({l0: t.quality_score, l1: l1Map.get(t.id)!}));
+      if (paired.length < 2) continue;
+
+      const correlation = pearsonCorrelation(paired.map(p => p.l0), paired.map(p => p.l1));
+      const l0Avg = sample.reduce((a, t) => a + t.quality_score, 0) / sample.length;
+      const l1Avg = paired.reduce((a, p) => a + p.l1, 0) / paired.length;
+
+      litDb.insertQualityCalibration({
+        source_book: book.source_book, l0_avg: l0Avg, l1_avg: l1Avg,
+        correlation, template_count: templates.length,
+        outlier_count: paired.filter(p => Math.abs(p.l0 - p.l1) > 0.3).length,
+        calibrated_at: Math.floor(Date.now() / 1000),
+      });
+
+      emit({ phase: 'calibration', pct: Math.floor(((i + 1) / books.length) * 100), message: `Calibrated ${book.source_book} (r=${correlation.toFixed(2)}, ${paired.length} paired)` });
+    } catch { continue; }
+  }
+
+  litDb.close();
+  emit({ phase: 'calibration-done', pct: 100, message: `Quality calibration complete — ${books.length} books processed` });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
@@ -617,6 +687,9 @@ async function main() {
   }
   if (phase === 'v2' || phase === 'all') {
     await runPhaseB();
+  }
+  if (phase === 'all') {
+    await calibrateQualityScores();
   }
 }
 
