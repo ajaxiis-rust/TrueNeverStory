@@ -19,6 +19,9 @@ import { EmotionalPass } from '../src/mcp/literary-compiler/emotional-pass';
 import { MetadataPass } from '../src/mcp/literary-compiler/metadata-pass';
 import { Linter } from '../src/mcp/literary-compiler/linter';
 import type { QuestTemplate } from '../src/mcp/literary-compiler/types';
+import { analyzeChunk, clusterBySceneType } from '../src/mcp/gutenberg/analyze-pass';
+import { inferEra, inferLiteraryPeriod, sampleExcerpts } from '../src/mcp/gutenberg/helpers';
+import type { SceneTemplate, StylePattern } from '../src/mcp/literary-compiler/schema';
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -27,6 +30,7 @@ const NORMALIZED_DB_DIR = './data/gutenberg';
 const COMPILED_DB = './data/literary-compiler/classics-compiled.db';
 const CHAPTER_WORD_TARGET = 3000;
 const MAX_TEMPLATE_WORDS = 500;
+const LITERARY_DB = './data/literary-compiler/literary.db';
 
 // ── Progress Emitter ──────────────────────────────────────────────────
 
@@ -80,6 +84,63 @@ function parseCatalogTags(subjects?: string, bookshelves?: string): string[] {
     }
   }
   return tags;
+}
+
+function hasMoralizing(text: string): boolean {
+  return /\b(ought|should|must always|never forget|always remember|lesson|moral)\b/.test(text.toLowerCase());
+}
+
+function calculateLiteraryQuality(
+  template: { template_text: string; archetype_secondary: string | null; variables: string[]; tags: string[] },
+  chunk: { sensory_tags: string[] }
+): number {
+  let score = 0.5;
+  const variableCount = (template.template_text.match(/\[.*?\]/g) ?? []).length;
+  const wordCount = template.template_text.split(/\s+/).length;
+  score += (1 - (variableCount / Math.max(wordCount, 1))) * 0.15;
+  score += Math.min(chunk.sensory_tags.length / 5, 0.15);
+  if (template.archetype_secondary) score += 0.05;
+  if (template.variables.includes('CHOICE')) score += 0.05;
+  if (template.variables.includes('CONFLICT')) score += 0.05;
+  const devices = template.tags.filter((t: string) => ['anaphora','chiasmus','litotes','antithesis','tricolon'].includes(t));
+  score += Math.min(devices.length * 0.03, 0.1);
+  if (wordCount > 120) score -= 0.15;
+  if (hasMoralizing(template.template_text)) score -= 0.25;
+  return Math.max(0, Math.min(1, score));
+}
+
+interface TextChunk {
+  id: string; text: string; token_est: number; char_start: number; char_end: number;
+  source_book: string; source_chapter: number;
+  pre_score: number; dict_hits: number; scene_type: string; tempo: string;
+  sensory_tags: string[]; narrative_distance: number; temporal_markers: string[];
+}
+
+function chunkText(text: string, sourceBook: string, opts: { minTokens: number; maxTokens: number; overlap: number }): TextChunk[] {
+  const words = text.split(/\s+/);
+  const chunks: TextChunk[] = [];
+  const step = opts.maxTokens - opts.overlap;
+  let charPos = 0;
+  for (let i = 0; i < words.length; i += step) {
+    const chunkWords = words.slice(i, i + opts.maxTokens);
+    if (chunkWords.length < opts.minTokens) break;
+    const chunkText = chunkWords.join(' ');
+    chunks.push({
+      id: `${sourceBook}:chunk:${chunks.length}`, text: chunkText, token_est: chunkWords.length,
+      char_start: charPos, char_end: charPos + chunkText.length, source_book: sourceBook, source_chapter: 0,
+      pre_score: 0, dict_hits: 0, scene_type: 'unknown', tempo: 'medium',
+      sensory_tags: [], narrative_distance: 0.5, temporal_markers: [],
+    });
+    charPos += chunkText.length + 1;
+  }
+  return chunks;
+}
+
+async function checkEmbeddingServer(): Promise<boolean> {
+  try {
+    const resp = await fetch('http://localhost:5002/health', { signal: AbortSignal.timeout(2000) });
+    return resp.ok;
+  } catch { return false; }
 }
 
 // ── Phase A: V1 Pipeline ──────────────────────────────────────────────
@@ -266,6 +327,280 @@ async function runPhaseA() {
   emit({ phase: 'v1', pct: 100, message: 'Phase A complete' });
 }
 
+// ── Phase B: V2 Pipeline ──────────────────────────────────────────────
+
+const EXTRACT_TEMPLATE_PROMPT = (prevChunk: string | null, currentChunk: string, nextChunk: string | null) => `
+You are a literary analyst extracting narrative templates from classical prose.
+
+CONTEXT:
+${prevChunk ? `PREVIOUS: "${prevChunk.slice(0, 300)}"` : '(beginning of chapter)'}
+CURRENT: "${currentChunk}"
+${nextChunk ? `NEXT: "${nextChunk.slice(0, 300)}"` : '(end of chapter)'}
+
+Extract:
+1. template_text: A reusable narrative template (≤120 words) with [VARIABLE] placeholders
+2. archetype_primary: The dominant archetype (escape/judgment/political/rescue/endurance/loyalty/romance/revenge/discovery/inner_monologue/social_microscopy/ironic_distance)
+3. rhetorical_devices: List of rhetorical devices found (anaphora/chiasmus/litotes/antithesis/tricolon/direct_address)
+4. narrative_voice: first_person / third_person / omniscient / free_indirect
+5. tempo: fast / medium / slow
+6. sensory_dominance: Which sense is most prominent (sight/sound/touch/smell/taste/kinaesthetic)
+
+Return JSON:
+{
+  "template_text": "string (≤120 words)",
+  "archetype_primary": "string",
+  "archetype_secondary": null,
+  "variables": ["VARIABLE"],
+  "rhetorical_devices": ["anaphora"],
+  "narrative_voice": "third_person",
+  "mood": "dark/hopeful/tense/epic/neutral/romantic/melancholic",
+  "difficulty": "low/medium/high",
+  "moral_ambiguity": 0.0-1.0,
+  "beat_sequence": ["opening", "escalation", "climax", "resolution"],
+  "tension_curve": [0.1, 0.3, 0.7, 0.9, 0.5]
+}
+
+Return JSON only. No markdown.`;
+
+async function runPhaseB() {
+  emit({ phase: 'v2', pct: 0, message: 'Starting Phase B: V2 LLM pipeline' });
+
+  // ── LLM client (dynamic import, graceful) ──
+  let llm: { generateText: (p: string) => Promise<string> } | null = null;
+  try {
+    const { LLMQueue } = await import('../src/lib/llm-queue');
+    const { LLMClient } = await import('../src/lib/llm-client');
+    const llmClient = new LLMClient();
+    const queue = new LLMQueue(llmClient);
+    const client = queue.getAgentClient('literary-compiler');
+    llm = { generateText: (p: string) => client.generateText(p) };
+    emit({ phase: 'v2', pct: 1, message: 'LLM client initialized' });
+  } catch (e) {
+    console.warn('LLM not available, skipping LLM extraction:', e);
+  }
+
+  const hasEmbeddings = await checkEmbeddingServer();
+  emit({ phase: 'v2', pct: 2, message: `Embedding server: ${hasEmbeddings ? 'available' : 'unavailable'}` });
+
+  // ── Open source DB and literary DB ──
+  const srcDb = new Database(CLASSICS_DB, { readonly: true });
+  const books = srcDb.query(
+    'SELECT etextno, book_title, author, subjects, bookshelves, context FROM gutenberg ORDER BY author, book_title'
+  ).all() as Array<{
+    etextno: number;
+    book_title: string;
+    author: string;
+    subjects: string | null;
+    bookshelves: string | null;
+    context: string;
+  }>;
+
+  emit({ phase: 'v2', pct: 3, message: `Found ${books.length} books` });
+
+  const litDb = new LiteraryCompilerDB(LITERARY_DB);
+  litDb.createV2Tables();
+  litDb.createNarrativeTables();
+
+  const stylistic = new StylisticPass();
+
+  let totalTemplates = 0;
+  let skippedBooks = 0;
+
+  for (let i = 0; i < books.length; i++) {
+    const book = books[i];
+    const sourceId = `${book.author}::${book.book_title}`;
+
+    // Dedup: skip if already in chunk_index
+    const dedup = litDb.db
+      .prepare('SELECT COUNT(*) as n FROM chunk_index WHERE source_book = ?')
+      .get(sourceId) as { n: number };
+    if (dedup.n > 0) {
+      skippedBooks++;
+      if ((i + 1) % 5 === 0 || i === books.length - 1) {
+        emit({
+          phase: 'v2',
+          pct: Math.round(((i + 1) / books.length) * 95 + 3),
+          message: `${i + 1 - skippedBooks}/${books.length} books (${skippedBooks} skipped), ${totalTemplates} templates`,
+        });
+      }
+      continue;
+    }
+
+    const cleaned = cleanGutenbergText(book.context);
+    if (cleaned.length < 200) continue;
+
+    // Transaction per book
+    litDb.db.exec('BEGIN TRANSACTION');
+    try {
+      // 1. Chunk text
+      const chunks = chunkText(cleaned, sourceId, { minTokens: 200, maxTokens: 400, overlap: 60 });
+      if (chunks.length === 0) { litDb.db.exec('COMMIT'); continue; }
+
+      // 2. AnalyzePass per chunk, insert into chunk_index
+      for (const chunk of chunks) {
+        const analysis = analyzeChunk(chunk.text);
+        chunk.pre_score = analysis.pre_score;
+        chunk.dict_hits = analysis.dict_hits.length;
+        chunk.scene_type = analysis.scene_type;
+        chunk.tempo = analysis.tempo;
+        chunk.sensory_tags = analysis.sensory_tags;
+        chunk.narrative_distance = analysis.narrative_distance;
+        chunk.temporal_markers = analysis.temporal_markers;
+
+        litDb.insertChunkIndex({
+          chunk_id: chunk.id,
+          source_book: chunk.source_book,
+          source_chapter: chunk.source_chapter,
+          text: chunk.text,
+          token_est: chunk.token_est,
+          char_start: chunk.char_start,
+          char_end: chunk.char_end,
+          embedding_ref: null,
+          dict_hits: chunk.dict_hits,
+          pre_score: chunk.pre_score,
+          cluster_id: null,
+          scene_type: chunk.scene_type,
+          tempo: chunk.tempo,
+          sensory_tags: JSON.stringify(chunk.sensory_tags),
+          narrative_distance: chunk.narrative_distance,
+          temporal_markers: JSON.stringify(chunk.temporal_markers),
+          created_at: Date.now() / 1000,
+        });
+      }
+
+      // 3. Filter candidates (pre_score > 0.3)
+      const candidates = chunks.filter(c => c.pre_score > 0.3);
+      if (candidates.length === 0) { litDb.db.exec('COMMIT'); continue; }
+
+      // 4. Cluster by scene_type
+      const clusters = clusterBySceneType(candidates);
+
+      // 5. Select representatives (max pre_score per cluster)
+      const representatives: TextChunk[] = [];
+      for (const cluster of clusters) {
+        const best = cluster.chunks.reduce((a, b) =>
+          ((a as unknown as TextChunk).pre_score > (b as unknown as TextChunk).pre_score ? a : b)
+        ) as unknown as TextChunk;
+        representatives.push(best);
+      }
+
+      // 6. LLM extraction per representative
+      if (llm) {
+        let repIdx = 0;
+        for (const rep of representatives) {
+          try {
+            const chunkIdx = chunks.findIndex(c => c.id === rep.id);
+            const prevChunk = chunkIdx > 0 ? chunks[chunkIdx - 1].text : null;
+            const nextChunk = chunkIdx < chunks.length - 1 ? chunks[chunkIdx + 1].text : null;
+
+            const prompt = EXTRACT_TEMPLATE_PROMPT(prevChunk, rep.text, nextChunk);
+            const response = await llm.generateText(prompt);
+            const parsed = JSON.parse(response);
+
+            const qualityScore = calculateLiteraryQuality(
+              { template_text: parsed.template_text, archetype_secondary: parsed.archetype_secondary ?? null, variables: parsed.variables ?? [], tags: parsed.rhetorical_devices ?? [] },
+              { sensory_tags: rep.sensory_tags }
+            );
+
+            if (qualityScore < 0.3) continue;
+
+            // ── StylisticPass ──
+            const styResult = stylistic.analyze({ text: rep.text, source_id: rep.id });
+            const styPattern = styResult.patterns[0];
+
+            const era = inferEra();
+            const period = inferLiteraryPeriod();
+
+            // ── Create SceneTemplate ──
+            const templateId = `scene-${book.etextno}-${repIdx}`;
+            const sceneTemplate: SceneTemplate = {
+              id: templateId,
+              source_book: sourceId,
+              source_chapter: rep.source_chapter,
+              source_chunk_ids: [rep.id],
+              archetype_primary: parsed.archetype_primary ?? 'inner_monologue',
+              archetype_secondary: parsed.archetype_secondary ?? null,
+              applicable_positions: [],
+              variables: parsed.variables ?? [],
+              template_text: parsed.template_text ?? '',
+              beat_sequence: parsed.beat_sequence ?? [],
+              mood: parsed.mood ?? 'neutral',
+              difficulty: parsed.difficulty ?? 'medium',
+              moral_ambiguity: parsed.moral_ambiguity ?? 0.5,
+              tension_curve: parsed.tension_curve ?? [],
+              tags: parsed.rhetorical_devices ?? [],
+              domain: 'general',
+              scale: 1.0,
+              embedding_id: null,
+              quality_score: qualityScore,
+              use_count: 0,
+              last_used_at: null,
+              created_at: Date.now() / 1000,
+            };
+            litDb.insertSceneTemplate(sceneTemplate);
+
+            // ── Create StylePattern ──
+            const styleId = `style-${templateId}`;
+            const stylePattern: StylePattern = {
+              id: styleId,
+              source_author_or_era: book.author,
+              source_chunk_ids: [rep.id],
+              avg_sentence_len: styPattern?.avg_sentence_length ?? 0,
+              sentence_len_variance: 0,
+              sensory_ratio: (styPattern?.sensory_markers.length ?? 0) / 10,
+              register: 'neutral',
+              pacing: styPattern?.pacing ?? 'medium',
+              tone: styPattern?.tone ?? 'neutral',
+              preferred_constructions: styPattern?.syntax_patterns ?? [],
+              forbidden_phrases: [],
+              example_snippets: sampleExcerpts(rep.text, 3, 200),
+              quality_score: qualityScore,
+              narrative_voice: parsed.narrative_voice ?? 'third_person',
+              temporal_style: rep.temporal_markers.join(',') || 'linear',
+              dialogue_style: 'direct',
+              metaphor_density: 0.5,
+              sentence_opening_variance: 0.5,
+              paragraph_length_avg: 60.0,
+              exclamation_ratio: 0.05,
+              rhetorical_devices: JSON.stringify(parsed.rhetorical_devices ?? []),
+              era,
+              literary_period: period,
+              created_at: Date.now() / 1000,
+            };
+            litDb.insertStylePattern(stylePattern);
+
+            // ── Create template_style_link ──
+            litDb.insertTemplateStyleLink({ template_id: templateId, style_id: styleId, weight: 1.0 });
+
+            totalTemplates++;
+            repIdx++;
+          } catch (chunkErr) {
+            console.warn(`Skipping chunk ${rep.id} for book ${sourceId}:`, chunkErr);
+            continue;
+          }
+        }
+      }
+
+      litDb.db.exec('COMMIT');
+
+      emit({
+        phase: 'v2',
+        pct: Math.round(((i + 1) / books.length) * 95 + 3),
+        message: `Book ${i + 1}/${books.length}: ${sourceId} — ${totalTemplates} templates so far`,
+      });
+    } catch (err) {
+      litDb.db.exec('ROLLBACK');
+      console.warn(`Book ${sourceId} rolled back:`, err);
+      continue;
+    }
+  }
+
+  srcDb.close();
+  litDb.close();
+
+  emit({ phase: 'v2', pct: 100, message: `Phase B complete: ${totalTemplates} templates from ${books.length - skippedBooks} books` });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
@@ -277,7 +612,7 @@ async function main() {
     await runPhaseA();
   }
   if (phase === 'v2' || phase === 'all') {
-    emit({ phase: 'v2', pct: 0, message: 'Phase B not implemented yet' });
+    await runPhaseB();
   }
 }
 
