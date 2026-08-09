@@ -51,6 +51,9 @@ export interface DramaturgicInput {
 
   /** Глава источника */
   source_chapter: number;
+
+  /** Режим парсинга: 'bible' (default, backward compatible) или 'prose' */
+  mode?: 'bible' | 'prose';
 }
 
 /**

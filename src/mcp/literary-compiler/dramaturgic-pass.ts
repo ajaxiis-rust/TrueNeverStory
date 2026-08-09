@@ -1,6 +1,7 @@
 import type { LiteraryCompilerDB } from './schema';
 import type { QuestTemplate, DramaturgicInput, DramaturgicOutput } from './types';
 import type { BibleParser } from '../bible/parser';
+import { Delexifier } from '../gutenberg/delexifier';
 import { getLogger } from '@/utils/logger';
 
 const logger = getLogger('DramaturgicPass');
@@ -53,8 +54,120 @@ const DEFAULT_VARIABLES: Record<string, string[]> = {
   rise_fall_rise: ['current_hero', 'mentor', 'rivals', 'power'],
 };
 
+const PROSE_ARCHETYPE_KEYWORDS: Record<string, { strong: string[]; weak: string[] }> = {
+  escape: {
+    strong: ['flee', 'escape', 'pursuit', 'chase', 'prison', 'captive'],
+    weak:   ['river', 'cross', 'border', 'wall', 'gate', 'door', 'window']
+  },
+  judgment: {
+    strong: ['trial', 'verdict', 'court', 'judge', 'jury', 'sentence', 'condemn'],
+    weak:   ['decide', 'choice', 'justice', 'guilty', 'innocent']
+  },
+  political: {
+    strong: ['throne', 'king', 'queen', 'crown', 'usurp', 'rebellion', 'treason', 'plot'],
+    weak:   ['power', 'rule', 'palace', 'court', 'council']
+  },
+  rescue: {
+    strong: ['save', 'rescue', 'deliver', 'liberate', 'free', 'release'],
+    weak:   ['help', 'aid', 'danger', 'threat', 'enemy']
+  },
+  endurance: {
+    strong: ['endure', 'suffer', 'bear', 'survive', 'starve', 'freeze', 'torture'],
+    weak:   ['pain', 'hunger', 'cold', 'weary', 'tired', 'exhausted']
+  },
+  loyalty: {
+    strong: ['loyal', 'faithful', 'betray', 'oath', 'allegiance', 'swear'],
+    weak:   ['follow', 'serve', 'master', 'lord', 'duty']
+  },
+  wisdom: {
+    strong: ['wisdom', 'wise', 'sage', 'prophecy', 'oracle', 'riddle'],
+    weak:   ['learn', 'teach', 'study', 'book', 'knowledge']
+  },
+  romance: {
+    strong: ['love', 'marry', 'wedding', 'propose', 'engagement'],
+    weak:   ['kiss', 'embrace', 'heart', 'courtship', 'suitor', 'jealous']
+  },
+  revenge: {
+    strong: ['revenge', 'vengeance', 'avenge', 'retribution', 'vendetta'],
+    weak:   ['pay back', 'settle score', 'grudge', 'hatred']
+  },
+  discovery: {
+    strong: ['discover', 'find', 'uncover', 'reveal', 'secret', 'hidden'],
+    weak:   ['search', 'explore', 'map', 'treasure', 'artifact']
+  },
+  inner_monologue: {
+    strong: ['conscience', 'torment', 'within me', 'my soul', 'I could not', 'I wondered', 'I felt'],
+    weak:   ['thought', 'mind', 'doubt', 'questioned', 'pondered', 'conscious', 'guilt']
+  },
+  social_microscopy: {
+    strong: ['propriety', 'reputation', 'eligible', 'match', 'fortune', 'connection', 'society'],
+    weak:   ['bow', 'curtsey', 'glance', 'whisper', 'compliment', 'introduction', 'ball', 'dinner']
+  },
+  ironic_distance: {
+    strong: ['indeed', 'perhaps', 'it must be admitted', 'one might suppose', 'it is a truth', 'reader'],
+    weak:   ['certainly', 'naturally', 'of course', 'surely', 'doubtless', 'evidently']
+  },
+  polyphony: {
+    strong: ['meanwhile', 'on the other hand', 'from where he stood', 'to her mind', 'as for him'],
+    weak:   ['but', 'however', 'yet', 'still', 'though', 'although']
+  },
+  domestic_epic: {
+    strong: ['breakfast', 'kitchen', 'garden', 'household', 'ordinary', 'commonplace', 'everyday'],
+    weak:   ['tea', 'dinner', 'parlour', 'drawing room', 'servant', 'maid', 'butler']
+  },
+  temporal_layering: {
+    strong: ['remembered', 'years ago', 'in those days', 'the old times', 'used to', 'it was then'],
+    weak:   ['ago', 'before', 'once', 'former', 'past', 'memory', 'childhood', 'youth']
+  },
+  rise_fall_rise: {
+    strong: ['rise', 'fall', 'ruin', 'bankrupt', 'fortune', 'restore', 'reclaim'],
+    weak:   ['success', 'failure', 'wealth', 'poverty']
+  },
+};
+
+const PROSE_DEFAULT_POSITIONS: Record<string, string[]> = {
+  escape: ['leader', 'follower', 'prisoner'],
+  judgment: ['judge', 'lawyer', 'accused'],
+  political: ['leader', 'advisor', 'spy', 'rebel'],
+  rescue: ['leader', 'savior', 'captive'],
+  endurance: ['survivor', 'witness'],
+  loyalty: ['follower', 'knight', 'vassal'],
+  wisdom: ['sage', 'student', 'seeker'],
+  romance: ['lover', 'suitor', 'rival'],
+  revenge: ['avenger', 'victim', 'accomplice'],
+  discovery: ['explorer', 'scholar', 'guide'],
+  inner_monologue: ['thinker', 'tormented_soul', 'doubter'],
+  social_microscopy: ['lady', 'gentleman', 'suitor', 'chaperone', 'matchmaker'],
+  ironic_distance: ['narrator', 'observer', 'satirist'],
+  polyphony: ['narrator', 'character_a', 'character_b', 'chorus'],
+  domestic_epic: ['householder', 'servant', 'child', 'neighbour'],
+  temporal_layering: ['elder', 'youth', 'ancestor', 'witness'],
+  rise_fall_rise: ['hero', 'merchant', 'noble', 'outcast'],
+};
+
+const PROSE_DEFAULT_VARIABLES: Record<string, string[]> = {
+  escape: ['PROTAGONIST', 'ANTAGONIST', 'ALLY', 'OBSTACLE', 'RESOLUTION'],
+  judgment: ['JUDGE', 'ACCUSED', 'WITNESS', 'EVIDENCE', 'VERDICT'],
+  political: ['RULER', 'ADVISOR', 'ENEMY', 'SECRET', 'CHOICE'],
+  rescue: ['CAPTIVE', 'SAVIOR', 'THREAT', 'SACRIFICE', 'DELIVERANCE'],
+  endurance: ['SUFFERER', 'TRIAL', 'LOSS', 'STRENGTH', 'SURVIVAL'],
+  loyalty: ['FOLLOWER', 'LORD', 'BETRAYAL', 'TEST', 'REWARD'],
+  wisdom: ['SEEKER', 'MENTOR', 'RIDDLE', 'KNOWLEDGE', 'CONSEQUENCE'],
+  romance: ['LOVER', 'RIVAL', 'OBSTACLE', 'CHOICE', 'RESOLUTION'],
+  revenge: ['AVENGER', 'VICTIM', 'GRUDGE', 'PLAN', 'CONSEQUENCE'],
+  discovery: ['EXPLORER', 'SECRET', 'CLUE', 'DANGER', 'REVELATION'],
+  inner_monologue: ['THINKER', 'CONSCIENCE', 'DOUBT', 'RESOLUTION'],
+  social_microscopy: ['LADY', 'GENTLEMAN', 'SUITOR', 'FORTUNE', 'REPUTATION'],
+  ironic_distance: ['NARRATOR', 'OBSERVER', 'CLAIM', 'CONTRADICTION'],
+  polyphony: ['VOICE_A', 'VOICE_B', 'CONFLICT', 'SYNTHESIS'],
+  domestic_epic: ['HOUSEHOLDER', 'SERVANT', 'RITUAL', 'CHANGE'],
+  temporal_layering: ['ELDER', 'YOUTH', 'MEMORY', 'PRESENT', 'FUTURE'],
+  rise_fall_rise: ['HERO', 'FORTUNE', 'RIVALS', 'DOWNFALL', 'RESTORATION'],
+};
+
 export class DramaturgicPass {
   private _llmCache: Map<string, ArchetypeCacheEntry> = new Map();
+  private delexifier = new Delexifier();
 
   constructor(
     private db: LiteraryCompilerDB,
@@ -91,14 +204,31 @@ export class DramaturgicPass {
         return { templates, errors };
       }
 
-      const archetype = await this.inferArchetype(input.text, input.source_book, input.source_chapter);
+      const mode = input.mode ?? 'bible';
+      const archetype = mode === 'prose'
+        ? this._inferArchetypeProse(input.text)
+        : await this.inferArchetype(input.text, input.source_book, input.source_chapter);
       const mood = this.inferMood(input.text);
       const difficulty = this.inferDifficulty(verses.length);
       const moralAmbiguity = this.inferMoralAmbiguity(input.text);
-      const variables = DEFAULT_VARIABLES[archetype] ?? ['current_hero', 'obstacle'];
-      const positions = DEFAULT_POSITIONS[archetype] ?? ['follower'];
-      const tags = this.extractTags(input.text, archetype);
-      const templateText = this.generateTemplateText(input.text, variables);
+      const variables = mode === 'prose'
+        ? (PROSE_DEFAULT_VARIABLES[archetype] ?? ['PROTAGONIST', 'CONFLICT'])
+        : (DEFAULT_VARIABLES[archetype] ?? ['current_hero', 'obstacle']);
+      const positions = mode === 'prose'
+        ? (PROSE_DEFAULT_POSITIONS[archetype] ?? ['follower'])
+        : (DEFAULT_POSITIONS[archetype] ?? ['follower']);
+      let templateText: string;
+      let devices: string[] = [];
+      if (mode === 'prose') {
+        const result = this.generateProseTemplate(input.text);
+        templateText = result.template;
+        devices = result.devices;
+      } else {
+        templateText = this.generateTemplateText(input.text, variables);
+      }
+      const tags = mode === 'prose'
+        ? [...this.extractTags(input.text, archetype), ...devices]
+        : this.extractTags(input.text, archetype);
 
       const template: QuestTemplate = {
         id: `${input.source_book}.${input.source_chapter}`,
@@ -337,5 +467,53 @@ Respond with ONLY the archetype name (lowercase, underscore). Nothing else.`;
     });
 
     return templateParts.join('. ') + '.';
+  }
+
+  private generateProseTemplate(text: string): { template: string; devices: string[] } {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    if (sentences.length === 0) {
+      return { template: 'The [PROTAGONIST] faces [CONFLICT] at the [LOCATION].', devices: [] };
+    }
+    const scored = sentences.map((s, i) => {
+      const lower = s.toLowerCase();
+      const sensory = ['saw','heard','felt','smelled','tasted','bright','dark','cold','warm','silence']
+        .filter(k => lower.includes(k)).length;
+      const emotion = ['fear','love','hate','anger','joy','sad','grief','hope','despair']
+        .filter(k => lower.includes(k)).length;
+      return { s, i, score: sensory + emotion * 1.5 };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    const best = scored[0]!;
+    const neighbors = [best];
+    if (best.i > 0) neighbors.unshift({ s: sentences[best.i - 1]!, i: best.i - 1, score: 0 });
+    if (best.i < sentences.length - 1) neighbors.push({ s: sentences[best.i + 1]!, i: best.i + 1, score: 0 });
+    let template = neighbors.map(n => n.s.trim()).join('. ') + '.';
+    const devices: string[] = [];
+    if (/(.+),\s*\1/i.test(template)) devices.push('anaphora');
+    if (/(.+);\s*(.+);\s*(.+)/.test(template)) devices.push('tricolon');
+    if (/not\s+\w+,\s+but\s+\w+/.test(template)) devices.push('antithesis');
+    if (/\b(O\s+|alas|ah|how\s+\w+)\b/i.test(template)) devices.push('exclamation');
+    if (/\b(reader|you|we)\b/i.test(template.toLowerCase())) devices.push('direct_address');
+    template = this.delexifier.delexify(template);
+    if (!/\[.*?\]/.test(template)) {
+      template = 'The [PROTAGONIST] enters the [LOCATION], where [CONFLICT] unfolds as [ALLY] reveals [SECRET].';
+    }
+    return { template, devices };
+  }
+
+  private _inferArchetypeProse(text: string): string {
+    const lowerText = text.toLowerCase();
+    const scores: Record<string, number> = {};
+    for (const [archetype, keywords] of Object.entries(PROSE_ARCHETYPE_KEYWORDS)) {
+      scores[archetype] = 0;
+      for (const kw of keywords.strong) { if (lowerText.includes(kw)) scores[archetype] += 2; }
+      for (const kw of keywords.weak) { if (lowerText.includes(kw)) scores[archetype] += 1; }
+    }
+    let maxScore = 0;
+    let inferred = 'everyday_life';
+    for (const [archetype, score] of Object.entries(scores)) {
+      if (score >= 2 && score > maxScore) { maxScore = score; inferred = archetype; }
+    }
+    return inferred;
   }
 }
