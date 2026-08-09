@@ -21,6 +21,7 @@ import { Linter } from '../src/mcp/literary-compiler/linter';
 import type { QuestTemplate } from '../src/mcp/literary-compiler/types';
 import { analyzeChunk, clusterBySceneType } from '../src/mcp/gutenberg/analyze-pass';
 import { inferEra, inferLiteraryPeriod, sampleExcerpts } from '../src/mcp/gutenberg/helpers';
+import { extractNarrativeStructure } from '../src/mcp/gutenberg/narrative-extractor';
 import type { SceneTemplate, StylePattern } from '../src/mcp/literary-compiler/schema';
 
 // ── Constants ─────────────────────────────────────────────────────────
@@ -579,6 +580,9 @@ async function runPhaseB() {
             continue;
           }
         }
+
+        // Narrative structure extraction (S16)
+        await extractNarrativeStructure(litDb, llm, book, sourceId, chunks);
       }
 
       litDb.db.exec('COMMIT');
