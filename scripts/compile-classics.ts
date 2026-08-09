@@ -16,6 +16,7 @@ import { EmotionalPass } from '../src/mcp/literary-compiler/emotional-pass';
 import { MetadataPass } from '../src/mcp/literary-compiler/metadata-pass';
 import { Linter } from '../src/mcp/literary-compiler/linter';
 import type { QuestTemplate } from '../src/mcp/literary-compiler/types';
+import { cleanGutenbergText } from '../src/mcp/gutenberg/clean';
 
 // ── Config ──────────────────────────────────────────────────────────
 const SOURCE_DB = './data/gutenberg/classics.db';
@@ -48,17 +49,6 @@ function splitIntoChapters(text: string, targetWords: number): string[] {
   }
 
   return chapters.length > 0 ? chapters : [text.substring(0, 5000)];
-}
-
-/** Clean Gutenberg header/footer junk */
-function cleanText(text: string): string {
-  return text
-    .replace(/\r\n/g, '\n')
-    .replace(/\*\*\*\s*(END|END OF|End of).*$/gms, '')
-    .replace(/Project Gutenberg.*?$/gm, '')
-    .replace(/This etext was prepared.*?$/gm, '')
-    .replace(/Produced by.*?$/gm, '')
-    .trim();
 }
 
 // ── Main ────────────────────────────────────────────────────────────
@@ -96,7 +86,7 @@ const startTime = Date.now();
 
 for (let i = 0; i < books.length; i++) {
   const book = books[i];
-  const cleaned = cleanText(book.context);
+  const cleaned = cleanGutenbergText(book.context);
 
   if (cleaned.length < 200) {
     console.log(`  [${i + 1}/${books.length}] SKIP (too short): ${book.book_title}`);

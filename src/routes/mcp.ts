@@ -340,6 +340,29 @@ mcpRouter.post("/gutenberg/delexify", async (c) => {
   }
 });
 
+mcpRouter.post("/gutenberg/process", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const phase = (body as { phase?: string }).phase ?? "all";
+
+  const importResult = runScriptWithJob(["bun", "run", "scripts/import-gutenberg-texts.ts"]);
+
+  let v1Result = null, v2Result = null;
+
+  if (phase === "v1" || phase === "all") {
+    v1Result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase", "v1"]);
+  }
+
+  if (phase === "v2" || phase === "all") {
+    v2Result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase", "v2"]);
+  }
+
+  return c.json({
+    importJob: importResult.jobId,
+    v1Job: v1Result?.jobId ?? null,
+    v2Job: v2Result?.jobId ?? null,
+  });
+});
+
 // ═══════════════════════════════════════════════════════════════
 //  Gutenberg Catalog (Selective Download)
 // ═══════════════════════════════════════════════════════════════
