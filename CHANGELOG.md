@@ -1,5 +1,38 @@
 # Changelog
 
+## [v0.32.0] — 2026-08-10 — Gutenberg Processing Pipeline
+
+### Gutenberg Pipeline — 59 books → 4 SQLite databases
+
+- **Import script** (`scripts/import-gutenberg-texts.ts`) — reads .txt files + catalog → `classics.db`
+- **Process script** (`scripts/process-gutenberg.ts`) — Phase A (V1 rule-based) + Phase B (V2 LLM) orchestrator
+- **Expand corpus** (`scripts/expand-corpus.ts`) — fetch additional books from Gutendex API, 59 → 250+
+- **MCP endpoint** `/gutenberg/process` — trigger pipeline from MCP Console UI
+
+### Analysis & Extraction
+
+- **AnalyzePass** (`src/mcp/gutenberg/analyze-pass.ts`) — unified chunk analysis: pre-score, scene classification, sensory tags, temporal markers
+- **NarrativeExtractor** (`src/mcp/gutenberg/narrative-extractor.ts`) — LLM-based narrative structure extraction (plot arcs, character arcs, thematic motifs, moral vector)
+- **Shared cleanGutenbergText** (`src/mcp/gutenberg/clean.ts`) — deduplicated text cleaning (was 3 separate implementations)
+- **Era/period helpers** (`src/mcp/gutenberg/helpers.ts`) — `inferEra()`, `inferLiteraryPeriod()`, `sampleExcerpts()`
+
+### Player Profiles
+
+- **PlayerProfileStore** (`src/lib/player-profile-store.ts`) — standalone cross-agent player style profiles (sentence length, sensory bias, register, dialogue ratio, preferred motifs, literary sophistication)
+- 14 tracked style metrics per player, confidence-weighted updates
+
+### Literary Compiler Extensions
+
+- **DramaturgicPass prose mode** (`src/mcp/literary-compiler/dramaturgic-pass.ts`) — generate prose templates from chunk analysis (PROSE_ARCHETYPE_KEYWORDS, generateProseTemplate)
+- **New DB tables** — `narrative_arcs`, `thematic_motifs`, `quality_calibration` in classics-compiled.db
+
+### Tests
+
+- 4 new test files: analyze-pass, clean, helpers, player-profile-store
+- Full suite: 1145 pass / 1 fail (pre-existing)
+
+---
+
 ## [v0.31.1] — 2026-08-08 — MCP Console Polish
 
 ### MCP Console — 8-stage polish pass

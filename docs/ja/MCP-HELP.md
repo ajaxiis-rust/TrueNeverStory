@@ -95,6 +95,31 @@ Mark Twain, Jack London, Edgar Allan Poe
 | `POST` | `/mcp/gutenberg/catalog/select-all` | すべて選択 |
 | `POST` | `/mcp/gutenberg/catalog/deselect-all` | すべて解除 |
 | `POST` | `/mcp/gutenberg/download-selected` | 選択をダウンロード |
+| `POST` | `/mcp/gutenberg/process` | Gutenberg 処理パイプラインをトリガー |
+
+### POST /mcp/gutenberg/process
+
+MCP Console から Gutenberg 処理パイプラインをトリガーします。
+
+**リクエストボディ：**
+```json
+{
+  "phase": "all"  // "v1" | "v2" | "all"
+}
+```
+
+**レスポンス（SSE ストリーム）：**
+```json
+{"phase":"parse","pct":10,"message":"Parsed 45/59 books"}
+{"phase":"compile","pct":50,"message":"Running DramaturgicPass..."}
+{"phase":"analyze","pct":75,"message":"Analyzing chunks..."}
+{"phase":"done","pct":100,"message":"Pipeline complete"}
+```
+
+**フェーズ：**
+- `v1` — フェーズ A のみ（ルールベース、LLM なし）：parse → compile → done
+- `v2` — フェーズ B のみ（LLM）：analyze → extract → done  
+- `all` — 両方のフェーズを順番に実行
 
 ## トラブルシューティング
 

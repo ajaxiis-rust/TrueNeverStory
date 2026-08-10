@@ -95,6 +95,31 @@ Todos los endpoints estan bajo `/mcp/`:
 | `POST` | `/mcp/gutenberg/catalog/select-all` | Seleccionar todo |
 | `POST` | `/mcp/gutenberg/catalog/deselect-all` | Deseleccionar todo |
 | `POST` | `/mcp/gutenberg/download-selected` | Descargar seleccionados |
+| `POST` | `/mcp/gutenberg/process` | Activar canalizacion de procesamiento Gutenberg |
+
+### POST /mcp/gutenberg/process
+
+Activa la canalizacion de procesamiento Gutenberg desde la Consola MCP.
+
+**Cuerpo de la solicitud:**
+```json
+{
+  "phase": "all"  // "v1" | "v2" | "all"
+}
+```
+
+**Respuesta (flujo SSE):**
+```json
+{"phase":"parse","pct":10,"message":"Parsed 45/59 books"}
+{"phase":"compile","pct":50,"message":"Running DramaturgicPass..."}
+{"phase":"analyze","pct":75,"message":"Analyzing chunks..."}
+{"phase":"done","pct":100,"message":"Pipeline complete"}
+```
+
+**Fases:**
+- `v1` — Solo Fase A (basada en reglas, sin LLM): parse → compile → done
+- `v2` — Solo Fase B (LLM): analyze → extract → done  
+- `all` — Ambas fases secuencialmente
 
 ## Solucion de problemas
 

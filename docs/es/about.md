@@ -48,6 +48,40 @@ Salida al usuario (idioma original)
 
 ---
 
+## Pipeline de procesamiento Gutenberg
+
+### Por qué un pipeline de múltiples fases
+
+Los textos brutos de Project Gutenberg son ruidosos — encabezados, pies de página, artefactos de codificación, formato variable. Un enfoque de un solo pase produce malos patrones de estilo. El pipeline utiliza dos fases:
+
+1. **Fase A (V1, basada en reglas):** Limpieza de texto determinista, división en fragmentos, compilación literaria de 4 pasadas. Sin costo de LLM. Produce plantillas de misiones y patrones de estilo.
+2. **Fase B (V2, enriquecida con LLM):** AnalyzePass pre-califica fragmentos, NarrativeExtractor extrae arcos de trama y arcos de personajes. Produce plantillas de escena para LiteraryV2Generator.
+
+### Flujo de datos
+
+```
+Archivos .txt de Gutenberg (59+)
+  ↓ import-gutenberg-texts.ts
+classics.db (bruto + metadatos)
+  ↓ process-gutenberg.ts Fase A
+gutenberg-normalized.db (estilos) + classics-compiled.db (plantillas v1)
+  ↓ process-gutenberg.ts Fase B
+literary.db (plantillas de escena + patrones de estilo v2)
+  ↓
+Stylist ← gutenberg-normalized.db
+Dramaturg ← classics-compiled.db
+LiteraryV2Generator ← literary.db
+```
+
+### Por qué scripts independientes
+
+El pipeline se ejecuta fuera de línea (no por solicitud de usuario). Scripts independientes con endpoints MCP permiten:
+- Activación manual desde la interfaz MCP Console
+- Procesamiento en segundo plano sin bloquear sesiones de juego
+- Expansión del corpus sin reiniciar el servidor
+
+---
+
 ## Arquitectura de base de datos literaria: economía de tokens mediante preprocesamiento
 
 ### El problema

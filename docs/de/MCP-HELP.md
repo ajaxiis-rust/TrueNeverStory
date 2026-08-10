@@ -95,6 +95,31 @@ Alle Endpunkte befinden sich unter `/mcp/`:
 | `POST` | `/mcp/gutenberg/catalog/select-all` | Alle auswahlen |
 | `POST` | `/mcp/gutenberg/catalog/deselect-all` | Alle abwahlen |
 | `POST` | `/mcp/gutenberg/download-selected` | Auswahl herunterladen |
+| `POST` | `/mcp/gutenberg/process` | Gutenberg-Verarbeitungs-Pipeline starten |
+
+### POST /mcp/gutenberg/process
+
+Startet die Gutenberg-Verarbeitungs-Pipeline aus der MCP Console.
+
+**Anfragebody:**
+```json
+{
+  "phase": "all"  // "v1" | "v2" | "all"
+}
+```
+
+**Antwort (SSE-Stream):**
+```json
+{"phase":"parse","pct":10,"message":"Parsed 45/59 books"}
+{"phase":"compile","pct":50,"message":"Running DramaturgicPass..."}
+{"phase":"analyze","pct":75,"message":"Analyzing chunks..."}
+{"phase":"done","pct":100,"message":"Pipeline complete"}
+```
+
+**Phasen:**
+- `v1` — Nur Phase A (regelbasiert, kein LLM): parse → compile → done
+- `v2` — Nur Phase B (LLM): analyze → extract → done  
+- `all` — Beide Phasen sequenziell
 
 ## Fehlerbehebung
 

@@ -1,6 +1,6 @@
-# Agents Reference (v0.29.6)
+# Agents Reference (v0.32.0)
 
-TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.29.6, the engine uses **6 core agents** (The Big Six) plus **5 specialist agents** and a **dialogue system**.
+TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.32.0, the engine uses **6 core agents** (The Big Six) plus **5 specialist agents** and a **dialogue system**.
 
 ---
 
@@ -137,7 +137,7 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 
 ## Legacy Agents (Deprecated)
 
-The following agents are deprecated in v0.29.6 but still available for backward compatibility:
+The following agents are deprecated in v0.32.0 but still available for backward compatibility:
 
 | Agent | Replacement | Status |
 |-------|-------------|--------|
@@ -158,7 +158,7 @@ The following agents are deprecated in v0.29.6 but still available for backward 
 
 ---
 
-## Specialist Agents (v0.29.6)
+## Specialist Agents (v0.32.0)
 
 The following specialist agents are now wired into `RoleplayEngine` and available via `engine.<agent>`:
 
@@ -174,7 +174,7 @@ Each specialist agent takes only `LLMQueue` as a dependency and generates text v
 
 ---
 
-## Dialogue System (v0.29.6)
+## Dialogue System (v0.32.0)
 
 New `DialogueManager` + `DialogueContext` for structured NPC conversations:
 
@@ -219,7 +219,7 @@ const withSearch = registry.getAgentsWithTool('search_verses');
 
 ---
 
-## Agent Interface (v0.29.6)
+## Agent Interface (v0.32.0)
 
 ```typescript
 interface AgentV2 {
@@ -329,7 +329,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## MCP Integration (v0.29.6)
+## MCP Integration (v0.32.0)
 
 ### Bible Patterns
 
@@ -371,6 +371,31 @@ Each agent stores a `userTemplate` in SQLite (`agent_prompts` table) with JSON f
 4. Sends resolved prompt to LLM
 
 **If no userTemplate exists** → fallback to `PromptBuilder` (hardcoded TypeScript templates).
+
+---
+
+## Player Style Profiles (v0.32.0)
+
+`PlayerProfileStore` (`src/lib/player-profile-store.ts`) provides cross-agent player style profiles shared between Stylist and LiteraryV2Generator.
+
+**Metrics tracked:**
+| Metric | Description |
+|--------|-------------|
+| `avg_sentence_len` | Average sentence length in words |
+| `sensory_bias` | Sensory detail preference (0-1) |
+| `register_score` | Formal/informal register (0-1) |
+| `dialogue_ratio` | Proportion of dialogue in text |
+| `narrative_distance` | Close vs distant narration (0-1) |
+| `action_orientation` | Action vs reflection preference (0-1) |
+| `emotional_expressiveness` | Emotional detail level (0-1) |
+| `preferred_pace` | slow / medium / fast |
+| `literary_sophistication` | Vocabulary/structure complexity (0-1) |
+| `preferred_motifs` | Top preferred narrative motifs |
+| `anti_patterns` | Avoided patterns |
+| `sample_snippets` | Representative text samples |
+| `confidence` | Profile confidence (0-1) |
+
+**Storage:** `data/player-profiles.db` (SQLite, WAL mode)
 
 ---
 

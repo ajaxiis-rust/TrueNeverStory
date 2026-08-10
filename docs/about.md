@@ -48,6 +48,40 @@ User Output (original language)
 
 ---
 
+## Gutenberg Processing Pipeline
+
+### Why a Multi-Phase Pipeline
+
+Raw Project Gutenberg texts are noisy — headers, footers, encoding artifacts, varying formatting. A single-pass approach produces poor style patterns. The pipeline uses two phases:
+
+1. **Phase A (V1, rule-based):** Deterministic text cleaning, chunk splitting, 4-pass literary compilation. No LLM cost. Produces quest templates and style patterns.
+2. **Phase B (V2, LLM-enriched):** AnalyzePass pre-scores chunks, NarrativeExtractor extracts plot arcs and character arcs. Produces scene templates for LiteraryV2Generator.
+
+### Data Flow
+
+```
+Gutenberg .txt files (59+)
+  ↓ import-gutenberg-texts.ts
+classics.db (raw + metadata)
+  ↓ process-gutenberg.ts Phase A
+gutenberg-normalized.db (styles) + classics-compiled.db (templates v1)
+  ↓ process-gutenberg.ts Phase B
+literary.db (scene_templates + style_patterns v2)
+  ↓
+Stylist ← gutenberg-normalized.db
+Dramaturg ← classics-compiled.db
+LiteraryV2Generator ← literary.db
+```
+
+### Why Standalone Scripts
+
+The pipeline runs offline (not per-user-request). Standalone scripts with MCP endpoints allow:
+- Manual trigger from MCP Console UI
+- Background processing without blocking game sessions
+- Corpus expansion without restarting the server
+
+---
+
 ## Literary Database Architecture: Token Economy Through Pre-Processing
 
 ### The Problem

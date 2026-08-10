@@ -48,6 +48,40 @@ TranslationService.translate()
 
 ---
 
+## Gutenberg処理パイプライン
+
+### なぜ多段階パイプラインなのか
+
+Project Gutenbergの生テキストはノイズが多い — ヘッダー、フッター、エンコーディングアーティファクト、異なるフォーマット。単一パスアプローチでは質の低いスタイルパターンが生成される。パイプラインは2つのフェーズを使用する：
+
+1. **フェーズA（V1、ルールベース）：** 決定論的なテキストクリーニング、チャンク分割、4パス文学コンパイル。LLMコストなし。クエストテンプレートとスタイルパターンを生成。
+2. **フェーズB（V2、LLM強化）：** AnalyzePassがチャンクを事前スコアリング、NarrativeExtractorがプロットアークとキャラクターアークを抽出。LiteraryV2Generator用のシーンテンプレートを生成。
+
+### データフロー
+
+```
+Gutenberg .txtファイル (59+)
+  ↓ import-gutenberg-texts.ts
+classics.db (生データ + メタデータ)
+  ↓ process-gutenberg.ts フェーズA
+gutenberg-normalized.db (スタイル) + classics-compiled.db (テンプレート v1)
+  ↓ process-gutenberg.ts フェーズB
+literary.db (シーンテンプレート + スタイルパターン v2)
+  ↓
+Stylist ← gutenberg-normalized.db
+Dramaturg ← classics-compiled.db
+LiteraryV2Generator ← literary.db
+```
+
+### なぜスタンドアロンスクリプトなのか
+
+パイプラインはオフラインで実行される（ユーザーリクエストごとではない）。MCPエンドポイントを持つスタンドアロンスクリプトにより：
+- MCP Console UIからの手動トリガー
+- ゲームセッションをブロックしないバックグラウンド処理
+- サーバー再起動なしでのコーパス拡張
+
+---
+
 ## 文学データベースアーキテクチャ：前処理によるトークン経済
 
 ### 問題

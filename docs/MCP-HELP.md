@@ -95,6 +95,31 @@ All endpoints are under `/mcp/`:
 | `POST` | `/mcp/gutenberg/catalog/select-all` | Select all (with optional filter) |
 | `POST` | `/mcp/gutenberg/catalog/deselect-all` | Clear all selections |
 | `POST` | `/mcp/gutenberg/download-selected` | Download selected books |
+| `POST` | `/mcp/gutenberg/process` | Trigger Gutenberg processing pipeline |
+
+### POST /mcp/gutenberg/process
+
+Trigger the Gutenberg processing pipeline from the MCP Console.
+
+**Request body:**
+```json
+{
+  "phase": "all"  // "v1" | "v2" | "all"
+}
+```
+
+**Response (SSE stream):**
+```json
+{"phase":"parse","pct":10,"message":"Parsed 45/59 books"}
+{"phase":"compile","pct":50,"message":"Running DramaturgicPass..."}
+{"phase":"analyze","pct":75,"message":"Analyzing chunks..."}
+{"phase":"done","pct":100,"message":"Pipeline complete"}
+```
+
+**Phases:**
+- `v1` — Phase A only (rule-based, no LLM): parse → compile → done
+- `v2` — Phase B only (LLM): analyze → extract → done  
+- `all` — Both phases sequentially
 
 ## Troubleshooting
 

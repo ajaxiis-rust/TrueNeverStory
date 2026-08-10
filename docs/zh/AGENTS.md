@@ -247,7 +247,7 @@ LLM 响应会自动匹配所选的 UI 语言。语言指令在世界创建时通
 
 ---
 
-## 专业代理 (v0.29.6)
+## 专业代理 (v0.32.0)
 
 以下专业代理现已接入`RoleplayEngine`，可通过`engine.<agent>`访问：
 
@@ -263,7 +263,32 @@ LLM 响应会自动匹配所选的 UI 语言。语言指令在世界创建时通
 
 ---
 
-## 对话系统 (v0.29.6)
+## 玩家风格档案 (v0.32.0)
+
+`PlayerProfileStore` (`src/lib/player-profile-store.ts`) 提供跨代理的玩家风格档案，供 Stylist 和 LiteraryV2Generator 共享使用。
+
+**跟踪的指标：**
+| 指标 | 描述 |
+|------|------|
+| `avg_sentence_len` | 平均句子长度（以单词计） |
+| `sensory_bias` | 感官细节偏好 (0-1) |
+| `register_score` | 正式/非正式语域 (0-1) |
+| `dialogue_ratio` | 文本中对话的比例 |
+| `narrative_distance` | 近距离 vs 远距离叙述 (0-1) |
+| `action_orientation` | 行动 vs 反思偏好 (0-1) |
+| `emotional_expressiveness` | 情感细节水平 (0-1) |
+| `preferred_pace` | 慢 / 中 / 快 |
+| `literary_sophistication` | 词汇/结构复杂度 (0-1) |
+| `preferred_motifs` | 首选的叙事母题 |
+| `anti_patterns` | 需要避免的模式 |
+| `sample_snippets` | 代表性文本片段 |
+| `confidence` | 档案置信度 (0-1) |
+
+**存储：** `data/player-profiles.db` (SQLite, WAL 模式)
+
+---
+
+## 对话系统 (v0.32.0)
 
 新的`DialogueManager` + `DialogueContext`用于结构化NPC对话：
 

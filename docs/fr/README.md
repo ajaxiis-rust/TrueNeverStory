@@ -1,4 +1,4 @@
-# TrueNeverStory v0.30.0
+# TrueNeverStory v0.32.0
 
 ### Ecris ton livre en jouant.
 
@@ -10,31 +10,32 @@ Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les o
 
 ---
 
-## Nouveautes de v0.30.0
+## Nouveautes de v0.32.0
 
-### Console MCP — Correction des cases a cocher + Authentification
-- **Cases a cocher des livres** dans l'onglet Catalogue — la selection persiste correctement
-- **Authentification par mot de passe** pour le mode MCP — meme mot de passe que le serveur principal
-- **[Guide de la Console MCP](MCP-HELP.md)** — guide utilisateur complet en 7 langues
+### Pipeline de traitement Gutenberg — 59 livres → 4 bases de donnees
+- **Scripts d'import et de traitement** — pipeline complet des fichiers .txt Gutenberg telecharges vers les bases SQLite pour agents
+- **Phase A (V1, basee sur regles)** — nettoyage de texte, compilation litteraire en 4 passes, pas de LLM
+- **Phase B (V2, LLM) Analyse** — AnalysePass + NarrativeExtractor pour modeles de scenes et patrons de style
+- **Expansion du corpus** — charger des livres supplementaires depuis l'API Gutendex (59 → 250+)
+- **Endpoint MCP** — declencher le pipeline depuis l'interface navigateur a `/mcp/gutenberg/process`
 
-### Catalogue web — Telechargez vos auteurs preferes
-Configurez tout le pipeline MCP depuis le navigateur. Creez une bibliotheque personnelle depuis Project Gutenberg pour ameliorer le style narratif :
-1. Entrez les noms d'auteurs (Mark Twain, Jack London, Edgar Allan Poe...) ou des sujets
-2. Parcourez, recherchez et filtrez le catalogue
-3. Selectionnez les livres avec les cases a cocher
-4. Telechargez et laissez l'agent Stylisateur apprendre de vos auteurs preferes
+### Analyse et extraction
+- **AnalyzePass** — analyse unifiee des chunks avec classification de scenes (8 types), balises sensorielles (10 categories), marqueurs temporels
+- **NarrativeExtractor** — extraction LLM des arcs narratifs, arcs de personnages, motifs thematiques, vecteur moral
+- **Nettoyage de texte partage** — 3 fonctions de nettoyage differentes reunies en une `cleanGutenbergText()`
 
-Voir le **[Guide de la Console MCP](MCP-HELP.md)** pour le workflow complet.
+### Profils de style joueur
+- **PlayerProfileStore** — 14 metriques suivies par joueur (longueur de phrase, biais sensoriel, registre, ratio de dialogue, sophistication litteraire, etc.)
+- Profils inter-agents partages entre le Stylisateur et LiteraryV2Generator
+- Mises a jour ponderees par confiance
 
-### Optimisation de la BD Biblique
-- **Recherche FTS5** — remplacement de `LIKE '%query%'` par `MATCH` FTS5 pour des requetes textuelles en O(1) (avec fallback sur LIKE)
-- **Parcours de graphe par lot** — `getRelatedVerses()` utilise maintenant des requetes `IN (...)` par lot au lieu de N requetes separees (N+1 → 1)
-- **Index des versets** — ajout de `idx_verses_book_chapter` pour accelerer les requetes filtrees
-- **Systeme de personnages** — nouveau `CharacterDB` avec 3 tables : `bible_characters`, `bible_character_edges`, `bible_character_mentions`
-- **Dictionnaire de noms** — 40+ personnages bibliques avec variantes multilingues (EN/RU/HE/EL)
-- **Outils MCP pour personnages** — `searchCharacters`, `getCharacter`, `getCharacterEdges`, `getVerseCharacters`
-- **Nettoyage git** — suppression de 177 Mo de sources brutes et 59 Mo de BD compilees du suivi de versions
-- **Scripts de build** — `download-sources.sh` + `bootstrap-bible-db.ts` pour la configuration du client
+### Extensions Literary Compiler
+- **DramaturgicPass mode prose** — generation de modeles de prose a partir de l'analyse des chunks
+- **Nouvelles tables DB** — `narrative_arcs`, `thematic_motifs`, `quality_calibration`
+
+### Versions precedentes
+- **v0.31.1** — polissage de la Console MCP (XSS, i18n, barre de progression, economie, traductions)
+- **v0.31.0** — refactoring du RoleplayEngine (SessionState, CommandHandler, PipelineRunner, Prose strategies)
 
 ---
 

@@ -48,6 +48,40 @@ Benutzerausgabe (Originalsprache)
 
 ---
 
+## Gutenberg-Verarbeitungspipeline
+
+### Warum eine mehrphasige Pipeline
+
+Roh-Texte aus Project Gutenberg sind verrauscht — Kopfzeilen, Fußzeilen, Kodierungsartefekte, unterschiedliche Formatierung. Ein Einweg-Ansatz liefert schlechte Stilmuster. Die Pipeline verwendet zwei Phasen:
+
+1. **Phase A (V1, regelbasiert):** Deterministische Textbereinigung, Chunk-Aufteilung, 4-Pass-Literaturkompilierung. Keine LLM-Kosten. Erstellt Quest-Vorlagen und Stilmuster.
+2. **Phase B (V2, LLM-angereichert):** AnalyzePass bewertet Chunks vor, NarrativeExtractor extrahiert Handlungsbögen und Charakterbögen. Erstellt Szenenvorlagen für LiteraryV2Generator.
+
+### Datenfluss
+
+```
+Gutenberg .txt-Dateien (59+)
+  ↓ import-gutenberg-texts.ts
+classics.db (roh + Metadaten)
+  ↓ process-gutenberg.ts Phase A
+gutenberg-normalized.db (Stile) + classics-compiled.db (Vorlagen v1)
+  ↓ process-gutenberg.ts Phase B
+literary.db (Szenenvorlagen + Stilmuster v2)
+  ↓
+Stylist ← gutenberg-normalized.db
+Dramaturg ← classics-compiled.db
+LiteraryV2Generator ← literary.db
+```
+
+### Warum eigenständige Skripte
+
+Die Pipeline läuft offline (nicht pro Benutzeranfrage). Eigenständige Skripte mit MCP-Endpunkten ermöglichen:
+- Manuellen Auslöser aus der MCP Console UI
+- Hintergrundverarbeitung ohne Blockierung von Spielsitzungen
+- Korpus-Erweiterung ohne Serverneustart
+
+---
+
 ## Literarische Datenbankarchitektur: Token-Ökonomie durch Vorverarbeitung
 
 ### Das Problem

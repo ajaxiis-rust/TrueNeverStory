@@ -1,4 +1,4 @@
-# TrueNeverStory v0.30.0
+# TrueNeverStory v0.32.0
 
 ### 遊ぶだけで、自分の物語を書こう。
 
@@ -10,31 +10,32 @@ TypeScript (Bun + Hono)とC FFIカーネルによるハイブリッド構成。
 
 ---
 
-## v0.30.0 の新機能
+## v0.32.0 の新機能
 
-### MCP コンソール — チェックボックス修正 + パスワード認証
-- **カタログタブのチェックボックス**が正しく動作 — 選択状態が保持されます
-- **MCP モードのパスワード保護** — メインサーバーと同じパスワード
-- **[MCP コンソールヘルプ](MCP-HELP.md)** — 7言語対応の完全なユーザーガイド
+### Gutenberg 処理パイプライン — 59冊 → 4つのデータベース
+- **インポート＋処理スクリプト** — ダウンロードしたGutenbergの.txtファイルからエージェントが利用可能なSQLiteデータベースへの完全なパイプライン
+- **フェーズA（V1、ルールベース）** — テキストクリーニング、4パス文学コンパイル、LLM不要
+- **フェーズB（V2、LLM）分析** — AnalyzePass + NarrativeExtractorによるシーンテンプレートとスタイルパターン
+- **コーパス拡張** — Gutendex APIから追加書籍を取得（59 → 250+）
+- **MCPエンドポイント** — ブラウザUIの`/mcp/gutenberg/process`からパイプラインを実行
 
-### ウェブカタログ — お気に入りの著者をダウンロード
-ブラウザから MCP パイプライン全体を設定。Project Gutenberg から個人ライブラリを構築：
-1. 著者名（Mark Twain、Jack London、Edgar Allan Poe...）またはトピックを入力
-2. カタログを閲覧、検索、フィルタリング
-3. チェックボックスで書籍を選択
-4. ダウンロードし、スタイルストエージェントに学習させる
+### 分析と抽出
+- **AnalyzePass** — シーン分類（8種類）、センサリータグ（10カテゴリ）、時相マーカーによる統一チャンク分析
+- **NarrativeExtractor** — プロットアーク、キャラクターアーク、テーマティックモラル、道徳ベクトルのLLM抽出
+- **共有テキストクリーニング** — 3つの異なるクリーニング関数を`cleanGutenbergText()`に統合
 
-完全なワークフローは **[MCP コンソールヘルプ](MCP-HELP.md)** を参照。
+### プレイヤースタイルプロファイル
+- **PlayerProfileStore** — プレイヤーごとに14の追跡メトリクス（文長、感覚バイアス、レジスター、ダイアログ比率、文学的洗練度など）
+- StylistとLiteraryV2Generator間で共有されるクロスエージェントプロファイル
+- 信頼度重み付きアップデート
 
-### 聖書DBの最適化
-- **FTS5検索** — `LIKE '%query%'` を FTS5 `MATCH` に置き換え、O(1)の全文検索を実現（LIKEへのフォールバック付き）
-- **バッチグラフ走査** — `getRelatedVerses()` が個別クエリN個の代わりに `IN (...)` を使ったバッチクエリを使用（N+1 → 1）
-- **節のインデックス** — フィルタクエリを高速化するための `idx_verses_book_chapter` を追加
-- **キャラクターシステム** — 3テーブル（`bible_characters`, `bible_character_edges`, `bible_character_mentions`）を持つ新しい `CharacterDB`
-- **名前辞書** — 40人以上の聖書のキャラクター（EN/RU/HE/ELの多言語バリアント付き）
-- **MCPキャラクターツール** — `searchCharacters`, `getCharacter`, `getCharacterEdges`, `getVerseCharacters`
-- **Gitクリーンアップ** — 177MBの生ソース + 59MBのコンパイル済みDBをトラッキングから削除
-- **ビルドスクリプト** — クライアントセットアップ用の `download-sources.sh` + `bootstrap-bible-db.ts`
+### Literary Compiler拡張
+- **DramaturgicPass散文モード** — チャンク分析からプロステンプレートを生成
+- **新しいDBテーブル** — `narrative_arcs`、`thematic_motifs`、`quality_calibration`
+
+### 以前のバージョン
+- **v0.31.1** — MCPコンソールの仕上げ（XSS、i18n、プログレスバー、経済学、翻訳）
+- **v0.31.0** — RoleplayEngineリファクタリング（SessionState、CommandHandler、PipelineRunner、Prose strategies）
 
 ---
 

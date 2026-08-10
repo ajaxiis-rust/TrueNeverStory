@@ -1,7 +1,7 @@
 # TrueNeverStory — Документ архитектуры
 
 > Анализ архитектуры на основе Domain-Driven Design для нарративного RPG-движка TrueNeverStory.
-> Сгенерировано на основе анализа кодовой базы `src/` по состоянию на 2026-07-05.
+> Сгенерировано на основе анализа кодовой базы `src/` по состоянию на 2026-08-10 v0.32.0.
 
 ---
 
@@ -35,6 +35,29 @@ TrueNeverStory в своём ядре следует паттерну **слоё
 │  SQLiteStore │ LLMClient │ EventBus │ AtomicIO   │
 └─────────────────────────────────────────────────┘
 ```
+
+### Gutenberg Processing Pipeline (v0.32.0)
+
+Двухфазный конвейер преобразует сырые .txt файлы Gutenberg в базы данных для агентов:
+
+**Фаза A (V1 — правил-based, без LLM):**
+```
+classics.db → GutenbergParser → gutenberg-normalized.db (стили + FTS)
+         └→ 4-pass компилятор → classics-compiled.db (шаблоны квестов)
+              DramaturgicPass → StylisticPass → EmotionalPass → MetadataPass → Linter
+```
+
+**Фаза B (V2 — LLM-обогащённая):**
+```
+classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (шаблоны сцен + стилевые паттерны)
+```
+
+**Новые таблицы в classics-compiled.db:**
+- `narrative_arcs` — архетипы сюжетных арок и точки напряжения по книгам
+- `thematic_motifs` — символические мотивы с отслеживанием эволюции
+- `quality_calibration` — оценки качества ответов LLM
+
+**PlayerProfileStore** — автономные кросс-агентные стилевые профили игроков (14 метрик), хранятся в `data/player-profiles.db`.
 
 ---
 

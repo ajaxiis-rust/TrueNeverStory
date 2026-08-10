@@ -95,6 +95,31 @@ Mark Twain, Jack London, Edgar Allan Poe
 | `POST` | `/mcp/gutenberg/catalog/select-all` | 全选 |
 | `POST` | `/mcp/gutenberg/catalog/deselect-all` | 取消全选 |
 | `POST` | `/mcp/gutenberg/download-selected` | 下载已选书籍 |
+| `POST` | `/mcp/gutenberg/process` | 触发 Gutenberg 处理管道 |
+
+### POST /mcp/gutenberg/process
+
+从 MCP Console 触发 Gutenberg 处理管道。
+
+**请求体：**
+```json
+{
+  "phase": "all"  // "v1" | "v2" | "all"
+}
+```
+
+**响应（SSE 流）：**
+```json
+{"phase":"parse","pct":10,"message":"Parsed 45/59 books"}
+{"phase":"compile","pct":50,"message":"Running DramaturgicPass..."}
+{"phase":"analyze","pct":75,"message":"Analyzing chunks..."}
+{"phase":"done","pct":100,"message":"Pipeline complete"}
+```
+
+**阶段：**
+- `v1` — 仅阶段 A（基于规则，无 LLM）：parse → compile → done
+- `v2` — 仅阶段 B（LLM）：analyze → extract → done  
+- `all` — 两个阶段顺序执行
 
 ## 故障排除
 

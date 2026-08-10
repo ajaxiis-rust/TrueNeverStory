@@ -1,7 +1,7 @@
 # TrueNeverStory — Architecture Document
 
 > A Domain-Driven Design analysis of the TrueNeverStory narrative RPG engine.
-> Updated for v0.30.5 — RoleplayEngine refactored with SessionState, CommandHandler, PipelineRunner, Prose strategies.
+> Updated for v0.32.0 — RoleplayEngine refactored with SessionState, CommandHandler, PipelineRunner, Prose strategies.
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Layered Onion Architecture with Event-Driven Extensions + State-First Pipeline**
 
-TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.30.5, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
+TrueNeverStory follows a **layered onion (hexagonal) architecture** at its core, wrapped with an **event-driven orchestration layer** for asynchronous narrative processing. As of v0.32.0, the engine uses a **State-First pipeline** where deterministic simulation happens before prose generation.
 
 The pattern fits because:
 
@@ -21,7 +21,7 @@ The pattern fits because:
 
 The **event bus** (`EventBus` in `src/lib/event-bus.ts`) adds an asynchronous decoupling layer between bounded contexts, enabling the Director Loop to orchestrate narrative events without direct coupling to NPC, Social, or Quest subsystems.
 
-### State-First Pipeline (v0.30.5)
+### State-First Pipeline (v0.32.0)
 
 The pipeline is now structured as composable stages managed by `PipelineRunner`:
 
@@ -60,7 +60,30 @@ Response to User
 Total: 2-3 LLM calls
 ```
 
-### Dual Model Architecture (v0.30.5)
+### Gutenberg Processing Pipeline (v0.32.0)
+
+Two-phase pipeline converts raw Gutenberg .txt files into agent-consumable databases:
+
+**Phase A (V1 — Rule-based, no LLM):**
+```
+classics.db → GutenbergParser → gutenberg-normalized.db (styles + FTS)
+         └→ 4-pass compiler → classics-compiled.db (quest templates)
+              DramaturgicPass → StylisticPass → EmotionalPass → MetadataPass → Linter
+```
+
+**Phase B (V2 — LLM-enriched):**
+```
+classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (scene_templates + style_patterns)
+```
+
+**New tables in classics-compiled.db:**
+- `narrative_arcs` — plot arc archetypes and tension points per book
+- `thematic_motifs` — symbolic motifs with evolution tracking
+- `quality_calibration` — LLM response quality scores
+
+**PlayerProfileStore** — standalone cross-agent player style profiles (14 metrics), stored in `data/player-profiles.db`.
+
+### Dual Model Architecture (v0.32.0)
 
 The engine supports two LLM models per agent:
 
@@ -417,7 +440,7 @@ The engine supports two LLM models per agent:
 
 ---
 
-### BC12: Literary Compiler v2 (v0.30.5)
+### BC12: Literary Compiler v2 (v0.32.0)
 
 **Purpose:** Offline narrative extraction from literary sources and runtime hybrid retrieval for constrained prose generation. Replaces the LLM-heavy v1 pipeline with a deterministic template + style pattern system.
 
@@ -977,7 +1000,7 @@ Query flow:
         │
         ▼
 ┌─────────────────────┐
-│  Literary Compiler   │  (BC12, v0.30.5)
+│  Literary Compiler   │  (BC12, v0.32.0)
 │  v2                  │
 └─────────────────────┘
 ```

@@ -247,7 +247,7 @@ Les agents avec une priorité plus élevée sont traités en premier lorsque plu
 
 ---
 
-## Agents spécialisés (v0.29.6)
+## Agents spécialisés (v0.32.0)
 
 Les agents spécialisés suivants sont maintenant intégrés dans `RoleplayEngine` et accessibles via `engine.<agent>` :
 
@@ -263,7 +263,32 @@ Chaque agent spécialiste n'accepte que `LLMQueue` comme dépendance et génère
 
 ---
 
-## Système de dialogue (v0.29.6)
+## Profils de style du joueur (v0.32.0)
+
+`PlayerProfileStore` (`src/lib/player-profile-store.ts`) fournit des profils de style de joueur inter-agents partagés entre Stylist et LiteraryV2Generator.
+
+**Métriques suivies :**
+| Métrique | Description |
+|----------|-------------|
+| `avg_sentence_len` | Longueur moyenne des phrases en mots |
+| `sensory_bias` | Préférence pour les détails sensoriels (0-1) |
+| `register_score` | Registre formel/informel (0-1) |
+| `dialogue_ratio` | Proportion de dialogues dans le texte |
+| `narrative_distance` | Narration proche vs distante (0-1) |
+| `action_orientation` | Préférence action vs réflexion (0-1) |
+| `emotional_expressiveness` | Niveau de détails émotionnels (0-1) |
+| `preferred_pace` | lent / moyen / rapide |
+| `literary_sophistication` | Complexité du vocabulaire/structure (0-1) |
+| `preferred_motifs` | Motifs narratifs préférés |
+| `anti_patterns` | Motifs à éviter |
+| `sample_snippets` | Extraits de texte représentatifs |
+| `confidence` | Confiance du profil (0-1) |
+
+**Stockage :** `data/player-profiles.db` (SQLite, mode WAL)
+
+---
+
+## Système de dialogue (v0.32.0)
 
 Nouveau `DialogueManager` + `DialogueContext` pour les conversations structurées avec les PNJ :
 

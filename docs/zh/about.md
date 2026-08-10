@@ -48,6 +48,40 @@ TranslationService.translate()
 
 ---
 
+## Gutenberg 处理管道
+
+### 为什么需要多阶段管道
+
+Project Gutenberg 的原始文本噪声较多 — 标题、页脚、编码伪影、格式不一。单次处理方法会产生较差的风格模式。该管道使用两个阶段：
+
+1. **阶段 A（V1，基于规则）：** 确定性文本清洗、分块、4 遍文学编译。无 LLM 成本。生成任务模板和风格模式。
+2. **阶段 B（V2，LLM 增强）：** AnalyzePass 预评分分块，NarrativeExtractor 提取情节弧线和角色弧线。为 LiteraryV2Generator 生成场景模板。
+
+### 数据流
+
+```
+Gutenberg .txt 文件 (59+)
+  ↓ import-gutenberg-texts.ts
+classics.db (原始 + 元数据)
+  ↓ process-gutenberg.ts 阶段 A
+gutenberg-normalized.db (风格) + classics-compiled.db (模板 v1)
+  ↓ process-gutenberg.ts 阶段 B
+literary.db (场景模板 + 风格模式 v2)
+  ↓
+Stylist ← gutenberg-normalized.db
+Dramaturg ← classics-compiled.db
+LiteraryV2Generator ← literary.db
+```
+
+### 为什么使用独立脚本
+
+管道离线运行（不按用户请求执行）。带 MCP 端点的独立脚本允许：
+- 从 MCP Console UI 手动触发
+- 不阻塞游戏会话的后台处理
+- 无需重启服务器即可扩展语料库
+
+---
+
 ## 文学数据库架构：通过预处理实现 token 经济性
 
 ### 问题

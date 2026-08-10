@@ -247,7 +247,7 @@ LLMの応答は選択されたUI言語に自動的に一致します。言語指
 
 ---
 
-## スペシャリストエージェント (v0.29.6)
+## スペシャリストエージェント (v0.32.0)
 
 以下のスペシャリストエージェントが`RoleplayEngine`に接続され、`engine.<agent>`で利用可能です：
 
@@ -263,7 +263,32 @@ LLMの応答は選択されたUI言語に自動的に一致します。言語指
 
 ---
 
-## ダイアログシステム (v0.29.6)
+## プレイヤースタイルプロファイル (v0.32.0)
+
+`PlayerProfileStore` (`src/lib/player-profile-store.ts`) は、StylistとLiteraryV2Generator間で共有されるクロスエージェントのプレイヤースタイルプロファイルを提供します。
+
+**追跡されるメトリクス：**
+| メトリクス | 説明 |
+|-----------|------|
+| `avg_sentence_len` | 文の平均長（単語数） |
+| `sensory_bias` | 感覚的詳細の好み（0-1） |
+| `register_score` | フォーマル/インフォーマルレジスター（0-1） |
+| `dialogue_ratio` | テキスト内のダイアログの割合 |
+| `narrative_distance` | 近い vs 離れたナレーション（0-1） |
+| `action_orientation` | アクション vs 反省の好み（0-1） |
+| `emotional_expressiveness` | 感情的詳細のレベル（0-1） |
+| `preferred_pace` | 遅い / 中程度 / 速い |
+| `literary_sophistication` | 語彙/構造の複雑さ（0-1） |
+| `preferred_motifs` | 好まれるナラティブモチーフ |
+| `anti_patterns` | 避けるパターン |
+| `sample_snippets` | 代表的なテキストサンプル |
+| `confidence` | プロファイルの信頼度（0-1） |
+
+**ストレージ：** `data/player-profiles.db` (SQLite, WALモード)
+
+---
+
+## ダイアログシステム (v0.32.0)
 
 構造化されたNPC会話のための新しい`DialogueManager` + `DialogueContext`：
 

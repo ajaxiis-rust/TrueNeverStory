@@ -48,6 +48,40 @@ Sortie utilisateur (langue originale)
 
 ---
 
+## Pipeline de traitement Gutenberg
+
+### Pourquoi un pipeline multi-phase
+
+Les textes bruts de Project Gutenberg sont bruités — en-têtes, pieds de page, artefacts d'encodage, formatage variable. Une approche en un seul passage produit de mauvais modèles de style. Le pipeline utilise deux phases :
+
+1. **Phase A (V1, basée sur des règles) :** Nettoyage déterministe du texte, découpage en blocs, compilation littéraire en 4 passes. Pas de coût LLM. Produit des modèles de quête et des modèles de style.
+2. **Phase B (V2, enrichie par LLM) :** AnalyzePass évalue les blocs à l'avance, NarrativeExtractor extrait les arcs narratifs et les arcs de personnages. Produit des modèles de scène pour LiteraryV2Generator.
+
+### Flux de données
+
+```
+Fichiers .txt Gutenberg (59+)
+  ↓ import-gutenberg-texts.ts
+classics.db (brut + métadonnées)
+  ↓ process-gutenberg.ts Phase A
+gutenberg-normalized.db (styles) + classics-compiled.db (modèles v1)
+  ↓ process-gutenberg.ts Phase B
+literary.db (modèles de scène + modèles de style v2)
+  ↓
+Stylist ← gutenberg-normalized.db
+Dramaturg ← classics-compiled.db
+LiteraryV2Generator ← literary.db
+```
+
+### Pourquoi des scripts autonomes
+
+Le pipeline s'exécute hors ligne (pas par requête utilisateur). Des scripts autonomes avec des endpoints MCP permettent :
+- Déclenchement manuel depuis l'interface MCP Console
+- Traitement en arrière-plan sans bloquer les sessions de jeu
+- Expansion du corpus sans redémarrage du serveur
+
+---
+
 ## Architecture de base de données littéraire : économie de tokens par pré-traitement
 
 ### Le problème

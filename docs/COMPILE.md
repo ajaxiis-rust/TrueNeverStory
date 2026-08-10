@@ -311,3 +311,33 @@ file dist/linux-arm64/tns-server
 bun run scripts/run-bsb-compiler.ts
 curl http://localhost:8000/health
 ```
+
+## Gutenberg Pipeline
+
+### Prerequisites
+- Downloaded .txt files in `data/gutenberg/texts/`
+- (Optional) `data/mcp/gutenberg-catalog.db` for metadata enrichment
+
+### Import texts
+```bash
+bun run scripts/import-gutenberg-texts.ts
+```
+Creates `data/gutenberg/classics.db` from .txt files + catalog.
+
+### Process pipeline
+```bash
+# Phase A only (rule-based, no LLM)
+bun run scripts/process-gutenberg.ts --phase v1
+
+# Phase B only (LLM-enriched)
+bun run scripts/process-gutenberg.ts --phase v2
+
+# Both phases
+bun run scripts/process-gutenberg.ts --phase all
+```
+
+### Expand corpus
+```bash
+bun run scripts/expand-corpus.ts --authors "Dickens,Tolstoy" --target 3
+bun run scripts/expand-corpus.ts --authors "Hemingway" --dry-run
+```

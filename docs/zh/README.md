@@ -1,4 +1,4 @@
-# TrueNeverStory v0.30.0
+# TrueNeverStory v0.32.0
 
 ### 玩着写你的书。
 
@@ -10,24 +10,34 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架�
 
 ---
 
-## v0.30.0 新功能
+## v0.32.0 新功能
 
-### MCP 控制台 — 复选框修复 + 密码认证
-- **目录复选框**现在正常工作 — 选择后不会重置
-- **MCP 模式密码保护** — 使用与主服务器相同的密码
-- **[MCP 控制台帮助](MCP-HELP.md)** — 7 种语言的完整用户指南
+### Gutenberg 处理管道 — 59本书 → 4个数据库
+- **导入 + 处理脚本** — 从下载的 Gutenberg .txt 文件到代理可用的 SQLite 数据库的完整管道
+- **阶段 A（V1，基于规则）** — 文本清洗、4遍文学编译、无 LLM
+- **阶段 B（V2，LLM）分析** — AnalyzePass + NarrativeExtractor 用于场景模板和风格模式
+- **语料库扩展** — 从 Gutendex API 加载更多书籍（59 → 250+）
+- **MCP 端点** — 从浏览器 UI 的 `/mcp/gutenberg/process` 触发管道
 
-### 网页目录 — 下载喜爱的作者
-通过浏览器配置整个 MCP 流程。从 Project Gutenberg 构建个人图书馆以提升叙事风格：
-1. 输入作者名（Mark Twain、Jack London、Edgar Allan Poe...）或主题
-2. 浏览、搜索和筛选目录
-3. 通过复选框选择书籍
-4. 下载并让风格师代理从您选择的作者学习
+### 分析与提取
+- **AnalyzePass** — 统一的块分析：场景分类（8种类型）、感官标签（10个类别）、时间标记
+- **NarrativeExtractor** — 基于 LLM 的情节弧线、角色弧线、主题母题、道德向量提取
+- **共享文本清洗** — 3个不同的清洗函数合并为一个 `cleanGutenbergText()`
 
-完整流程请参阅 **[MCP 控制台帮助](MCP-HELP.md)**。
+### 玩家风格档案
+- **PlayerProfileStore** — 每个玩家跟踪 14 项指标（句子长度、感官偏差、语域、对话比例、文学复杂度等）
+- Stylist 和 LiteraryV2Generator 之间共享的跨代理档案
+- 基于置信度的加权更新
 
-### 圣经数据库优化
-- **FTS5搜索** — 将 `LIKE '%query%'` 替换为 FTS5 `MATCH` 实现 O(1) 全文查询（支持 LIKE 回退）
+### Literary Compiler 扩展
+- **DramaturgicPass 散文模式** — 从块分析生成散文模板
+- **新数据库表** — `narrative_arcs`、`thematic_motifs`、`quality_calibration`
+
+### 之前的版本
+- **v0.31.1** — MCP 控制台优化（XSS、i18n、进度条、经济、翻译）
+- **v0.31.0** — RoleplayEngine 重构（SessionState、CommandHandler、PipelineRunner、Prose strategies）
+
+### v0.29.6 新功能
 - **批量图遍历** — `getRelatedVerses()` 现在使用 `IN (...)` 批量查询代替 N 次独立查询（N+1 → 1）
 - **经文索引** — 新增 `idx_verses_book_chapter` 索引加速过滤查询
 - **人物系统** — 全新 `CharacterDB`，含 3 张表：`bible_characters`、`bible_character_edges`、`bible_character_mentions`

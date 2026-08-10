@@ -95,6 +95,31 @@ Tous les points de terminaison sont sous `/mcp/` :
 | `POST` | `/mcp/gutenberg/catalog/select-all` | Tout selectionner |
 | `POST` | `/mcp/gutenberg/catalog/deselect-all` | Tout deselectionner |
 | `POST` | `/mcp/gutenberg/download-selected` | Telecharger la selection |
+| `POST` | `/mcp/gutenberg/process` | Declencher le pipeline de traitement Gutenberg |
+
+### POST /mcp/gutenberg/process
+
+Declenche le pipeline de traitement Gutenberg depuis la Console MCP.
+
+**Corps de la requete :**
+```json
+{
+  "phase": "all"  // "v1" | "v2" | "all"
+}
+```
+
+**Reponse (flux SSE) :**
+```json
+{"phase":"parse","pct":10,"message":"Parsed 45/59 books"}
+{"phase":"compile","pct":50,"message":"Running DramaturgicPass..."}
+{"phase":"analyze","pct":75,"message":"Analyzing chunks..."}
+{"phase":"done","pct":100,"message":"Pipeline complete"}
+```
+
+**Phases :**
+- `v1` — Phase A uniquement (basee sur des regles, pas de LLM) : parse → compile → done
+- `v2` — Phase B uniquement (LLM) : analyze → extract → done  
+- `all` — Les deux phases sequentiellement
 
 ## Depannage
 

@@ -1,4 +1,4 @@
-# TrueNeverStory v0.30.0
+# TrueNeverStory v0.32.0
 
 ### Write your book just by playing.
 
@@ -10,38 +10,32 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ---
 
-## What's New in v0.30.0
+## What's New in v0.32.0
 
-### MCP Console — Checkbox Fix + Password Auth
-- **Fixed per-book checkbox** in Catalog tab — selection now persists correctly
-- **Password authentication** for MCP mode — same password as the main server
-- **[MCP Console Help](docs/MCP-HELP.md)** — full user guide in 7 languages
+### Gutenberg Processing Pipeline — 59 books → 4 databases
+- **Import + Process scripts** — full pipeline from downloaded Gutenberg .txt files to agent-consumable SQLite databases
+- **Phase A (V1, rule-based)** — text cleaning, 4-pass literary compilation, no LLM cost
+- **Phase B (V2, LLM-enriched)** — AnalyzePass + NarrativeExtractor for scene templates and style patterns
+- **Corpus expansion** — fetch additional books from Gutendex API (59 → 250+)
+- **MCP Console endpoint** — trigger pipeline from browser UI at `/mcp/gutenberg/process`
 
-### Web-Based Catalog — Download Favorite Authors
-Configure the entire MCP pipeline through the browser. Build a personal library from Project Gutenberg to improve narrative style:
-1. Enter author names (Mark Twain, Jack London, Edgar Allan Poe...) or topics
-2. Browse, search, and filter the catalog
-3. Select books via checkboxes
-4. Download and let the Stylist agent learn from your chosen authors
+### Analysis & Extraction
+- **AnalyzePass** — unified chunk analysis with scene classification (8 types), sensory tags (10 categories), temporal markers
+- **NarrativeExtractor** — LLM-based plot arcs, character arcs, thematic motifs, moral vector extraction
+- **Shared text cleaning** — deduplicated 3 different strip functions into one `cleanGutenbergText()`
 
-See **[MCP Console Help](docs/MCP-HELP.md)** for the complete workflow.
+### Player Style Profiles
+- **PlayerProfileStore** — 14 tracked metrics per player (sentence length, sensory bias, register, dialogue ratio, literary sophistication, etc.)
+- Cross-agent profiles shared between Stylist and LiteraryV2Generator
+- Confidence-weighted updates from player interactions
 
-### LLM Performance Optimization — Dual Model + Translation Batching
-- **Reduced LLM requests** from 4-5 to 2-3 per user input
-- **`translateAndClassify()`** — combines translation and intent classification into one LLM call
-- **Dual model support** — small model (phi-3, gemma-2) for translation/intent, main model for narrative
-- **Fixed LLM cache bug** — removed `LRUCache` that caused cross-agent hallucinations
+### Literary Compiler Extensions
+- **DramaturgicPass prose mode** — generate prose templates from chunk analysis
+- **New DB tables** — `narrative_arcs`, `thematic_motifs`, `quality_calibration`
 
-### Dual Model Configuration
-```json
-{
-  "agentId": "translation",
-  "providerId": "ollama",
-  "modelId": "qwen2.5:14b",
-  "translationProviderId": "ollama",
-  "translationModelId": "phi3:mini"
-}
-```
+### Previous: v0.31.x
+- **v0.31.1** — MCP Console polish (XSS, i18n, progress bar, economics, translations)
+- **v0.31.0** — RoleplayEngine refactoring (SessionState, CommandHandler, PipelineRunner, Prose strategies)
 
 ## What's New in v0.29.6
 
@@ -141,6 +135,8 @@ All agent-to-agent and agent-to-MCP operations use English for token efficiency 
 | **SQLite Storage** | Entities, embeddings, memories, prompts, translations — all in SQLite |
 | **Circuit Breaker** | Automatic LLM provider failover with fallback chain |
 | **Structured Logging** | Trace IDs, correlation IDs, metrics for debugging multi-agent workflows |
+| **Gutenberg Pipeline** | 59 books → 4 SQLite databases via import + process scripts |
+| **Player Style Profiles** | 14 metrics per player, cross-agent sharing, confidence-weighted |
 | **Wikipedia RAG** | Automatic world enrichment from Wikipedia with progress tracking |
 
 ---
@@ -567,6 +563,26 @@ See [COMPILE.md](docs/COMPILE.md) for details. GitHub Actions builds all platfor
 ---
 
 ## Recent Changes
+
+### v0.32.0 — Gutenberg Processing Pipeline
+
+**Pipeline:**
+- Import script (`import-gutenberg-texts.ts`) — reads .txt files + catalog → `classics.db`
+- Process script (`process-gutenberg.ts`) — Phase A (V1 rule-based) + Phase B (V2 LLM) orchestrator
+- Expand corpus (`expand-corpus.ts`) — fetch additional books from Gutendex API, 59 → 250+
+- MCP endpoint `/gutenberg/process` — trigger pipeline from MCP Console UI
+
+**Analysis:**
+- AnalyzePass — unified chunk analysis: pre-score, scene classification, sensory tags, temporal markers
+- NarrativeExtractor — LLM-based narrative structure (plot arcs, character arcs, motifs, moral vector)
+- Shared cleanGutenbergText — deduplicated text cleaning
+- Era/period helpers — inferEra(), inferLiteraryPeriod(), sampleExcerpts()
+
+**Player Profiles:**
+- PlayerProfileStore — standalone cross-agent player style profiles
+- 14 tracked metrics, confidence-weighted updates
+
+**Tests:** 4 new test files, 1145 pass / 1 fail (pre-existing)
 
 ### v0.27.0 — Bible DB Optimization
 

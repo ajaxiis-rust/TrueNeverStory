@@ -95,6 +95,31 @@ Mark Twain, Jack London, Edgar Allan Poe
 | `POST` | `/mcp/gutenberg/catalog/select-all` | Выбрать все |
 | `POST` | `/mcp/gutenberg/catalog/deselect-all` | Снять все |
 | `POST` | `/mcp/gutenberg/download-selected` | Скачать выбранные |
+| `POST` | `/mcp/gutenberg/process` | Запуск конвейера обработки Gutenberg |
+
+### POST /mcp/gutenberg/process
+
+Запуск конвейера обработки Gutenberg из MCP Console.
+
+**Тело запроса:**
+```json
+{
+  "phase": "all"  // "v1" | "v2" | "all"
+}
+```
+
+**Ответ (SSE поток):**
+```json
+{"phase":"parse","pct":10,"message":"Parsed 45/59 books"}
+{"phase":"compile","pct":50,"message":"Running DramaturgicPass..."}
+{"phase":"analyze","pct":75,"message":"Analyzing chunks..."}
+{"phase":"done","pct":100,"message":"Pipeline complete"}
+```
+
+**Фазы:**
+- `v1` — только Фаза A (правил-based, без LLM): parse → compile → done
+- `v2` — только Фаза B (LLM): analyze → extract → done
+- `all` — обе фазы последовательно
 
 ## Решение проблем
 
