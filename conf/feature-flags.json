@@ -127,6 +127,28 @@
       "variants": [],
       "createdAt": "2026-07-05T19:47:31.115Z",
       "updatedAt": "2026-07-05T19:47:31.115Z"
+    },
+    {
+      "id": "literary-compiler-v2",
+      "name": "Literary Compiler V2",
+      "description": "Use v2 pipeline with BGE-M3 + small LLM extractor",
+      "enabled": true,
+      "percentage": 100,
+      "conditions": [],
+      "variants": [
+        {
+          "id": "control",
+          "name": "Control",
+          "weight": 50
+        },
+        {
+          "id": "v2",
+          "name": "V2",
+          "weight": 50
+        }
+      ],
+      "createdAt": "2026-07-05T18:56:36.395Z",
+      "updatedAt": "2026-07-05T18:56:36.395Z"
     }
   ]
 }
