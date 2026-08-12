@@ -13,11 +13,6 @@ import { SceneAgent } from './scene-agent';
 import { DirectorAgent } from './director-agent';
 import { CrafterAgent } from './crafter-agent';
 import { ResearcherAgent } from './researcher-agent';
-import { CartographerAgent } from './cartographer-agent';
-import { HistorianAgent } from './historian-agent';
-import { LorekeeperAgent } from './lorekeeper-agent';
-import { MerchantAgent } from './merchant-agent';
-import { QuestGiverAgent } from './quest-giver-agent';
 import { DialogueManager } from './dialogue-manager';
 import { DialogueContext } from './dialogue-context';
 import { SocialGraph } from './social-graph';
@@ -94,11 +89,6 @@ export interface EngineAgents {
   directorAgent: DirectorAgent;
   crafter: CrafterAgent;
   researcher: ResearcherAgent;
-  cartographer: CartographerAgent;
-  historian: HistorianAgent;
-  lorekeeper: LorekeeperAgent;
-  merchant: MerchantAgent;
-  questGiver: QuestGiverAgent;
   dramaturg: DramaturgAgent;
   validator: ValidatorAgent;
   stylist: StylistAgent;
@@ -168,11 +158,6 @@ export class RoleplayEngine {
   readonly directorAgent: DirectorAgent;
   readonly crafter: CrafterAgent;
   readonly researcher: ResearcherAgent;
-  readonly cartographer: CartographerAgent;
-  readonly historian: HistorianAgent;
-  readonly lorekeeper: LorekeeperAgent;
-  readonly merchant: MerchantAgent;
-  readonly questGiver: QuestGiverAgent;
   dialogueManager?: DialogueManager;
   readonly startResolver: StartResolver;
   readonly chronicler: Chronicler;
@@ -263,11 +248,6 @@ export class RoleplayEngine {
       this.directorAgent = deps.agents.directorAgent;
       this.crafter = deps.agents.crafter;
       this.researcher = deps.agents.researcher;
-      this.cartographer = deps.agents.cartographer;
-      this.historian = deps.agents.historian;
-      this.lorekeeper = deps.agents.lorekeeper;
-      this.merchant = deps.agents.merchant;
-      this.questGiver = deps.agents.questGiver;
     } else {
       this.dramaturg = new DramaturgAgent(deps.mcpServer as TNSServer, deps.llmQueue);
       this.validator = new ValidatorAgent(deps.mcpServer as TNSServer);
@@ -281,11 +261,6 @@ export class RoleplayEngine {
       this.directorAgent = new DirectorAgent(deps.llmQueue);
       this.crafter = new CrafterAgent(deps.entityStore, deps.llmQueue, deps.dbPath);
       this.researcher = new ResearcherAgent(deps.llmQueue);
-      this.cartographer = new CartographerAgent(deps.llmQueue);
-      this.historian = new HistorianAgent(deps.llmQueue);
-      this.lorekeeper = new LorekeeperAgent(deps.llmQueue);
-      this.merchant = new MerchantAgent(deps.llmQueue);
-      this.questGiver = new QuestGiverAgent(deps.llmQueue);
     }
 
     // Register new agents
@@ -581,7 +556,7 @@ export class RoleplayEngine {
     const agent = this._getAgentById(agentId);
     if (!agent) {
       return {
-        response: `Unknown agent: ${agentId}. Available: narrator, director, scene, npc, chronicler, story-planner, social-sim, villain, researcher, historian, cartographer, merchant, quest-giver, lorekeeper`,
+        response: `Unknown agent: ${agentId}. Available: narrator, director, scene, npc, chronicler, story-planner, social-sim, villain, researcher`,
         agentId,
         agentName: agentId,
       };

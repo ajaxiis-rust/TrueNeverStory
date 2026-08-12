@@ -1,6 +1,6 @@
 # Agents Reference (v0.32.0)
 
-TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.32.0, the engine uses **6 core agents** (The Big Six) plus **5 specialist agents** and a **dialogue system**.
+TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.32.0, the engine has **6 core agents** (The Big Six), registered in `AgentRegistryV2`, plus a **dialogue system**. A smaller set of legacy agents is still wired into the fallback prose path and command handlers (see "Legacy Agents" below).
 
 ---
 
@@ -135,42 +135,23 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 
 ---
 
-## Legacy Agents (Deprecated)
+## Legacy Agents (still active in the fallback pipeline)
 
-The following agents are deprecated in v0.32.0 but still available for backward compatibility:
+These agents predate the Big Six and remain wired into the engine's legacy prose path, command handlers, and chat mentions. They will be retired once the v2 pipeline (`literary-compiler-v2` flag) is the default for every intent type.
 
-| Agent | Replacement | Status |
-|-------|-------------|--------|
-| Narrator | Stylist | Deprecated |
-| Director | Dramaturg | Deprecated |
-| Scene | Stylist | Deprecated |
-| NPC | Actor | Deprecated |
-| Crafter | Actor | Deprecated |
-| Researcher | Validator | Deprecated |
-| Historian | Chronicler | Deprecated |
-| Cartographer | Actor | Deprecated |
-| Merchant | Actor | Deprecated |
-| Quest Giver | Dramaturg | Deprecated |
-| Lorekeeper | Dramaturg | Deprecated |
-| Social Sim | Actor | Deprecated |
-| Villain | Dramaturg | Deprecated |
-| User Agent | Actor | Deprecated |
+| Agent (ID) | Used by |
+|------------|---------|
+| `narrator` | `ActionHandler` + legacy prose fallback |
+| `npc` | `DialogueHandler` + legacy prose fallback |
+| `scene` | `MovementHandler` + legacy prose fallback |
+| `director` | `StartResolver` + `@director` mention |
+| `crafter` | `CommandHandler` (crafting) |
+| `researcher` | `IdleResearchScheduler` + item evaluation |
+| `story-planner` | `@story-planner` mention (inline handler) |
+| `social-sim` | `@social-sim` mention (inline handler) |
+| `villain` | `@villain` mention (inline handler) |
 
----
-
-## Specialist Agents (v0.32.0)
-
-The following specialist agents are now wired into `RoleplayEngine` and available via `engine.<agent>`:
-
-| Agent | Field | Purpose |
-|-------|-------|---------|
-| **CartographerAgent** | `engine.cartographer` | Location/geography information — distances, paths, terrain, points of interest |
-| **HistorianAgent** | `engine.historian` | World history, chronology, past events, lore narration |
-| **LorekeeperAgent** | `engine.lorekeeper` | World facts, magic system rules, race information, established canon |
-| **MerchantAgent** | `engine.merchant` | NPC merchant trading, pricing, inventory management |
-| **QuestGiverAgent** | `engine.questGiver` | Quest generation based on world state, player level, story threads |
-
-Each specialist agent takes only `LLMQueue` as a dependency and generates text via dedicated prompts.
+Removed as dead code (instantiated but never invoked): `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`.
 
 ---
 
@@ -189,7 +170,7 @@ New `DialogueManager` + `DialogueContext` for structured NPC conversations:
 Access via `engine.dialogueManager` (requires `npcRuntime` to be available).
 
 **Backward Compatibility:**
-Old agent IDs (`@narrator`, `@director`, etc.) still work but route to the new agents internally.
+Old agent IDs (`@narrator`, `@director`, etc.) still work and route to the legacy agents listed above — not to the Big Six.
 
 ---
 
@@ -287,14 +268,20 @@ These variables are available to agents through the game context:
 Send a private message to any agent from the chat:
 
 ```
-@dramaturg Suggest a narrative pattern for this scene
-@validator Is this historical event accurate?
-@stylist Describe the ancient ruins in Gothic style
-@actor Talk to the merchant about rare items
-@chronicler What happened in the last hour?
+@narrator describe the ancient forest at dusk
+@director suggest a dramatic plot twist
+@scene describe the journey north
+@npc greet the innkeeper
+@chronicler summarize the last hour
+@story-planner suggest the next story beat
+@researcher is this medieval sword historically accurate?
+@social-sim how do the villagers react?
+@villain what does the antagonist do next?
 ```
 
 Responses are marked with a blue left border and agent name in brackets.
+
+The Big Six (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`) are registered in `AgentRegistryV2` but are **not** yet reachable via `@mention`.
 
 ---
 

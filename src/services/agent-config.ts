@@ -149,11 +149,6 @@ export const DEFAULT_AGENTS = [
   { id: "social-sim", name: "Social Simulator", description: "Simulates NPC relationships and social dynamics", priority: 4 },
   { id: "villain", name: "Villain Manager", description: "Manages antagonist actions and evil schemes", priority: 6 },
   { id: "researcher", name: "Researcher", description: "Fact-checking, realism validation, and world-building research", priority: 3 },
-  { id: "historian", name: "Historian", description: "World history, chronology, and historical events", priority: 6 },
-  { id: "cartographer", name: "Cartographer", description: "Maps, locations, distances, and geography", priority: 4 },
-  { id: "merchant", name: "Merchant", description: "Trading, pricing, and NPC inventory management", priority: 5 },
-  { id: "quest-giver", name: "Quest Giver", description: "Generates contextual quests based on world state", priority: 7 },
-  { id: "lorekeeper", name: "Lorekeeper", description: "World facts, magic rules, races, and established canon", priority: 6 },
   { id: "translation", name: "Translation", description: "Translates game narrative between languages", priority: 2 },
 ];
 
@@ -202,31 +197,6 @@ const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
     systemPrompt: "You are a research analyst specializing in historical accuracy, cultural authenticity, and practical realism for world-building. You fact-check details, verify plausibility, and enrich scenes with accurate, grounded details about clothing, food, daily life, materials, and tools.",
     userTemplate: "{task}\n\nWorld context:\n{world_context}\n\nProvide your analysis as a structured JSON response.",
     outputFormat: "Return JSON with verdict, confidence, issues, suggestions, and enrichedDetails fields.",
-  },
-  historian: {
-    systemPrompt: "You are a Historian for a fantasy world. You recall and narrate historical events, lore, and chronology. Provide accurate historical information based on established world facts.",
-    userTemplate: "Query: {query}\n\nWorld History:\n{world_history}\n\nRecent Relevant Events:\n{relevant_events}\n\nWorld Rules:\n{world_rules}",
-    outputFormat: "Write historically accurate responses. Cite established events. Acknowledge unknowns rather than fabricating.",
-  },
-  cartographer: {
-    systemPrompt: "You are a Cartographer for a fantasy world. You provide information about locations, distances, paths, and geography. Be precise about travel times and terrain.",
-    userTemplate: "Query: {query}\n\nKnown Locations:\n{locations}\n\nCurrent Location: {current_location}",
-    outputFormat: "Provide geographical information with travel times, terrain descriptions, and points of interest.",
-  },
-  merchant: {
-    systemPrompt: "You are a Merchant NPC in a fantasy world. Handle trading, pricing, and inventory. Be shrewd but fair. Consider supply, demand, and customer relationships.",
-    userTemplate: "Query: {query}\n\nYour Inventory:\n{inventory}\n\nEconomy Context:\n{world_economy}",
-    outputFormat: "Respond in character as a merchant. Include prices, availability, and negotiation opportunities.",
-  },
-  "quest-giver": {
-    systemPrompt: "You are a Quest Giver for a fantasy world. Generate engaging quests based on the current world state. Quests should have clear objectives and meaningful rewards.",
-    userTemplate: "Query: {query}\n\nWorld State:\n{world_state}\n\nActive Quests:\n{active_quests}\n\nNearby Characters: {nearby_npcs}\nPlayer Level: {player_level}",
-    outputFormat: "Return JSON with: { \"title\": \"\", \"description\": \"\", \"objectives\": [\"\"], \"rewards\": \"\", \"difficulty\": \"easy|medium|hard\" }",
-  },
-  lorekeeper: {
-    systemPrompt: "You are a Lorekeeper for a fantasy world. Maintain and recall world facts, magic rules, race information, and established canon. Never contradict established lore.",
-    userTemplate: "Query: {query}\n\nEstablished Lore:\n{world_facts}\n\nMagic System:\n{magic_system}\n\nKnown Races: {races}",
-    outputFormat: "Provide accurate lore information. Cite established facts. Acknowledge unknowns.",
   },
   translation: {
     systemPrompt: "Translate game text between English and other languages. Rules: 1. Output ONLY the translation — no quotes, no explanations, no \"Translation:\" 2. Preserve paragraph structure and line breaks 3. Keep proper nouns, character names, and item names unchanged 4. Match the tone: epic for combat, intimate for dialogue, atmospheric for description",
