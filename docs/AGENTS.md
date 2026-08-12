@@ -1,6 +1,6 @@
 # Agents Reference (v0.32.0)
 
-TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.32.0, the engine has **6 core agents** (The Big Six), registered in `AgentRegistryV2`, plus a **dialogue system**. A smaller set of legacy agents is still wired into the fallback prose path and command handlers (see "Legacy Agents" below).
+TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.32.0, the engine has **6 core agents** (The Big Six), registered in `AgentRegistryV2`, plus a **dialogue system**. `stylist` is the sole prose generator. A few non-prose subsystems (crafting, research) and chat-mention handlers remain (see below).
 
 ---
 
@@ -135,23 +135,20 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 
 ---
 
-## Legacy Agents (still active in the fallback pipeline)
+## Non-agent subsystems and chat-mention handlers
 
-These agents predate the Big Six and remain wired into the engine's legacy prose path, command handlers, and chat mentions. They will be retired once the v2 pipeline (`literary-compiler-v2` flag) is the default for every intent type.
+These are not part of the Big Six but remain wired into the engine:
 
-| Agent (ID) | Used by |
-|------------|---------|
-| `narrator` | `ActionHandler` + legacy prose fallback |
-| `npc` | `DialogueHandler` + legacy prose fallback |
-| `scene` | `MovementHandler` + legacy prose fallback |
-| `director` | `StartResolver` + `@director` mention |
-| `crafter` | `CommandHandler` (crafting) |
-| `researcher` | `IdleResearchScheduler` + item evaluation |
-| `story-planner` | `@story-planner` mention (inline handler) |
-| `social-sim` | `@social-sim` mention (inline handler) |
-| `villain` | `@villain` mention (inline handler) |
+| ID | Kind | Used by |
+|----|------|---------|
+| `crafter` | subsystem | `CommandHandler` (crafting commands) |
+| `researcher` | subsystem | `IdleResearchScheduler` + item evaluation |
+| `chronicler` | `@mention` | timeline summary |
+| `story-planner` | `@mention` | story-arc suggestions |
+| `social-sim` | `@mention` | NPC social dynamics |
+| `villain` | `@mention` | antagonist schemes |
 
-Removed as dead code (instantiated but never invoked): `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`.
+The old prose agents (`narrator`, `npc`, `scene`, `director`) and the dead specialist agents (`historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`) have been removed. Prose is generated solely by `stylist` via `LiteraryV2Generator`.
 
 ---
 
@@ -169,8 +166,7 @@ New `DialogueManager` + `DialogueContext` for structured NPC conversations:
 
 Access via `engine.dialogueManager` (requires `npcRuntime` to be available).
 
-**Backward Compatibility:**
-Old agent IDs (`@narrator`, `@director`, etc.) still work and route to the legacy agents listed above — not to the Big Six.
+**Note:** Chat `@mentions` route to the handlers listed above (`@chronicler`, `@story-planner`, `@social-sim`, `@villain`, `@researcher`), not to the Big Six. `@narrator`, `@director`, `@scene`, and `@npc` no longer exist.
 
 ---
 
@@ -265,13 +261,9 @@ These variables are available to agents through the game context:
 
 ## Using @agent in Chat
 
-Send a private message to any agent from the chat:
+Send a private message to an agent from the chat. Chat `@mentions` route to the inline handlers, not the Big Six:
 
 ```
-@narrator describe the ancient forest at dusk
-@director suggest a dramatic plot twist
-@scene describe the journey north
-@npc greet the innkeeper
 @chronicler summarize the last hour
 @story-planner suggest the next story beat
 @researcher is this medieval sword historically accurate?
@@ -281,7 +273,7 @@ Send a private message to any agent from the chat:
 
 Responses are marked with a blue left border and agent name in brackets.
 
-The Big Six (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`) are registered in `AgentRegistryV2` but are **not** yet reachable via `@mention`.
+The Big Six (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`) are registered in `AgentRegistryV2` but are **not** reachable via `@mention`.
 
 ---
 

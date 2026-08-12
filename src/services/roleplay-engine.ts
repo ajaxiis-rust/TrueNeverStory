@@ -7,10 +7,6 @@ import type { UnifiedEntityStore } from '../store/entity-store';
 import type { LLMQueue } from '../lib/llm-queue';
 import type { HistoryManager } from '../lib/history-manager';
 import { MemoryManager } from './memory-manager';
-import { NarratorAgent } from './narrator-agent';
-import { NPCAgent } from './npc-agent';
-import { SceneAgent } from './scene-agent';
-import { DirectorAgent } from './director-agent';
 import { CrafterAgent } from './crafter-agent';
 import { ResearcherAgent } from './researcher-agent';
 import { DialogueManager } from './dialogue-manager';
@@ -29,7 +25,7 @@ import type { WorldValidator } from './world-validator';
 import type { UserAgent } from './user-agent';
 import type { SQLiteStore } from '../lib/sqlite-store';
 import type { Intent } from '../models/intent';
-import { isActionIntent, isCommandIntent } from '../models/intent';
+import { isCommandIntent } from '../models/intent';
 import { getLogger } from '../utils/logger';
 import { join } from 'node:path';
 import { t } from '../i18n';
@@ -37,11 +33,6 @@ import { SessionState, type SessionParams } from './roleplay/session-state';
 import { CommandHandler } from './roleplay/handlers/command-handler';
 import { PipelineRunner } from './roleplay/pipeline-runner';
 import type { PipelineContext } from './roleplay/pipeline-context';
-import { MovementHandler } from './roleplay/handlers/movement-handler';
-import { DialogueHandler } from './roleplay/handlers/dialogue-handler';
-import { ObservationHandler } from './roleplay/handlers/observation-handler';
-import { ActionHandler } from './roleplay/handlers/action-handler';
-import { LegacyIntentGenerator } from './roleplay/prose/legacy-intent-generator';
 import { LiteraryV2Generator } from './roleplay/prose/literary-v2-generator';
 
 // v0.25.0 New agents
@@ -83,10 +74,6 @@ export interface ServiceMessageAgent {
 // ─── Engine Dependencies ─────────────────────────────────────────────────────
 
 export interface EngineAgents {
-  narrator: NarratorAgent;
-  npcAgent: NPCAgent;
-  sceneAgent: SceneAgent;
-  directorAgent: DirectorAgent;
   crafter: CrafterAgent;
   researcher: ResearcherAgent;
   dramaturg: DramaturgAgent;
@@ -151,11 +138,7 @@ export class RoleplayEngine {
   // v0.25.0 Translation
   readonly translationService?: TranslationService;
 
-  // Agents (legacy, to be replaced in Phase 3)
-  readonly narrator: NarratorAgent;
-  readonly npcAgent: NPCAgent;
-  readonly sceneAgent: SceneAgent;
-  readonly directorAgent: DirectorAgent;
+  // Subsystem agents (crafting, research) — not prose generators
   readonly crafter: CrafterAgent;
   readonly researcher: ResearcherAgent;
   dialogueManager?: DialogueManager;
@@ -172,8 +155,7 @@ export class RoleplayEngine {
   // Pipeline runner
   readonly pipelineRunner: PipelineRunner;
 
-  // Prose generators
-  readonly legacyGenerator: LegacyIntentGenerator;
+  // Prose generator
   readonly v2Generator: LiteraryV2Generator;
 
   // Backward-compat getter/setter
@@ -242,10 +224,6 @@ export class RoleplayEngine {
       this.actor = deps.agents.actor;
       this.censor = deps.agents.censor;
       this.chroniclerAgent = deps.agents.chroniclerAgent;
-      this.narrator = deps.agents.narrator;
-      this.npcAgent = deps.agents.npcAgent;
-      this.sceneAgent = deps.agents.sceneAgent;
-      this.directorAgent = deps.agents.directorAgent;
       this.crafter = deps.agents.crafter;
       this.researcher = deps.agents.researcher;
     } else {
@@ -255,10 +233,6 @@ export class RoleplayEngine {
       this.actor = new ActorAgent(deps.entityStore, deps.llmQueue);
       this.censor = new CensorAgent(deps.llmQueue);
       this.chroniclerAgent = new ChroniclerAgent(deps.entityStore, this._eventBus);
-      this.narrator = new NarratorAgent(deps.llmQueue);
-      this.npcAgent = new NPCAgent(deps.llmQueue);
-      this.sceneAgent = new SceneAgent(deps.llmQueue);
-      this.directorAgent = new DirectorAgent(deps.llmQueue);
       this.crafter = new CrafterAgent(deps.entityStore, deps.llmQueue, deps.dbPath);
       this.researcher = new ResearcherAgent(deps.llmQueue);
     }
@@ -302,12 +276,6 @@ export class RoleplayEngine {
       contextBuilder: this.contextBuilder,
     });
 
-    const movement = new MovementHandler(deps.entityStore, this.sceneAgent, this.chronicler, this.session);
-    const dialogue = new DialogueHandler(deps.entityStore, this.npcAgent, this.chronicler, this.session);
-    const observation = new ObservationHandler(deps.entityStore);
-    const action = new ActionHandler(this.narrator, this.memory, this.session, deps.worldFrame);
-
-    this.legacyGenerator = new LegacyIntentGenerator(movement, dialogue, observation, action);
     this.v2Generator = new LiteraryV2Generator(deps.llmQueue, this.stylist, deps.worldFrame, () => this.getLiteraryDb());
   }
 
@@ -384,18 +352,13 @@ export class RoleplayEngine {
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
 
     let narrative: string;
-    ctx.v2Used = false;
+    ctx.v2Used = true;
 
-    if (this.v2Generator.canHandle()) {
-      try {
-        narrative = await this.v2Generator.generate(ctx, gameContext, simResult.outcome);
-        ctx.v2Used = true;
-      } catch (err) {
-        log.warn({ err }, 'v2 pipeline failed, falling back to legacy');
-        narrative = await this.legacyGenerator.generate(intent, simResult, gameContext);
-      }
-    } else {
-      narrative = await this.legacyGenerator.generate(intent, simResult, gameContext);
+    try {
+      narrative = await this.v2Generator.generate(intent, simResult, gameContext, ctx.parsedInput);
+    } catch (err) {
+      log.error({ err }, 'v2 prose generation failed');
+      narrative = 'The story pauses here.';
     }
 
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_COMPLETE, {}, 'engine');
@@ -517,23 +480,14 @@ export class RoleplayEngine {
     // Generate prose (streaming for actions, non-streaming for movement/dialogue)
     yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
-    if (isActionIntent(intent)) {
-      // Streaming for actions
-      try {
-        yield* this.legacyGenerator.generateStream(intent, simResult, gameContext);
-      } catch (err) {
-        yield { type: 'error', error: err instanceof Error ? err.message : String(err) };
+    let narrative = await this.v2Generator.generate(intent, simResult, gameContext, parsedInput);
+    if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
+      const lang = this._worldFrame.language as LanguageCode;
+      if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
+        narrative = await this.translationService.translate(narrative, lang);
       }
-    } else {
-      let result = await this.legacyGenerator.generate(intent, simResult, gameContext);
-      if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
-        const lang = this._worldFrame.language as LanguageCode;
-        if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
-          result = await this.translationService.translate(result, lang);
-        }
-      }
-      yield { type: 'chunk', content: result };
     }
+    yield { type: 'chunk', content: narrative };
 
     // Yield heartbeat: prose complete
     yield { type: 'heartbeat', content: 'Complete', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
@@ -556,7 +510,7 @@ export class RoleplayEngine {
     const agent = this._getAgentById(agentId);
     if (!agent) {
       return {
-        response: `Unknown agent: ${agentId}. Available: narrator, director, scene, npc, chronicler, story-planner, social-sim, villain, researcher`,
+        response: `Unknown agent: ${agentId}. Available: chronicler, story-planner, social-sim, villain, researcher`,
         agentId,
         agentName: agentId,
       };
@@ -590,10 +544,6 @@ export class RoleplayEngine {
 
   private _getAgentById(agentId: string): ServiceMessageAgent | null {
     const agents: Record<string, ServiceMessageAgent> = {
-      narrator: this.narrator,
-      director: this.directorAgent,
-      scene: this.sceneAgent,
-      npc: this.npcAgent,
       chronicler: {
         name: 'Chronicler',
         generateServiceMessage: async (ctx) => {
@@ -684,10 +634,10 @@ Player request: "${ctx.message}"`;
   getLiteraryDb(): LiteraryCompilerDB | null {
     if (!this._literaryDb) {
       try {
-        const dbPath = join(this._dbPath, 'literary.db');
+        const dbPath = join(process.cwd(), 'data', 'literary-compiler', 'literary.db');
         this._literaryDb = new LiteraryCompilerDB(dbPath);
       } catch {
-        log.warn('Could not open literary.db for v2 pipeline');
+        log.warn('Could not open classics-compiled.db for v2 pipeline');
       }
     }
     return this._literaryDb;

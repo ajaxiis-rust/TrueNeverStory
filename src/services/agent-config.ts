@@ -140,10 +140,7 @@ function getStoreForWorld(world?: string): SQLiteStore {
 // ── Default agent list ──
 
 export const DEFAULT_AGENTS = [
-  { id: "narrator", name: "Narrator", description: "Generates world narrative from story context", priority: 10 },
   { id: "director", name: "Director", description: "Integrates story beats and plot hooks into narrative", priority: 8 },
-  { id: "scene", name: "Scene Generator", description: "Generates scene transition narratives when characters move", priority: 7 },
-  { id: "npc", name: "NPC Agent", description: "Generates NPC dialogue and reactions", priority: 9 },
   { id: "chronicler", name: "Chronicler", description: "Summarizes events and maintains world timeline", priority: 5 },
   { id: "story-planner", name: "Story Planner", description: "Plans story arcs, quests, and plot developments", priority: 6 },
   { id: "social-sim", name: "Social Simulator", description: "Simulates NPC relationships and social dynamics", priority: 4 },
@@ -153,25 +150,10 @@ export const DEFAULT_AGENTS = [
 ];
 
 const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
-  narrator: {
-    systemPrompt: "You are a skilled storyteller narrating an interactive fantasy world. Write vivid, immersive prose. Keep responses concise but evocative. Never break character or reference that this is a game.",
-    userTemplate: "World: {world_name}\nTime: {time}\nLocation: {location}\nCharacter: {character}\nUser role: {role}\n\nRules:\n{rules}\n\nTimeline:\n{timeline}\n\nRecent memories:\n{memories}\n\nWorld facts:\n{facts}\n\nNearby NPCs: {npcs}\n\nConversation history:\n{history}\n\nThe user is controlling {character}. Respond as the narrator describing the world and events.",
-    outputFormat: "Write narrative prose in second person or third person. 2-4 paragraphs. Include sensory details. React to player actions. Advance the story.",
-  },
   director: {
     systemPrompt: "You are a narrative director for an interactive story. You introduce plot beats, dramatic moments, and story hooks. Be creative but consistent with established lore.",
     userTemplate: "Current narrative:\n{narrative}\n\nStory beat to inject:\n{beat}\n\nIntegrate this beat naturally into the ongoing narrative.",
     outputFormat: "Write 1-3 paragraphs that seamlessly incorporate the story beat into the current narrative. Maintain tone and style.",
-  },
-  scene: {
-    systemPrompt: "You generate scene transition narratives for a fantasy world. Describe the journey, atmosphere, and arrival at a new location. Be evocative and world-consistent.",
-    userTemplate: "{character} is traveling from {origin} to {destination}.\n\nWorld rules:\n{rules}\n\nRecent events:\n{events}\n\nGenerate the scene transition.",
-    outputFormat: "Write 2-4 paragraphs describing the transition. Include sensory details, atmosphere, and any notable encounters along the way.",
-  },
-  npc: {
-    systemPrompt: "You roleplay as NPCs in a fantasy world. Stay in character based on the NPC's personality, background, and relationship with the player. Respond naturally in dialogue.",
-    userTemplate: "You are {npc_name}, a {npc_personality} character.\nLocation: {location}\nRelationship with {player}: {relationship}\n\nRecent events:\n{events}\n\n{player} says: \"{line}\"\n\nRespond as {npc_name}.",
-    outputFormat: "Write the NPC's response in first person. Include actions in asterisks if appropriate. Stay in character.",
   },
   chronicler: {
     systemPrompt: "You are a chronicler maintaining the history of a fantasy world. Summarize events concisely and accurately. Track character actions, world changes, and important developments.",
