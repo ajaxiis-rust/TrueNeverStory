@@ -872,10 +872,12 @@ function createDefaultProfile(): JungianProfile {
 
 ### Blend алгоритм
 
+Одно сглаживание (EMA) + rate limit. Без inertia — EMA уже достаточно сглаживает, а inertia создавала двойное сглаживание с effective alpha 0.027 (слишком медленно).
+
 ```typescript
 const BLEND_CONFIG = {
-  emaAlpha: 0.15,            // Скорость сдвига preference (EMA)
-  maxShiftPerTurn: 0.05,     // Rate limit: максимум 5% за blend-цикл
+  emaAlpha: 0.20,            // Скорость сдвига preference (EMA)
+  maxShiftPerTurn: 0.08,     // Rate limit: максимум 8% за blend-цикл
   rangeGrowthThreshold: 0.3, // Отклонение от rolling avg > 0.3 → range растёт
   rangeDecayRate: 0.005,     // Range сужается на 0.5% за blend-цикл при стабильности
   minTurnsForBlend: 20,      // Минимум ходов перед первым обновлением
@@ -884,25 +886,17 @@ const BLEND_CONFIG = {
 function updateAxis(
   current: AxisProfile,
   signal: number,            // 0-1, текущее наблюдение из MetricsCollector
-  confidence: number,        // axis confidence (0-1)
   recentSignals: number[],   // Последние 10 сигналов этой оси (для rolling avg)
 ): AxisProfile {
-  // 1. Inertia: высокий confidence = больше инерции
-  // При confidence=0.9: inertia=0.82 → сдвигается очень медленно
-  // При confidence=0.3: inertia=0.62 → сдвигается быстрее
-  const inertia = 0.5 + confidence * 0.4;
-
-  // 2. EMA blend
+  // 1. EMA blend — единственное сглаживание
+  // При alpha=0.20: 80% старого + 20% нового → не дёргается, но быстро конвергирует
   const ema = current.preference * (1 - BLEND_CONFIG.emaAlpha) + signal * BLEND_CONFIG.emaAlpha;
 
-  // 3. Применяем inertia
-  const blended = current.preference * inertia + ema * (1 - inertia);
-
-  // 4. Rate limit
-  const delta = blended - current.preference;
+  // 2. Rate limit — защита от резких скачков (один шумный ход не сдвигает > 8%)
+  const delta = ema - current.preference;
   const clamped = current.preference + Math.sign(delta) * Math.min(Math.abs(delta), BLEND_CONFIG.maxShiftPerTurn);
 
-  // 5. Обновляем range — deviation от скользящего среднего, НЕ от preference
+  // 3. Range — deviation от скользящего среднего, НЕ от preference
   // Это предотвращает рост range при стабильном поведении, когда preference ещё не догнал сигнал
   const rollingAvg = recentSignals.length > 0
     ? recentSignals.reduce((a, b) => a + b, 0) / recentSignals.length
@@ -926,10 +920,10 @@ function blendBehavioralSignals(
   profile: JungianProfile,
   recentSignals: { extraversion: number[]; intuition: number[]; thinking: number[]; judging: number[] },
 ): JungianProfile {
-  const updatedExtraversion = updateAxis(profile.extraversion, signals.extraversion, profile.axisConfidence.extraversion, recentSignals.extraversion);
-  const updatedIntuition = updateAxis(profile.intuition, signals.intuition, profile.axisConfidence.intuition, recentSignals.intuition);
-  const updatedThinking = updateAxis(profile.thinking, signals.thinking, profile.axisConfidence.thinking, recentSignals.thinking);
-  const updatedJudging = updateAxis(profile.judging, signals.judging, profile.axisConfidence.judging, recentSignals.judging);
+  const updatedExtraversion = updateAxis(profile.extraversion, signals.extraversion, recentSignals.extraversion);
+  const updatedIntuition = updateAxis(profile.intuition, signals.intuition, recentSignals.intuition);
+  const updatedThinking = updateAxis(profile.thinking, signals.thinking, recentSignals.thinking);
+  const updatedJudging = updateAxis(profile.judging, signals.judging, recentSignals.judging);
 
   const updatedConfExtraversion = updateAxisConfidence(profile.axisConfidence.extraversion, signals.extraversion, updatedExtraversion.preference);
   const updatedConfIntuition = updateAxisConfidence(profile.axisConfidence.intuition, signals.intuition, updatedIntuition.preference);
@@ -960,6 +954,17 @@ function updateAxisConfidence(current: number, incoming: number, blendedPreferen
   return current;                                                    // Нейтрально → без изменений
 }
 ```
+
+### Скорость конвергенции
+
+| Сценарий | Ходов до 50% gap closed |
+|----------|------------------------|
+| Полная смена стиля (gap=0.2) | ~50 ходов (~2.5 blend-цикла) |
+| Малый сигнал (gap=0.05) | ~25 ходов |
+| Шумный сигнал (oscillation) | EMA сглаживает, preference стабилен |
+| Резкий скачок (0.9→0.1) | Ограничен rate limit 0.08/ход |
+
+**Почему без inertia:** EMA с alpha=0.20 уже даёт 80% старого + 20% нового. Это достаточно сглаживает шум, но позволяет конвергировать за 50-100 ходов. Inertia поверх EMA создавала двойное сглаживание с effective alpha 0.027 — профиль был практически заморожен. Confidence теперь влияет только на `updateAxisConfidence` (порог обновления), а не на скорость сдвига.
 
 ### Derived type (совместимость с таблицей 16 типов)
 
