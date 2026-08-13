@@ -878,6 +878,9 @@ function createDefaultProfile(): JungianProfile {
 const BLEND_CONFIG = {
   emaAlpha: 0.20,            // Скорость сдвига preference (EMA)
   maxShiftPerTurn: 0.08,     // Rate limit: максимум 8% за blend-цикл
+  // NOTE: emaAlpha и maxShiftPerTurn — основные рычаги динамики.
+  // alpha=0.20 → конвергенция ~400 ходов (gap=0.2). Для ускорения: alpha=0.25 (~250) или 0.30 (~170).
+  // maxShift защищает от резких скачков; порог срабатывания = maxShift / alpha (currently 0.40).
   rangeGrowthThreshold: 0.3, // Отклонение от rolling avg > 0.3 → range растёт
   rangeDecayRate: 0.005,     // Range сужается на 0.5% за blend-цикл при стабильности
   minTurnsForBlend: 20,      // Минимум ходов перед первым обновлением
