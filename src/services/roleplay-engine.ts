@@ -637,7 +637,7 @@ Player request: "${ctx.message}"`;
         const dbPath = join(process.cwd(), 'data', 'literary-compiler', 'literary.db');
         this._literaryDb = new LiteraryCompilerDB(dbPath);
       } catch {
-        log.warn('Could not open classics-compiled.db for v2 pipeline');
+        log.warn('Could not open literary.db for v2 pipeline');
       }
     }
     return this._literaryDb;
