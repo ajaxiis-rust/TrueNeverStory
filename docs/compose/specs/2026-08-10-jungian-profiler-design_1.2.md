@@ -574,7 +574,7 @@ interface RawAggregates {
   explorationActions: number;       // look/examine/inspect
 
   // Принятие решений
-  riskTakingActions: number;        // Рискованные действия (risk_level='high' или CRITICAL outcome)
+  riskTakingActions: number;        // Рискованные действия (risk_level='dangerous'/'deadly' или CRITICAL outcome)
   planningActions: number;          // Долгосрочные действия (quests, trade, craft)
 
   // Боевые действия
@@ -612,9 +612,10 @@ function recordIntent(intent: Intent, rawInput: string, aggregates: RawAggregate
 function recordSimulation(intent: Intent, simResult: SimulationResult, aggregates: RawAggregates): void {
   // riskTakingActions: высокий risk_level ИЛИ критический исход
   if (intent.type === 'action') {
-    if (intent.risk_level === 'high' ||
-        simResult.outcome === 'CRITICAL_SUCCESS' ||
-        simResult.outcome === 'CRITICAL_FAILURE') {
+    if (intent.risk_level === 'dangerous' ||
+        intent.risk_level === 'deadly' ||
+        simResult.outcome === 'critical_success' ||
+        simResult.outcome === 'critical_failure') {
       aggregates.riskTakingActions++;
     }
   }
@@ -876,11 +877,11 @@ function createDefaultProfile(): JungianProfile {
 
 ```typescript
 const BLEND_CONFIG = {
-  emaAlpha: 0.20,            // Скорость сдвига preference (EMA)
-  maxShiftPerTurn: 0.08,     // Rate limit: максимум 8% за blend-цикл
+  emaAlpha: 0.25,            // Скорость сдвига preference (EMA)
+  maxShiftPerTurn: 0.10,     // Rate limit: максимум 10% за blend-цикл
   // NOTE: emaAlpha и maxShiftPerTurn — основные рычаги динамики.
-  // alpha=0.20 → конвергенция ~400 ходов (gap=0.2). Для ускорения: alpha=0.25 (~250) или 0.30 (~170).
-  // maxShift защищает от резких скачков; порог срабатывания = maxShift / alpha (currently 0.40).
+  // alpha=0.25 → конвергенция ~250 ходов (gap=0.2).
+  // maxShift защищает от резких скачков; порог срабатывания = maxShift / alpha (= 0.40).
   rangeGrowthThreshold: 0.3, // Отклонение от rolling avg > 0.3 → range растёт
   rangeDecayRate: 0.005,     // Range сужается на 0.5% за blend-цикл при стабильности
   minTurnsForBlend: 20,      // Минимум ходов перед первым обновлением
@@ -892,7 +893,7 @@ function updateAxis(
   recentSignals: number[],   // Последние 10 сигналов этой оси (для rolling avg)
 ): AxisProfile {
   // 1. EMA blend — единственное сглаживание
-  // При alpha=0.20: 80% старого + 20% нового → не дёргается, но быстро конвергирует
+  // При alpha=0.25: 75% старого + 25% нового → не дёргается, но быстро конвергирует
   const ema = current.preference * (1 - BLEND_CONFIG.emaAlpha) + signal * BLEND_CONFIG.emaAlpha;
 
   // 2. Rate limit — защита от резких скачков (один шумный ход не сдвигает > 8%)
@@ -965,9 +966,9 @@ function updateAxisConfidence(current: number, incoming: number, blendedPreferen
 | Полная смена стиля (gap=0.2) | ~50 ходов (~2.5 blend-цикла) |
 | Малый сигнал (gap=0.05) | ~25 ходов |
 | Шумный сигнал (oscillation) | EMA сглаживает, preference стабилен |
-| Резкий скачок (0.9→0.1) | Ограничен rate limit 0.08/ход |
+| Резкий скачок (0.9→0.1) | Ограничен rate limit 0.10/ход |
 
-**Почему без inertia:** EMA с alpha=0.20 уже даёт 80% старого + 20% нового. Это достаточно сглаживает шум, но позволяет конвергировать за 50-100 ходов. Inertia поверх EMA создавала двойное сглаживание с effective alpha 0.027 — профиль был практически заморожен. Confidence теперь влияет только на `updateAxisConfidence` (порог обновления), а не на скорость сдвига.
+**Почему без inertia:** EMA с alpha=0.25 уже даёт 75% старого + 25% нового. Это достаточно сглаживает шум, но позволяет конвергировать за 50-100 ходов. Inertia поверх EMA создавала двойное сглаживание с effective alpha 0.027 — профиль был практически заморожен. Confidence теперь влияет только на `updateAxisConfidence` (порог обновления), а не на скорость сдвига.
 
 ### Derived type (совместимость с таблицей 16 типов)
 
