@@ -1,6 +1,7 @@
 # Jungian Player Profiler — Design Spec v1.2
 
-> Версия: 1.2 | Дата: 2026-08-11 | Редакция: 4 (исправлены критические ошибки: диаграмма S2, пример Validator, неиспользуемые параметры Director, confidence caps, 17 пунктов)  
+> Версия: 1.3 | Дата: 2026-08-13 | Редакция: 5 (добавлен Behavioral Metrics Pipeline: multi-dimensional AxisProfile, MetricsCollector, anti-manipulation через inertia+range)
+> Изменения v1.3: Behavioral Metrics Pipeline с multi-dimensional профилем (preference + range на каждую ось); MetricsCollector хуки в _processInputImpl; anti-manipulation через inertia, rate limiting и session-level anomaly detection; persistence в player_behavioral_metrics таблице.
 > Изменения v1.2: Director как вероятностный оркестратор; NPC-психотипы; пассивный профайлинг через Synopsis + Prologue; continuous scores; единый LLM-анализ текста; AuthorMatcher; WikiEnricher; shadow exploration; confidence decay; полный конвейер из 6 агентов (Director→Dramaturg→Actor→Validator→Stylist→Censor→Chronicler); Censor удаляет AI-клише; Validator проверяет правдоподобность до генерации; детальная схема оркестрации; полный пример хода с разбором всех 11 шагов.
 
 ---
@@ -99,7 +100,10 @@ interface WeightedChoice {
 ОДИН ХОД (каждый раз):
 ───────────────────────
 [Ввод игрока] → [TranslationService] → [IntentParser]
-    → [SimulationEngine] → [StateMutator] → [ContextBuilder]
+    → [MetricsCollector.recordIntent]      ← NEW: собирает behavioral signals
+    → [SimulationEngine] → [StateMutator]
+    → [MetricsCollector.recordSimulation]  ← NEW: outcome, probability
+    → [ContextBuilder]
     → [Director.computeDistribution] → ProbabilityDistribution
     → [Dramaturg.enrichScene] → archetype + filledSkeleton
     → [Actor.enrichNpcs] → NpcEnrichment[]
@@ -108,6 +112,7 @@ interface WeightedChoice {
     → [Censor.clean] → очищенный текст
     → [Chronicler.logEvent] → timeline
     → [TranslationService] → язык игрока
+    → [Каждые 20 ходов: blendBehavioralSignals → update JungianProfile]
 ```
 
 **PsychotypeAnalyzer (S5) вызывается однократно при создании мира** в `worlds.ts` route handler. Результат (`JungianProfile`) сохраняется в session/memory и загружается каждым последующим ходом. На каждом ходу работает конвейер из 6 агентов + Director.
@@ -124,6 +129,7 @@ interface WeightedChoice {
 |---|-------|------|---------------|------|
 | — | TranslationService | Перевод ввода на English | English text | Да |
 | — | IntentParser | Классификация интента | Intent | Нет (regex) / Да (fallback) |
+| — | **MetricsCollector** | Сбор behavioral signals | Агрегаты (инкрементальные счётчики) | **Нет — TypeScript** |
 | — | SimulationEngine | Бросок кубиков | SimulationResult | Нет |
 | — | StateMutator | Применение изменений | — | Нет |
 | — | ContextBuilder | Сбор контекста сцены | GameContext | Нет |
@@ -141,6 +147,13 @@ interface WeightedChoice {
 ```
 Шаг 0–3:     TranslationService → IntentParser → SimulationEngine → ContextBuilder
                  (без изменений относительно текущего кода)
+
+Шаг 0.5:     MetricsCollector.recordIntent(intent, rawInput)      ← после IntentParser
+             MetricsCollector.recordSimulation(simResult)           ← после SimulationEngine
+             (инкрементальные счётчики, без LLM, O(1) на ход)
+
+Шаг 3.5:     [Каждые 20 ходов] blendBehavioralSignals → update JungianProfile
+             (EMA blend + inertia + rate limit, без LLM)
 
 Шаг 4:       Director.computeDistribution(profile, worldState)
                  → ProbabilityDistribution
@@ -519,16 +532,209 @@ function analyzeText(synopsis: string, prologue: string): TextAnalysis {
 
 ---
 
-## [S6] JungianProfile — continuous scores
+## [S5.1] Behavioral Metrics Pipeline — сбор метрик из действий игрока
+
+### Проблема
+
+PsychotypeAnalyzer (S5) строит профиль из текста (Synopsis + Prologue). Но текст — это **самопрезентация**. Реальное поведение игрока в игре может отличаться: интроверт в прологе может вести себя как экстраверт в игре. Нужен **второй источник данных** — behavioral metrics.
+
+### Архитектура
+
+```
+Каждый ход:
+  IntentParser.parse()          → MetricsCollector.recordIntent(intent)
+  SimulationEngine.simulate()   → MetricsCollector.recordSimulation(simResult)
+  StateMutator.applyChanges()   → MetricsCollector.recordStateChanges(changes)
+  Ввод игрока (текст)           → MetricsCollector.recordInput(rawInput)
+      │
+      ▼
+  MetricsCollector.getSignals() → AxisSignals (4 оси, 0-1)
+      │
+      ▼ (каждые 20 ходов)
+  blendBehavioralSignals(signals, currentProfile) → обновлённый JungianProfile
+```
+
+### MetricsCollector — что собираем
 
 ```typescript
-interface JungianProfile {
-  extraversion: number;      // 0 = pure I, 1 = pure E, 0.5 = neutral
-  intuition: number;         // 0 = pure S, 1 = pure N
-  thinking: number;          // 0 = pure F, 1 = pure T
-  judging: number;           // 0 = pure P, 1 = pure J
+// src/services/metrics-collector.ts
 
-  confidence: number;
+interface PlayerActionMetrics {
+  // Социальное взаимодействие
+  dialogueInitiated: number;        // Игрок первым начал разговор
+  dialogueCount: number;            // Всего диалогов
+  dialogueAvgLength: number;        // Средняя длина реплик (слова)
+  avoidedDialogues: number;         // Проигнорированные NPC-реплики
+
+  // Исследование
+  uniqueLocationsVisited: number;   // Уникальные локации
+  explorationActions: number;       // look/examine/inspect
+
+  // Принятие решений
+  decisionsPerTurn: number;         // Скорость решений
+  riskTakingActions: number;        // Рискованные действия (high risk_level)
+  planningActions: number;          // Долгосрочные действия (quests, trade, craft)
+
+  // Боевые действия
+  combatInitiated: number;          // Игрок начал бой первым
+  combatAvoided: number;            // Попытки договориться вместо боя
+
+  // Нарратив
+  inputLengthAvg: number;           // Средняя длина ввода (символы)
+  expressiveActions: number;        // Действия с эмоциональным содержанием
+}
+```
+
+### Маппинг метрик → оси (AxisSignals)
+
+Каждая ось получает **сигнал** от 0 до 1 на основе метрик. Сигнал — это **текущее наблюдение**, не накопленный профиль.
+
+```typescript
+interface AxisSignals {
+  extraversion: number;   // 0 = I, 1 = E
+  intuition: number;      // 0 = S, 1 = N
+  thinking: number;       // 0 = F, 1 = T
+  judging: number;        // 0 = P, 1 = J
+}
+
+function inferFromMetrics(m: PlayerActionMetrics): AxisSignals {
+  return {
+    // E vs I: социальная активность
+    extraversion: normalize([
+      signal(m.dialogueInitiated, 5, 0.3),
+      signal(m.dialogueAvgLength, 20, 0.2),
+      signal(m.avoidedDialogues, 3, -0.2),
+      signal(m.inputLengthAvg, 100, 0.15),
+      signal(m.expressiveActions, 5, 0.15),
+    ]),
+
+    // N vs S: абстрактное vs конкретное
+    intuition: normalize([
+      signal(m.explorationActions, 10, 0.3),
+      signal(m.planningActions, 5, 0.3),
+      signal(m.inputLengthAvg, 150, 0.2),
+      signal(m.uniqueLocationsVisited, 10, 0.2),
+    ]),
+
+    // T vs F: логика vs эмоция
+    thinking: normalize([
+      signal(m.riskTakingActions, 5, 0.3),
+      signal(m.combatInitiated, 5, 0.2),
+      signal(m.combatAvoided, 3, -0.3),
+      signal(m.planningActions, 5, 0.2),
+    ]),
+
+    // J vs P: структура vs спонтанность
+    judging: normalize([
+      signal(m.planningActions, 5, 0.4),
+      signal(m.uniqueLocationsVisited, 15, -0.2),
+      signal(m.combatInitiated, 5, 0.2),
+      signal(m.dialogueAvgLength, 20, 0.2),
+    ]),
+  };
+}
+
+function signal(value: number, threshold: number, weight: number): number {
+  const normalized = Math.min(value / threshold, 1);
+  return normalized * weight;
+}
+
+function normalize(signals: number[]): number {
+  const sum = signals.reduce((a, b) => a + b, 0);
+  const maxPossible = signals.reduce((a, b) => a + Math.abs(b), 0);
+  if (maxPossible === 0) return 0.5;
+  return Math.max(0, Math.min(1, (sum + maxPossible) / (2 * maxPossible)));
+}
+```
+
+### Точки хуков в `_processInputImpl`
+
+```typescript
+// В roleplay-engine.ts, _processInputImpl():
+
+// После IntentParser.parse():
+this.metricsCollector.recordIntent(intent, ctx.parsedInput);
+
+// После SimulationEngine.simulate():
+this.metricsCollector.recordSimulation(simResult);
+
+// После StateMutator.applyChanges():
+this.metricsCollector.recordStateChanges(simResult.stateChanges);
+
+// Каждые 20 ходов — обновляем профиль:
+if (this.metricsCollector.getTurnCount() % 20 === 0) {
+  const signals = this.metricsCollector.getSignals();
+  this.jungianProfile = blendBehavioralSignals(signals, this.jungianProfile);
+  this.playerProfileStore.upsertJungianProfile(this.jungianProfile);
+}
+```
+
+### Persistence
+
+```sql
+CREATE TABLE IF NOT EXISTS player_behavioral_metrics (
+  player_id TEXT PRIMARY KEY,
+  total_turns INTEGER NOT NULL DEFAULT 0,
+  -- Агрегаты (инкрементальные, не хранят историю)
+  dialogue_initiated INTEGER NOT NULL DEFAULT 0,
+  dialogue_count INTEGER NOT NULL DEFAULT 0,
+  dialogue_total_words INTEGER NOT NULL DEFAULT 0,
+  avoided_dialogues INTEGER NOT NULL DEFAULT 0,
+  unique_locations INTEGER NOT NULL DEFAULT 0,
+  exploration_actions INTEGER NOT NULL DEFAULT 0,
+  risk_taking_actions INTEGER NOT NULL DEFAULT 0,
+  planning_actions INTEGER NOT NULL DEFAULT 0,
+  combat_initiated INTEGER NOT NULL DEFAULT 0,
+  combat_avoided INTEGER NOT NULL DEFAULT 0,
+  input_total_chars INTEGER NOT NULL DEFAULT 0,
+  expressive_actions INTEGER NOT NULL DEFAULT 0,
+  -- Результирующие сигналы (последнее вычисленное)
+  signal_extraversion REAL NOT NULL DEFAULT 0.5,
+  signal_intuition REAL NOT NULL DEFAULT 0.5,
+  signal_thinking REAL NOT NULL DEFAULT 0.5,
+  signal_judging REAL NOT NULL DEFAULT 0.5,
+  last_updated INTEGER NOT NULL
+);
+```
+
+Агрегаты хранятся **инкрементально** (только суммы и счётчики). Никакой истории отдельных действий. Это:
+- Экономит место (O(1) вместо O(N) на ход)
+- Делает невозможным replay действий игрока (privacy)
+- Позволяет пересчитать сигналы в любой момент
+
+---
+
+## [S6] JungianProfile — multi-dimensional (preference + range)
+
+### Ключевая идея
+
+Каждая ось — **не одно число**, а два:
+- `preference` (0-1): что игрок **предпочитает** (медленно меняется)
+- `range` (0-1): насколько **разнообразно** ведёт себя (растёт при отклонениях, сужается при стабильности)
+
+**Пример:** Технократ, написавший стихи:
+- `thinking.preference = 0.83` (всё ещё технократ)
+- `thinking.range = 0.18` (но система знает, что он *способен* на другое)
+
+Манипулятор, осциллирующий между E и I:
+- `extraversion.preference = 0.50` (осцилляции компенсируют друг друга)
+- `extraversion.range = 0.70` (система видит широкий диапазон → предлагает разнообразный контент)
+
+### Интерфейс
+
+```typescript
+interface AxisProfile {
+  preference: number;    // 0-1: основная линия (EMA от наблюдений)
+  range: number;         // 0-1: диапазон поведения (0 = стабилен, 1 = хаотичен)
+}
+
+interface JungianProfile {
+  extraversion: AxisProfile;
+  intuition: AxisProfile;
+  thinking: AxisProfile;
+  judging: AxisProfile;
+
+  confidence: number;    // 0-1: общая уверенность в профиле
   axisConfidence: {
     extraversion: number;
     intuition: number;
@@ -539,28 +745,136 @@ interface JungianProfile {
 }
 
 function createDefaultProfile(): JungianProfile {
+  const defaultAxis: AxisProfile = { preference: 0.5, range: 0.1 };
   return {
-    extraversion: 0.5, intuition: 0.5, thinking: 0.5, judging: 0.5,
+    extraversion: { ...defaultAxis },
+    intuition: { ...defaultAxis },
+    thinking: { ...defaultAxis },
+    judging: { ...defaultAxis },
     confidence: 0,
     axisConfidence: { extraversion: 0, intuition: 0, thinking: 0, judging: 0 },
     source: 'default',
   };
 }
+```
 
-// Derived 4-letter type for 16-style adaptation table
-function deriveType(profile: JungianProfile): string {
-  const e = profile.extraversion > 0.55 ? 'E' : profile.extraversion < 0.45 ? 'I' : 'X';
-  const n = profile.intuition > 0.55 ? 'N' : profile.intuition < 0.45 ? 'S' : 'X';
-  const t = profile.thinking > 0.55 ? 'T' : profile.thinking < 0.45 ? 'F' : 'X';
-  const j = profile.judging > 0.55 ? 'J' : profile.judging < 0.45 ? 'P' : 'X';
-  return e + n + t + j; // "INFJ", "ESTP", "XNTP" (амбивалентный N)
+### Почему два значения на ось
+
+| Подход | Технократ пишет стихи | Манипулятор осциллирует |
+|--------|----------------------|------------------------|
+| **Одно число (v1.2)** | Сдвигается к интуиту (неправильно) | Застревает посередине |
+| **preference + range (v1.3)** | range расширяется, preference stable (правильно) | preference stable, range растёт → получает разнообразие |
+
+`range` используется Director'ом для `explorationFactor` — игрок с высоким range получает **больше разнообразного контента**, а не навешивание ярлыка.
+
+### Blend алгоритм
+
+```typescript
+const BLEND_CONFIG = {
+  emaAlpha: 0.15,            // Скорость сдвига preference
+  maxShiftPerTurn: 0.05,     // Rate limit: максимум 5% за ход
+  rangeGrowthThreshold: 0.3, // Отклонение > 0.3 → range растёт
+  rangeDecayRate: 0.005,     // Range сужается на 0.5% за ход при стабильности
+  minTurnsForBlend: 20,      // Минимум ходов перед первым обновлением
+};
+
+function updateAxis(
+  current: AxisProfile,
+  signal: number,            // 0-1, текущее наблюдение из MetricsCollector
+  confidence: number,        // axis confidence (0-1)
+): AxisProfile {
+  // 1. Inertia: высокий confidence = больше инерции
+  // При confidence=0.9: inertia=0.82 → сдвигается очень медленно
+  // При confidence=0.3: inertia=0.62 → сдвигается быстрее
+  const inertia = 0.5 + confidence * 0.4;
+
+  // 2. EMA blend
+  const ema = current.preference * (1 - BLEND_CONFIG.emaAlpha) + signal * BLEND_CONFIG.emaAlpha;
+
+  // 3. Смешиваем с учётом inertia
+  const blended = current.preference * inertia + ema * (1 - inertia);
+
+  // 4. Rate limit
+  const delta = blended - current.preference;
+  const clamped = current.preference + Math.sign(delta) * Math.min(Math.abs(delta), BLEND_CONFIG.maxShiftPerTurn);
+
+  // 5. Обновляем range
+  const deviation = Math.abs(signal - current.preference);
+  const rangeDelta = deviation > BLEND_CONFIG.rangeGrowthThreshold
+    ? 0.02    // Сильное отклонение → range растёт
+    : deviation > 0.15
+      ? 0.01  // Умеренное отклонение → range чуть растёт
+      : -BLEND_CONFIG.rangeDecayRate;  // Стабильность → range сужается
+  const newRange = Math.max(0.05, Math.min(0.95, current.range + rangeDelta));
+
+  return {
+    preference: Math.max(0.05, Math.min(0.95, clamped)),
+    range: newRange,
+  };
 }
 
-// How "clear" is the type (distance from neutral)
+function blendBehavioralSignals(
+  signals: AxisSignals,
+  profile: JungianProfile,
+): JungianProfile {
+  return {
+    extraversion: updateAxis(profile.extraversion, signals.extraversion, profile.axisConfidence.extraversion),
+    intuition: updateAxis(profile.intuition, signals.intuition, profile.axisConfidence.intuition),
+    thinking: updateAxis(profile.thinking, signals.thinking, profile.axisConfidence.thinking),
+    judging: updateAxis(profile.judging, signals.judging, profile.axisConfidence.judging),
+    confidence: profile.confidence,  // confidence обновляется отдельно
+    axisConfidence: {
+      extraversion: updateAxisConfidence(profile.axisConfidence.extraversion, signals.extraversion, profile.extraversion.preference),
+      intuition: updateAxisConfidence(profile.axisConfidence.intuition, signals.intuition, profile.intuition.preference),
+      thinking: updateAxisConfidence(profile.axisConfidence.thinking, signals.thinking, profile.thinking.preference),
+      judging: updateAxisConfidence(profile.axisConfidence.judging, signals.judging, profile.judging.preference),
+    },
+    source: 'blended',
+  };
+}
+
+function updateAxisConfidence(current: number, incoming: number, preference: number): number {
+  const difference = Math.abs(incoming - preference);
+  if (difference < 0.1) return Math.min(0.95, current + 0.05);     // Подтверждение → растёт
+  if (difference > 0.3) return Math.max(0.3, current - 0.1);       // Противоречие → падает
+  return current;                                                    // Нейтрально → без изменений
+}
+```
+
+### Derived type (совместимость с таблицей 16 типов)
+
+```typescript
+function deriveType(profile: JungianProfile): string {
+  const e = profile.extraversion.preference > 0.55 ? 'E' : profile.extraversion.preference < 0.45 ? 'I' : 'X';
+  const n = profile.intuition.preference > 0.55 ? 'N' : profile.intuition.preference < 0.45 ? 'S' : 'X';
+  const t = profile.thinking.preference > 0.55 ? 'T' : profile.thinking.preference < 0.45 ? 'F' : 'X';
+  const j = profile.judging.preference > 0.55 ? 'J' : profile.judging.preference < 0.45 ? 'P' : 'X';
+  return e + n + t + j;
+}
+
 function axisClarity(profile: JungianProfile): number {
-  const axes = [profile.extraversion, profile.intuition, profile.thinking, profile.judging];
+  const axes = [profile.extraversion.preference, profile.intuition.preference, profile.thinking.preference, profile.judging.preference];
   return axes.reduce((sum, x) => sum + Math.abs(x - 0.5) * 2, 0) / 4;
 }
+
+// Средний range по всем осям — используется Director'ом для explorationFactor
+function averageRange(profile: JungianProfile): number {
+  return (profile.extraversion.range + profile.intuition.range + profile.thinking.range + profile.judging.range) / 4;
+}
+```
+
+### Как Director использует range
+
+```typescript
+// В Director.computeDistribution():
+const avgRange = averageRange(profile);
+
+return {
+  // ... существующие поля ...
+  explorationFactor: Math.max(0.05, avgRange * 0.3),
+  // При range=0.7: explorationFactor=0.21 → 21% контента разнообразное
+  // При range=0.1: explorationFactor=0.05 → 5% (минимум)
+};
 ```
 
 ### Почему continuous
@@ -569,12 +883,12 @@ function axisClarity(profile: JungianProfile): number {
 - **Амбивалентные профили.** Оси около 0.5 → адаптация минимальна.
 - **Совместимость с таблицей 16 типов.** `deriveType` даёт строку для `getNarrativeConstraints`.
 - **Путь к Big Five.** Continuous scores — 4 из 5 факторов OCEAN.
+- **Multi-dimensional.** Range позволяет отличить "стабильного интроверта" от "интроверта с широким диапазоном".
 
 ### Confidence formula (в blend)
 
 ```text
 newAxisConfidence = min(0.95, current + weight * (1 - current) * signalStrength)
-newAxisValue = current + weight * (incoming - current)
   — только если incomingAxisConfidence по этой оси > 0
 overallConfidence = среднее по 4 newAxisConfidence
 ```
@@ -1103,26 +1417,63 @@ NPC получает `JungianProfile`. Диалог строится из хар
 ### Новые колонки в `player_style_profiles`
 
 ```sql
-ALTER TABLE player_style_profiles ADD COLUMN jungian_extraversion REAL NOT NULL DEFAULT 0.5;
-ALTER TABLE player_style_profiles ADD COLUMN jungian_intuition REAL NOT NULL DEFAULT 0.5;
-ALTER TABLE player_style_profiles ADD COLUMN jungian_thinking REAL NOT NULL DEFAULT 0.5;
-ALTER TABLE player_style_profiles ADD COLUMN jungian_judging REAL NOT NULL DEFAULT 0.5;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_extraversion_pref REAL NOT NULL DEFAULT 0.5;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_extraversion_range REAL NOT NULL DEFAULT 0.1;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_intuition_pref REAL NOT NULL DEFAULT 0.5;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_intuition_range REAL NOT NULL DEFAULT 0.1;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_thinking_pref REAL NOT NULL DEFAULT 0.5;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_thinking_range REAL NOT NULL DEFAULT 0.1;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_judging_pref REAL NOT NULL DEFAULT 0.5;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_judging_range REAL NOT NULL DEFAULT 0.1;
 ALTER TABLE player_style_profiles ADD COLUMN jungian_confidence REAL NOT NULL DEFAULT 0;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_conf_extraversion REAL NOT NULL DEFAULT 0;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_conf_intuition REAL NOT NULL DEFAULT 0;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_conf_thinking REAL NOT NULL DEFAULT 0;
+ALTER TABLE player_style_profiles ADD COLUMN jungian_conf_judging REAL NOT NULL DEFAULT 0;
 ALTER TABLE player_style_profiles ADD COLUMN jungian_source TEXT NOT NULL DEFAULT 'default';
-ALTER TABLE player_style_profiles ADD COLUMN jungian_history TEXT NOT NULL DEFAULT '[]';
 ALTER TABLE player_style_profiles ADD COLUMN closest_author TEXT;
 ALTER TABLE player_style_profiles ADD COLUMN detected_themes TEXT NOT NULL DEFAULT '[]';
 ```
 
 Миграция через `PRAGMA table_info` перед каждым `ALTER` (SQLite не поддерживает `IF NOT EXISTS`).
 
+### Новая таблица `player_behavioral_metrics`
+
+```sql
+CREATE TABLE IF NOT EXISTS player_behavioral_metrics (
+  player_id TEXT PRIMARY KEY,
+  total_turns INTEGER NOT NULL DEFAULT 0,
+  -- Агрегаты (инкрементальные)
+  dialogue_initiated INTEGER NOT NULL DEFAULT 0,
+  dialogue_count INTEGER NOT NULL DEFAULT 0,
+  dialogue_total_words INTEGER NOT NULL DEFAULT 0,
+  avoided_dialogues INTEGER NOT NULL DEFAULT 0,
+  unique_locations INTEGER NOT NULL DEFAULT 0,
+  exploration_actions INTEGER NOT NULL DEFAULT 0,
+  risk_taking_actions INTEGER NOT NULL DEFAULT 0,
+  planning_actions INTEGER NOT NULL DEFAULT 0,
+  combat_initiated INTEGER NOT NULL DEFAULT 0,
+  combat_avoided INTEGER NOT NULL DEFAULT 0,
+  input_total_chars INTEGER NOT NULL DEFAULT 0,
+  expressive_actions INTEGER NOT NULL DEFAULT 0,
+  -- Результирующие сигналы
+  signal_extraversion REAL NOT NULL DEFAULT 0.5,
+  signal_intuition REAL NOT NULL DEFAULT 0.5,
+  signal_thinking REAL NOT NULL DEFAULT 0.5,
+  signal_judging REAL NOT NULL DEFAULT 0.5,
+  last_updated INTEGER NOT NULL
+);
+```
+
 ### Пайплайн обновления
 
 1. **При создании мира:** `analyzeText(synopsis, prologue)` → session/memory
 2. **При Birth Wizard:** hints уточняют (слабые сигналы, weight ≤ 0.15)
-3. **Каждые 20 ходов:** `inferFromMetrics` → `blend` → update DB
-4. **Confidence decay:** 10+ противоречащих ходов → `confidence *= 0.9`
-5. **Exploration:** ~5% контента всегда равномерное distribution
+3. **Каждый ход:** `MetricsCollector` инкрементирует агрегаты (без LLM)
+4. **Каждые 20 ходов:** `inferFromMetrics` → `blendBehavioralSignals` → update both tables
+5. **Confidence:** подтверждение → рост, противоречие → падение, нейтрально → стабильно
+6. **Range:** отклонения > 0.3 → рост, стабильность → decay на 0.5%/ход
+7. **Exploration:** Director использует `averageRange(profile)` для `explorationFactor` (минимум 5%)
 
 ---
 
@@ -1148,7 +1499,9 @@ ALTER TABLE player_style_profiles ADD COLUMN detected_themes TEXT NOT NULL DEFAU
 |------|----------|-----------------|
 | `src/services/jungian-profiler.ts` | Создать | Profiler, Director, PsychotypeAnalyzer, AuthorMatcher, типы, constraints |
 | `src/services/jungian-profiler.test.ts` | Создать | Unit-тесты: Director, blend, infer, constraints |
-| `src/lib/player-profile-store.ts` | Модифицировать | 9 новых колонок (jungian_* + closest_author + detected_themes) |
+| `src/services/metrics-collector.ts` | Создать | MetricsCollector: recordIntent, recordSimulation, recordInput, getSignals, inferFromMetrics |
+| `src/services/metrics-collector.test.ts` | Создать | Unit-тесты: signal normalization, aggregation, AxisSignals inference |
+| `src/lib/player-profile-store.ts` | Модифицировать | 16 новых колонок (jungian_*_pref, jungian_*_range, jungian_conf_*, closest_author, detected_themes) + player_behavioral_metrics таблица |
 | `src/lib/feature-flags.ts` | Модифицировать | Флаг `jungian-profiler-enabled` + дефолтная конфигурация |
 | `conf/feature-flags.json` | Модифицировать | Конфигурация флага с вариантами control/treatment |
 | **Big Six — интеграция в пайплайн:** | | |
@@ -1160,7 +1513,7 @@ ALTER TABLE player_style_profiles ADD COLUMN detected_themes TEXT NOT NULL DEFAU
 | `src/services/agents/censor.ts` | Модифицировать | `clean()` — regex-замена клише (не удаление) + LLM polish |
 | `src/services/agents/chronicler-agent.ts` | Без изменений | **ChroniclerAgent** (v2) уже вызывает `chronicler.logEvent()` |
 | **Интеграция:** | | |
-| `src/services/roleplay-engine.ts` | Модифицировать | Конвейер: Director→Dramaturg→Actor→Validator→Stylist→Censor. PsychotypeAnalyzer — в `worlds.ts`. |
+| `src/services/roleplay-engine.ts` | Модифицировать | Конвейер: Director→Dramaturg→Actor→Validator→Stylist→Censor + MetricsCollector хуки. PsychotypeAnalyzer — в `worlds.ts`. |
 | `src/services/roleplay/pipeline-runner.ts` | Модифицировать | Передача `playerVoice` и `distribution` в контекст |
 | `src/services/roleplay/prose/literary-v2-generator.ts` | Модифицировать | Приём `playerVoice` вместо самостоятельного поиска шаблонов |
 | **Ввод данных (точка вызова PsychotypeAnalyzer):** | | |
@@ -1175,18 +1528,20 @@ ALTER TABLE player_style_profiles ADD COLUMN detected_themes TEXT NOT NULL DEFAU
 
 | Риск | Митигация |
 |------|-----------|
-| Stereotyping | Continuous scores + exploration + shadow |
-| Self-fulfilling prophecy | Exploration 5% + confidence decay |
-| Холодный старт | Равномерное distribution при confidence < 0.3 |
+| Stereotyping | Continuous scores + exploration + shadow + range (multi-dimensional) |
+| Self-fulfilling prophecy | Exploration через averageRange * 0.3, min 5% |
+| Холодный старт | Равномерное distribution при confidence < 0.3; MetricsCollector начинает с 0.5 |
 | LLM hallucination в PsychotypeAnalyzer | Structured output + JSON Schema + fallback к default |
 | AuthorMatcher размер | 384-мерный (BGE-M3), ~50 авторов = < 100KB |
-| Privacy | Локально в `player-profiles.db` |
-| Type lock-in | Decay + exploration |
+| Privacy | Локально в `player-profiles.db`; агрегаты без истории действий (O(1) место) |
+| Type lock-in | Range позволяет Director предлагать разнообразный контент |
+| Манипуляция профиля | Inertia (0.5-0.9) + rate limit (0.05/ход) + range tracking; манипулятор не может сдвинуть preference быстрее legitimate игрока |
 | Censor regex ломает грамматику | Замена клише на нейтральные альтернативы, не удаление; LLM polish для сложных случаев |
+| MetricsCollector overhead | Инкрементальные счётчики (O(1) на ход), вычисление сигналов каждые 20 ходов |
 
 ---
 
-## [S19] Out of scope (v1.2)
+## [S19] Out of scope (v1.3)
 
 - Ручной сброс психотипа через UI
 - Визуализация распределения в UI
@@ -1194,6 +1549,9 @@ ALTER TABLE player_style_profiles ADD COLUMN detected_themes TEXT NOT NULL DEFAU
 - Big Five (OCEAN) — v2+
 - Нейросетевой маппинг behaviour → psychotype
 - NPC-to-NPC автономные взаимодействия без игрока
+- Хранение истории отдельных действий (только агрегаты)
+- Per-axis confidence gates (отдельные пороги для каждой оси) — v1.4 по результатам A/B
+- Manipulation detection как отдельная система (заменено на inertia + range tracking)
 
 ---
 
