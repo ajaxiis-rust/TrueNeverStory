@@ -121,10 +121,10 @@ export function analyzeChunk(text: string): ChunkAnalysis {
     return [type, hits.length] as [string, number];
   });
   hitCounts.sort((a, b) => b[1] - a[1]);
-  const [topType, topHits] = hitCounts[0];
+  const [topType, topHits] = hitCounts[0] ?? ['travel_scene' as string, 0];
 
   // Collect dict_hits from the winning type
-  const dict_hits = topHits > 0 ? countMatches(text, SCENE_TYPE_KEYWORDS[topType]) : [];
+  const dict_hits = topHits > 0 ? countMatches(text, SCENE_TYPE_KEYWORDS[topType] ?? []) : [];
 
   // Scene classification with fallback
   let scene_type: string;

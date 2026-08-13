@@ -57,5 +57,5 @@
 ## 8. Память и индексация
 
 - Проект индексирован в codebase-memory: slug `home-ajaxiis-d094d0bed0bad183d0bcd0b5d0bdd182d18b-TNS-TrueNeverStory`.
-- Исключённые директории: `.git`, `release`, `node_modules`, `.mimocode`, `public/static/vendor`, `docs/compose`.
+- Исключённые директории: `.git`, `release`, `node_modules`, `public/static/vendor`.
 - Графический UI codebase-memory: `http://localhost:9749`.
