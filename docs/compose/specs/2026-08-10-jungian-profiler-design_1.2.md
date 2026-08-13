@@ -102,7 +102,7 @@ interface WeightedChoice {
 [Ввод игрока] → [TranslationService] → [IntentParser]
     → [MetricsCollector.recordIntent]      ← NEW: собирает behavioral signals
     → [SimulationEngine] → [StateMutator]
-    → [MetricsCollector.recordSimulation]  ← NEW: outcome, probability
+    → [MetricsCollector.recordSimulation]  ← NEW: outcome, risk level
     → [ContextBuilder]
     → [Director.computeDistribution] → ProbabilityDistribution
     → [Dramaturg.enrichScene] → archetype + filledSkeleton
@@ -149,11 +149,12 @@ interface WeightedChoice {
                  (без изменений относительно текущего кода)
 
 Шаг 0.5:     MetricsCollector.recordIntent(intent, rawInput)      ← после IntentParser
-             MetricsCollector.recordSimulation(simResult)           ← после SimulationEngine
+             MetricsCollector.recordSimulation(intent, simResult)  ← после SimulationEngine
+             MetricsCollector.syncLocations(visitedLocations)      ← каждый ход
              (инкрементальные счётчики, без LLM, O(1) на ход)
 
-Шаг 3.5:     [Каждые 20 ходов] blendBehavioralSignals → update JungianProfile
-             (EMA blend + inertia + rate limit, без LLM)
+Шаг 3.5:     [Каждые 20 ходов] blendBehavioralSignals → update JungianProfile → decay агрегатов
+             (EMA + inertia + rate limit, без LLM)
 
 Шаг 4:       Director.computeDistribution(profile, worldState)
                  → ProbabilityDistribution
@@ -341,20 +342,20 @@ function injectShadow(dist: ProbabilityDistribution, profile: JungianProfile): v
   const rate = dist.shadowInjection;
 
   // Слабая judging-функция: T → добавляем emotional, F → добавляем analytical
-  if (profile.thinking > 0.6) {
+  if (profile.thinking.preference > 0.6) {
     dist.informationStyle.push({ value: 'emotional', weight: rate });
     dist.sceneTone.push({ value: 'warm, personal', weight: rate });
   }
-  if (profile.thinking < 0.4) {
+  if (profile.thinking.preference < 0.4) {
     dist.informationStyle.push({ value: 'analytical', weight: rate });
     dist.sceneTone.push({ value: 'dry, factual', weight: rate });
   }
   
   // Слабая perceiving-функция: N → добавляем sensory-детали, S → добавляем символизм
-  if (profile.intuition > 0.6) {
+  if (profile.intuition.preference > 0.6) {
     dist.sensoryChannels.push({ value: 'concrete, tactile', weight: rate });
   }
-  if (profile.intuition < 0.4) {
+  if (profile.intuition.preference < 0.4) {
     dist.sensoryChannels.push({ value: 'symbolic, metaphorical', weight: rate });
   }
 
@@ -542,52 +543,154 @@ PsychotypeAnalyzer (S5) строит профиль из текста (Synopsis 
 
 ```
 Каждый ход:
-  IntentParser.parse()          → MetricsCollector.recordIntent(intent)
-  SimulationEngine.simulate()   → MetricsCollector.recordSimulation(simResult)
-  StateMutator.applyChanges()   → MetricsCollector.recordStateChanges(changes)
+  IntentParser.parse()          → MetricsCollector.recordIntent(intent, rawInput)
+  SimulationEngine.simulate()   → MetricsCollector.recordSimulation(intent, simResult)
   Ввод игрока (текст)           → MetricsCollector.recordInput(rawInput)
+  SessionState.visitedLocations → MetricsCollector.syncLocations(visitedLocations)
       │
       ▼
-  MetricsCollector.getSignals() → AxisSignals (4 оси, 0-1)
+  MetricsCollector.getSignals(totalTurns) → AxisSignals (4 оси, 0-1)
       │
       ▼ (каждые 20 ходов)
   blendBehavioralSignals(signals, currentProfile) → обновлённый JungianProfile
+  MetricsCollector.decay()                     → агрегаты × 0.9
 ```
 
 ### MetricsCollector — что собираем
 
+Агрегаты хранятся **инкрементально** (счётчики). Производные метрики (averages, rates) вычисляются при вызове `getSignals()`.
+
 ```typescript
 // src/services/metrics-collector.ts
 
-interface PlayerActionMetrics {
+interface RawAggregates {
   // Социальное взаимодействие
   dialogueInitiated: number;        // Игрок первым начал разговор
   dialogueCount: number;            // Всего диалогов
-  dialogueAvgLength: number;        // Средняя длина реплик (слова)
+  dialogueTotalWords: number;       // Суммарное количество слов в репликах
   avoidedDialogues: number;         // Проигнорированные NPC-реплики
 
   // Исследование
-  uniqueLocationsVisited: number;   // Уникальные локации
   explorationActions: number;       // look/examine/inspect
 
   // Принятие решений
-  decisionsPerTurn: number;         // Скорость решений
-  riskTakingActions: number;        // Рискованные действия (high risk_level)
+  riskTakingActions: number;        // Рискованные действия (risk_level='high' или CRITICAL outcome)
   planningActions: number;          // Долгосрочные действия (quests, trade, craft)
 
   // Боевые действия
-  combatInitiated: number;          // Игрок начал бой первым
-  combatAvoided: number;            // Попытки договориться вместо боя
+  combatInitiated: number;          // Игрок начал атаку (intent type='action', verb ∈ attack/strike/fight/hit)
 
   // Нарратив
-  inputLengthAvg: number;           // Средняя длина ввода (символы)
-  expressiveActions: number;        // Действия с эмоциональным содержанием
+  inputTotalChars: number;          // Суммарная длина ввода (символы)
+  expressiveActions: number;        // Действия с эмоциональным содержанием (intent verb ∈ hug, cry, laugh, kiss, comfort, mourn, celebrate)
 }
 ```
 
-### Маппинг метрик → оси (AxisSignals)
+### Маппинг Intent + SimulationResult → агрегаты
 
-Каждая ось получает **сигнал** от 0 до 1 на основе метрик. Сигнал — это **текущее наблюдение**, не накопленный профиль.
+```typescript
+function recordIntent(intent: Intent, rawInput: string, aggregates: RawAggregates): void {
+  aggregates.inputTotalChars += rawInput.length;
+
+  switch (intent.type) {
+    case 'dialogue':
+      aggregates.dialogueCount++;
+      aggregates.dialogueTotalWords += rawInput.split(/\s+/).length;
+      // dialogueInitiated: игрок сам начал, а не ответил на NPC-реплику
+      // Определяется по отсутствию recent NPC message в context (передаётся отдельно)
+      break;
+    case 'action':
+      if (isAttackVerb(intent.verb)) aggregates.combatInitiated++;
+      if (isExpressiveVerb(intent.verb)) aggregates.expressiveActions++;
+      break;
+    case 'observation':
+      aggregates.explorationActions++;
+      break;
+  }
+}
+
+function recordSimulation(intent: Intent, simResult: SimulationResult, aggregates: RawAggregates): void {
+  // riskTakingActions: высокий risk_level ИЛИ критический исход
+  if (intent.type === 'action') {
+    if (intent.risk_level === 'high' ||
+        simResult.outcome === 'CRITICAL_SUCCESS' ||
+        simResult.outcome === 'CRITICAL_FAILURE') {
+      aggregates.riskTakingActions++;
+    }
+  }
+  // planningActions: trade, craft, quest-related
+  if (isPlanningVerb(intent.verb)) aggregates.planningActions++;
+}
+
+// Detection rules
+function isAttackVerb(verb?: string): boolean {
+  return /^(attack|strike|fight|hit|slash|stab|shoot|punch|kick|stab)$/i.test(verb ?? '');
+}
+function isExpressiveVerb(verb?: string): boolean {
+  return /^(hug|cry|laugh|kiss|comfort|mourn|celebrate|weep|cheer|embrace|grieve)$/i.test(verb ?? '');
+}
+function isPlanningVerb(verb?: string): boolean {
+  return /^(trade|craft|buy|sell|forge|brew|cook|accept quest|plan|prepare|organize)$/i.test(verb ?? '');
+}
+```
+
+### Производные метрики (вычисляются при getSignals)
+
+`inferFromMetrics` получает **не raw агрегаты**, а вычисленные значения:
+
+```typescript
+interface DerivedMetrics {
+  dialogueInitiated: number;        // raw count
+  dialogueAvgLength: number;        // dialogueTotalWords / max(dialogueCount, 1)
+  avoidedDialogues: number;         // raw count (инкрементируется при timeout NPC-реплики)
+  explorationActions: number;       // raw count
+  riskTakingActions: number;        // raw count
+  planningActions: number;          // raw count
+  combatInitiated: number;          // raw count
+  expressiveActions: number;        // raw count
+  inputLengthAvg: number;           // inputTotalChars / max(totalTurns, 1)
+  uniqueLocationsVisited: number;   // из SessionState.visitedLocations.size
+}
+
+function deriveMetrics(aggregates: RawAggregates, totalTurns: number, visitedLocations: number): DerivedMetrics {
+  return {
+    dialogueInitiated: aggregates.dialogueInitiated,
+    dialogueAvgLength: aggregates.dialogueTotalWords / Math.max(aggregates.dialogueCount, 1),
+    avoidedDialogues: aggregates.avoidedDialogues,
+    explorationActions: aggregates.explorationActions,
+    riskTakingActions: aggregates.riskTakingActions,
+    planningActions: aggregates.planningActions,
+    combatInitiated: aggregates.combatInitiated,
+    expressiveActions: aggregates.expressiveActions,
+    inputLengthAvg: aggregates.inputTotalChars / Math.max(totalTurns, 1),
+    uniqueLocationsVisited: visitedLocations,
+  };
+}
+```
+
+### Decay агрегатов
+
+При каждом blend-цикле (каждые 20 ходов) агрегаты умножаются на 0.9. Это обеспечивает "скользящее окно" без хранения истории:
+
+```typescript
+function decay(aggregates: RawAggregates): void {
+  aggregates.dialogueInitiated *= 0.9;
+  aggregates.dialogueCount *= 0.9;
+  aggregates.dialogueTotalWords *= 0.9;
+  aggregates.avoidedDialogues *= 0.9;
+  aggregates.explorationActions *= 0.9;
+  aggregates.riskTakingActions *= 0.9;
+  aggregates.planningActions *= 0.9;
+  aggregates.combatInitiated *= 0.9;
+  aggregates.inputTotalChars *= 0.9;
+  aggregates.expressiveActions *= 0.9;
+  // uniqueLocations не decay'ится — это Set из SessionState
+}
+```
+
+После decay: агрегаты за последние 20 ходов весят 100%, за предыдущие 20 — 90%, за ещё более ранние — 81%, и т.д. Эффективное окно ~100 ходов.
+
+### Маппинг метрик → оси (AxisSignals)
 
 ```typescript
 interface AxisSignals {
@@ -597,7 +700,7 @@ interface AxisSignals {
   judging: number;        // 0 = P, 1 = J
 }
 
-function inferFromMetrics(m: PlayerActionMetrics): AxisSignals {
+function inferFromMetrics(m: DerivedMetrics): AxisSignals {
   return {
     // E vs I: социальная активность
     extraversion: normalize([
@@ -620,7 +723,7 @@ function inferFromMetrics(m: PlayerActionMetrics): AxisSignals {
     thinking: normalize([
       signal(m.riskTakingActions, 5, 0.3),
       signal(m.combatInitiated, 5, 0.2),
-      signal(m.combatAvoided, 3, -0.3),
+      signal(m.expressiveActions, 5, -0.3),
       signal(m.planningActions, 5, 0.2),
     ]),
 
@@ -656,15 +759,17 @@ function normalize(signals: number[]): number {
 this.metricsCollector.recordIntent(intent, ctx.parsedInput);
 
 // После SimulationEngine.simulate():
-this.metricsCollector.recordSimulation(simResult);
+this.metricsCollector.recordSimulation(intent, simResult);
 
-// После StateMutator.applyChanges():
-this.metricsCollector.recordStateChanges(simResult.stateChanges);
+// Каждый ход — sync visited locations:
+this.metricsCollector.syncLocations(this.visitedLocations);
 
 // Каждые 20 ходов — обновляем профиль:
 if (this.metricsCollector.getTurnCount() % 20 === 0) {
-  const signals = this.metricsCollector.getSignals();
+  const derived = this.metricsCollector.deriveMetrics(this.visitedLocations.size);
+  const signals = inferFromMetrics(derived);
   this.jungianProfile = blendBehavioralSignals(signals, this.jungianProfile);
+  this.metricsCollector.decay();
   this.playerProfileStore.upsertJungianProfile(this.jungianProfile);
 }
 ```
@@ -675,19 +780,17 @@ if (this.metricsCollector.getTurnCount() % 20 === 0) {
 CREATE TABLE IF NOT EXISTS player_behavioral_metrics (
   player_id TEXT PRIMARY KEY,
   total_turns INTEGER NOT NULL DEFAULT 0,
-  -- Агрегаты (инкрементальные, не хранят историю)
-  dialogue_initiated INTEGER NOT NULL DEFAULT 0,
-  dialogue_count INTEGER NOT NULL DEFAULT 0,
-  dialogue_total_words INTEGER NOT NULL DEFAULT 0,
-  avoided_dialogues INTEGER NOT NULL DEFAULT 0,
-  unique_locations INTEGER NOT NULL DEFAULT 0,
-  exploration_actions INTEGER NOT NULL DEFAULT 0,
-  risk_taking_actions INTEGER NOT NULL DEFAULT 0,
-  planning_actions INTEGER NOT NULL DEFAULT 0,
-  combat_initiated INTEGER NOT NULL DEFAULT 0,
-  combat_avoided INTEGER NOT NULL DEFAULT 0,
-  input_total_chars INTEGER NOT NULL DEFAULT 0,
-  expressive_actions INTEGER NOT NULL DEFAULT 0,
+  -- Агрегаты (инкрементальные, decay при blend)
+  dialogue_initiated REAL NOT NULL DEFAULT 0,
+  dialogue_count REAL NOT NULL DEFAULT 0,
+  dialogue_total_words REAL NOT NULL DEFAULT 0,
+  avoided_dialogues REAL NOT NULL DEFAULT 0,
+  exploration_actions REAL NOT NULL DEFAULT 0,
+  risk_taking_actions REAL NOT NULL DEFAULT 0,
+  planning_actions REAL NOT NULL DEFAULT 0,
+  combat_initiated REAL NOT NULL DEFAULT 0,
+  input_total_chars REAL NOT NULL DEFAULT 0,
+  expressive_actions REAL NOT NULL DEFAULT 0,
   -- Результирующие сигналы (последнее вычисленное)
   signal_extraversion REAL NOT NULL DEFAULT 0.5,
   signal_intuition REAL NOT NULL DEFAULT 0.5,
@@ -697,10 +800,10 @@ CREATE TABLE IF NOT EXISTS player_behavioral_metrics (
 );
 ```
 
-Агрегаты хранятся **инкрементально** (только суммы и счётчики). Никакой истории отдельных действий. Это:
+Агрегаты хранятся как REAL (не INTEGER) — после decay 0.9 значения дробные. Никакой истории отдельных действий. Это:
 - Экономит место (O(1) вместо O(N) на ход)
 - Делает невозможным replay действий игрока (privacy)
-- Позволяет пересчитать сигналы в любой момент
+- Decay обеспечивает "скользящее окно" ~100 ходов
 
 ---
 
@@ -771,10 +874,10 @@ function createDefaultProfile(): JungianProfile {
 
 ```typescript
 const BLEND_CONFIG = {
-  emaAlpha: 0.15,            // Скорость сдвига preference
-  maxShiftPerTurn: 0.05,     // Rate limit: максимум 5% за ход
-  rangeGrowthThreshold: 0.3, // Отклонение > 0.3 → range растёт
-  rangeDecayRate: 0.005,     // Range сужается на 0.5% за ход при стабильности
+  emaAlpha: 0.15,            // Скорость сдвига preference (EMA)
+  maxShiftPerTurn: 0.05,     // Rate limit: максимум 5% за blend-цикл
+  rangeGrowthThreshold: 0.3, // Отклонение от rolling avg > 0.3 → range растёт
+  rangeDecayRate: 0.005,     // Range сужается на 0.5% за blend-цикл при стабильности
   minTurnsForBlend: 20,      // Минимум ходов перед первым обновлением
 };
 
@@ -782,6 +885,7 @@ function updateAxis(
   current: AxisProfile,
   signal: number,            // 0-1, текущее наблюдение из MetricsCollector
   confidence: number,        // axis confidence (0-1)
+  recentSignals: number[],   // Последние 10 сигналов этой оси (для rolling avg)
 ): AxisProfile {
   // 1. Inertia: высокий confidence = больше инерции
   // При confidence=0.9: inertia=0.82 → сдвигается очень медленно
@@ -791,17 +895,21 @@ function updateAxis(
   // 2. EMA blend
   const ema = current.preference * (1 - BLEND_CONFIG.emaAlpha) + signal * BLEND_CONFIG.emaAlpha;
 
-  // 3. Смешиваем с учётом inertia
+  // 3. Применяем inertia
   const blended = current.preference * inertia + ema * (1 - inertia);
 
   // 4. Rate limit
   const delta = blended - current.preference;
   const clamped = current.preference + Math.sign(delta) * Math.min(Math.abs(delta), BLEND_CONFIG.maxShiftPerTurn);
 
-  // 5. Обновляем range
-  const deviation = Math.abs(signal - current.preference);
+  // 5. Обновляем range — deviation от скользящего среднего, НЕ от preference
+  // Это предотвращает рост range при стабильном поведении, когда preference ещё не догнал сигнал
+  const rollingAvg = recentSignals.length > 0
+    ? recentSignals.reduce((a, b) => a + b, 0) / recentSignals.length
+    : current.preference;
+  const deviation = Math.abs(signal - rollingAvg);
   const rangeDelta = deviation > BLEND_CONFIG.rangeGrowthThreshold
-    ? 0.02    // Сильное отклонение → range растёт
+    ? 0.02    // Сильное отклонение от недавнего поведения → range растёт
     : deviation > 0.15
       ? 0.01  // Умеренное отклонение → range чуть растёт
       : -BLEND_CONFIG.rangeDecayRate;  // Стабильность → range сужается
@@ -816,25 +924,37 @@ function updateAxis(
 function blendBehavioralSignals(
   signals: AxisSignals,
   profile: JungianProfile,
+  recentSignals: { extraversion: number[]; intuition: number[]; thinking: number[]; judging: number[] },
 ): JungianProfile {
+  const updatedExtraversion = updateAxis(profile.extraversion, signals.extraversion, profile.axisConfidence.extraversion, recentSignals.extraversion);
+  const updatedIntuition = updateAxis(profile.intuition, signals.intuition, profile.axisConfidence.intuition, recentSignals.intuition);
+  const updatedThinking = updateAxis(profile.thinking, signals.thinking, profile.axisConfidence.thinking, recentSignals.thinking);
+  const updatedJudging = updateAxis(profile.judging, signals.judging, profile.axisConfidence.judging, recentSignals.judging);
+
+  const updatedConfExtraversion = updateAxisConfidence(profile.axisConfidence.extraversion, signals.extraversion, updatedExtraversion.preference);
+  const updatedConfIntuition = updateAxisConfidence(profile.axisConfidence.intuition, signals.intuition, updatedIntuition.preference);
+  const updatedConfThinking = updateAxisConfidence(profile.axisConfidence.thinking, signals.thinking, updatedThinking.preference);
+  const updatedConfJudging = updateAxisConfidence(profile.axisConfidence.judging, signals.judging, updatedJudging.preference);
+
   return {
-    extraversion: updateAxis(profile.extraversion, signals.extraversion, profile.axisConfidence.extraversion),
-    intuition: updateAxis(profile.intuition, signals.intuition, profile.axisConfidence.intuition),
-    thinking: updateAxis(profile.thinking, signals.thinking, profile.axisConfidence.thinking),
-    judging: updateAxis(profile.judging, signals.judging, profile.axisConfidence.judging),
-    confidence: profile.confidence,  // confidence обновляется отдельно
+    extraversion: updatedExtraversion,
+    intuition: updatedIntuition,
+    thinking: updatedThinking,
+    judging: updatedJudging,
+    confidence: (updatedConfExtraversion + updatedConfIntuition + updatedConfThinking + updatedConfJudging) / 4,
     axisConfidence: {
-      extraversion: updateAxisConfidence(profile.axisConfidence.extraversion, signals.extraversion, profile.extraversion.preference),
-      intuition: updateAxisConfidence(profile.axisConfidence.intuition, signals.intuition, profile.intuition.preference),
-      thinking: updateAxisConfidence(profile.axisConfidence.thinking, signals.thinking, profile.thinking.preference),
-      judging: updateAxisConfidence(profile.axisConfidence.judging, signals.judging, profile.judging.preference),
+      extraversion: updatedConfExtraversion,
+      intuition: updatedConfIntuition,
+      thinking: updatedConfThinking,
+      judging: updatedConfJudging,
     },
     source: 'blended',
   };
 }
 
-function updateAxisConfidence(current: number, incoming: number, preference: number): number {
-  const difference = Math.abs(incoming - preference);
+function updateAxisConfidence(current: number, incoming: number, blendedPreference: number): number {
+  // Сравниваем incoming signal с blended preference (НЕ с raw current.preference)
+  const difference = Math.abs(incoming - blendedPreference);
   if (difference < 0.1) return Math.min(0.95, current + 0.05);     // Подтверждение → растёт
   if (difference > 0.3) return Math.max(0.3, current - 0.1);       // Противоречие → падает
   return current;                                                    // Нейтрально → без изменений
@@ -885,13 +1005,18 @@ return {
 - **Путь к Big Five.** Continuous scores — 4 из 5 факторов OCEAN.
 - **Multi-dimensional.** Range позволяет отличить "стабильного интроверта" от "интроверта с широким диапазоном".
 
-### Confidence formula (в blend)
+### Confidence formula
+
+`overallConfidence` обновляется в `blendBehavioralSignals` как среднее 4 `axisConfidence`:
 
 ```text
-newAxisConfidence = min(0.95, current + weight * (1 - current) * signalStrength)
-  — только если incomingAxisConfidence по этой оси > 0
-overallConfidence = среднее по 4 newAxisConfidence
+overallConfidence = (conf_extraversion + conf_intuition + conf_thinking + conf_judging) / 4
 ```
+
+Каждая `axisConfidence` обновляется в `updateAxisConfidence`:
+- Подтверждение (|signal - blendedPreference| < 0.1): +0.05, cap 0.95
+- Противоречие (|signal - blendedPreference| > 0.3): -0.10, floor 0.30
+- Нейтрально: без изменений
 
 Ожидаемые диапазоны:
 | Источник | overall confidence |
@@ -1363,8 +1488,8 @@ Stylist имеет `buildAntiMoralizingPrompt()`. Для F-типов (thinking 
 
 ```typescript
 function getMoralizingGate(profile: JungianProfile): 'strict' | 'relaxed' | 'off' {
-  if (profile.thinking > 0.7) return 'strict';
-  if (profile.thinking > 0.5) return 'relaxed';
+  if (profile.thinking.preference > 0.7) return 'strict';
+  if (profile.thinking.preference > 0.5) return 'relaxed';
   return 'off';
 }
 ```
@@ -1443,19 +1568,17 @@ ALTER TABLE player_style_profiles ADD COLUMN detected_themes TEXT NOT NULL DEFAU
 CREATE TABLE IF NOT EXISTS player_behavioral_metrics (
   player_id TEXT PRIMARY KEY,
   total_turns INTEGER NOT NULL DEFAULT 0,
-  -- Агрегаты (инкрементальные)
-  dialogue_initiated INTEGER NOT NULL DEFAULT 0,
-  dialogue_count INTEGER NOT NULL DEFAULT 0,
-  dialogue_total_words INTEGER NOT NULL DEFAULT 0,
-  avoided_dialogues INTEGER NOT NULL DEFAULT 0,
-  unique_locations INTEGER NOT NULL DEFAULT 0,
-  exploration_actions INTEGER NOT NULL DEFAULT 0,
-  risk_taking_actions INTEGER NOT NULL DEFAULT 0,
-  planning_actions INTEGER NOT NULL DEFAULT 0,
-  combat_initiated INTEGER NOT NULL DEFAULT 0,
-  combat_avoided INTEGER NOT NULL DEFAULT 0,
-  input_total_chars INTEGER NOT NULL DEFAULT 0,
-  expressive_actions INTEGER NOT NULL DEFAULT 0,
+  -- Агрегаты (REAL — после decay 0.9 значения дробные)
+  dialogue_initiated REAL NOT NULL DEFAULT 0,
+  dialogue_count REAL NOT NULL DEFAULT 0,
+  dialogue_total_words REAL NOT NULL DEFAULT 0,
+  avoided_dialogues REAL NOT NULL DEFAULT 0,
+  exploration_actions REAL NOT NULL DEFAULT 0,
+  risk_taking_actions REAL NOT NULL DEFAULT 0,
+  planning_actions REAL NOT NULL DEFAULT 0,
+  combat_initiated REAL NOT NULL DEFAULT 0,
+  input_total_chars REAL NOT NULL DEFAULT 0,
+  expressive_actions REAL NOT NULL DEFAULT 0,
   -- Результирующие сигналы
   signal_extraversion REAL NOT NULL DEFAULT 0.5,
   signal_intuition REAL NOT NULL DEFAULT 0.5,
@@ -1465,13 +1588,16 @@ CREATE TABLE IF NOT EXISTS player_behavioral_metrics (
 );
 ```
 
+`unique_locations` не хранится в БД — берётся из `SessionState.visitedLocations.size` при вызове `deriveMetrics()`.
+
 ### Пайплайн обновления
 
 1. **При создании мира:** `analyzeText(synopsis, prologue)` → session/memory
 2. **При Birth Wizard:** hints уточняют (слабые сигналы, weight ≤ 0.15)
 3. **Каждый ход:** `MetricsCollector` инкрементирует агрегаты (без LLM)
-4. **Каждые 20 ходов:** `inferFromMetrics` → `blendBehavioralSignals` → update both tables
-5. **Confidence:** подтверждение → рост, противоречие → падение, нейтрально → стабильно
+4. **Каждые 20 ходов:** `deriveMetrics` → `inferFromMetrics` → `blendBehavioralSignals` → update both tables → `decay()`
+5. **Confidence:** подтверждение → рост (+0.05), противоречие → падение (-0.10), нейтрально → стабильно
+6. **Range:** deviation от rolling avg > 0.3 → рост (+0.02), стабильность → decay (-0.005/цикл)
 6. **Range:** отклонения > 0.3 → рост, стабильность → decay на 0.5%/ход
 7. **Exploration:** Director использует `averageRange(profile)` для `explorationFactor` (минимум 5%)
 
