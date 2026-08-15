@@ -11,17 +11,20 @@ import { SQLiteStore } from "../lib/sqlite-store";
 import { EventSourcingChronicler } from "./event-sourcing-chronicler";
 import { getLogger } from "../utils/logger";
 import { join } from "node:path";
+import type { PlayerProfileStore } from "../lib/player-profile-store";
 
 const log = getLogger("narrative-service");
 
 export interface NarrativeContextDeps {
   dbPath: string;
   worldFrame: Record<string, unknown>;
+  playerProfileStore?: PlayerProfileStore;
 }
 
 export class NarrativeService {
   readonly dbPath: string;
   readonly worldFrame: Record<string, unknown>;
+  readonly playerProfileStore?: PlayerProfileStore;
   readonly entityStore: BootstrapperResult["entityStore"];
   readonly graphStore: BootstrapperResult["graphStore"];
   readonly eventBus: BootstrapperResult["eventBus"];
@@ -58,6 +61,7 @@ export class NarrativeService {
   constructor(deps: NarrativeContextDeps) {
     this.dbPath = deps.dbPath;
     this.worldFrame = deps.worldFrame;
+    this.playerProfileStore = deps.playerProfileStore;
 
     this._services = bootstrapNarrativeServices(deps.dbPath, deps.worldFrame);
     this._facade = new NarrativeFacade({
@@ -178,6 +182,7 @@ export class NarrativeService {
       chronicler: this.chronicler,
       clock: this.clock,
       worldFrame: this.worldFrame,
+      playerProfileStore: this.playerProfileStore,
     });
   }
 

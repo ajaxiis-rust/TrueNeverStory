@@ -129,8 +129,11 @@ async function main() {
     worldFrame = readJsonFileSync<Record<string, unknown>>(worldFramePath) ?? {};
   }
 
+  // Jungian profiler: player-profile store (injected for world-creation + birth-wizard stage-2)
+  const playerProfileStore = new PlayerProfileStore(join(process.cwd(), "data", "player-profiles.db"));
+
   // Initialize NarrativeService (DI container for all services)
-  const narrativeCtx = new NarrativeService({ dbPath, worldFrame });
+  const narrativeCtx = new NarrativeService({ dbPath, worldFrame, playerProfileStore });
   await narrativeCtx.start();
 
   // Expose narrative service globally for routes
@@ -188,7 +191,6 @@ async function main() {
   setWorldServices(narrativeCtx, engine);
 
   // Jungian profiler: inject player-profile store for world-creation text analysis
-  const playerProfileStore = new PlayerProfileStore(join(process.cwd(), "data", "player-profiles.db"));
   setWorldProfilerServices(playerProfileStore, narrativeCtx.llmQueue);
 
   // Wire up route dependencies

@@ -103,3 +103,37 @@ describe('PlayerProfileStore — npc_perception', () => {
     expect(pstore.getNpcPerception('x', 'y')).toBeNull();
   });
 });
+
+describe('PlayerProfileStore — closest_author', () => {
+  let cstore: PlayerProfileStore;
+  let cdbPath: string;
+
+  beforeEach(() => {
+    cdbPath = join(tmpdir(), `tns-closestauthor-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+    cstore = new PlayerProfileStore(cdbPath);
+  });
+  afterEach(() => { cstore.close(); rmSync(cdbPath, { force: true }); });
+
+  it('roundtrip closest_author', () => {
+    cstore.upsertClosestAuthor('player1', 'Tolkien');
+    expect(cstore.getClosestAuthor('player1')).toBe('Tolkien');
+  });
+
+  it('upsert null clears', () => {
+    cstore.upsertClosestAuthor('player1', 'Tolkien');
+    cstore.upsertClosestAuthor('player1', null);
+    expect(cstore.getClosestAuthor('player1')).toBeNull();
+  });
+
+  it('unknown player → null', () => {
+    expect(cstore.getClosestAuthor('missing')).toBeNull();
+  });
+
+  it('closest_author survives a later upsertProfile (ON CONFLICT DO UPDATE)', () => {
+    cstore.upsertClosestAuthor('player1', 'Tolkien');
+    const p = createDefaultProfile('player1');
+    p.avg_sentence_len = 30;
+    cstore.upsertProfile(p);
+    expect(cstore.getClosestAuthor('player1')).toBe('Tolkien');
+  });
+});

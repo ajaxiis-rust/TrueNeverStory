@@ -16,6 +16,9 @@ import type { Chronicler } from "./chronicler";
 import type { WorldClock } from "./world-clock";
 import { getPRNG } from "../lib/prng";
 import { getLogger } from "../utils/logger";
+import type { PlayerProfileStore } from "../lib/player-profile-store";
+import { loadAuthorCorpus, analyzeBirth } from "./author-matcher";
+import { blendProfiles, createDefaultProfile } from "./jungian-profiler";
 
 const log = getLogger("birth");
 
@@ -114,6 +117,7 @@ export interface BirthDeps {
   chronicler: Chronicler;
   clock: WorldClock;
   worldFrame: Record<string, unknown>;
+  playerProfileStore?: PlayerProfileStore;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -943,6 +947,22 @@ export class BirthScenario {
     log.info("Applying birth for %s", params.character_name);
 
     const charNode = await createCharacterEntity(this._deps.entityStore, params);
+
+    // S5.2 stage 2: refine psychotype from character description + match author (once, at birth)
+    if (this._deps.playerProfileStore) {
+      const prologue = (this._deps.worldFrame.prologue as string) ?? '';
+      const corpus = loadAuthorCorpus();
+      if (corpus.length > 0 && prologue.trim().length > 0) {
+        const { LLMClient } = await import('../lib/llm-client');
+        const r = await analyzeBirth(userHints, prologue, corpus, (t) => new LLMClient().generateEmbedding(t), this._deps.llmQueue);
+        if (r) {
+          const base = this._deps.playerProfileStore.getJungianProfile('default') ?? createDefaultProfile();
+          this._deps.playerProfileStore.upsertJungianProfile('default', blendProfiles(base, r.psychotype));
+          this._deps.playerProfileStore.upsertClosestAuthor('default', r.closestAuthor ?? null);
+        }
+      }
+    }
+
     await createFamilyMembers(this._deps.entityStore, this._deps.graphStore, params, charNode.uid);
 
     if (params.family.heirloom_name) {

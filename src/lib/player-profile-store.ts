@@ -98,6 +98,8 @@ export class PlayerProfileStore {
     ];
     for (const [col, def] of jungianCols) this.addColumnIfMissing('player_style_profiles', col, def);
 
+    this.addColumnIfMissing('player_style_profiles', 'closest_author', 'TEXT');
+
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS player_behavioral_metrics (
         player_id TEXT PRIMARY KEY,
@@ -251,6 +253,21 @@ export class PlayerProfileStore {
         thinking: row.jungian_conf_thinking as number, judging: row.jungian_conf_judging as number },
       source: row.jungian_source as JungianProfile['source'],
     };
+  }
+
+  upsertClosestAuthor(playerId: string, name: string | null): void {
+    const now = Math.floor(Date.now() / 1000);
+    this.db.prepare(`
+      INSERT INTO player_style_profiles (player_id, closest_author, last_updated)
+      VALUES (?, ?, ?)
+      ON CONFLICT(player_id) DO UPDATE SET closest_author = excluded.closest_author
+    `).run(playerId, name, now);
+  }
+
+  getClosestAuthor(playerId: string): string | null {
+    const row = this.db.prepare(`SELECT closest_author FROM player_style_profiles WHERE player_id = ?`)
+      .get(playerId) as { closest_author: string | null } | undefined;
+    return row?.closest_author ?? null;
   }
 
   upsertBehavioralMetrics(playerId: string, agg: RawAggregates, totalTurns: number, signals: AxisSignals): void {
