@@ -243,6 +243,21 @@ detect_providers() {
             BEST_PROVIDER_NAME="llama.cpp ($ARCH)"
             BEST_PROVIDER_TYPE="llamacpp"
             echo -e "${GREEN}  Found llama.cpp with model: $(basename "$model_path")${NC}"
+
+            # Detect local embedding model (BGE/embed) for the dedicated 5002 server
+            BEST_PROVIDER_EMBED=""
+            while IFS= read -r -d '' ef; do
+                if is_gguf_valid "$ef"; then
+                    BEST_PROVIDER_EMBED="$(basename "$ef")"
+                    break
+                else
+                    echo -e "${YELLOW}  Skipping corrupted embedding model: $(basename "$ef")${NC}"
+                    rm -f "$ef"
+                fi
+            done < <(find ./local-models -maxdepth 1 \( -iname "*bge*" -o -iname "*embed*" \) -name "*.gguf" -type f -print0 2>/dev/null)
+            if [[ -n "$BEST_PROVIDER_EMBED" ]]; then
+                echo -e "${GREEN}  Found embedding model: ${BEST_PROVIDER_EMBED}${NC}"
+            fi
         fi
     fi
 
@@ -453,6 +468,15 @@ auto_configure_env() {
             write_env_key "WORLD_LLM_BASE_URL" "http://127.0.0.1:${LLM_PORT}/v1"
             write_env_key "WORLD_LLM_API_KEY" "llamacpp"
             write_env_key "WORLD_LLM_MODEL" "$BEST_PROVIDER_MODEL"
+            if [[ -n "$BEST_PROVIDER_EMBED" ]]; then
+                write_env_key "WORLD_EMBEDDING_MODEL" "$BEST_PROVIDER_EMBED"
+                write_env_key "WORLD_EMBEDDING_BASE_URL" "http://127.0.0.1:${EMBED_PORT}/v1"
+                write_env_key "WORLD_EMBEDDING_API_KEY" "llamacpp"
+            else
+                write_env_key "WORLD_EMBEDDING_MODEL" ""
+                write_env_key "WORLD_EMBEDDING_BASE_URL" ""
+                write_env_key "WORLD_EMBEDDING_API_KEY" ""
+            fi
             ;;
     esac
 
@@ -753,8 +777,7 @@ fi
 #  §11  START EMBEDDING SERVER (only for llamacpp + local BGE)
 # ═══════════════════════════════════════════════════════════════
 
-EMBED_URL=$(env_get "WORLD_EMBEDDING_BASE_URL" "")
-if [[ "$BEST_PROVIDER" == "llamacpp" && -z "$EMBED_URL" && -n "$LLAMA_BIN" ]]; then
+if [[ "$BEST_PROVIDER" == "llamacpp" && -n "$LLAMA_BIN" ]]; then
     if ! port_in_use "$EMBED_PORT"; then
         EMBED_PATH=""
         if [[ -d "./local-models" ]]; then
