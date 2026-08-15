@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { PlayerProfileStore, createDefaultProfile } from '../player-profile-store';
-import { unlinkSync } from 'node:fs';
+import { createDefaultProfile as createJungianProfile } from '../../services/jungian-profiler';
+import { unlinkSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const TEST_DB = '/tmp/test-player-profiles.db';
 
@@ -34,5 +37,45 @@ describe('PlayerProfileStore', () => {
     expect(p.avg_sentence_len).toBe(15.0);
     expect(p.confidence).toBe(0.0);
     expect(p.message_count_used).toBe(0);
+  });
+});
+
+describe('PlayerProfileStore — jungian', () => {
+  let jstore: PlayerProfileStore;
+  let jdbPath: string;
+
+  beforeEach(() => {
+    jdbPath = join(tmpdir(), `tns-jungian-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+    jstore = new PlayerProfileStore(jdbPath);
+  });
+  afterEach(() => { jstore.close(); rmSync(jdbPath, { force: true }); });
+
+  it('upsert + get roundtrip preserves all fields', () => {
+    const p = createJungianProfile();
+    p.extraversion.preference = 0.3; p.extraversion.range = 0.2;
+    p.thinking.preference = 0.75; p.confidence = 0.42; p.source = 'blended';
+    jstore.upsertJungianProfile('player1', p);
+    const got = jstore.getJungianProfile('player1')!;
+    expect(got.extraversion.preference).toBeCloseTo(0.3, 5);
+    expect(got.extraversion.range).toBeCloseTo(0.2, 5);
+    expect(got.thinking.preference).toBeCloseTo(0.75, 5);
+    expect(got.confidence).toBeCloseTo(0.42, 5);
+    expect(got.source).toBe('blended');
+  });
+
+  it('get for unknown player → null', () => {
+    expect(jstore.getJungianProfile('nobody')).toBeNull();
+  });
+
+  it('behavioral metrics roundtrip with fractional aggregates', () => {
+    const agg = { dialogueInitiated: 4.5, dialogueCount: 9.2, dialogueTotalWords: 100.0,
+      avoidedDialogues: 0.9, explorationActions: 3.3, riskTakingActions: 2.1,
+      planningActions: 1.8, combatInitiated: 5.0, inputTotalChars: 250.5, expressiveActions: 1.1 };
+    const signals = { extraversion: 0.62, intuition: 0.4, thinking: 0.7, judging: 0.55 };
+    jstore.upsertBehavioralMetrics('player1', agg, 25, signals);
+    const got = jstore.getBehavioralMetrics('player1')!;
+    expect(got.aggregates.dialogueInitiated).toBeCloseTo(4.5, 5);
+    expect(got.totalTurns).toBe(25);
+    expect(got.signals.thinking).toBeCloseTo(0.7, 5);
   });
 });
