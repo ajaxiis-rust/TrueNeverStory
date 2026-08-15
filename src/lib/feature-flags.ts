@@ -110,6 +110,20 @@ const DEFAULT_FLAGS: FeatureFlag[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: "jungian-profiler-enabled",
+    name: "Jungian Profiler",
+    description: "Psychotype-based narrative adaptation (Phase 1: logging only)",
+    enabled: false,
+    percentage: 0,
+    conditions: [],
+    variants: [
+      { id: "control", name: "Control", weight: 50 },
+      { id: "treatment", name: "Treatment", weight: 50 },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 class FeatureFlagManager {
