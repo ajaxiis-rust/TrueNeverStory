@@ -16,4 +16,16 @@ describe('StylistAgent.buildMicroPrompt', () => {
     const { user } = agent.buildMicroPrompt('Alek seeks Bran.', style, { world: 'Dark Realm', location: 'Old Oak' }, 'success');
     expect(user).not.toContain('Player psychological context');
   });
+  test('authorPhrases passed → few-shot block present', () => {
+    const { user } = agent.buildMicroPrompt(
+      'Alek seeks Bran.', style, { world: 'Dark Realm', location: 'Old Oak' }, 'success',
+      undefined, ['In a hole in the ground there lived a hobbit.', 'Not all those who wander are lost.'],
+    );
+    expect(user).toContain('Author style examples (few-shot)');
+    expect(user).toContain('In a hole in the ground there lived a hobbit.');
+  });
+  test('no authorPhrases → no few-shot block', () => {
+    const { user } = agent.buildMicroPrompt('Alek seeks Bran.', style, { world: 'Dark Realm', location: 'Old Oak' }, 'success');
+    expect(user).not.toContain('Author style examples (few-shot)');
+  });
 });

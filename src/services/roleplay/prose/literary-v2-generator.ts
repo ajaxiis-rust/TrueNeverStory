@@ -40,10 +40,11 @@ export class LiteraryV2Generator {
     gameContext: GameContext,
     rawInput: string,
     playerVoice?: string,
+    authorPhrases?: string[],
   ): Promise<string> {
     const literaryDb = this.getLiteraryDb();
     if (!literaryDb) {
-      return this.generateViaStylist(intent, simulation, gameContext, playerVoice);
+      return this.generateViaStylist(intent, simulation, gameContext, playerVoice, authorPhrases);
     }
 
     const keys = this.buildRetrievalKeys(intent, rawInput);
@@ -55,7 +56,7 @@ export class LiteraryV2Generator {
     }
 
     if (results.length === 0) {
-      return this.generateViaStylist(intent, simulation, gameContext, playerVoice);
+      return this.generateViaStylist(intent, simulation, gameContext, playerVoice, authorPhrases);
     }
 
     const v2Start = Date.now();
@@ -68,6 +69,7 @@ export class LiteraryV2Generator {
       { world: (this.worldFrame.name as string) ?? 'unknown', location: gameContext.location?.name ?? 'unknown' },
       simulation.outcome,
       playerVoice,
+      authorPhrases,
     );
 
     const narrative = await this.llmQueue.generateText(
@@ -86,6 +88,7 @@ export class LiteraryV2Generator {
     simulation: SimulationResult,
     gameContext: GameContext,
     playerVoice?: string,
+    authorPhrases?: string[],
   ): Promise<string> {
     const output = await this.stylist.process(intent, simulation, gameContext);
     if (output.text) return output.text;
@@ -96,6 +99,7 @@ export class LiteraryV2Generator {
       { world: (this.worldFrame.name as string) ?? 'unknown', location: gameContext.location?.name ?? 'unknown' },
       simulation.outcome,
       playerVoice,
+      authorPhrases,
     );
     return this.llmQueue.generateText(prompt.system + '\n\n' + prompt.user, 1, 0.6, 'stylist');
   }

@@ -206,6 +206,7 @@ export class StylistAgent extends BaseAgentV2 {
     context: { world: string; location: string; time?: string },
     outcome: string,
     playerVoice?: string,
+    authorPhrases?: string[],
   ): { system: string; user: string } {
     const system = `You are a literary narrator for a living world simulator.
 Render the given scene. Do not invent new plot beats.
@@ -228,6 +229,10 @@ ${style.snippets.map((s, i) => `  ${i + 1}) ${s}`).join('\n')}
       ? `\nPlayer voice notes (soft prior):\n${playerVoice}`
       : '';
 
+    const authorBlock = authorPhrases && authorPhrases.length > 0
+      ? `\nAuthor style examples (few-shot):\n${authorPhrases.map((p, i) => `  ${i + 1}) ${p}`).join('\n')}`
+      : '';
+
     const user = `Scene skeleton:
 ${filledSkeleton}
 
@@ -237,7 +242,7 @@ ${outcome}
 Minimal facts:
 - world: ${context.world}
 - location: ${context.location}${context.time ? `\n- time: ${context.time}` : ''}
-${styleBlock}${voiceBlock}
+${styleBlock}${voiceBlock}${authorBlock}
 
 Write 2-3 paragraphs continuing this scene.`;
 

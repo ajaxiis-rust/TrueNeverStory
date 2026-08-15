@@ -49,6 +49,7 @@ import { LiteraryCompilerDB } from '../mcp/literary-compiler/schema';
 import { MetricsCollector, deriveMetrics, inferFromMetrics } from './metrics-collector';
 import { blendBehavioralSignals, createDefaultProfile, deriveType, computeDistribution, buildPlayerVoice, type JungianProfile, type WorldState, type SceneContext } from './jungian-profiler';
 import { PlayerProfileStore } from '../lib/player-profile-store';
+import { loadAuthorCorpus } from './author-matcher';
 import { getFeatureFlagManager } from '../lib/feature-flags';
 
 const log = getLogger('roleplay-engine');
@@ -314,6 +315,12 @@ export class RoleplayEngine {
     return this.activeCharacter ?? this.activeSessionId ?? 'default';
   }
 
+  private resolveAuthorPhrases(): string[] {
+    const authorName = this.playerProfileStore?.getClosestAuthor(this.playerId);
+    if (!authorName) return [];
+    return loadAuthorCorpus().find(a => a.name === authorName)?.samplePhrases ?? [];
+  }
+
   private initJungianProfile(): void {
     const saved = this.playerProfileStore?.getJungianProfile(this.playerId);
     if (saved) this.jungianProfile = saved;
@@ -437,7 +444,7 @@ export class RoleplayEngine {
     ctx.v2Used = true;
 
     try {
-      narrative = await this.v2Generator.generate(intent, simResult, gameContext, ctx.parsedInput, ctx.playerVoice);
+      narrative = await this.v2Generator.generate(intent, simResult, gameContext, ctx.parsedInput, ctx.playerVoice, this.resolveAuthorPhrases());
     } catch (err) {
       log.error({ err }, 'v2 prose generation failed');
       narrative = 'The story pauses here.';
@@ -585,7 +592,7 @@ export class RoleplayEngine {
     // Generate prose (streaming for actions, non-streaming for movement/dialogue)
     yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
-    let narrative = await this.v2Generator.generate(intent, simResult, gameContext, parsedInput, playerVoice);
+    let narrative = await this.v2Generator.generate(intent, simResult, gameContext, parsedInput, playerVoice, this.resolveAuthorPhrases());
     if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled') && narrative) {
       const cleaned = await this.censor.clean(narrative, gameContext);
       narrative = cleaned.cleaned;
