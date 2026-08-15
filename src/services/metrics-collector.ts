@@ -99,7 +99,8 @@ export class MetricsCollector {
       }
     }
     if (intent.type === 'action' || intent.type === 'command') {
-      if (isPlanningVerb(intent.type === 'action' ? intent.verb : undefined)) {
+      const verb = intent.type === 'action' ? intent.verb : intent.command;
+      if (isPlanningVerb(verb)) {
         this.aggregates.planningActions++;
       }
     }

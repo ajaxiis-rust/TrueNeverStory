@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.32.1] — 2026-08-15 — Jungian Profiler specs + plans
+
+### Jungian Profiler — design corrected + 18-file implementation plan
+
+- **Design spec v1.3** (`docs/compose/specs/2026-08-10-jungian-profiler-design_1.3.md`) — corrected against real code: two-stage LLM text analysis (createWorld + birth wizard), `profile.l3.psychotype`, `recordSimulation` fix, 1024-dim BGE-M3, nested S5 schema
+- **4 impl specs** (blend-algorithm, behavioral-metrics, persistence, integration, implementation) — fixed to match real code: Hono `worlds.ts` (not a class), `INSERT OR REPLACE` → `ON CONFLICT DO UPDATE`, `node:os.tmpdir()`, `__tests__/` paths
+- **18-file phase plan** (`docs/compose/plans/2026-08-14-jungian-profiler*.md`) — P1 (data model + blend + Director + persistence) → P4 (AuthorMatcher), TDD, ≤300 lines/phase
+- **Bugfix** — `MetricsCollector.recordSimulation` command branch now reads `intent.command`
+
+### Tests
+
+- metrics-collector: 29 pass / 0 fail
+
+---
+
 ## [v0.32.0] — 2026-08-10 — Gutenberg Processing Pipeline
 
 ### Gutenberg Pipeline — 59 books → 4 SQLite databases

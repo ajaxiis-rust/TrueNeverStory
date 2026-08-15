@@ -1,6 +1,6 @@
 # Behavioral Metrics Pipeline — Jungian Profiler
 
-> Спека 2 из 4. MetricsCollector уже реализован (`src/services/metrics-collector.ts`).
+> Спека 2 из 5. MetricsCollector уже реализован (`src/services/metrics-collector.ts`).
 > Эта спека — reference для plan'ов, которые будут его использовать.
 > Остальные спеки: [Spec 1 — Blend Algorithm](spec-blend-algorithm.md) | [Spec 3 — Persistence](spec-profiler-persistence.md) | [Spec 4 — Integration](spec-profiler-integration.md)
 
@@ -25,7 +25,7 @@
   inferFromMetrics(derived) → AxisSignals (4 оси, 0-1)
       │
       ▼ (каждые 20 ходов)
-  blendBehavioralSignals(signals, currentProfile) → обновлённый JungianProfile
+  blendBehavioralSignals(signals, currentProfile, recentSignals) → обновлённый JungianProfile
   MetricsCollector.decay() → агрегаты × 0.9
 ```
 

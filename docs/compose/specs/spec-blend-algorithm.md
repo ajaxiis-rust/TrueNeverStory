@@ -1,7 +1,7 @@
 # Blend Algorithm — Jungian Profiler
 
-> Спека 1 из 4. Самодостаточна — pure functions, нет зависимостей от других модулей.
-> Остальные спеки: [Spec 2 — Behavioral Metrics](spec-behavioral-metrics.md) | [Spec 3 — Persistence](spec-profiler-persistence.md) | [Spec 4 — Integration](spec-profiler-integration.md)
+> Спека 1 из 5. Самодостаточна — pure functions, нет зависимостей от других модулей.
+> Остальные спеки: [Spec 2 — Behavioral Metrics](spec-behavioral-metrics.md) | [Spec 3 — Persistence](spec-profiler-persistence.md) | [Spec 4 — Integration](spec-profiler-integration.md) | [Spec 5 — Implementation](spec-profiler-implementation.md)
 
 ## Цель
 
@@ -19,7 +19,7 @@ const BLEND_CONFIG = {
 };
 ```
 
-Конвергенция: ~250 ходов (gap=0.2). Rate limit срабатывает при gap > 0.40 (maxShift/alpha).
+Конвергенция (EMA alpha=0.25): 50% gap closed за ~50 ходов; 95% конвергенция за ~210 ходов. Rate limit срабатывает при gap > 0.40 (maxShift/alpha). См. таблицу ниже.
 
 ## AxisProfile (тип)
 
@@ -43,8 +43,8 @@ interface JungianProfile {
   judging: AxisProfile;
   confidence: number;         // Среднее по axisConfidence
   axisConfidence: AxisConfidence;
-  source: 'synopsis' | 'blended' | 'default';
-  derivedType?: string;       // e.g. "INTJ", "ENXP"
+  source: 'text' | 'metrics' | 'blended' | 'default';
+  derivedType?: string;       // кеш deriveType(profile); source of truth — функция deriveType()
 }
 ```
 
@@ -135,6 +135,113 @@ function updateAxisConfidence(current: number, incoming: number, blendedPreferen
 }
 ```
 
+## injectShadow + normalizeWeights
+
+Добавляет в distribution веса для слабой (inferior) функции игрока. Вызывается после `computeDistribution`.
+
+```typescript
+function injectShadow(dist: ProbabilityDistribution, profile: JungianProfile): void {
+  const rate = dist.shadowInjection;
+
+  // Слабая judging-функция: T → добавляем emotional, F → добавляем analytical
+  if (profile.thinking.preference > 0.6) {
+    dist.informationStyle.push({ value: 'emotional', weight: rate });
+    dist.sceneTone.push({ value: 'warm, personal', weight: rate });
+  }
+  if (profile.thinking.preference < 0.4) {
+    dist.informationStyle.push({ value: 'analytical', weight: rate });
+    dist.sceneTone.push({ value: 'dry, factual', weight: rate });
+  }
+
+  // Слабая perceiving-функция: N → добавляем sensory-детали, S → добавляем символизм
+  if (profile.intuition.preference > 0.6) {
+    dist.sensoryChannels.push({ value: 'concrete, tactile', weight: rate });
+  }
+  if (profile.intuition.preference < 0.4) {
+    dist.sensoryChannels.push({ value: 'symbolic, metaphorical', weight: rate });
+  }
+
+  normalizeWeights(dist);
+}
+
+function normalizeWeights(dist: ProbabilityDistribution): void {
+  for (const key of ['sceneTone', 'archetypes', 'pacing', 'sensoryChannels', 'informationStyle'] as const) {
+    const total = dist[key].reduce((s, c) => s + c.weight, 0);
+    if (total > 0) dist[key].forEach(c => c.weight /= total);
+  }
+}
+```
+
+**Пример:** INTJ (T-доминант, F-слабость) → добавляет `emotional` в informationStyle с весом 0.15 (shadowInjection). После normalizeWeights все веса суммируются в 1.0.
+
+## Confidence: ожидаемые диапазоны
+
+`confidence` = среднее 4 `axisConfidence`:
+
+```text
+confidence = (conf_extraversion + conf_intuition + conf_thinking + conf_judging) / 4
+```
+
+Каждая `axisConfidence` обновляется в `updateAxisConfidence`:
+- Подтверждение (|signal - blendedPreference| < 0.1): +0.05, cap 0.95
+- Противоречие (|signal - blendedPreference| > 0.3): -0.10, floor 0.30
+- Нейтрально: без изменений
+
+| Источник | overall confidence |
+|----------|--------------------|
+| Text only (Prologue 200+ слов) | 0.25–0.45 |
+| + Metrics (≥20 ходов) | 0.55–0.80 |
+| + Metrics (≥50 ходов) | 0.75–0.95 |
+
+## computeDistribution (Director)
+
+Director использует JungianProfile для вычисления ProbabilityDistribution — pure function, 0 LLM:
+
+```typescript
+interface ProbabilityDistribution {
+  sceneTone: WeightedChoice[];
+  archetypes: WeightedChoice[];
+  pacing: WeightedChoice[];
+  sensoryChannels: WeightedChoice[];
+  informationStyle: WeightedChoice[];
+  shadowInjection: number;       // 0.10–0.20 — доля контента для inferior функции
+  explorationFactor: number;     // 0.05 — случайный non-type контент
+}
+
+interface WeightedChoice {
+  value: string;
+  weight: number;
+}
+
+function computeDistribution(
+  profile: JungianProfile,
+  worldState: WorldState,
+  sceneContext: SceneContext,
+): ProbabilityDistribution {
+  if (profile.confidence < 0.3) return uniformDistribution();
+
+  const dist: ProbabilityDistribution = {
+    sceneTone: computeToneDistribution(profile),
+    archetypes: computeArchetypeDistribution(profile),
+    pacing: computePacingDistribution(profile),
+    sensoryChannels: computeSensoryDistribution(profile),
+    informationStyle: computeInfoStyleDistribution(profile),
+    shadowInjection: profile.confidence > 0.5 ? 0.15 : 0.05,
+    explorationFactor: Math.max(0.05, averageRange(profile) * 0.3),
+  };
+
+  injectShadow(dist, profile);
+  return dist;
+}
+
+function averageRange(profile: JungianProfile): number {
+  return (profile.extraversion.range + profile.intuition.range +
+          profile.thinking.range + profile.judging.range) / 4;
+}
+```
+
+**Правило:** adaptation включается при `profile.confidence >= 0.3`. При confidence < 0.3 — равномерное распределение.
+
 ## deriveType (16 MBTI типов)
 
 ```typescript
@@ -162,7 +269,7 @@ function deriveType(profile: JungianProfile): string {
 
 ## Cold start
 
-При первом запуске (нет данных) все оси = `{ preference: 0.5, range: 0.1 }`, confidence = 0.3, source = 'default'. Это не "середина по всему" — это "ещё не знаем". Confidence < 0.5 означает что профиль ненадёжен и Director должен давать разнообразный контент.
+При первом запуске (нет данных) все оси = `{ preference: 0.5, range: 0.1 }`, confidence = 0, axisConfidence = 0, source = 'default'. Это не "середина по всему" — это "ещё не знаем". confidence = 0 < 0.3 → Director возвращает uniform, адаптация выключена. После первого blend (20+ ходов) confidence начинает расти.
 
 ## Тесты (ключевые сценарии)
 

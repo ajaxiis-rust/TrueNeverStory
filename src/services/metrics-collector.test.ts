@@ -125,6 +125,15 @@ describe('MetricsCollector', () => {
       mc.recordSimulation(makeIntent({ type: 'action', verb: 'wait' }), makeSim());
       expect(mc.getAggregates().planningActions).toBe(2);
     });
+
+    test('counts planning command-type intents via command field', () => {
+      const mc = new MetricsCollector();
+      mc.recordSimulation(makeIntent({ type: 'command', command: 'craft' }), makeSim());
+      mc.recordSimulation(makeIntent({ type: 'command', command: 'quests' }), makeSim());
+      mc.recordSimulation(makeIntent({ type: 'command', command: 'look' }), makeSim());
+      // only 'craft' matches isPlanningVerb; 'quests'/'look' не входят в regex
+      expect(mc.getAggregates().planningActions).toBe(1);
+    });
   });
 
   describe('turn tracking', () => {
