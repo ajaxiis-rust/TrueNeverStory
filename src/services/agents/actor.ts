@@ -5,6 +5,7 @@ import { GameContext } from '@/services/context-builder';
 import { UnifiedEntityStore } from '@/store/entity-store';
 import { LLMQueue } from '@/lib/llm-queue';
 import { getLogger } from '@/utils/logger';
+import { sample, type WeightedChoice, type NpcEnrichment, type JungianProfile, deriveType } from '../jungian-profiler';
 
 const logger = getLogger('ActorAgent');
 
@@ -176,5 +177,31 @@ export class ActorAgent extends BaseAgentV2 {
     }
 
     return changes;
+  }
+
+  enrichNpcs(
+    informationStyleWeights: WeightedChoice[],
+    npcs: Array<{ id: string; name: string; psychotype?: JungianProfile }>,
+  ): NpcEnrichment[] {
+    const infoStyle = sample(informationStyleWeights);
+    return npcs.map(npc => ({ npcId: npc.id, name: npc.name, hint: this.buildHint(npc.name, npc.psychotype, infoStyle) }));
+  }
+
+  private buildHint(name: string, psychotype: JungianProfile | undefined, infoStyle: string): string {
+    if (!psychotype) return `${name}: neutral presence. Responds plainly, without strong bias.`;
+    const t = deriveType(psychotype);
+    const base: Record<string, string> = {
+      ISTP: 'Practical, blunt, tool-oriented. Short precise sentences. Exact prices.',
+      ESFJ: 'Warm but orderly. Presents information as a structured list.',
+      ENFP: 'Background presence. Cryptic, riddling lyrics if noticed at all.',
+      INTJ: 'Strategic and reserved. Weighs words, reveals little.',
+    };
+    const fallback = `${name} (${t}): consistent with a ${t} temperament.`;
+    const styleNote = infoStyle === 'analytical'
+      ? ' Under analytical lens: favors facts, logic, concrete numbers.'
+      : infoStyle === 'emotional'
+        ? ' Under emotional lens: favors feeling, personal stories, empathy.'
+        : '';
+    return (base[t] ?? fallback) + styleNote;
   }
 }
