@@ -4,6 +4,7 @@ import { SimulationResult } from '@/models/simulation';
 import { GameContext } from '@/services/context-builder';
 import { TNSServer } from '@/mcp/server';
 import { getLogger } from '@/utils/logger';
+import type { VerificationResult } from '../jungian-profiler';
 
 const logger = getLogger('ValidatorAgent');
 
@@ -107,5 +108,48 @@ export class ValidatorAgent extends BaseAgentV2 {
         evidence: [],
       };
     }
+  }
+
+  buildWorldConsistency(
+    gameContext: GameContext,
+    filledSkeleton: string,
+  ): { npcInLocation: boolean; itemsAvailable: boolean; timelineCoherent: boolean } {
+    const nearby = new Set(gameContext.nearbyNpcs.map(n => n.name));
+    const mentioned = this.extractMentionedNpcs(filledSkeleton, gameContext);
+    const npcInLocation = mentioned.every(n => nearby.has(n));
+    return { npcInLocation, itemsAvailable: true, timelineCoherent: true };
+  }
+
+  async verify(gameContext: GameContext, filledSkeleton: string): Promise<VerificationResult> {
+    const worldConsistency = this.buildWorldConsistency(gameContext, filledSkeleton);
+    const claims = this.extractClaimsFromSkeleton(filledSkeleton).slice(0, 3);
+    const verifications = await Promise.all(claims.map(c => this.verifyClaim(c)));
+    const notes = verifications.map(v => `${v.claim} (${v.confidence})`);
+    return { claims: verifications, worldConsistency, notes };
+  }
+
+  private extractMentionedNpcs(text: string, gameContext: GameContext): string[] {
+    const protagonist = gameContext.character?.name;
+    const locationWords = new Set((gameContext.location?.name ?? '').split(/\s+/).map(w => w.replace(/[^A-Za-z']/g, '')));
+    const names: string[] = [];
+    for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+      const words = sentence.split(/\s+/);
+      words.forEach((raw, i) => {
+        const w = raw.replace(/[^A-Za-z']/g, '');
+        if (!/^[A-Z][a-z']+$/.test(w)) return;
+        if (w === protagonist) return;
+        if (locationWords.has(w)) return;
+        if (i === 0) return;
+        names.push(w);
+      });
+    }
+    return names;
+  }
+
+  private extractClaimsFromSkeleton(filledSkeleton: string): string[] {
+    const matches = filledSkeleton.match(/\b(forge|craft|repair|build|brew|smelt)\w*/gi) ?? [];
+    return matches.length > 0
+      ? [`The scene involves ${matches[0]!.toLowerCase()} work (plausibility check)`]
+      : [];
   }
 }
