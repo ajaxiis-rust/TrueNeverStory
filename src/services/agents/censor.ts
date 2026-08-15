@@ -4,6 +4,7 @@ import { SimulationResult } from '@/models/simulation';
 import { GameContext } from '@/services/context-builder';
 import { LLMQueue } from '@/lib/llm-queue';
 import { getLogger } from '@/utils/logger';
+import type { CensorResult } from '../jungian-profiler';
 
 const logger = getLogger('CensorAgent');
 
@@ -77,6 +78,15 @@ export class CensorAgent extends BaseAgentV2 {
     cleaned = await this.llmPolish(cleaned, context);
 
     return cleaned;
+  }
+
+  async clean(rawNarrative: string, context: GameContext): Promise<CensorResult> {
+    if (!rawNarrative || rawNarrative.length === 0) {
+      return { cleaned: rawNarrative, llmPolished: false };
+    }
+    let cleaned = this.removeCliches(rawNarrative);
+    cleaned = this.fixAnachronisms(cleaned, context);
+    return { cleaned, llmPolished: false };
   }
 
   private removeCliches(text: string): string {
