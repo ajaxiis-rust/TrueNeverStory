@@ -202,6 +202,14 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
         <span class="form__tip" data-i18n-tip="tipDescription"></span>
       </div>
       <div class="form__field form__field--full">
+        <label class="form__label" data-i18n="uiSynopsis">Synopsis (1-3 sentences, optional)</label>
+        <textarea class="form__textarea" id="fSynopsis" placeholder="What is the story about?"></textarea>
+      </div>
+      <div class="form__field form__field--full">
+        <label class="form__label" data-i18n="uiPrologue">Prologue (optional)</label>
+        <textarea class="form__textarea" id="fPrologue" placeholder="A short backstory or opening scene..."></textarea>
+      </div>
+      <div class="form__field form__field--full">
         <label class="form__label" data-i18n="uiGenre">Genres</label>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
           <label class="form__check"><input type="checkbox" class="fGenre" value="fantasy"> <span data-i18n="uiGenreFantasy">Fantasy</span></label>
@@ -330,7 +338,7 @@ const I18N = {
     uiWorlds:"Worlds",uiProviders:"PROVIDERS",uiModels:"MODELS",uiAgents:"AGENTS",uiConfig:"CONFIG",uiBack:"BACK",
     uiYourWorlds:"Your Worlds",uiCreateWorld:"Create New World",uiLoading:"Loading...",
     uiWorldName:"World Name",uiTitle:"Title",uiDescription:"Description",uiGenre:"Genre",uiLanguage:"Language",
-    uiWorldRules:"World Rules (one per line)",uiMagicSystem:"Magic System (optional)",
+    uiWorldRules:"World Rules (one per line)",uiMagicSystem:"Magic System (optional)",uiSynopsis:"Synopsis (1-3 sentences, optional)",uiPrologue:"Prologue (optional)",
     uiSocialSystem:"Social System",uiSocialNone:"— None —",
     uiSocialFeudalism:"Feudalism",uiSocialDemocracy:"Democracy",uiSocialAnarchy:"Anarchy",
     uiSocialTheocracy:"Theocracy",uiSocialCommunism:"Communism",uiSocialCapitalism:"Capitalism",
@@ -363,7 +371,7 @@ const I18N = {
     uiWorlds:"Миры",uiProviders:"ПРОВАЙДЕРЫ",uiModels:"МОДЕЛИ",uiAgents:"АГЕНТЫ",uiConfig:"НАСТРОЙКИ",uiBack:"НАЗАД",
     uiYourWorlds:"Ваши миры",uiCreateWorld:"Создать новый мир",uiLoading:"Загрузка...",
     uiWorldName:"Название мира",uiTitle:"Заголовок",uiDescription:"Описание",uiGenre:"Жанр",uiLanguage:"Язык",
-    uiWorldRules:"Правила мира (по одному на строку)",uiMagicSystem:"Система магии (необязательно)",
+    uiWorldRules:"Правила мира (по одному на строку)",uiMagicSystem:"Система магии (необязательно)",uiSynopsis:"Синопсис (1-3 предложения, необязательно)",uiPrologue:"Пролог (необязательно)",
     uiSocialSystem:"Социальный строй",uiSocialNone:"— Нет —",
     uiSocialFeudalism:"Феодализм",uiSocialDemocracy:"Демократия",uiSocialAnarchy:"Анархия",
     uiSocialTheocracy:"Теократия",uiSocialCommunism:"Коммунизм",uiSocialCapitalism:"Капитализм",
@@ -396,7 +404,7 @@ const I18N = {
     uiWorlds:"Welten",uiProviders:"ANBIETER",uiModels:"MODELLE",uiAgents:"AGENTEN",uiConfig:"KONFIG",uiBack:"ZURÜCK",
     uiYourWorlds:"Ihre Welten",uiCreateWorld:"Neue Welt erstellen",uiLoading:"Laden...",
     uiWorldName:"Weltenname",uiTitle:"Titel",uiDescription:"Beschreibung",uiGenre:"Genre",uiLanguage:"Sprache",
-    uiWorldRules:"Weltenregeln (eine pro Zeile)",uiMagicSystem:"Magiesystem (optional)",
+    uiWorldRules:"Weltenregeln (eine pro Zeile)",uiMagicSystem:"Magiesystem (optional)",uiSynopsis:"Zusammenfassung (1-3 Sätze, optional)",uiPrologue:"Prolog (optional)",
     uiSocialSystem:"Soziales System",uiSocialNone:"— Keins —",
     uiSocialFeudalism:"Feudalismus",uiSocialDemocracy:"Demokratie",uiSocialAnarchy:"Anarchie",
     uiSocialTheocracy:"Theokratie",uiSocialCommunism:"Kommunismus",uiSocialCapitalism:"Kapitalismus",
@@ -429,7 +437,7 @@ const I18N = {
     uiWorlds:"Mondes",uiProviders:"FOURNISSEURS",uiModels:"MODÈLES",uiAgents:"AGENTS",uiConfig:"CONFIG",uiBack:"RETOUR",
     uiYourWorlds:"Vos mondes",uiCreateWorld:"Créer un nouveau monde",uiLoading:"Chargement...",
     uiWorldName:"Nom du monde",uiTitle:"Titre",uiDescription:"Description",uiGenre:"Genre",uiLanguage:"Langue",
-    uiWorldRules:"Règles du monde (une par ligne)",uiMagicSystem:"Système de magie (optionnel)",
+    uiWorldRules:"Règles du monde (une par ligne)",uiMagicSystem:"Système de magie (optionnel)",uiSynopsis:"Synopsis (1-3 phrases, optionnel)",uiPrologue:"Prologue (optionnel)",
     uiSocialSystem:"Système social",uiSocialNone:"— Aucun —",
     uiSocialFeudalism:"Féodalisme",uiSocialDemocracy:"Démocratie",uiSocialAnarchy:"Anarchie",
     uiSocialTheocracy:"Théocratie",uiSocialCommunism:"Communisme",uiSocialCapitalism:"Capitalisme",
@@ -462,7 +470,7 @@ const I18N = {
     uiWorlds:"Mundos",uiProviders:"PROVEEDORES",uiModels:"MODELOS",uiAgents:"AGENTES",uiConfig:"CONFIG",uiBack:"VOLVER",
     uiYourWorlds:"Tus mundos",uiCreateWorld:"Crear nuevo mundo",uiLoading:"Cargando...",
     uiWorldName:"Nombre del mundo",uiTitle:"Título",uiDescription:"Descripción",uiGenre:"Género",uiLanguage:"Idioma",
-    uiWorldRules:"Reglas del mundo (una por línea)",uiMagicSystem:"Sistema de magia (opcional)",
+    uiWorldRules:"Reglas del mundo (una por línea)",uiMagicSystem:"Sistema de magia (opcional)",uiSynopsis:"Sinopsis (1-3 frases, opcional)",uiPrologue:"Prólogo (opcional)",
     uiSocialSystem:"Sistema social",uiSocialNone:"— Ninguno —",
     uiSocialFeudalism:"Feudalismo",uiSocialDemocracy:"Democracia",uiSocialAnarchy:"Anarquía",
     uiSocialTheocracy:"Teocracia",uiSocialCommunism:"Comunismo",uiSocialCapitalism:"Capitalismo",
@@ -495,7 +503,7 @@ const I18N = {
     uiWorlds:"ワールド",uiProviders:"プロバイダー",uiModels:"モデル",uiAgents:"エージェント",uiConfig:"設定",uiBack:"戻る",
     uiYourWorlds:"あなたのワールド",uiCreateWorld:"新しいワールドを作成",uiLoading:"読み込み中...",
     uiWorldName:"ワールド名",uiTitle:"タイトル",uiDescription:"説明",uiGenre:"ジャンル",uiLanguage:"言語",
-    uiWorldRules:"ワールドのルール（1行に1つ）",uiMagicSystem:"魔法システム（オプション）",
+    uiWorldRules:"ワールドのルール（1行に1つ）",uiMagicSystem:"魔法システム（オプション）",uiSynopsis:"あらすじ（1〜3文、オプション）",uiPrologue:"プロローグ（オプション）",
     uiSocialSystem:"社会制度",uiSocialNone:"— なし —",
     uiSocialFeudalism:"封建主義",uiSocialDemocracy:"民主主義",uiSocialAnarchy:"無政府主義",
     uiSocialTheocracy:"神権政治",uiSocialCommunism:"共産主義",uiSocialCapitalism:"資本主義",
@@ -528,7 +536,7 @@ const I18N = {
     uiWorlds:"世界",uiProviders:"供应商",uiModels:"模型",uiAgents:"智能体",uiConfig:"配置",uiBack:"返回",
     uiYourWorlds:"你的世界",uiCreateWorld:"创建新世界",uiLoading:"加载中...",
     uiWorldName:"世界名称",uiTitle:"标题",uiDescription:"描述",uiGenre:"类型",uiLanguage:"语言",
-    uiWorldRules:"世界规则（每行一条）",uiMagicSystem:"魔法系统（可选）",
+    uiWorldRules:"世界规则（每行一条）",uiMagicSystem:"魔法系统（可选）",uiSynopsis:"简介（1-3句，可选）",uiPrologue:"序章（可选）",
     uiSocialSystem:"社会制度",uiSocialNone:"— なし —",
     uiSocialFeudalism:"封建主义",uiSocialDemocracy:"民主主义",uiSocialAnarchy:"无政府主义",
     uiSocialTheocracy:"神权政治",uiSocialCommunism:"共产主义",uiSocialCapitalism:"资本主义",
@@ -699,6 +707,8 @@ async function createWorld() {
     magicSystem: document.getElementById('fMagic').value.trim(),
     primaryRule: document.getElementById('fSocial').value || undefined,
     ruleModifiers: modifiers.length ? modifiers : undefined,
+    synopsis: document.getElementById('fSynopsis').value.trim() || undefined,
+    prologue: document.getElementById('fPrologue').value.trim() || undefined,
   };
 
   try {
@@ -722,6 +732,8 @@ function resetForm() {
   document.querySelectorAll('.fGenre').forEach(c => c.checked = false);
   document.getElementById('fRules').value = '';
   document.getElementById('fMagic').value = '';
+  document.getElementById('fSynopsis').value = '';
+  document.getElementById('fPrologue').value = '';
   document.getElementById('fSocial').value = '';
   document.getElementById('fEcoGold').checked = false;
   document.getElementById('fEcoSilver').checked = false;

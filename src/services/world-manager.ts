@@ -10,6 +10,9 @@ import { getLogger } from "../utils/logger";
 import { getSettings, updateSettings } from "./settings";
 import { RulesEngine } from "../rules/rules-engine";
 import { seedWorldAgents } from "./agent-config";
+import { analyzeText, psychotypeToProfile } from "./jungian-profiler";
+import type { PlayerProfileStore } from "../lib/player-profile-store";
+import type { LLMQueue } from "../lib/llm-queue";
 
 const log = getLogger("world-manager");
 
@@ -36,6 +39,13 @@ export interface WorldCreateParams {
   magicSystem: string;
   primaryRule?: string;
   ruleModifiers?: string[];
+  synopsis?: string;
+  prologue?: string;
+}
+
+let _profiler: { store: PlayerProfileStore; llmQueue: LLMQueue } | null = null;
+export function setWorldProfilerServices(store: PlayerProfileStore, llmQueue: LLMQueue): void {
+  _profiler = { store, llmQueue };
 }
 
 function slugify(name: string): string {
@@ -168,6 +178,8 @@ export async function createWorld(params: WorldCreateParams): Promise<WorldSumma
     locations: [],
     items: [],
     historical_events: [],
+    synopsis: params.synopsis,
+    prologue: params.prologue,
   };
 
   if (params.primaryRule) {
@@ -195,6 +207,13 @@ export async function createWorld(params: WorldCreateParams): Promise<WorldSumma
   await atomicWriteJson(join(path, "world_frame.json"), frame);
 
   await seedWorldAgents(name);
+
+  if (_profiler && (params.synopsis || params.prologue)) {
+    const analysis = await analyzeText(params.synopsis ?? '', params.prologue ?? '', _profiler.llmQueue);
+    const wordCount = `${params.synopsis ?? ''} ${params.prologue ?? ''}`.split(/\s+/).filter(Boolean).length;
+    const profile = psychotypeToProfile(analysis.psychotype, wordCount);
+    _profiler.store.upsertJungianProfile('default', profile);
+  }
 
   log.info({ name, path }, "World created");
   return summarizeWorld(name)!;

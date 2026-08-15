@@ -87,6 +87,8 @@ worlds.post("/worlds", async (c) => {
       magicSystem: body.magicSystem ?? "",
       primaryRule: body.primaryRule,
       ruleModifiers: body.ruleModifiers,
+      synopsis: body.synopsis,
+      prologue: body.prologue,
     });
     return c.json({ status: "created", world });
   } catch (err) {

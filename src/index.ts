@@ -10,6 +10,8 @@ import { startSessionCleanup, stopSessionCleanup } from "./lib/session-store";
 import { NarrativeService } from "./services/narrative-service";
 import { setEngine, setWSManager } from "./routes/chat";
 import { setWorldServices } from "./routes/worlds";
+import { setWorldProfilerServices } from "./services/world-manager";
+import { PlayerProfileStore } from "./lib/player-profile-store";
 import { initEntities } from "./routes/entities";
 import { initBranches } from "./routes/branches";
 import { initMemory } from "./routes/memory";
@@ -184,6 +186,10 @@ async function main() {
   const engine = narrativeCtx.createRoleplayEngine(mcpServer ?? undefined, translationService);
   setEngine(engine);
   setWorldServices(narrativeCtx, engine);
+
+  // Jungian profiler: inject player-profile store for world-creation text analysis
+  const playerProfileStore = new PlayerProfileStore(join(process.cwd(), "data", "player-profiles.db"));
+  setWorldProfilerServices(playerProfileStore, narrativeCtx.llmQueue);
 
   // Wire up route dependencies
   const nav = new Navigator(narrativeCtx.entityStore);
