@@ -241,3 +241,43 @@ export function computeDistribution(profile: JungianProfile, worldState: WorldSt
   applyContextNudges(dist, worldState, sceneContext);
   return dist;
 }
+
+export interface DramaturgEnrichment { archetype: string; filledSkeleton: string; mood: string; }
+export interface NpcEnrichment { npcId: string; name: string; hint: string; }
+export interface VerificationResult {
+  claims: Array<{ claim: string; verified: boolean; confidence: string; evidence: string[] }>;
+  worldConsistency: { npcInLocation: boolean; itemsAvailable: boolean; timelineCoherent: boolean };
+  notes: string[];
+}
+
+export interface CensorResult { cleaned: string; llmPolished: boolean; }
+
+export function buildPlayerVoice(
+  dist: ProbabilityDistribution,
+  dramaturg: DramaturgEnrichment,
+  actor: NpcEnrichment[],
+  validator: VerificationResult,
+): string {
+  const tone = sample(dist.sceneTone);
+  const pace = sample(dist.pacing);
+  const sensory = dist.sensoryChannels.slice(0, 3).map(c => c.value);
+  const infoStyle = sample(dist.informationStyle);
+
+  const forbidden = dist.sceneTone
+    .filter(t => t.weight < 0.08).map(t => t.value)
+    .concat(['melodrama', 'emotional outburst']);
+
+  const lines = [
+    `Player psychological context:`,
+    `- Prefers ${infoStyle}, structured information`,
+    `- Responds to ${tone} tone (pacing: ${pace})`,
+    `- Sensory focus: ${sensory.join(', ')}`,
+    `- Scene archetype: ${dramaturg.archetype} (mood: ${dramaturg.mood})`,
+    ...actor.map(a => `- NPC ${a.name}: ${a.hint}`),
+    `- Avoid: ${forbidden.join(', ')}`,
+  ];
+  if (validator.notes.length > 0) {
+    lines.push('', `Fact-check notes:`, ...validator.notes.map(n => `- ${n}`));
+  }
+  return lines.join('\n');
+}
