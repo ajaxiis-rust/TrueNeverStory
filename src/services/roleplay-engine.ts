@@ -354,7 +354,7 @@ export class RoleplayEngine {
     const dramaturg = await this.dramaturg.enrichScene(dist.archetypes, gameContext);
     const nearbyWithTypes = gameContext.nearbyNpcs.map(n => ({
       id: n.uid ?? n.name, name: n.name,
-      psychotype: undefined, // Phase 3: psychotype read from entity.profile.l3.psychotype
+      psychotype: n.profile.l3.psychotype as JungianProfile | undefined,
     }));
     const actor = this.actor.enrichNpcs(dist.informationStyle, nearbyWithTypes);
     const validator = await this.validator.verify(gameContext, dramaturg.filledSkeleton);

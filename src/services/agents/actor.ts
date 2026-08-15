@@ -5,7 +5,7 @@ import { GameContext } from '@/services/context-builder';
 import { UnifiedEntityStore } from '@/store/entity-store';
 import { LLMQueue } from '@/lib/llm-queue';
 import { getLogger } from '@/utils/logger';
-import { sample, type WeightedChoice, type NpcEnrichment, type JungianProfile, deriveType } from '../jungian-profiler';
+import { sample, computePerceivedPlayerType, type WeightedChoice, type NpcEnrichment, type JungianProfile, deriveType } from '../jungian-profiler';
 
 const logger = getLogger('ActorAgent');
 
@@ -203,5 +203,37 @@ export class ActorAgent extends BaseAgentV2 {
         ? ' Under emotional lens: favors feeling, personal stories, empathy.'
         : '';
     return (base[t] ?? fallback) + styleNote;
+  }
+
+  recordInteraction(
+    npcId: string,
+    playerId: string,
+    playerProfile: JungianProfile,
+    npcProfile: JungianProfile,
+    interaction: { type: string; tension: number },
+    store: {
+      getNpcPerception: (n: string, p: string) => {
+        perceived: JungianProfile; interactionCount: number;
+        interactionHistory: Array<{ ts: number; type: string; tension: number }>;
+      } | null;
+      upsertNpcPerception: (n: string, p: string, perceived: JungianProfile, count: number,
+        interactionHistory: Array<{ ts: number; type: string; tension: number }>) => void;
+    },
+  ): void {
+    const current = store.getNpcPerception(npcId, playerId);
+    const count = (current?.interactionCount ?? 0) + 1;
+    // S8.1: interaction_history растёт инкрементально на КАЖДОМ взаимодействии.
+    const interactionHistory = [
+      ...(current?.interactionHistory ?? []),
+      { ts: Math.floor(Date.now() / 1000), type: interaction.type, tension: interaction.tension },
+    ];
+    // perceivedPlayerType пересчитывается после 3+ взаимодействий, затем каждые 10 (S8);
+    // между пересчётами сохраняем последнее значение (первый раз — baseline).
+    const shouldRecompute = count >= 3 && (count - 3) % 10 === 0;
+    const perceived = shouldRecompute
+      ? computePerceivedPlayerType(playerProfile, npcProfile)
+      : current?.perceived ?? computePerceivedPlayerType(playerProfile, npcProfile);
+    // Всегда сохраняем: count и history растут на каждом взаимодействии (иначе счётчик не дойдёт до 3).
+    store.upsertNpcPerception(npcId, playerId, perceived, count, interactionHistory);
   }
 }
