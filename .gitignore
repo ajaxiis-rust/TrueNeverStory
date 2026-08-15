@@ -47,3 +47,6 @@ data/gutenberg/
 data/literary-compiler/
 data/mcp/
 worlds/_sessions/
+
+# Compose worktrees
+.worktrees/
