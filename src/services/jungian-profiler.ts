@@ -1,4 +1,5 @@
 import type { AxisSignals } from './metrics-collector';
+import type { LLMQueue } from '@/lib/llm-queue';
 
 export interface AxisProfile {
   preference: number;
@@ -286,4 +287,97 @@ export function getMoralizingGate(profile: JungianProfile): 'strict' | 'relaxed'
   if (profile.thinking.preference > 0.7) return 'strict';
   if (profile.thinking.preference > 0.5) return 'relaxed';
   return 'off';
+}
+
+export interface TextAnalysis {
+  psychotype: {
+    extraversion: number;
+    intuition: number;
+    thinking: number;
+    judging: number;
+    axisConfidence: { extraversion: number; intuition: number; thinking: number; judging: number };
+    confidence: number;
+  };
+  style: {
+    register: 'high' | 'medium' | 'low';
+    pacing: 'slow' | 'medium' | 'fast' | 'variable';
+    sensoryFocus: string[];
+    sentenceProfile: { avgLength: number; complexity: 'simple' | 'moderate' | 'complex' };
+  };
+  themes: string[];
+  suggestedArcs: string[];
+  worldHints: { suggestedGenres: string[]; suggestedSocialSystem: string; suggestedTone: string };
+}
+
+export function confidenceCap(wordCount: number): number {
+  return wordCount < 50 ? 0.20 : wordCount < 200 ? 0.35 : wordCount < 500 ? 0.45 : 0.55;
+}
+
+export function createDefaultTextAnalysis(): TextAnalysis {
+  return {
+    psychotype: {
+      extraversion: 0.5, intuition: 0.5, thinking: 0.5, judging: 0.5,
+      axisConfidence: { extraversion: 0, intuition: 0, thinking: 0, judging: 0 },
+      confidence: 0,
+    },
+    style: { register: 'medium', pacing: 'medium', sensoryFocus: [], sentenceProfile: { avgLength: 15, complexity: 'moderate' } },
+    themes: [], suggestedArcs: [], worldHints: { suggestedGenres: [], suggestedSocialSystem: '', suggestedTone: '' },
+  };
+}
+
+export function psychotypeToProfile(psychotype: TextAnalysis['psychotype'], wordCount: number): JungianProfile {
+  const axis = (v: number): AxisProfile => ({ preference: v, range: 0.1 });
+  return {
+    extraversion: axis(psychotype.extraversion),
+    intuition: axis(psychotype.intuition),
+    thinking: axis(psychotype.thinking),
+    judging: axis(psychotype.judging),
+    confidence: Math.min(psychotype.confidence, confidenceCap(wordCount)),
+    axisConfidence: { ...psychotype.axisConfidence },
+    source: 'text',
+  };
+}
+
+export async function analyzeText(
+  synopsis: string,
+  prologue: string,
+  llmQueue: LLMQueue,
+): Promise<TextAnalysis> {
+  if (!synopsis.trim() && !prologue.trim()) return createDefaultTextAnalysis();
+
+  const prompt = `Analyze this character synopsis and story prologue to determine psychological preferences and style.
+
+CHARACTER SYNOPSIS:
+${synopsis}
+
+PROLOGUE:
+${prologue}
+
+Respond as JSON ONLY, matching this exact schema:
+{
+  "psychotype": {
+    "extraversion": 0.5,
+    "intuition": 0.5,
+    "thinking": 0.5,
+    "judging": 0.5,
+    "axisConfidence": { "extraversion": 0.5, "intuition": 0.5, "thinking": 0.5, "judging": 0.5 },
+    "confidence": 0.5
+  },
+  "style": {
+    "register": "medium",
+    "pacing": "medium",
+    "sensoryFocus": ["visual", "tactile"],
+    "sentenceProfile": { "avgLength": 15, "complexity": "moderate" }
+  },
+  "themes": ["betrayal"],
+  "suggestedArcs": ["fall_and_rise"],
+  "worldHints": { "suggestedGenres": ["dark fantasy"], "suggestedSocialSystem": "feudal", "suggestedTone": "grim" }
+}`;
+
+  const response = await llmQueue.generateText(prompt, 1, 0.3, 'psychotype-analyzer');
+  try {
+    return JSON.parse(response.trim()) as TextAnalysis;
+  } catch {
+    return createDefaultTextAnalysis();
+  }
 }

@@ -1,7 +1,8 @@
 import { describe, test, expect } from 'bun:test';
-import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample, buildPlayerVoice, getMoralizingGate } from './jungian-profiler';
+import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample, buildPlayerVoice, getMoralizingGate, analyzeText, psychotypeToProfile, confidenceCap } from './jungian-profiler';
 import type { AxisSignals } from './metrics-collector';
-import type { ProbabilityDistribution, DramaturgEnrichment, NpcEnrichment, VerificationResult } from './jungian-profiler';
+import type { ProbabilityDistribution, DramaturgEnrichment, NpcEnrichment, VerificationResult, TextAnalysis } from './jungian-profiler';
+import type { LLMQueue } from '@/lib/llm-queue';
 
 describe('createDefaultProfile', () => {
   test('all axes 0.5/0.1, confidence 0, source default', () => {
@@ -189,5 +190,59 @@ describe('getMoralizingGate', () => {
   test('thinking ≤ 0.5 → off', () => {
     const p = createDefaultProfile(); p.thinking.preference = 0.4;
     expect(getMoralizingGate(p)).toBe('off');
+  });
+});
+
+const stubLlm = (json: string): LLMQueue => ({ generateText: async () => json }) as unknown as LLMQueue;
+
+const validJson = JSON.stringify({
+  psychotype: {
+    extraversion: 0.3, intuition: 0.8, thinking: 0.75, judging: 0.7,
+    axisConfidence: { extraversion: 0.8, intuition: 0.7, thinking: 0.8, judging: 0.7 },
+    confidence: 0.9,
+  },
+  style: {
+    register: 'medium', pacing: 'medium', sensoryFocus: ['visual', 'tactile'],
+    sentenceProfile: { avgLength: 14, complexity: 'moderate' },
+  },
+  themes: ['betrayal', 'duty'],
+  suggestedArcs: ['fall_and_rise'],
+  worldHints: { suggestedGenres: ['dark fantasy'], suggestedSocialSystem: 'feudal', suggestedTone: 'grim' },
+});
+
+describe('analyzeText', () => {
+  test('valid JSON → полный TextAnalysis (S5 schema)', async () => {
+    const prologue = 'word '.repeat(120);
+    const ta = await analyzeText('a story', prologue, stubLlm(validJson));
+    expect(ta.psychotype.extraversion).toBeCloseTo(0.3, 5);
+    expect(ta.psychotype.confidence).toBeCloseTo(0.9, 5);
+    expect(ta.style.register).toBe('medium');
+    expect(ta.themes).toContain('betrayal');
+    expect(ta.worldHints.suggestedGenres).toContain('dark fantasy');
+  });
+  test('invalid JSON → default TextAnalysis (fallback)', async () => {
+    const ta = await analyzeText('x', 'y', stubLlm('not json'));
+    expect(ta.psychotype.confidence).toBe(0);
+    expect(ta.themes).toEqual([]);
+  });
+});
+
+describe('psychotypeToProfile', () => {
+  test('маппит оси + caps confidence = min(LLM скаляр, cap(wordCount))', () => {
+    const psychotype = (JSON.parse(validJson) as TextAnalysis).psychotype;
+    const p = psychotypeToProfile(psychotype, 100);
+    expect(p.extraversion.preference).toBeCloseTo(0.3, 5);
+    expect(p.thinking.preference).toBeCloseTo(0.75, 5);
+    expect(p.confidence).toBeCloseTo(0.35, 5);
+    expect(p.source).toBe('text');
+  });
+});
+
+describe('confidenceCap', () => {
+  test('cap table: <50→0.20, <200→0.35, <500→0.45, ≥500→0.55', () => {
+    expect(confidenceCap(10)).toBeCloseTo(0.20, 5);
+    expect(confidenceCap(120)).toBeCloseTo(0.35, 5);
+    expect(confidenceCap(300)).toBeCloseTo(0.45, 5);
+    expect(confidenceCap(600)).toBeCloseTo(0.55, 5);
   });
 });
