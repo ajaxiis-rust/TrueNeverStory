@@ -1,5 +1,4 @@
 import type { EconomicDB, FactionDilemma } from './economic-schema';
-import { getPRNG } from '../../../lib/prng';
 import { getLogger } from '@/utils/logger';
 
 const logger = getLogger('FactionTaxDilemma');

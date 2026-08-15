@@ -3,10 +3,14 @@ import type { LLMQueue } from '../../lib/llm-queue';
 import type { HistoryManager } from '../../lib/history-manager';
 import type { Intent } from '../../models/intent';
 import { isMovementIntent, isDialogueIntent, isActionIntent, isCommandIntent, isObservationIntent } from '../../models/intent';
-import type { SimulationResult } from '../../models/simulation';
-import type { GameContext, EngineState } from '../context-builder';
+import type { SimulationResult, SimulationContext } from '../../models/simulation';
+import type { GameContext, ContextBuilder } from '../context-builder';
 import type { SessionState } from './session-state';
 import type { PipelineContext, StreamYield } from './pipeline-context';
+import type { TranslationService } from '../translation-service';
+import type { IntentParser } from '../intent-parser';
+import type { SimulationEngine } from '../simulation-engine';
+import type { StateMutator } from '../state-mutator';
 
 export interface PipelineDeps {
   entityStore: UnifiedEntityStore;
@@ -15,11 +19,11 @@ export interface PipelineDeps {
   worldFrame: Record<string, unknown>;
   session: SessionState;
   // Injected services
-  translationService?: { detectLanguage: (text: string) => string; translateToEnglish: (text: string, lang: string) => Promise<string>; translateAndClassify: (text: string, lang: string) => Promise<{ translated: string; intent: Intent } | null> };
-  intentParser: { parse: (text: string, ctx: unknown) => Promise<Intent> };
-  simulationEngine: { simulate: (intent: Intent, ctx: unknown) => Promise<SimulationResult> };
-  stateMutator: { applyChanges: (changes: unknown[]) => Promise<void> };
-  contextBuilder: { buildParserContext: (state: EngineState) => unknown; build: (state: EngineState) => Promise<GameContext> };
+  translationService?: TranslationService;
+  intentParser: IntentParser;
+  simulationEngine: SimulationEngine;
+  stateMutator: StateMutator;
+  contextBuilder: ContextBuilder;
 }
 
 export class PipelineRunner {
@@ -73,14 +77,14 @@ export class PipelineRunner {
       this.deps.session.activeCharacter ?? 'unknown',
       'Character',
     );
-    const simContext = {
+    const simContext: SimulationContext = {
       characterLevel: typeof characterEntity?.profile?.l2?.['level'] === 'number' ? characterEntity.profile.l2['level'] : 1,
       characterStats: (characterEntity?.profile?.l2 ?? {}) as Record<string, number>,
       locationDanger: 0,
-      timeOfDay: 'day' as string,
+      timeOfDay: 'day',
       weather: 'clear',
-      activeBuffs: [] as string[],
-      activeDebuffs: [] as string[],
+      activeBuffs: [],
+      activeDebuffs: [],
     };
     return this.deps.simulationEngine.simulate(ctx.intent!, simContext);
   }

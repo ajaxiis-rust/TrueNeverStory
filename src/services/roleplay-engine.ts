@@ -29,7 +29,7 @@ import { isCommandIntent } from '../models/intent';
 import { getLogger } from '../utils/logger';
 import { join } from 'node:path';
 import { t } from '../i18n';
-import { SessionState, type SessionParams } from './roleplay/session-state';
+import { SessionState } from './roleplay/session-state';
 import { CommandHandler } from './roleplay/handlers/command-handler';
 import { PipelineRunner } from './roleplay/pipeline-runner';
 import type { PipelineContext } from './roleplay/pipeline-context';
