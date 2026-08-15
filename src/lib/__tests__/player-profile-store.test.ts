@@ -79,3 +79,27 @@ describe('PlayerProfileStore — jungian', () => {
     expect(got.signals.thinking).toBeCloseTo(0.7, 5);
   });
 });
+
+describe('PlayerProfileStore — npc_perception', () => {
+  let pstore: PlayerProfileStore;
+  let pdbPath: string;
+
+  beforeEach(() => {
+    pdbPath = join(tmpdir(), `tns-npcperception-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+    pstore = new PlayerProfileStore(pdbPath);
+  });
+  afterEach(() => { pstore.close(); rmSync(pdbPath, { force: true }); });
+
+  it('roundtrip perceivedPlayerType + interactionCount', () => {
+    const perceived = createJungianProfile();
+    perceived.thinking.preference = 0.9;
+    pstore.upsertNpcPerception('npc-bran', 'player1', perceived, 4);
+    const got = pstore.getNpcPerception('npc-bran', 'player1')!;
+    expect(got.perceived.thinking.preference).toBeCloseTo(0.9, 5);
+    expect(got.interactionCount).toBe(4);
+  });
+
+  it('unknown npc/player → null', () => {
+    expect(pstore.getNpcPerception('x', 'y')).toBeNull();
+  });
+});

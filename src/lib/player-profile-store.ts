@@ -112,6 +112,21 @@ export class PlayerProfileStore {
         last_updated INTEGER NOT NULL
       )
     `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS npc_perception (
+        npc_id TEXT NOT NULL,
+        player_id TEXT NOT NULL,
+        perceived_extraversion_pref REAL NOT NULL DEFAULT 0.5,
+        perceived_intuition_pref REAL NOT NULL DEFAULT 0.5,
+        perceived_thinking_pref REAL NOT NULL DEFAULT 0.5,
+        perceived_judging_pref REAL NOT NULL DEFAULT 0.5,
+        interaction_count INTEGER NOT NULL DEFAULT 0,
+        interaction_history TEXT NOT NULL DEFAULT '[]',
+        last_updated INTEGER NOT NULL,
+        PRIMARY KEY (npc_id, player_id)
+      )
+    `);
   }
 
   private addColumnIfMissing(table: string, col: string, def: string): void {
@@ -272,6 +287,46 @@ export class PlayerProfileStore {
       totalTurns: row.total_turns as number,
       signals: { extraversion: row.signal_extraversion as number, intuition: row.signal_intuition as number,
         thinking: row.signal_thinking as number, judging: row.signal_judging as number },
+    };
+  }
+
+  upsertNpcPerception(
+    npcId: string,
+    playerId: string,
+    perceived: JungianProfile,
+    interactionCount: number,
+    interactionHistory: Array<{ ts: number; type: string; tension: number }> = [],
+  ): void {
+    const now = Math.floor(Date.now() / 1000);
+    this.db.prepare(`INSERT INTO npc_perception (npc_id, player_id, perceived_extraversion_pref,
+      perceived_intuition_pref, perceived_thinking_pref, perceived_judging_pref, interaction_count, interaction_history, last_updated)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(npc_id, player_id) DO UPDATE SET
+        perceived_extraversion_pref=excluded.perceived_extraversion_pref,
+        perceived_intuition_pref=excluded.perceived_intuition_pref,
+        perceived_thinking_pref=excluded.perceived_thinking_pref,
+        perceived_judging_pref=excluded.perceived_judging_pref,
+        interaction_count=excluded.interaction_count, interaction_history=excluded.interaction_history, last_updated=excluded.last_updated
+    `).run(npcId, playerId, perceived.extraversion.preference, perceived.intuition.preference,
+      perceived.thinking.preference, perceived.judging.preference, interactionCount, JSON.stringify(interactionHistory), now);
+  }
+
+  getNpcPerception(npcId: string, playerId: string): {
+    perceived: JungianProfile; interactionCount: number; interactionHistory: Array<{ ts: number; type: string; tension: number }>;
+  } | null {
+    const row = this.db.prepare(`SELECT * FROM npc_perception WHERE npc_id = ? AND player_id = ?`).get(npcId, playerId) as Record<string, unknown> | undefined;
+    if (!row) return null;
+    const ax = (p: unknown, r: unknown): AxisProfile => ({ preference: p as number, range: r as number });
+    return {
+      perceived: {
+        extraversion: ax(row.perceived_extraversion_pref, 0.1),
+        intuition: ax(row.perceived_intuition_pref, 0.1),
+        thinking: ax(row.perceived_thinking_pref, 0.1),
+        judging: ax(row.perceived_judging_pref, 0.1),
+        confidence: 0.5, axisConfidence: { extraversion: 0.5, intuition: 0.5, thinking: 0.5, judging: 0.5 }, source: 'blended',
+      },
+      interactionCount: row.interaction_count as number,
+      interactionHistory: JSON.parse(String(row.interaction_history ?? '[]')) as Array<{ ts: number; type: string; tension: number }>,
     };
   }
 
