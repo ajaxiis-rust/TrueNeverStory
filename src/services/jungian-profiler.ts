@@ -1,5 +1,6 @@
 import type { AxisSignals } from './metrics-collector';
 import type { LLMQueue } from '@/lib/llm-queue';
+import { cosineSimilarity as vecCosine } from '@/lib/vector-ops';
 
 export interface AxisProfile {
   preference: number;
@@ -446,5 +447,56 @@ export function computePerceivedPlayerType(player: JungianProfile, npc: JungianP
     confidence: player.confidence,
     axisConfidence: player.axisConfidence,
     source: player.source,
+  };
+}
+
+export interface AuthorEntry {
+  name: string;
+  embedding: number[];        // dim = настроенный embedding-модель; не хардкодим
+  psychotype: JungianProfile;
+  samplePhrases: string[];    // 3-5 фраз для few-shot
+  genres: string[];
+}
+
+export interface AuthorMatch {
+  name: string;
+  matchConfidence: number;    // cosine similarity выбранного автора (0-1)
+  matchReason: string;
+}
+
+export function topNAuthors(prologueEmbedding: number[], corpus: AuthorEntry[], n = 3): AuthorEntry[] {
+  const dim = prologueEmbedding.length;
+  return corpus
+    .filter(a => a.embedding.length === dim)   // skip dim-mismatched (корпус собран под другую модель)
+    .map(a => ({ a, s: vecCosine(Float32Array.from(prologueEmbedding), Float32Array.from(a.embedding)) }))
+    .sort((x, y) => y.s - x.s)
+    .slice(0, n)
+    .map(x => x.a);
+}
+
+export function blendProfiles(base: JungianProfile, incoming: JungianProfile): JungianProfile {
+  const blend = (a: AxisProfile, b: AxisProfile): AxisProfile => {
+    const ema = a.preference * (1 - BLEND_CONFIG.emaAlpha) + b.preference * BLEND_CONFIG.emaAlpha;
+    const delta = ema - a.preference;
+    const clamped = a.preference + Math.sign(delta) * Math.min(Math.abs(delta), BLEND_CONFIG.maxShiftPerTurn);
+    return {
+      preference: Math.max(0.05, Math.min(0.95, clamped)),
+      range: Math.max(a.range, b.range),
+    };
+  };
+  const maxc = (a: number, b: number): number => Math.max(a, b);
+  return {
+    extraversion: blend(base.extraversion, incoming.extraversion),
+    intuition: blend(base.intuition, incoming.intuition),
+    thinking: blend(base.thinking, incoming.thinking),
+    judging: blend(base.judging, incoming.judging),
+    confidence: maxc(base.confidence, incoming.confidence),
+    axisConfidence: {
+      extraversion: maxc(base.axisConfidence.extraversion, incoming.axisConfidence.extraversion),
+      intuition: maxc(base.axisConfidence.intuition, incoming.axisConfidence.intuition),
+      thinking: maxc(base.axisConfidence.thinking, incoming.axisConfidence.thinking),
+      judging: maxc(base.axisConfidence.judging, incoming.axisConfidence.judging),
+    },
+    source: 'blended',
   };
 }

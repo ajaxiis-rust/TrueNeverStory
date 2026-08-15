@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'bun:test';
-import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample, buildPlayerVoice, getMoralizingGate, analyzeText, psychotypeToProfile, confidenceCap, assignNpcPsychotype, computePerceivedPlayerType } from './jungian-profiler';
+import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample, buildPlayerVoice, getMoralizingGate, analyzeText, psychotypeToProfile, confidenceCap, assignNpcPsychotype, computePerceivedPlayerType, topNAuthors, blendProfiles } from './jungian-profiler';
+import type { AuthorEntry } from './jungian-profiler';
 import type { AxisSignals } from './metrics-collector';
 import type { ProbabilityDistribution, DramaturgEnrichment, NpcEnrichment, VerificationResult, TextAnalysis } from './jungian-profiler';
 import type { LLMQueue } from '@/lib/llm-queue';
@@ -277,5 +278,47 @@ describe('computePerceivedPlayerType', () => {
     const npc = assignNpcPsychotype('craftsman'); // T-high
     const perceived = computePerceivedPlayerType(player, npc);
     expect(perceived.thinking.preference).toBeGreaterThan(player.thinking.preference);
+  });
+});
+
+describe('topNAuthors', () => {
+  const corpus: AuthorEntry[] = [
+    { name: 'A', embedding: [1, 0, 0], psychotype: createDefaultProfile(), samplePhrases: ['a'], genres: ['fantasy'] },
+    { name: 'B', embedding: [0, 1, 0], psychotype: createDefaultProfile(), samplePhrases: ['b'], genres: ['scifi'] },
+    { name: 'C', embedding: [0.9, 0.1, 0], psychotype: createDefaultProfile(), samplePhrases: ['c'], genres: ['horror'] },
+    { name: 'D', embedding: [1, 0, 0, 0], psychotype: createDefaultProfile(), samplePhrases: ['d'], genres: ['romance'] }, // dim 4 — mismatch
+  ];
+  test('returns top-3 sorted by cosine desc (dim-matching only)', () => {
+    const top = topNAuthors([1, 0, 0], corpus, 3);
+    expect(top.map(a => a.name)).toEqual(['A', 'C', 'B']); // D skipped (dim 4 ≠ 3)
+  });
+  test('n smaller than corpus → slice', () => {
+    expect(topNAuthors([1, 0, 0], corpus, 2)).toHaveLength(2);
+  });
+  test('default n = 3', () => {
+    expect(topNAuthors([1, 0, 0], corpus)).toHaveLength(3);
+  });
+  test('all authors dim-mismatched → []', () => {
+    expect(topNAuthors([1, 0, 0, 0, 0], corpus)).toEqual([]);
+  });
+});
+
+describe('blendProfiles', () => {
+  test('EMA-shifts preference toward incoming, rate-limited by maxShiftPerTurn', () => {
+    const base = createDefaultProfile();
+    const incoming = createDefaultProfile();
+    incoming.extraversion.preference = 0.9;
+    const blended = blendProfiles(base, incoming);
+    expect(blended.extraversion.preference).toBeCloseTo(0.5 + BLEND_CONFIG.maxShiftPerTurn, 5);
+    expect(blended.source).toBe('blended');
+  });
+  test('range = max of both, confidence = max of both', () => {
+    const base = createDefaultProfile();
+    base.extraversion.range = 0.2; base.confidence = 0.4;
+    const incoming = createDefaultProfile();
+    incoming.extraversion.range = 0.6; incoming.confidence = 0.7;
+    const blended = blendProfiles(base, incoming);
+    expect(blended.extraversion.range).toBe(0.6);
+    expect(blended.confidence).toBe(0.7);
   });
 });
