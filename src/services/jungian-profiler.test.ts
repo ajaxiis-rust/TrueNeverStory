@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals } from './jungian-profiler';
+import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample } from './jungian-profiler';
 import type { AxisSignals } from './metrics-collector';
 
 describe('createDefaultProfile', () => {
@@ -98,5 +98,39 @@ describe('blendBehavioralSignals', () => {
     expect(blended.confidence).toBeCloseTo(
       (blended.axisConfidence.extraversion + blended.axisConfidence.intuition +
        blended.axisConfidence.thinking + blended.axisConfidence.judging) / 4, 5);
+  });
+});
+
+describe('computeDistribution', () => {
+  test('confidence < 0.3 → uniform (equal weights)', () => {
+    const p = createDefaultProfile(); // confidence 0
+    const dist = computeDistribution(p, {}, {});
+    const w = dist.sceneTone[0]!.weight;
+    for (const c of dist.sceneTone) expect(c.weight).toBeCloseTo(w, 5);
+  });
+  test('weights sum to ~1.0 after normalize', () => {
+    const p = createDefaultProfile();
+    p.extraversion.preference = 0.2; p.intuition.preference = 0.8;
+    p.thinking.preference = 0.75; p.judging.preference = 0.7; p.confidence = 0.8;
+    const dist = computeDistribution(p, {}, {});
+    for (const key of ['sceneTone', 'archetypes', 'pacing', 'sensoryChannels', 'informationStyle'] as const) {
+      const sum = dist[key].reduce((s, c) => s + c.weight, 0);
+      expect(sum).toBeCloseTo(1.0, 4);
+    }
+  });
+  test('shadowInjection 0.15 when confidence > 0.5', () => {
+    const p = createDefaultProfile(); p.confidence = 0.8;
+    expect(computeDistribution(p, {}, {}).shadowInjection).toBe(0.15);
+  });
+  test('explorationFactor ≥ 0.05', () => {
+    const p = createDefaultProfile(); p.confidence = 0.8;
+    expect(computeDistribution(p, {}, {}).explorationFactor).toBeGreaterThanOrEqual(0.05);
+  });
+});
+
+describe('sample', () => {
+  test('returns one of the choice values', () => {
+    const choices = [{ value: 'a', weight: 0.5 }, { value: 'b', weight: 0.5 }];
+    expect(['a', 'b']).toContain(sample(choices));
   });
 });
