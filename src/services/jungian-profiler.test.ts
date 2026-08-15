@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample, buildPlayerVoice } from './jungian-profiler';
+import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample, buildPlayerVoice, getMoralizingGate } from './jungian-profiler';
 import type { AxisSignals } from './metrics-collector';
 import type { ProbabilityDistribution, DramaturgEnrichment, NpcEnrichment, VerificationResult } from './jungian-profiler';
 
@@ -174,5 +174,20 @@ describe('buildPlayerVoice', () => {
     const voice = buildPlayerVoice(dist, dramaturg, [], { claims: [], worldConsistency: { npcInLocation: false, itemsAvailable: false, timelineCoherent: false }, notes: [] });
     expect(voice).not.toContain('NPC ');
     expect(voice).not.toContain('Fact-check notes:');
+  });
+});
+
+describe('getMoralizingGate', () => {
+  test('thinking > 0.7 → strict', () => {
+    const p = createDefaultProfile(); p.thinking.preference = 0.8;
+    expect(getMoralizingGate(p)).toBe('strict');
+  });
+  test('0.5 < thinking ≤ 0.7 → relaxed', () => {
+    const p = createDefaultProfile(); p.thinking.preference = 0.6;
+    expect(getMoralizingGate(p)).toBe('relaxed');
+  });
+  test('thinking ≤ 0.5 → off', () => {
+    const p = createDefaultProfile(); p.thinking.preference = 0.4;
+    expect(getMoralizingGate(p)).toBe('off');
   });
 });

@@ -281,3 +281,9 @@ export function buildPlayerVoice(
   }
   return lines.join('\n');
 }
+
+export function getMoralizingGate(profile: JungianProfile): 'strict' | 'relaxed' | 'off' {
+  if (profile.thinking.preference > 0.7) return 'strict';
+  if (profile.thinking.preference > 0.5) return 'relaxed';
+  return 'off';
+}
