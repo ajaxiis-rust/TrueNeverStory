@@ -46,6 +46,10 @@ import { AgentRegistryV2, getAgentRegistryV2 } from './agent-registry-v2';
 import type { TNSServer } from '../mcp/server';
 import { TranslationService, type LanguageCode } from './translation-service';
 import { LiteraryCompilerDB } from '../mcp/literary-compiler/schema';
+import { MetricsCollector, deriveMetrics, inferFromMetrics } from './metrics-collector';
+import { blendBehavioralSignals, createDefaultProfile, deriveType, type JungianProfile } from './jungian-profiler';
+import { PlayerProfileStore } from '../lib/player-profile-store';
+import { getFeatureFlagManager } from '../lib/feature-flags';
 
 const log = getLogger('roleplay-engine');
 
@@ -100,6 +104,7 @@ interface EngineDeps {
   translationService?: TranslationService;
   /** Pre-created agents — when provided, skip construction in engine. */
   agents?: EngineAgents;
+  playerProfileStore?: PlayerProfileStore;
 }
 
 interface SessionParams {
@@ -183,6 +188,14 @@ export class RoleplayEngine {
   // Sequential processing queue — prevents concurrent processInput/processInputStream
   private _processingQueue: Promise<void> = Promise.resolve();
 
+  // Jungian profiler (Phase 1 — logging only)
+  private playerProfileStore?: PlayerProfileStore;
+  private jungianProfile: JungianProfile = createDefaultProfile();
+  private metricsCollector = new MetricsCollector();
+  private recentSignals: { extraversion: number[]; intuition: number[]; thinking: number[]; judging: number[] } = {
+    extraversion: [], intuition: [], thinking: [], judging: [],
+  };
+
   constructor(deps: EngineDeps) {
     this._dbPath = deps.dbPath;
     this._entityStore = deps.entityStore;
@@ -194,6 +207,8 @@ export class RoleplayEngine {
     this._userAgent = deps.userAgent;
     this._sqliteStore = deps.sqliteStore;
     this._eventBus = deps.eventBus ?? new EventBus();
+    this.playerProfileStore = deps.playerProfileStore;
+    this.initJungianProfile();
 
     // Initialize State-First pipeline services
     this.intentParser = new IntentParser(deps.llmQueue);
@@ -295,6 +310,33 @@ export class RoleplayEngine {
     });
   }
 
+  private get playerId(): string {
+    return this.activeCharacter ?? this.activeSessionId ?? 'default';
+  }
+
+  private initJungianProfile(): void {
+    const saved = this.playerProfileStore?.getJungianProfile(this.playerId);
+    if (saved) this.jungianProfile = saved;
+    const metrics = this.playerProfileStore?.getBehavioralMetrics(this.playerId);
+    if (metrics) this.metricsCollector.restore(metrics.aggregates, metrics.totalTurns);
+  }
+
+  private runBlendCycle(): void {
+    if (this.metricsCollector.getTurnCount() % 20 !== 0 || this.metricsCollector.getTurnCount() === 0) return;
+    const playerId = this.playerId;
+    const derived = deriveMetrics(this.metricsCollector.getAggregates(), this.metricsCollector.getTurnCount(), this.visitedLocations.size);
+    const signals = inferFromMetrics(derived);
+    for (const axis of ['extraversion', 'intuition', 'thinking', 'judging'] as const) {
+      this.recentSignals[axis].push(signals[axis]);
+      if (this.recentSignals[axis].length > 10) this.recentSignals[axis].shift();
+    }
+    this.jungianProfile = blendBehavioralSignals(signals, this.jungianProfile, this.recentSignals);
+    this.metricsCollector.decay();
+    this.playerProfileStore?.upsertJungianProfile(playerId, this.jungianProfile);
+    this.playerProfileStore?.upsertBehavioralMetrics(playerId, this.metricsCollector.getAggregates(), this.metricsCollector.getTurnCount(), signals);
+    log.info({ playerId, confidence: this.jungianProfile.confidence, type: deriveType(this.jungianProfile) }, 'jungian profile blended');
+  }
+
   // ─── Main Input Processing (State-First Pipeline) ──────────────────────
 
   async processInput(userInput: string): Promise<string | { agentResponse: { response: string; agentId: string; agentName: string } }> {
@@ -325,6 +367,11 @@ export class RoleplayEngine {
     const intent = await this.pipelineRunner.translateAndClassify(ctx);
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_INTENT_PARSED, { input: ctx.parsedInput }, 'engine');
 
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) {
+      this.metricsCollector.recordInput(ctx.parsedInput);
+      this.metricsCollector.recordIntent(intent, ctx.parsedInput, true);
+    }
+
     // Step 2: Handle commands directly
     if (isCommandIntent(intent)) {
       return this._handleCommand(intent.command + (intent.args?.raw ? ` ${intent.args.raw}` : ''));
@@ -339,6 +386,10 @@ export class RoleplayEngine {
       probability: simResult.probability,
     }, 'engine');
 
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) {
+      this.metricsCollector.recordSimulation(intent, simResult);
+    }
+
     // Step 4: Apply state changes immediately
     if (simResult.stateChanges.length > 0) {
       await this._eventBus.publishSimple(EventTopic.HEARTBEAT_STATE_MUTATED, {}, 'engine');
@@ -347,6 +398,8 @@ export class RoleplayEngine {
 
     // Step 5: Build context from UPDATED state
     const gameContext = await this.pipelineRunner.buildGameContext(ctx);
+
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) this.runBlendCycle();
 
     // Step 6: Generate prose based on intent type
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
@@ -440,6 +493,11 @@ export class RoleplayEngine {
     const parserContext = this.contextBuilder.buildParserContext(engineState);
     const intent = await this.intentParser.parse(parsedInput, parserContext);
 
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) {
+      this.metricsCollector.recordInput(parsedInput);
+      this.metricsCollector.recordIntent(intent, parsedInput, true);
+    }
+
     // Yield heartbeat: intent parsed
     yield { type: 'heartbeat', content: 'Understanding your input...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
@@ -465,6 +523,10 @@ export class RoleplayEngine {
     };
     const simResult = await this.simulationEngine.simulate(intent, simContext);
 
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) {
+      this.metricsCollector.recordSimulation(intent, simResult);
+    }
+
     // Yield heartbeat: simulation complete
     yield { type: 'heartbeat', content: `Outcome: ${simResult.outcome}`, location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
@@ -476,6 +538,8 @@ export class RoleplayEngine {
 
     // Build context
     const gameContext = await this.contextBuilder.build(engineState);
+
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) this.runBlendCycle();
 
     // Generate prose (streaming for actions, non-streaming for movement/dialogue)
     yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };

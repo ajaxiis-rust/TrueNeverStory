@@ -1,6 +1,11 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { RoleplayEngine } from './roleplay-engine';
 import { EventBus } from '../lib/event-bus';
+import { PlayerProfileStore } from '../lib/player-profile-store';
+import { createDefaultProfile as createJungianProfile } from './jungian-profiler';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { rmSync } from 'node:fs';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -297,5 +302,38 @@ describe('RoleplayEngine Safety Net', () => {
       const result = await transEngine.processInput('идти в таверну');
       expect(typeof result).toBe('string');
     });
+  });
+});
+
+describe('jungian profiler blend cycle', () => {
+  it('blends profile after 20 turns via runBlendCycle', () => {
+    const { engine } = createEngine();
+    const mc = (engine as any).metricsCollector;
+    for (let i = 0; i < 20; i++) mc.recordInput('attack the guard');
+    (engine as any).runBlendCycle();
+    expect((engine as any).jungianProfile.source).toBe('blended');
+  });
+
+  it('does not blend before 20 turns', () => {
+    const { engine } = createEngine();
+    const mc = (engine as any).metricsCollector;
+    for (let i = 0; i < 19; i++) mc.recordInput('attack the guard');
+    (engine as any).runBlendCycle();
+    expect((engine as any).jungianProfile.source).toBe('default');
+  });
+
+  it('restores profile from store on init', () => {
+    const dbPath = join(tmpdir(), `tns-jungian-engine-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+    const store = new PlayerProfileStore(dbPath);
+    const p = createJungianProfile();
+    p.thinking.preference = 0.75; p.source = 'blended';
+    store.upsertJungianProfile('default', p);
+
+    const { engine } = createEngine({ playerProfileStore: store });
+    expect((engine as any).jungianProfile.source).toBe('blended');
+    expect((engine as any).jungianProfile.thinking.preference).toBeCloseTo(0.75, 5);
+
+    store.close();
+    rmSync(dbPath, { force: true });
   });
 });

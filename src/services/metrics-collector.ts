@@ -130,6 +130,11 @@ export class MetricsCollector {
   getTurnCount(): number {
     return this.turns;
   }
+
+  restore(aggregates: RawAggregates, totalTurns: number): void {
+    this.aggregates = { ...aggregates };
+    this.turns = totalTurns;
+  }
 }
 
 // ─── deriveMetrics ────────────────────────────────────────────────────────────

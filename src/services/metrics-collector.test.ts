@@ -146,6 +146,24 @@ describe('MetricsCollector', () => {
     });
   });
 
+  describe('restore', () => {
+    test('restores aggregates and turn count from persisted state', () => {
+      const mc = new MetricsCollector();
+      mc.recordInput('a');
+      mc.recordInput('b');
+      const agg = {
+        dialogueInitiated: 1, dialogueCount: 2, dialogueTotalWords: 10,
+        avoidedDialogues: 0, explorationActions: 0, riskTakingActions: 0,
+        planningActions: 0, combatInitiated: 0, inputTotalChars: 100, expressiveActions: 0,
+      };
+      mc.restore(agg, 25);
+      expect(mc.getTurnCount()).toBe(25);
+      expect(mc.getAggregates().dialogueInitiated).toBe(1);
+      expect(mc.getAggregates().inputTotalChars).toBe(100);
+      expect(mc.getAggregates().dialogueCount).toBe(2);
+    });
+  });
+
   describe('decay', () => {
     test('multiplies all numeric aggregates by 0.9', () => {
       const mc = new MetricsCollector();
