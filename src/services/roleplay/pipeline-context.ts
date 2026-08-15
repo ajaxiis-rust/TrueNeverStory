@@ -13,6 +13,7 @@ export interface PipelineContext {
   narrative?: string;
   earlyExit?: string;
   v2Used?: boolean;
+  playerVoice?: string;
   agentResponse?: { response: string; agentId: string; agentName: string };
 }
 

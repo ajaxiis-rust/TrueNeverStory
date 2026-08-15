@@ -47,7 +47,7 @@ import type { TNSServer } from '../mcp/server';
 import { TranslationService, type LanguageCode } from './translation-service';
 import { LiteraryCompilerDB } from '../mcp/literary-compiler/schema';
 import { MetricsCollector, deriveMetrics, inferFromMetrics } from './metrics-collector';
-import { blendBehavioralSignals, createDefaultProfile, deriveType, type JungianProfile } from './jungian-profiler';
+import { blendBehavioralSignals, createDefaultProfile, deriveType, computeDistribution, buildPlayerVoice, type JungianProfile, type WorldState, type SceneContext } from './jungian-profiler';
 import { PlayerProfileStore } from '../lib/player-profile-store';
 import { getFeatureFlagManager } from '../lib/feature-flags';
 
@@ -337,6 +337,30 @@ export class RoleplayEngine {
     log.info({ playerId, confidence: this.jungianProfile.confidence, type: deriveType(this.jungianProfile) }, 'jungian profile blended');
   }
 
+  private async runEnrichmentConveyor(gameContext: GameContext, outcome: string): Promise<string> {
+    const wf = this._worldFrame;
+    const worldState: WorldState = {
+      genre: typeof wf.genre === 'string' ? wf.genre : undefined,
+      socialSystem: typeof wf.social_system === 'object' && wf.social_system !== null
+        ? (wf.social_system as { primary?: string }).primary
+        : undefined,
+    };
+    const sceneContext: SceneContext = {
+      mood: outcome === 'critical_failure' || outcome === 'failure' ? 'somber'
+        : outcome === 'critical_success' ? 'joyful' : undefined,
+      timeOfDay: gameContext.timeOfDay,
+    };
+    const dist = computeDistribution(this.jungianProfile, worldState, sceneContext);
+    const dramaturg = await this.dramaturg.enrichScene(dist.archetypes, gameContext);
+    const nearbyWithTypes = gameContext.nearbyNpcs.map(n => ({
+      id: n.uid ?? n.name, name: n.name,
+      psychotype: undefined, // Phase 3: psychotype read from entity.profile.l3.psychotype
+    }));
+    const actor = this.actor.enrichNpcs(dist.informationStyle, nearbyWithTypes);
+    const validator = await this.validator.verify(gameContext, dramaturg.filledSkeleton);
+    return buildPlayerVoice(dist, dramaturg, actor, validator);
+  }
+
   // ─── Main Input Processing (State-First Pipeline) ──────────────────────
 
   async processInput(userInput: string): Promise<string | { agentResponse: { response: string; agentId: string; agentName: string } }> {
@@ -399,7 +423,12 @@ export class RoleplayEngine {
     // Step 5: Build context from UPDATED state
     const gameContext = await this.pipelineRunner.buildGameContext(ctx);
 
-    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) this.runBlendCycle();
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) {
+      this.runBlendCycle();
+      if (this.jungianProfile.confidence >= 0.3) {
+        ctx.playerVoice = await this.runEnrichmentConveyor(gameContext, simResult.outcome);
+      }
+    }
 
     // Step 6: Generate prose based on intent type
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_GENERATING, {}, 'engine');
@@ -408,13 +437,19 @@ export class RoleplayEngine {
     ctx.v2Used = true;
 
     try {
-      narrative = await this.v2Generator.generate(intent, simResult, gameContext, ctx.parsedInput);
+      narrative = await this.v2Generator.generate(intent, simResult, gameContext, ctx.parsedInput, ctx.playerVoice);
     } catch (err) {
       log.error({ err }, 'v2 prose generation failed');
       narrative = 'The story pauses here.';
     }
 
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_COMPLETE, {}, 'engine');
+
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled') && narrative) {
+      const cleaned = await this.censor.clean(narrative, gameContext);
+      narrative = cleaned.cleaned;
+      log.info({ jungianEnabled: true, jungianType: deriveType(this.jungianProfile), confidence: this.jungianProfile.confidence }, 'jungian adaptation applied');
+    }
 
     // Step 6.5: Translate if needed
     if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
@@ -539,12 +574,23 @@ export class RoleplayEngine {
     // Build context
     const gameContext = await this.contextBuilder.build(engineState);
 
-    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) this.runBlendCycle();
+    let playerVoice: string | undefined;
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) {
+      this.runBlendCycle();
+      if (this.jungianProfile.confidence >= 0.3) {
+        playerVoice = await this.runEnrichmentConveyor(gameContext, simResult.outcome);
+      }
+    }
 
     // Generate prose (streaming for actions, non-streaming for movement/dialogue)
     yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
-    let narrative = await this.v2Generator.generate(intent, simResult, gameContext, parsedInput);
+    let narrative = await this.v2Generator.generate(intent, simResult, gameContext, parsedInput, playerVoice);
+    if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled') && narrative) {
+      const cleaned = await this.censor.clean(narrative, gameContext);
+      narrative = cleaned.cleaned;
+      log.info({ jungianEnabled: true, jungianType: deriveType(this.jungianProfile), confidence: this.jungianProfile.confidence }, 'jungian adaptation applied');
+    }
     if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
       const lang = this._worldFrame.language as LanguageCode;
       if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
