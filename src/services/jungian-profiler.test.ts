@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample, buildPlayerVoice, getMoralizingGate, analyzeText, psychotypeToProfile, confidenceCap } from './jungian-profiler';
+import { createDefaultProfile, deriveType, averageRange, axisClarity, BLEND_CONFIG, updateAxis, updateAxisConfidence, blendBehavioralSignals, computeDistribution, sample, buildPlayerVoice, getMoralizingGate, analyzeText, psychotypeToProfile, confidenceCap, assignNpcPsychotype, computePerceivedPlayerType } from './jungian-profiler';
 import type { AxisSignals } from './metrics-collector';
 import type { ProbabilityDistribution, DramaturgEnrichment, NpcEnrichment, VerificationResult, TextAnalysis } from './jungian-profiler';
 import type { LLMQueue } from '@/lib/llm-queue';
@@ -244,5 +244,38 @@ describe('confidenceCap', () => {
     expect(confidenceCap(120)).toBeCloseTo(0.35, 5);
     expect(confidenceCap(300)).toBeCloseTo(0.45, 5);
     expect(confidenceCap(600)).toBeCloseTo(0.55, 5);
+  });
+});
+
+describe('assignNpcPsychotype', () => {
+  test('craftsman → S+J (thinking high, judging high, intuition low)', () => {
+    const p = assignNpcPsychotype('craftsman');
+    expect(p.thinking.preference).toBeGreaterThan(0.6);
+    expect(p.judging.preference).toBeGreaterThan(0.6);
+    expect(p.intuition.preference).toBeLessThan(0.5);
+  });
+  test('wanderer → N+F+P (intuition high, thinking low, judging low)', () => {
+    const p = assignNpcPsychotype('wanderer');
+    expect(p.intuition.preference).toBeGreaterThan(0.6);
+    expect(p.thinking.preference).toBeLessThan(0.5);
+    expect(p.judging.preference).toBeLessThan(0.5);
+  });
+  test('deterministic with same seed', () => {
+    expect(assignNpcPsychotype('guard', undefined, undefined, 42)).toEqual(assignNpcPsychotype('guard', undefined, undefined, 42));
+  });
+  test('anarchy world → P bias (judging lowered)', () => {
+    const feudal = assignNpcPsychotype('craftsman', undefined, 'feudalism');
+    const anarchy = assignNpcPsychotype('craftsman', undefined, 'anarchy');
+    expect(anarchy.judging.preference).toBeLessThan(feudal.judging.preference);
+  });
+});
+
+describe('computePerceivedPlayerType', () => {
+  test('ISTP smith sees INTJ player as colder (thinking shifted +)', () => {
+    const player = createDefaultProfile();
+    player.thinking.preference = 0.75; player.extraversion.preference = 0.3;
+    const npc = assignNpcPsychotype('craftsman'); // T-high
+    const perceived = computePerceivedPlayerType(player, npc);
+    expect(perceived.thinking.preference).toBeGreaterThan(player.thinking.preference);
   });
 });

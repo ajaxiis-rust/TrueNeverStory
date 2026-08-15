@@ -381,3 +381,70 @@ Respond as JSON ONLY, matching this exact schema:
     return createDefaultTextAnalysis();
   }
 }
+
+const ROLE_BIAS: Record<string, { intuition: number; thinking: number; judging: number }> = {
+  craftsman:  { intuition: 0.3, thinking: 0.75, judging: 0.7 },
+  guard:      { intuition: 0.3, thinking: 0.6,  judging: 0.75 },
+  merchant:   { intuition: 0.35, thinking: 0.7, judging: 0.6 },
+  scholar:    { intuition: 0.8, thinking: 0.8,  judging: 0.55 },
+  wanderer:   { intuition: 0.8, thinking: 0.3,  judging: 0.3 },
+  healer:     { intuition: 0.55, thinking: 0.35, judging: 0.6 },
+};
+
+function seededJitter(seed: number): () => number {
+  let a = seed >>> 0;
+  return function() {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function assignNpcPsychotype(
+  role: string,
+  faction?: string,
+  worldSystem?: string,
+  seed: number = 0,
+): JungianProfile {
+  const base = ROLE_BIAS[role.toLowerCase()] ?? { intuition: 0.5, thinking: 0.5, judging: 0.5 };
+  const rand = seededJitter(seed + role.length);
+  const jitter = () => (rand() - 0.5) * 0.2;
+
+  let intuition = base.intuition + jitter();
+  let thinking = base.thinking + jitter();
+  let judging = base.judging + jitter();
+  // Faction bias — keyword match over arbitrary worldFrame.factions names (design S8).
+  const f = (faction ?? '').toLowerCase();
+  if (/(bandit|разбой)/.test(f)) judging -= 0.15;                                    // P (perceiving)
+  if (/(inquisition|инквиз)/.test(f)) judging += 0.15;                               // J (judging)
+  if (/(guild|гильдия|trade|торгов)/.test(f)) { intuition -= 0.1; thinking += 0.1; } // S+T (sensing+thinking)
+  if (worldSystem === 'feudalism') judging += 0.1;
+  if (worldSystem === 'anarchy') judging -= 0.15;
+
+  const clamp = (x: number) => Math.max(0.05, Math.min(0.95, x));
+  return {
+    extraversion: { preference: 0.5 + jitter(), range: 0.1 },
+    intuition:    { preference: clamp(intuition), range: 0.1 },
+    thinking:     { preference: clamp(thinking), range: 0.1 },
+    judging:      { preference: clamp(judging), range: 0.1 },
+    confidence: 1,
+    axisConfidence: { extraversion: 0.7, intuition: 0.7, thinking: 0.7, judging: 0.7 },
+    source: 'default',
+  };
+}
+
+export function computePerceivedPlayerType(player: JungianProfile, npc: JungianProfile): JungianProfile {
+  const shift = (p: number, n: number): number => Math.max(0.05, Math.min(0.95, p + (n - 0.5) * 0.4));
+  const axis = (a: { preference: number; range: number }, n: { preference: number; range: number }) =>
+    ({ preference: shift(a.preference, n.preference), range: a.range });
+  return {
+    extraversion: axis(player.extraversion, npc.extraversion),
+    intuition: axis(player.intuition, npc.intuition),
+    thinking: axis(player.thinking, npc.thinking),
+    judging: axis(player.judging, npc.judging),
+    confidence: player.confidence,
+    axisConfidence: player.axisConfidence,
+    source: player.source,
+  };
+}
