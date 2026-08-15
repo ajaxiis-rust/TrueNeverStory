@@ -242,7 +242,7 @@ export class RoleplayEngine {
       this.crafter = deps.agents.crafter;
       this.researcher = deps.agents.researcher;
     } else {
-      this.dramaturg = new DramaturgAgent(deps.mcpServer as TNSServer, deps.llmQueue);
+      this.dramaturg = new DramaturgAgent(deps.mcpServer as TNSServer, deps.llmQueue, () => this.getLiteraryDb());
       this.validator = new ValidatorAgent(deps.mcpServer as TNSServer);
       this.stylist = new StylistAgent(deps.mcpServer as TNSServer, deps.llmQueue);
       this.actor = new ActorAgent(deps.entityStore, deps.llmQueue);

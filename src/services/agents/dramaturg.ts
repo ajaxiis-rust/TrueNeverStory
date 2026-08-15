@@ -5,6 +5,10 @@ import { GameContext } from '@/services/context-builder';
 import { TNSServer } from '@/mcp/server';
 import { LLMQueue } from '@/lib/llm-queue';
 import { getLogger } from '@/utils/logger';
+import { sample, type WeightedChoice, type DramaturgEnrichment } from '../jungian-profiler';
+import { searchTemplates } from '@/mcp/literary-compiler/retrieval';
+import { fillTemplate } from '@/mcp/literary-compiler/fill-template';
+import type { LiteraryCompilerDB } from '@/mcp/literary-compiler/schema';
 
 const logger = getLogger('DramaturgAgent');
 
@@ -23,6 +27,7 @@ export class DramaturgAgent extends BaseAgentV2 {
   constructor(
     private mcpServer: TNSServer,
     private llmQueue: LLMQueue,
+    private getLiteraryDb: () => LiteraryCompilerDB | null = () => null,
   ) {
     super();
   }
@@ -152,6 +157,32 @@ export class DramaturgAgent extends BaseAgentV2 {
     if (simulation.outcome === 'critical_success') return 'leader';
     if (intent.type === 'dialogue') return 'follower';
     return 'follower';
+  }
+
+  async enrichScene(
+    archetypeWeights: WeightedChoice[],
+    gameContext: GameContext,
+  ): Promise<DramaturgEnrichment> {
+    const archetype = sample(archetypeWeights);
+    const db = this.getLiteraryDb();
+    if (db) {
+      const ranked = await searchTemplates(db, { archetype }, 1);
+      if (ranked.length > 0) {
+        const t = ranked[0]!.template;
+        const filled = fillTemplate(t.template_text, {
+          character: gameContext.character?.name ?? 'the hero',
+          location: gameContext.location?.name ?? 'the place',
+        });
+        return { archetype, filledSkeleton: filled, mood: t.mood };
+      }
+    }
+    return { archetype, filledSkeleton: await this.generateFallbackSkeleton(archetype, gameContext), mood: 'neutral' };
+  }
+
+  private async generateFallbackSkeleton(archetype: string, gameContext: GameContext): Promise<string> {
+    const prompt = `Write a 1-sentence scene skeleton for archetype "${archetype}" in location "${gameContext.location?.name ?? 'unknown'}". Respond with only the sentence.`;
+    const text = await this.llmQueue.generateText(prompt, 1, 0.3, 'dramaturg');
+    return text.trim() || `${archetype} unfolds in ${gameContext.location?.name ?? 'the place'}.`;
   }
 
   private async generateFallbackPattern(
