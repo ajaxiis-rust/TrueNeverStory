@@ -171,6 +171,39 @@
       ],
       "createdAt": "2026-08-15T00:00:00.000Z",
       "updatedAt": "2026-08-15T00:00:00.000Z"
+    },
+    {
+      "id": "literary-modulation-enabled",
+      "name": "Literary Modulation",
+      "description": "Soft style/dramaturgy priors based on player signals",
+      "enabled": false,
+      "percentage": 0,
+      "conditions": [],
+      "variants": [],
+      "createdAt": "2026-08-16T00:00:00.000Z",
+      "updatedAt": "2026-08-16T00:00:00.000Z"
+    },
+    {
+      "id": "short-turn-expansion-enabled",
+      "name": "Short Turn Expansion",
+      "description": "Literary expansion of short actionable player turns",
+      "enabled": false,
+      "percentage": 0,
+      "conditions": [],
+      "variants": [],
+      "createdAt": "2026-08-16T00:00:00.000Z",
+      "updatedAt": "2026-08-16T00:00:00.000Z"
+    },
+    {
+      "id": "deferred-hooks-enabled",
+      "name": "Deferred Character Hooks",
+      "description": "Soft deferred callbacks for noticed-but-rejected NPCs",
+      "enabled": false,
+      "percentage": 0,
+      "conditions": [],
+      "variants": [],
+      "createdAt": "2026-08-16T00:00:00.000Z",
+      "updatedAt": "2026-08-16T00:00:00.000Z"
     }
   ]
 }
