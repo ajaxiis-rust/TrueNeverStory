@@ -23,6 +23,7 @@ import { systemRouter } from "./system";
 import { monitoringRouter } from "./monitoring";
 import { rulesRouter } from "./rules";
 import { featureFlagsRouter } from "./feature-flags";
+import { feedbackRouter } from "./feedback";
 import { worldStoreRouter } from "./world-store";
 import { v1Router } from "./v1";
 import { v2Router } from "./v2";
@@ -107,6 +108,9 @@ export function createRoutes(): Hono {
 
   // Feature Flags (A/B testing, gradual rollout)
   routes.route("/", featureFlagsRouter);
+
+  // Feedback (literary like/dislike)
+  routes.route("/", feedbackRouter);
 
   // World Store (JSON → SQLite migration)
   routes.route("/", worldStoreRouter);
