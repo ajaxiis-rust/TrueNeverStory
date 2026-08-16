@@ -388,6 +388,22 @@ export class RoleplayEngine {
     };
     const dist = computeDistribution(this.jungianProfile, worldState, sceneContext);
     const dramaturg = await this.dramaturg.enrichScene(dist.archetypes, gameContext);
+
+    // Deferred hook recall — inject as enrichment candidate
+    if (getFeatureFlagManager().isEnabled('deferred-hooks-enabled')) {
+      const eligible = this.deferredHookStore.getEligible();
+      if (eligible.length > 0) {
+        const hook = eligible[0]!;
+        const strengthText = hook.hookStrength === 1
+          ? `A rumor reaches you about ${hook.npcName}.`
+          : hook.hookStrength === 2
+            ? `You glimpse ${hook.npcName} in the distance.`
+            : `${hook.npcName} appears with new purpose.`;
+        dramaturg.filledSkeleton += `\n\n[Deferred hook: ${strengthText}]`;
+        this.deferredHookStore.markUsed(hook.npcId);
+        log.info({ npcId: hook.npcId, strength: hook.hookStrength }, 'deferred hook recalled');
+      }
+    }
     const nearbyWithTypes = gameContext.nearbyNpcs.map(n => ({
       id: n.uid ?? n.name, name: n.name,
       psychotype: n.profile.l3.psychotype as JungianProfile | undefined,
