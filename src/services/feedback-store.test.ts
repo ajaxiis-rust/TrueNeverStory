@@ -52,3 +52,33 @@ describe('FeedbackStore', () => {
     expect(b.getRecent(1)).toHaveLength(1);
   });
 });
+
+describe('FeedbackStore parameter adjustments', () => {
+  it('increases sensory parameter after likes', () => {
+    const store = new FeedbackStore();
+    for (let i = 0; i < 5; i++) {
+      store.record({ turnId: i, reaction: 'like', techniques: ['sensory-volume'] });
+    }
+    const adj = store.getParameterAdjustments();
+    expect(adj['sensory-volume']).toBeGreaterThan(0);
+    expect(adj['sensory-volume']).toBeLessThanOrEqual(0.15); // max 15%
+  });
+
+  it('does not drift on neutral', () => {
+    const store = new FeedbackStore();
+    for (let i = 0; i < 10; i++) {
+      store.record({ turnId: i, reaction: 'neutral', techniques: ['sensory-volume'] });
+    }
+    const adj = store.getParameterAdjustments();
+    expect(adj['sensory-volume'] ?? 0).toBe(0);
+  });
+
+  it('clamps adjustments at ±15%', () => {
+    const store = new FeedbackStore();
+    for (let i = 0; i < 100; i++) {
+      store.record({ turnId: i, reaction: 'like', techniques: ['sensory-volume'] });
+    }
+    const adj = store.getParameterAdjustments();
+    expect(adj['sensory-volume']).toBeLessThanOrEqual(0.15);
+  });
+});

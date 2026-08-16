@@ -5,6 +5,9 @@
 
 import { type LiteraryParam } from './literary-modulation';
 
+const LEARNING_RATE = 0.02; // per like/dislike
+const MAX_ADJUSTMENT = 0.15; // ±15%
+
 export type FeedbackReaction = 'like' | 'dislike' | 'neutral';
 
 export interface FeedbackEntry {
@@ -39,6 +42,27 @@ export class FeedbackStore {
       else break;
     }
     return count;
+  }
+
+  /** Accumulated parameter adjustments (±15% max) from likes/dislikes. */
+  getParameterAdjustments(): Partial<Record<LiteraryParam, number>> {
+    const adjustments: Partial<Record<LiteraryParam, number>> = {};
+
+    for (const entry of this.entries) {
+      const delta = entry.reaction === 'like' ? LEARNING_RATE
+        : entry.reaction === 'dislike' ? -LEARNING_RATE
+        : 0;
+      if (delta === 0) continue;
+
+      for (const technique of entry.techniques) {
+        adjustments[technique] = Math.max(
+          -MAX_ADJUSTMENT,
+          Math.min(MAX_ADJUSTMENT, (adjustments[technique] ?? 0) + delta),
+        );
+      }
+    }
+
+    return adjustments;
   }
 
   toJSON(): FeedbackEntry[] {
