@@ -1,10 +1,238 @@
-# Referencia de agentes
+# Referencia de agentes (v0.32.5)
 
-TrueNeverStory utiliza una arquitectura multi-agente donde cada agente maneja un aspecto específico de la narrativa. Cada agente tiene su propia configuración LLM, prompts del sistema y plantillas de usuario.
+TrueNeverStory tiene **dos sistemas de agentes** que coexisten:
+
+1. **The Big Six (AgentV2)** — la canalización de prosa narrativa. Registrados en `AgentRegistryV2` e instanciados en `RoleplayEngine`.
+2. **Agentes configurados (`DEFAULT_AGENTS`)** — los agentes más antiguos dirigidos por configuración, listados en `src/services/agent-config.ts`. Respaldan la UI de Ajustes/Proveedores y algunos subsistemas (investigación inactiva, `@mentions` del chat).
+
+Los Big Six son: `dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`. Los agentes configurados son: `director`, `chronicler`, `story-planner`, `social-sim`, `villain`, `researcher`, `translation`.
+
+`stylist` es el único generador de prosa. Los agentes eliminados (`narrator`, `npc`, `scene`, `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`) ya no existen en ninguna parte del código.
+
+---
+
+## Los Big Six (AgentV2)
+
+Estos gestionan la canalización determinista de prosa: intención → simulación → contexto → prosa.
+
+### 1. Dramaturg (El Arquitecto)
+
+**ID:** `dramaturg`
+**Rol:** Selecciona patrones narrativos de arquetipos bíblicos
+**Herramientas MCP:** `search_verses`, `get_pattern`, `get_archetype`
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Propósito** | Analiza la situación actual y elige estructuras narrativas adecuadas a partir de patrones bíblicos |
+| **Entrada** | Intent, SimulationResult, GameContext |
+| **Salida** | NarrativePattern (arquetipo, nombre, descripción, versículos, tono) |
+| **Dependencias** | TNSServer (MCP), LLMQueue |
+
+**Flujo:**
+1. Infiere el tono a partir del tipo de intención y el resultado de la simulación
+2. Consulta el MCP de la Biblia en busca de arquetipos coincidentes
+3. Recurre a patrones generados por LLM si el MCP no está disponible
+
+### 2. Validator (El Verificador de hechos)
+
+**ID:** `validator`
+**Rol:** Verifica hechos mediante el MCP de Wikipedia
+**Herramientas MCP:** `verify_fact`, `get_context`
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Propósito** | Garantiza la coherencia del mundo y la precisión histórica |
+| **Entrada** | Intent, SimulationResult, GameContext |
+| **Salida** | Resultados de verificación (verificado, confianza, evidencia, fuentes) |
+| **Dependencias** | TNSServer (MCP) |
+
+**Flujo:**
+1. Extrae afirmaciones factuales de la situación
+2. Consulta el MCP de Wikipedia para verificar
+3. Devuelve resultados de verificación con niveles de confianza
+
+### 3. Stylist (El Narrador)
+
+**ID:** `stylist`
+**Rol:** Genera prosa usando patrones de estilo de Gutenberg — el único generador de prosa
+**Herramientas MCP:** `get_style_pattern`, `apply_style`
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Propósito** | Agente central de generación de texto que produce prosa narrativa |
+| **Entrada** | Intent, SimulationResult, GameContext, NarrativePattern |
+| **Salida** | Texto en prosa |
+| **Dependencias** | TNSServer (MCP), LLMQueue |
+
+**Flujo:**
+1. Obtiene el estilo según el tono desde el MCP de Gutenberg
+2. Construye un prompt restringido con resultados de simulación y estilo
+3. Genera prosa mediante el LLM
+4. Devuelve el texto renderizado
+
+### 4. Actor (Conjunto de NPC)
+
+**ID:** `actor`
+**Rol:** Gestiona las interacciones y diálogos de los NPC
+**Herramientas MCP:** Ninguna
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Propósito** | Maneja todos los diálogos de NPC, comercio, artesanía, dinámica social |
+| **Entrada** | Intent, SimulationResult, GameContext |
+| **Salida** | Texto de diálogo de NPC, cambios de estado |
+| **Dependencias** | UnifiedEntityStore, LLMQueue |
+
+**Flujo:**
+1. Enruta al subgestor adecuado según el tipo de intención
+2. Obtiene las motivaciones ocultas del NPC desde el perfil L3
+3. Genera la respuesta del NPC mediante el LLM
+4. Calcula los cambios de estado de la relación
+
+### 5. Censor (El Corrector)
+
+**ID:** `censor`
+**Rol:** Elimina clichés de IA y refuerza la coherencia de estilo
+**Herramientas MCP:** Ninguna
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Propósito** | Limpia la prosa eliminando clichés y anacronismos generados por IA |
+| **Entrada** | Texto en prosa, GameContext |
+| **Salida** | Texto en prosa limpio |
+| **Dependencias** | LLMQueue |
+
+**Flujo:**
+1. Elimina clichés de IA mediante patrones regex
+2. Corrige anacronismos según el contexto del mundo
+3. Pulido basado en LLM para casos complejos
+4. Devuelve el texto limpio
+
+**Clichés de IA eliminados habitualmente:**
+- "delved", "tapestry", "rich tapestry", "palpable", "visceral"
+- "it's worth noting", "it goes without saying"
+- "the very fabric of", "on a deeper level"
+
+### 6. Chronicler
+
+**ID:** `chronicler`
+**Rol:** Actualiza la memoria del mundo y mantiene la línea de tiempo
+**Herramientas MCP:** Ninguna
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Propósito** | Registra todos los eventos significativos y mantiene la coherencia del mundo |
+| **Entrada** | Intent, SimulationResult, GameContext |
+| **Salida** | Cambios de estado (actualizaciones de memoria de NPC) |
+| **Dependencias** | UnifiedEntityStore, EventBus |
+
+**Flujo:**
+1. Crea una descripción del evento a partir de la intención y el resultado
+2. La publica en el EventBus para otros sistemas
+3. Actualiza los recuerdos de los NPC cercanos
+4. La registra en la línea de tiempo
+
+---
+
+## Agentes configurados (`DEFAULT_AGENTS`)
+
+Estos viven en `src/services/agent-config.ts` y respaldan la UI de Ajustes/Proveedores, `LLMQueue`/`LLMClient` y algunos subsistemas. `chronicler` se comparte con los Big Six. Su temperatura y límites de tokens provienen de los valores globales por defecto (0.7 / 2048) a menos que se anulen en `conf/agents.json`.
+
+| ID | Nombre | Prioridad | Usado por |
+|----|--------|-----------|-----------|
+| `director` | Director | 8 | inyección de story-beats |
+| `chronicler` | Chronicler | 5 | resumen de línea de tiempo (también `@mention`) |
+| `story-planner` | Planificador de historias | 6 | sugerencias de arcos narrativos (`@mention`) |
+| `social-sim` | Simulador social | 4 | dinámica social de NPC (`@mention`) |
+| `villain` | Gestor de antagonistas | 6 | planes del antagonista (`@mention`) |
+| `researcher` | Investigador | 3 | `IdleResearchScheduler`, evaluación de objetos (`@mention`) |
+| `translation` | Traducción | 2 | inglés ↔ idioma del usuario en el límite de salida |
+
+**Plantillas de prompt (variables de plantilla → a qué se resuelven):**
+
+- **director** — `{narrative}`, `{beat}`. Integra un story beat en la narrativa en curso.
+- **chronicler** — `{events}`, `{timeline}`. Resume los nuevos eventos cronológicamente.
+- **story-planner** — `{world_state}`, `{characters}`, `{events}`, `{quests}`. Salida: `{"arc": ..., "quests": [{"title", "description", "objectives"}], "hooks": [...]}`.
+- **social-sim** — `{characters}`, `{relationships}`, `{context}`. Describe los cambios de relación y las implicaciones de facción.
+- **villain** — `{villain}`, `{world_state}`, `{recent_actions}`. Planifica el próximo movimiento del antagonista.
+- **researcher** — `{task}`, `{world_context}`. Salida: `{"verdict": "plausible|questionable|unrealistic", "confidence", "issues", "suggestions", "enrichedDetails"}`.
+- **translation** — `{source_lang}`, `{target_lang}`, `{text}`. Devuelve únicamente el texto traducido.
+
+---
+
+## Sistema de diálogo (v0.32.5)
+
+Nuevo `DialogueManager` + `DialogueContext` para conversaciones estructuradas con NPC:
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| **Gestión de sesiones** | Ciclo Saludo → Activo → Despedida |
+| **Conciencia de relaciones** | Saludos y disponibilidad de temas para amigos/neutrales/enemigos |
+| **Jerarquía feudal** | Saludos especiales señor/vasallos |
+| **Elecciones temáticas** | personal, facción, misión, comercio, combate, artesanía, rumor, chisme, etc. |
+| **Registro en memoria** | Resúmenes de diálogo almacenados en la memoria a largo plazo del NPC |
+
+Acceso mediante `engine.dialogueManager` (requiere `npcRuntime` disponible).
+
+**Nota:** Las `@mentions` del chat enrutan a los gestores configurados (`@chronicler`, `@story-planner`, `@social-sim`, `@villain`, `@researcher`), no a los Big Six. `@narrator`, `@director`, `@scene` y `@npc` ya no existen.
+
+---
+
+## Agent Registry v2
+
+Los Big Six se registran en `AgentRegistryV2` (`src/services/agent-registry-v2.ts`):
+
+```typescript
+import { getAgentRegistryV2 } from './agent-registry-v2';
+
+const registry = getAgentRegistryV2();
+
+// Register agents
+registry.register(dramaturgAgent);
+registry.register(validatorAgent);
+registry.register(stylistAgent);
+registry.register(actorAgent);
+registry.register(censorAgent);
+registry.register(chroniclerAgent);
+
+// Get agent by ID
+const dramaturg = registry.get('dramaturg');
+
+// Get agents with specific MCP tool
+const withSearch = registry.getAgentsWithTool('search_verses');
+```
+
+---
+
+## Interfaz de agente (v0.32.5)
+
+```typescript
+interface AgentV2 {
+  readonly id: AgentId;
+  readonly name: string;
+  readonly description: string;
+  readonly mcpTools: string[];
+
+  process(
+    intent: Intent,
+    simulation: SimulationResult,
+    context: GameContext,
+    pattern?: NarrativePattern,
+  ): Promise<AgentOutput>;
+}
+
+interface AgentOutput {
+  text?: string;
+  stateChanges?: StateChange[];
+  metadata?: Record<string, unknown>;
+}
+```
+
+---
 
 ## Variables globales
 
-Estas variables están disponibles para la mayoría de los agentes a través del contexto del estado del mundo:
+Estas variables están disponibles para los agentes a través del contexto de juego:
 
 | Variable | Descripción |
 |----------|-------------|
@@ -14,290 +242,173 @@ Estas variables están disponibles para la mayoría de los agentes a través del
 | `{character}` | Nombre del personaje activo |
 | `{role}` | Rol del usuario (protagonista, observador, etc.) |
 | `{rules}` | Reglas del mundo (leyes mágicas, normas sociales, etc.) |
-| `{timeline}` | Eventos recientes del mundo (últimos 5 del cronista) |
+| `{timeline}` | Eventos recientes del mundo (últimos 5 del Chronicler) |
 | `{memories}` | Recuerdos recientes del juego de rol |
 | `{facts}` | Hechos establecidos del mundo |
-| `{npcs}` | Nombres de NPCs cercanos |
-| `{history}` | Historial reciente de la conversación (últimos 3 intercambios) |
-| `{events}` | Eventos recientes (según contexto, últimos 3-5) |
+| `{npcs}` | Nombres de NPC cercanos |
+| `{history}` | Historial reciente de conversación (últimos 3 intercambios) |
+| `{events}` | Eventos recientes (según contexto, últimos 3–5) |
 | `{world_state}` | Resumen del estado actual del mundo |
 | `{world_context}` | Contexto del mundo para investigación |
-
-## Agentes
-
-### Narrador (`narrator`)
-
-**Descripción:** Narrador principal. Genera la narrativa del mundo a partir del contexto de la historia.
-
-**Variables de plantilla:**
-`{world_name}` `{time}` `{location}` `{character}` `{role}` `{rules}` `{timeline}` `{memories}` `{facts}` `{npcs}` `{history}`
-
-**Prompt del sistema:** Define al narrador como un hábil contador de historias. Escribe prosa vívida e inmersiva en segunda/tercera persona. Nunca rompe el carácter.
-
-**Temperatura:** 0.8 | **Máx. tokens:** 4096 | **Prioridad:** 10 (la más alta)
-
----
-
-### Director (`director`)
-
-**Descripción:** Inyección de momentos narrativos. Integra momentos dramáticos en la narrativa.
-
-**Variables de plantilla:**
-`{narrative}` `{beat}`
-
-| Variable | Descripción |
-|----------|-------------|
-| `{narrative}` | Texto narrativo actual donde inyectar el momento |
-| `{beat}` | Descripción del momento narrativo (incidente, revelación, revés, etc.) |
-
-**Temperatura:** 0.7 | **Máx. tokens:** 2048 | **Prioridad:** 8
-
----
-
-### Generador de escenas (`scene`)
-
-**Descripción:** Transiciones de escena al moverse entre ubicaciones.
-
-**Variables de plantilla:**
-`{character}` `{origin}` `{destination}` `{rules}` `{events}`
-
-| Variable | Descripción |
-|----------|-------------|
-| `{origin}` | Ubicación actual (de dónde sale el personaje) |
-| `{destination}` | Ubicación objetivo (a dónde va el personaje) |
-
-**Temperatura:** 0.8 | **Máx. tokens:** 2048 | **Prioridad:** 7
-
----
-
-### Agente NPC (`npc`)
-
-**Descripción:** Diálogos y reacciones de NPCs. Representa personajes individuales.
-
-**Variables de plantilla:**
-`{npc_name}` `{npc_personality}` `{player}` `{location}` `{relationship}` `{events}` `{line}`
-
-| Variable | Descripción |
-|----------|-------------|
-| `{npc_name}` | Nombre del NPC representado |
-| `{npc_personality}` | Rasgos de personalidad del NPC (del perfil de entidad) |
-| `{player}` | Nombre del personaje del jugador |
-| `{relationship}` | Relación con el jugador (amigo, neutral, enemigo, etc.) |
-| `{line}` | Lo que el jugador le dijo al NPC |
-
-**Temperatura:** 0.7 | **Máx. tokens:** 1024 | **Prioridad:** 9
-
----
-
-### Cronista (`chronicler`)
-
-**Descripción:** Gestión de la línea de tiempo. Resume eventos y mantiene la historia del mundo.
-
-**Variables de plantilla:**
-`{events}` `{timeline}`
-
-| Variable | Descripción |
-|----------|-------------|
-| `{events}` | Nuevos eventos para cronicar (acciones, movimientos, diálogos recientes) |
-| `{timeline}` | Línea de tiempo existente para contexto |
-
-**Temperatura:** 0.5 | **Máx. tokens:** 1024 | **Prioridad:** 5
-
----
-
-### Planificador de historias (`story-planner`)
-
-**Descripción:** Planificación de arcos narrativos. Planifica misiones y desarrollos de la trama.
-
-**Variables de plantilla:**
-`{world_state}` `{characters}` `{events}` `{quests}`
-
-| Variable | Descripción |
-|----------|-------------|
-| `{characters}` | Personajes activos en el mundo |
-| `{quests}` | Misiones actualmente activas |
-
-**Formato de salida:**
-```json
-{"arc": "descripción", "quests": [{"title": "", "description": "", "objectives": [""]}], "hooks": [""]}
-```
-
-**Temperatura:** 0.7 | **Máx. tokens:** 2048 | **Prioridad:** 6
-
----
-
-### Simulador social (`social-sim`)
-
-**Descripción:** Dinámica social. Simula relaciones e interacciones entre NPCs.
-
-**Variables de plantilla:**
-`{characters}` `{relationships}` `{context}`
-
-| Variable | Descripción |
-|----------|-------------|
-| `{relationships}` | Grafo actual de relaciones entre personajes |
-| `{context}` | Contexto social (encuentro, conflicto, alianza, etc.) |
-
-**Temperatura:** 0.6 | **Máx. tokens:** 1024 | **Prioridad:** 4
-
----
-
-### Gestor de villanos (`villain`)
-
-**Descripción:** Gestión de antagonistas. Planifica acciones de villanos y sus planes.
-
-**Variables de plantilla:**
-`{villain}` `{world_state}` `{recent_actions}`
-
-| Variable | Descripción |
-|----------|-------------|
-| `{villain}` | Perfil del villano (personalidad, objetivos, habilidades) |
-| `{recent_actions}` | Acciones recientes del villano en el mundo |
-
-**Temperatura:** 0.8 | **Máx. tokens:** 2048 | **Prioridad:** 6
-
----
-
-### Investigador (`researcher`)
-
-**Descripción:** Verificación de hechos, validación de realismo e investigación para la construcción del mundo.
-
-**Variables de plantilla:**
-`{task}` `{world_context}`
-
-| Variable | Descripción |
-|----------|-------------|
-| `{task}` | Tarea de investigación (verificación de receta, validación de personaje, enriquecimiento de escena, verificación de hecho) |
-
-**Formato de salida:**
-```json
-{"verdict": "plausible|questionable|unrealistic", "confidence": 0.0-1.0, "issues": [], "suggestions": [], "enrichedDetails": ""}
-```
-
-**Temperatura:** 0.3 | **Máx. tokens:** 2048 | **Prioridad:** 3 (la más baja)
+| `{genre}` | Género del mundo (fantasía, ciencia ficción, terror, etc.) |
+| `{magic_system}` | Descripción del sistema de magia |
+| `{language}` | Idioma principal del mundo (en, ru, etc.) |
+| `{world_description}` | Descripción/pitch del mundo |
 
 ---
 
 ## Guía de temperatura
 
+Los agentes configurados usan los valores globales por defecto (temperatura 0.7, máximo 2048 tokens) a menos que se anulen en `conf/agents.json`.
+
 | Valor | Efecto | Usar para |
 |-------|--------|-----------|
-| 0.1 - 0.3 | Enfocado, determinista | Investigación, verificación de hechos |
-| 0.4 - 0.6 | Equilibrado | Cronista, simulación social |
-| 0.7 - 0.8 | Creativo | Narrativa, diálogos NPC, planes de villanos |
+| 0.1 - 0.3 | Enfocado, determinista | Investigación, verificación de hechos, análisis de intención |
+| 0.4 - 0.6 | Equilibrado | Chronicler, simulación social |
+| 0.7 - 0.8 | Creativo | Narrativa, diálogo de NPC, planes del antagonista |
+
+---
 
 ## Usar @agent en el chat
 
-Envíe un mensaje privado a cualquier agente desde el chat:
+Envía un mensaje privado a un agente desde el chat. Las `@mentions` del chat enrutan a los gestores configurados, no a los Big Six:
 
 ```
-@narrator describe la atmósfera del bosque antiguo al atardecer
-@director sugiere un giro argumental dramático
-@researcher ¿es esta arma medieval históricamente precisa?
-@chronicler resume lo que pasó en la última hora
+@chronicler summarize the last hour
+@story-planner suggest the next story beat
+@researcher is this medieval sword historically accurate?
+@social-sim how do the villagers react?
+@villain what does the antagonist do next?
 ```
 
 Las respuestas se marcan con un borde azul a la izquierda y el nombre del agente entre corchetes.
 
-### Inyección de instrucción de idioma
-
-Las respuestas del LLM coinciden automáticamente con el idioma de la interfaz seleccionado. La instrucción de idioma se incorpora a los prompts de los agentes en el momento de la creación del mundo mediante `seedWorldAgents()`, y también se agrega en tiempo de ejecución mediante `getLanguageInstruction()`:
-
-| Idioma | Texto inyectado |
-|--------|-----------------|
-| en | `IMPORTANT: Always respond in English.` |
-| ru | `ВАЖНО: Всегда отвечай на русском языке.` |
-| de | `WICHTIG: Antworte immer auf Deutsch.` |
-| fr | `IMPORTANT: Réponds toujours en français.` |
-| es | `IMPORTANTE: Responde siempre en español.` |
-| ja | `重要：常に日本語で回答してください。` |
-| zh | `重要：请始终用中文回复。` |
-
-Al crear el mundo, `seedWorldAgents()` escribe los 14 agentes con la instrucción de idioma añadida al prompt del sistema. Esto asegura que los nuevos mundos comiencen con un aislamiento de idioma adecuado. La función de ejecución `getLanguageInstruction()` es utilizada por `dialogue-context.ts` para diálogos dinámicos de NPCs.
-
-### Puntos finales de API para prompts
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| `GET` | `/api/agents` | Listar todos los agentes (acepta `?world=`) |
-| `GET` | `/api/agents/:id` | Obtener configuración de un agente (acepta `?world=`) |
-| `PUT` | `/api/agents/:id` | Actualizar configuración de un agente (acepta `?world=`) |
-| `PUT` | `/api/agents/:id/prompts` | Actualizar prompts (acepta `?world=`) |
-| `GET` | `/api/agents/:id/prompts/:lang` | Obtener prompts para un idioma específico |
-| `PUT` | `/api/agents/:id/prompts/:lang` | Crear o actualizar prompts para un idioma específico |
-
-**Parámetros de consulta:**
-- `world` — opcional, por defecto el mundo activo de la configuración. Todos los puntos finales de agentes soportan `?world=` para operaciones por mundo sin cambiar el mundo activo.
-
-## Prioridad
-
-Los agentes con mayor prioridad se procesan primero cuando hay múltiples solicitudes LLM en cola.
-
-| Agente | Prioridad |
-|--------|-----------|
-| narrator | 10 (la más alta) |
-| npc | 9 |
-| director | 8 |
-| scene | 7 |
-| story-planner | 6 |
-| villain | 6 |
-| chronicler | 5 |
-| social-sim | 4 |
-| researcher | 3 (la más baja) |
+Los Big Six (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`) están registrados en `AgentRegistryV2` pero **no** son accesibles mediante `@mention`.
 
 ---
 
-## Agentes especializados (v0.32.5)
+## Sistema RAG (embeddings + memoria a largo plazo)
 
-Los siguientes agentes especializados están ahora integrados en `RoleplayEngine` y disponibles a través de `engine.<agent>`:
+Todos los agentes tienen soporte completo de embeddings con memoria a largo plazo vía RAG:
 
-| Agente | Campo | Propósito |
-|--------|-------|-----------|
-| **CartographerAgent** | `engine.cartographer` | Información de ubicación/geografía — distancias, rutas, terreno, puntos de interés |
-| **HistorianAgent** | `engine.historian` | Historia del mundo, cronología, eventos pasados, narración de lore |
-| **LorekeeperAgent** | `engine.lorekeeper` | Hechos del mundo, reglas del sistema de magia, información de razas, canon establecido |
-| **MerchantAgent** | `engine.merchant` | Comercio de mercaderes NPC, fijación de precios, gestión de inventario |
-| **QuestGiverAgent** | `engine.questGiver` | Generación de misiones basada en el estado del mundo, nivel del jugador, hilos argumentales |
+- **Servidor de embeddings llama.cpp** — modelo BGE-M3 en el puerto 5002 para generación de vectores
+- **Búsqueda híbrida SQLite** — búsqueda por palabras clave FTS5 + búsqueda vectorial densa + Reciprocal Rank Fusion (RRF)
+- **AgentMemoryStore** — aislamiento de memoria por agente y por sesión mediante la columna `role`
+- **Memoria por mundo** — la memoria se aísla por mundo para evitar alucinaciones entre mundos
+- **Núcleos de cómputo Mojo** — 5 núcleos Mojo vía FFI con alternativas TypeScript:
+  - `probability_ffi.mojo` — probabilidad de éxito, resultados de tirada, probabilidad por lotes
+  - `vector_ffi.mojo` — operaciones vectoriales 4-dim (coseno, L2, producto punto)
+  - `vector_full.mojo` — operaciones vectoriales de dimensión completa (768-dim BGE-M3)
+  - `batch_ops.mojo` — operaciones NPC por lotes (decaimiento de edad, vicio, impuesto, lealtad)
+  - `graph_ops.mojo` — recorrido de grafos, fusión RRF, cálculo de reputación
 
-Cada agente especialista solo acepta `LLMQueue` como dependencia y genera texto a través de prompts dedicados.
+**Flujo de memoria:**
+```
+Agent Request → AgentMemoryStore → SQLite (hybrid search)
+                                      ↓
+                              ┌───────┴───────┐
+                              │ FTS5 (LIKE)   │ Dense Vectors (BGE-M3)
+                              │ Keyword Match │ Cosine Similarity
+                              └───────┬───────┘
+                                      ↓
+                              Reciprocal Rank Fusion (RRF)
+                                      ↓
+                              Context for LLM Prompt
+```
+
+---
+
+## Integración MCP (v0.32.5)
+
+### Patrones bíblicos
+
+Textos bíblicos almacenados en SQLite con granularidad de versículo. Cada versículo es un puntero atómico que los agentes pueden referenciar.
+
+**Herramientas:**
+- `search_verses` — Buscar por texto, libro o referencia
+- `get_pattern` — Obtener patrones narrativos por arquetipo, tono o función
+- `get_archetype` — Obtener detalles del arquetipo por nombre
+
+### Estilos Gutenberg
+
+Patrones estilísticos extraídos de textos del Proyecto Gutenberg. Las descripciones deslexicalizadas preservan la estructura sin nombres de personajes.
+
+**Herramientas:**
+- `get_style_pattern` — Buscar estilos por tono, etiquetas o descripción
+- `apply_style` — Aplicar estilo al texto (deslexificar y devolver sugerencias)
+
+### Validación de Wikipedia
+
+Verificación histórica de hechos mediante la API de Wikipedia.
+
+**Herramientas:**
+- `verify_fact` — Verificar una afirmación factual
+- `get_context` — Obtener el contexto de Wikipedia de un tema
+
+---
+
+## Sistema de plantillas
+
+### Cómo funciona userTemplate
+
+Cada agente almacena un `userTemplate` en SQLite (tabla `agent_prompts`) con respaldo en archivo JSON. La plantilla contiene marcadores `{var}` que se reemplazan con valores reales en tiempo de ejecución mediante `resolveTemplate()` (`src/utils/template-resolver.ts`).
+
+**Flujo:**
+1. El agente carga la configuración: `loadAgentConfig(agentId, world?, lang?)`
+2. Lee `prompts.userTemplate` primero desde SQLite y luego del respaldo JSON
+3. Llama a `resolveTemplate(template, vars)` con los datos de contexto
+4. Envía el prompt resuelto al LLM
+
+**Si no existe ningún userTemplate** → respaldo en `PromptBuilder` (plantillas TypeScript codificadas).
 
 ---
 
 ## Perfiles de estilo del jugador (v0.32.5)
 
-`PlayerProfileStore` (`src/lib/player-profile-store.ts`) proporciona perfiles de estilo de jugador inter-agentes compartidos entre Stylist y LiteraryV2Generator.
+`PlayerProfileStore` (`src/lib/player-profile-store.ts`) proporciona perfiles de estilo de jugador entre agentes, compartidos entre Stylist y LiteraryV2Generator.
 
 **Métricas rastreadas:**
 | Métrica | Descripción |
 |---------|-------------|
-| `avg_sentence_len` | Longitud promedio de las oraciones en palabras |
-| `sensory_bias` | Preferencia de detalles sensoriales (0-1) |
-| `register_score` | Registro formal/informal (0-1) |
-| `dialogue_ratio` | Proporción de diálogos en el texto |
-| `narrative_distance` | Narración cercana vs distante (0-1) |
-| `action_orientation` | Preferencia de acción vs reflexión (0-1) |
-| `emotional_expressiveness` | Nivel de detalles emocionales (0-1) |
+| `avg_sentence_len` | Longitud promedio de las frases en palabras |
+| `sensory_bias` | Preferencia por detalles sensoriales (0–1) |
+| `register_score` | Registro formal/informal (0–1) |
+| `dialogue_ratio` | Proporción de diálogo en el texto |
+| `narrative_distance` | Narración cercana vs distante (0–1) |
+| `action_orientation` | Preferencia acción vs reflexión (0–1) |
+| `emotional_expressiveness` | Nivel de detalles emocionales (0–1) |
 | `preferred_pace` | lento / medio / rápido |
-| `literary_sophistication` | Complejidad del vocabulario/estructura (0-1) |
+| `literary_sophistication` | Complejidad de vocabulario/estructura (0–1) |
 | `preferred_motifs` | Motivos narrativos preferidos |
-| `anti_patterns` | Patrones a evitar |
+| `anti_patterns` | Patrones evitados |
 | `sample_snippets` | Fragmentos de texto representativos |
-| `confidence` | Confianza del perfil (0-1) |
+| `confidence` | Confianza del perfil (0–1) |
 
 **Almacenamiento:** `data/player-profiles.db` (SQLite, modo WAL)
 
 ---
 
-## Sistema de diálogos (v0.32.5)
+## Arquitectura de almacenamiento
 
-Nuevo `DialogueManager` + `DialogueContext` para conversaciones estructuradas con NPC:
+### Base de datos SQLite
 
-| Característica | Descripción |
-|----------------|-------------|
-| **Gestión de sesiones** | Ciclo Saludo → Activo → Despedida |
-| **Conciencia de relaciones** | Saludos y disponibilidad de temas para amigos/neutrales/enemigos |
-| **Jerarquía feudal** | Saludos especiales para señor/vasallos |
-| **Selección temática** | personal, facción, misión, comercio, combate, artesanía, rumores, chismes, etc. |
-| **Grabación en memoria** | Los resúmenes de diálogo se almacenan en la memoria a largo plazo del NPC |
+El proyecto usa SQLite mediante el módulo integrado `bun:sqlite` de Bun. El archivo de base de datos es `tns.db` en el `dbPath` configurado (por defecto `./worlds/{active}`).
 
-Acceso a través de `engine.dialogueManager` (requiere `npcRuntime`).
+**Tablas:**
+- `entities` — Entidades del mundo con búsqueda de texto completo FTS5
+- `embeddings` — Embeddings vectoriales para búsqueda semántica
+- `memories` — Recuerdos de juego de rol con FTS5
+- `agent_prompts` — Prompts de agentes por mundo + idioma
+- `ui_translations` — Cadenas de traducción de UI por idioma + página
+
+### Almacenamiento en archivos JSON (respaldo)
+
+Los archivos JSON permanecen como respaldo durante la migración:
+
+```
+conf/
+  settings.json          — Ajustes de la aplicación (LLM, servidor, idioma, etc.)
+  agents.json            — Asignaciones globales de modelo/proveedor de agentes
+worlds/{active}/
+  agents/{agentId}.json  — Prompts de agentes por mundo (respaldo)
+```

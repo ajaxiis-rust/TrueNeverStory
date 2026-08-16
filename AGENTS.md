@@ -45,7 +45,7 @@
 - Фасад — `EconomicService`.
 - Иерархия рангов: Slave → Commoner → Baronet → Baron → Viscount → Count → Marquis → Duke → King → Emperor.
 - 50-летний Jubilee сбрасывает долги и возвращает земли.
-- При изменении экономики обновляй `docs/about.md` (раздел "World Rules and Economy") и переводы в `docs/<lang>/`.
+- При изменении экономики обновляй `docs/en/about.md` (раздел "World Rules and Economy") и переводы в `docs/<lang>/`.
 
 ## 7. Процесс разработки
 

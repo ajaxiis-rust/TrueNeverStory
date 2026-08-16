@@ -106,8 +106,6 @@ function processFile(filePath: string): void {
 const targetDirs = ["docs"];
 const targetFiles = [
   "README.md",
-  "COMPILE.md",
-  "security.md",
   ".env.example",
   "startgame.sh",
   "build.sh",

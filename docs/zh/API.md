@@ -17,12 +17,21 @@ TrueNeverStory 世界构建和角色扮演平台的 REST API。除非另有说�
 - [概率](#概率)
 - [浪漫](#浪漫)
 - [任务](#任务)
+- [反馈](#反馈)
+- [规则引擎](#规则引擎)
+- [功能开关](#功能开关)
+- [API 版本管理](#api-版本管理)
 - [记忆](#记忆)
 - [维护](#维护)
+- [系统](#系统)
 - [代理](#代理)
 - [提供商与模型](#提供商与模型)
 - [设置](#设置)
 - [启动](#启动)
+- [WebSocket](#websocket)
+- [认证](#认证)
+- [跨世界](#跨世界)
+- [插件](#插件)
 
 ---
 
@@ -285,6 +294,68 @@ TrueNeverStory 世界构建和角色扮演平台的 REST API。除非另有说�
 
 ---
 
+## 反馈
+
+### `POST /feedback`
+记录对上一轮叙事的喜欢/不喜欢/中立反应。
+
+**请求:** `{ turnId: number, reaction: 'like'|'dislike'|'neutral', techniques: string[] }`
+
+当反应为 `dislike` 时，引擎会重新生成上一轮并返回 `{ ok, regenerated }`。否则返回 `{ ok: true }`。
+
+---
+
+## 规则引擎
+
+### `GET /rules`
+列出世界的社交/经济规则。
+
+### `GET /rules/:id`
+按 ID 获取规则详情。
+
+### `POST /rules/preview`
+预览带修改器合并后的规则。请求体: `RulesConfig`。
+
+### `POST /rules/check`
+检查某个行动是否被允许。请求体: `{ config, action, superiorClass?, subordinateClass? }`。
+
+---
+
+## 功能开关
+
+### `GET /feature-flags`
+列出所有功能开关及其曝光情况。
+
+### `GET /feature-flags/:id`
+获取单个开关。
+
+### `POST /feature-flags`
+创建新开关。
+
+### `PUT /feature-flags/:id`
+更新开关。
+
+### `DELETE /feature-flags/:id`
+删除开关。
+
+### `POST /feature-flags/:id/check`
+检查某个开关是否对某个上下文（用户等）启用。
+
+---
+
+## API 版本管理
+
+TrueNeverStory 支持两个 API 版本：
+
+- **v1** — 用于向后兼容的旧版包装器
+- **v2** — 集成了代理注册表的增强版本
+
+当使用旧版行为时，所有 v2 响应都包含弃用头：
+
+- `X-API-Version: v2`
+- `X-Deprecated: true`（当返回旧版格式时）
+- `Sunset: <date>`（当某个 v1 端点计划移除时）
+
 ## 记忆
 
 ### `POST /memory/forget?older_than=30&min_importance=0.2`
@@ -330,6 +401,16 @@ TrueNeverStory 世界构建和角色扮演平台的 REST API。除非另有说�
 
 ### `POST /maintenance/clean-orphans`
 清理孤立嵌入。
+
+---
+
+## 系统
+
+### `POST /system/pause`
+暂停角色扮演引擎。不接受任何参数。
+
+### `POST /system/resume`
+恢复角色扮演引擎。不接受任何参数。
 
 ---
 
@@ -474,6 +555,76 @@ TrueNeverStory 世界构建和角色扮演平台的 REST API。除非另有说�
 ## 认证
 
 当启用密码认证时，会话使用 HttpOnly Cookie。在 fetch 调用中包含 `credentials: "include"`。
+
+---
+
+## 跨世界
+
+### `GET /api/cross-world/status`
+获取跨世界通信状态。
+
+**响应:** `{ enabled: boolean, portals: number, eventLog: number }`
+
+### `POST /api/cross-world/enable`
+启用跨世界通信。
+
+**响应:** `{ enabled: true }`
+
+### `POST /api/cross-world/disable`
+禁用跨世界通信。
+
+**响应:** `{ enabled: false }`
+
+### `GET /api/cross-world/portals`
+列出世界之间的活动传送门。
+
+**响应:** `{ id, world1, world2, createdAt, active }` 数组
+
+### `POST /api/cross-world/portals`
+在两个世界之间创建传送门。
+
+**请求:** `{ world1: string, world2: string }`
+
+**响应:** `{ id, world1, world2, createdAt, active }`
+
+### `DELETE /api/cross-world/portals/:id`
+摧毁一个传送门。
+
+**响应:** `{ deleted: true }`
+
+### `GET /api/cross-world/events?limit=50`
+获取跨世界事件日志。
+
+**响应:** `{ type, data, source, timestamp }` 数组
+
+---
+
+## 插件
+
+### `GET /api/plugins`
+列出所有已注册的插件。
+
+**响应:** `{ id, name, version, description, agents, routes, hooks }` 数组
+
+### `GET /api/plugins/:id`
+获取插件详情。
+
+**响应:** 带完整详情的插件对象。
+
+### `GET /api/plugins/:id/capabilities`
+获取插件能力（代理、路由、钩子的数量）。
+
+**响应:** `{ agents: number, routes: number, hooks: number }`
+
+### `GET /api/plugins/agents/all`
+获取由插件注册的所有代理。
+
+**响应:** `{ id, name, description, config }` 数组
+
+### `GET /api/plugins/routes/all`
+获取由插件注册的所有路由。
+
+**响应:** `{ path, method, handler }` 数组
 
 ---
 

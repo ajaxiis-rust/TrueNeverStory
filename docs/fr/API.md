@@ -17,12 +17,21 @@ REST API pour la plateforme de création de mondes et de jeu de rôle TrueNeverS
 - [Probabilité](#probabilité)
 - [Romance](#romance)
 - [Quêtes](#quêtes)
+- [Feedback](#feedback)
+- [Moteur de règles](#moteur-de-règles)
+- [Drapeaux de fonctionnalités](#drapeaux-de-fonctionnalités)
+- [Versionnage de l'API](#versionnage-de-lapi)
 - [Mémoire](#mémoire)
 - [Maintenance](#maintenance)
+- [Système](#système)
 - [Agents](#agents)
 - [Fournisseurs & Modèles](#fournisseurs--modèles)
 - [Paramètres](#paramètres)
 - [Lancement](#lancement)
+- [WebSocket](#websocket)
+- [Authentification](#authentification)
+- [Inter-mondes](#inter-mondes)
+- [Plugins](#plugins)
 
 ---
 
@@ -285,6 +294,70 @@ Détails d'une quête.
 
 ---
 
+## Feedback
+
+### `POST /feedback`
+Enregistrer une réaction like/dislike/neutre pour le dernier tour narratif.
+
+**Requête :** `{ turnId: number, reaction: 'like'|'dislike'|'neutral', techniques: string[] }`
+
+En cas de `dislike`, le moteur régénère le dernier tour et renvoie `{ ok, regenerated }`. Sinon, il renvoie `{ ok: true }`.
+
+---
+
+## Moteur de règles
+
+### `GET /rules`
+Lister les règles sociales/économiques du monde.
+
+### `GET /rules/:id`
+Obtenir les détails d'une règle par ID.
+
+### `POST /rules/preview`
+Prévisualiser les règles fusionnées avec les modificateurs. Corps : `RulesConfig`.
+
+### `POST /rules/check`
+Vérifier si une action est autorisée. Corps : `{ config, action, superiorClass?, subordinateClass? }`.
+
+---
+
+## Drapeaux de fonctionnalités
+
+### `GET /feature-flags`
+Lister tous les drapeaux de fonctionnalités et leurs expositions.
+
+### `GET /feature-flags/:id`
+Obtenir un drapeau unique.
+
+### `POST /feature-flags`
+Créer un nouveau drapeau.
+
+### `PUT /feature-flags/:id`
+Mettre à jour un drapeau.
+
+### `DELETE /feature-flags/:id`
+Supprimer un drapeau.
+
+### `POST /feature-flags/:id/check`
+Vérifier si un drapeau est activé pour un contexte (utilisateur, etc.).
+
+---
+
+## Versionnage de l'API
+
+TrueNeverStory prend en charge deux versions de l'API :
+
+- **v1** — Wrapper hérité pour la rétrocompatibilité
+- **v2** — Version améliorée avec intégration du registre d'agents
+
+Toutes les réponses v2 incluent des en-têtes de dépréciation lorsqu'un comportement hérité est utilisé :
+
+- `X-API-Version: v2`
+- `X-Deprecated: true` (lors du renvoi du format hérité)
+- `Sunset: <date>` (lorsqu'un point de terminaison v1 est prévu pour suppression)
+
+---
+
 ## Mémoire
 
 ### `POST /memory/forget?older_than=30&min_importance=0.2`
@@ -330,6 +403,16 @@ Reconstruire l'index vectoriel.
 
 ### `POST /maintenance/clean-orphans`
 Nettoyer les embeddings orphelins.
+
+---
+
+## Système
+
+### `POST /system/pause`
+Mettre en pause le moteur de jeu de rôle. N'accepte aucun paramètre.
+
+### `POST /system/resume`
+Reprendre le moteur de jeu de rôle. N'accepte aucun paramètre.
 
 ---
 
@@ -474,6 +557,76 @@ Point de terminaison WebSocket pour le jeu de rôle en temps réel. Messages en 
 ## Authentification
 
 Lorsque l'authentification par mot de passe est activée, les sessions utilisent des cookies HttpOnly. Incluez `credentials: "include"` dans les appels fetch.
+
+---
+
+## Inter-mondes
+
+### `GET /api/cross-world/status`
+Obtenir l'état de la communication inter-mondes.
+
+**Réponse :** `{ enabled: boolean, portals: number, eventLog: number }`
+
+### `POST /api/cross-world/enable`
+Activer la communication inter-mondes.
+
+**Réponse :** `{ enabled: true }`
+
+### `POST /api/cross-world/disable`
+Désactiver la communication inter-mondes.
+
+**Réponse :** `{ enabled: false }`
+
+### `GET /api/cross-world/portals`
+Lister les portails actifs entre les mondes.
+
+**Réponse :** Tableau de `{ id, world1, world2, createdAt, active }`
+
+### `POST /api/cross-world/portals`
+Créer un portail entre deux mondes.
+
+**Requête :** `{ world1: string, world2: string }`
+
+**Réponse :** `{ id, world1, world2, createdAt, active }`
+
+### `DELETE /api/cross-world/portals/:id`
+Détruire un portail.
+
+**Réponse :** `{ deleted: true }`
+
+### `GET /api/cross-world/events?limit=50`
+Obtenir le journal des événements inter-mondes.
+
+**Réponse :** Tableau de `{ type, data, source, timestamp }`
+
+---
+
+## Plugins
+
+### `GET /api/plugins`
+Lister tous les plugins enregistrés.
+
+**Réponse :** Tableau de `{ id, name, version, description, agents, routes, hooks }`
+
+### `GET /api/plugins/:id`
+Obtenir les détails d'un plugin.
+
+**Réponse :** Objet plugin avec tous les détails.
+
+### `GET /api/plugins/:id/capabilities`
+Obtenir les capacités d'un plugin (nombre d'agents, de routes, de hooks).
+
+**Réponse :** `{ agents: number, routes: number, hooks: number }`
+
+### `GET /api/plugins/agents/all`
+Obtenir tous les agents enregistrés par les plugins.
+
+**Réponse :** Tableau de `{ id, name, description, config }`
+
+### `GET /api/plugins/routes/all`
+Obtenir toutes les routes enregistrées par les plugins.
+
+**Réponse :** Tableau de `{ path, method, handler }`
 
 ---
 

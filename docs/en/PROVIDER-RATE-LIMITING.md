@@ -146,4 +146,4 @@ Return result (slower but works)
 | `src/index.ts` | MODIFY | ✅ |
 | `public/static/rate-limit-popup.css` | CREATE | ✅ |
 | `public/static/rate-limit-popup.js` | CREATE | ✅ |
-| `docs/PROVIDER-RATE-LIMITING.md` | CREATE | ✅ |
+| `docs/en/PROVIDER-RATE-LIMITING.md` | CREATE | ✅ |

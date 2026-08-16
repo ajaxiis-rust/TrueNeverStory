@@ -279,6 +279,105 @@ NPC 具有基于历史模式的**现实经济行为**：
 
 ---
 
+## Mojo 计算层
+
+对于计算密集型操作，TrueNeverStory 使用 **Mojo 内核**并提供 TypeScript 回退：
+
+| 内核 | 用途 |
+|------|------|
+| `probability_ffi.mojo` | 成功率、掷骰结果、批量概率 |
+| `vector_ffi.mojo` | 4 维向量运算（余弦、L2、点积） |
+| `vector_full.mojo` | 完整 768 维 BGE-M3 嵌入 |
+| `batch_ops.mojo` | 批量 NPC 运算（年龄衰减、恶习、税收、忠诚） |
+| `graph_ops.mojo` | 图遍历、RRF 融合、声誉 |
+
+当 Mojo 不可用时，所有内核都会回退到 TypeScript——没有硬性依赖。
+
+---
+
+## 多代理架构
+
+TrueNeverStory 拥有**两个共存的代理系统**：
+
+- **The Big Six (AgentV2)** — 叙事散文管道，注册在 `AgentRegistryV2` 中。
+- **配置代理（`DEFAULT_AGENTS`）** — 位于 `src/services/agent-config.ts` 中的配置驱动代理，支撑 Settings/Providers UI 和若干子系统。
+
+### The Big Six
+
+| 代理 | 角色 | MCP 工具 |
+|------|------|-----------|
+| **Dramaturg**（架构师） | 从圣经原型中选择叙事模式 | `search_verses`, `get_pattern`, `get_archetype` |
+| **Validator**（事实核查者） | 通过维基百科核实事实 | `verify_fact`, `get_context` |
+| **Stylist**（叙述者） | 使用古腾堡风格模式渲染散文（唯一的散文生成器） | `get_style_pattern`, `apply_style` |
+| **Actor**（NPC 群像） | NPC 互动、对话、交易、社会动态 | — |
+| **Censor**（检查器） | 移除 AI 陈词滥调、强制风格一致性 | — |
+| **Chronicler**（编年史官） | 更新世界记忆、维护时间线 | — |
+
+### 配置代理（`DEFAULT_AGENTS`）
+
+| 代理 | 用途 |
+|-------|---------|
+| **Director**（导演） | 故事节拍注入 |
+| **Chronicler**（编年史官） | 时间线摘要（与 Big Six 共享） |
+| **Story Planner**（故事规划者） | 故事弧和任务建议 |
+| **Social Simulator**（社会模拟器） | NPC 社会动态 |
+| **Villain Manager**（反派管理者） | 反派谋划 |
+| **Researcher**（研究者） | 空闲研究、物品评估 |
+| **Translation**（翻译） | 在输出边界上进行英语 ↔ 用户语言的翻译 |
+
+每个代理独立运行，拥有自己的 LLM 客户端、提示模板和温度。被移除的代理（`narrator`, `npc`, `scene`, `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`）已不再存在于代码的任何位置。
+
+---
+
+## MCP 服务器与工具调用
+
+代理通过 **MCP（Model Context Protocol，模型上下文协议）服务器**调用结构化工具：
+
+### 圣经 MCP
+- SQLite 数据库，包含 66 卷书中的 31,097 节经文
+- FTS5 全文检索 + 交叉引用图遍历
+- 角色提取（43 个角色，10,446 次提及）
+- 原型模式匹配（12 个圣经原型）
+
+### 古腾堡 MCP
+- 从经典文学中提取的风格模式
+- 保留节奏、词汇和语调的去词汇化模板
+- 基于情绪的模式检索
+
+### 维基百科 MCP
+- 带置信度的历史事实核查
+- 带可配置重试的 REST API 集成
+
+### 经济 MCP
+- 派系税收困境、劳动规则、经济周期查询
+- 奴隶经济：价值计算、叛乱、解放
+
+---
+
+## RAG / 嵌入与向量搜索
+
+长期记忆使用**混合检索**，结合关键词检索与语义检索：
+
+```
+Agent Request → AgentMemoryStore → SQLite Hybrid Search
+                                        ↓
+                              ┌────────┴────────┐
+                              │ FTS5 (keyword)  │ Dense Vectors (BGE-M3)
+                              │ LIKE matching   │ Cosine Similarity
+                              └────────┬────────┘
+                                       ↓
+                              RRF Fusion (Reciprocal Rank)
+                                       ↓
+                              Context for LLM Prompt
+```
+
+- 通过 llama.cpp 生成 **BGE-M3** 嵌入（768 维）
+- **RRF** 融合关键词与语义检索结果
+- 按世界隔离的记忆可防止跨世界幻觉
+- 通过 `role` 列实现按代理、按会话的记忆
+
+---
+
 ## 未来扩展
 
 ### 额外文学来源

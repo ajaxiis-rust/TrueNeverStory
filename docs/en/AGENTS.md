@@ -1,10 +1,19 @@
 # Agents Reference (v0.32.5)
 
-TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.32.5, the engine has **6 core agents** (The Big Six), registered in `AgentRegistryV2`, plus a **dialogue system**. `stylist` is the sole prose generator. A few non-prose subsystems (crafting, research) and chat-mention handlers remain (see below).
+TrueNeverStory has **two agent systems** that coexist:
+
+1. **The Big Six (AgentV2)** — the narrative prose pipeline. Registered in `AgentRegistryV2` and instantiated in `RoleplayEngine`.
+2. **Configured agents (`DEFAULT_AGENTS`)** — the older config-driven agents, listed in `src/services/agent-config.ts`. These back the Settings/Providers UI and a few subsystems (idle research, chat `@mentions`).
+
+The Big Six are: `dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`. The configured agents are: `director`, `chronicler`, `story-planner`, `social-sim`, `villain`, `researcher`, `translation`.
+
+`stylist` is the sole prose generator. The removed agents (`narrator`, `npc`, `scene`, `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`) no longer exist anywhere in the code.
 
 ---
 
-## The Big Six Agents
+## The Big Six (AgentV2)
+
+These handle the deterministic prose pipeline: intent → simulation → context → prose.
 
 ### 1. Dramaturg (The Architect)
 
@@ -24,8 +33,6 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 2. Queries Bible MCP for matching archetypes
 3. Falls back to LLM-generated patterns if MCP unavailable
 
----
-
 ### 2. Validator (The Fact-Checker)
 
 **ID:** `validator`
@@ -44,12 +51,10 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 2. Queries Wikipedia MCP for verification
 3. Returns verification results with confidence levels
 
----
-
 ### 3. Stylist (The Narrator)
 
 **ID:** `stylist`
-**Role:** Renders prose using Gutenberg style patterns
+**Role:** Renders prose using Gutenberg style patterns — the sole prose generator
 **MCP Tools:** `get_style_pattern`, `apply_style`
 
 | Aspect | Detail |
@@ -64,8 +69,6 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 2. Builds constrained prompt with simulation results and style
 3. Generates prose via LLM
 4. Returns rendered text
-
----
 
 ### 4. Actor (NPC Ensemble)
 
@@ -85,8 +88,6 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 2. Gets NPC's hidden motivations from L3 profile
 3. Generates NPC response using LLM
 4. Computes relationship state changes
-
----
 
 ### 5. Censor (Linter)
 
@@ -112,8 +113,6 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 - "it's worth noting", "it goes without saying"
 - "the very fabric of", "on a deeper level"
 
----
-
 ### 6. Chronicler
 
 **ID:** `chronicler`
@@ -135,20 +134,29 @@ TrueNeverStory uses a multi-agent architecture where each agent handles a specif
 
 ---
 
-## Non-agent subsystems and chat-mention handlers
+## Configured agents (`DEFAULT_AGENTS`)
 
-These are not part of the Big Six but remain wired into the engine:
+These live in `src/services/agent-config.ts` and back the Settings/Providers UI, `LLMQueue`/`LLMClient`, and a few subsystems. `chronicler` is shared with the Big Six. Their temperature and token limits come from global defaults (0.7 / 2048) unless overridden in `conf/agents.json`.
 
-| ID | Kind | Used by |
-|----|------|---------|
-| `crafter` | subsystem | `CommandHandler` (crafting commands) |
-| `researcher` | subsystem | `IdleResearchScheduler` + item evaluation |
-| `chronicler` | `@mention` | timeline summary |
-| `story-planner` | `@mention` | story-arc suggestions |
-| `social-sim` | `@mention` | NPC social dynamics |
-| `villain` | `@mention` | antagonist schemes |
+| ID | Name | Priority | Used by |
+|----|------|----------|---------|
+| `director` | Director | 8 | story-beat injection |
+| `chronicler` | Chronicler | 5 | timeline summary (`@mention` too) |
+| `story-planner` | Story Planner | 6 | story-arc suggestions (`@mention`) |
+| `social-sim` | Social Simulator | 4 | NPC social dynamics (`@mention`) |
+| `villain` | Villain Manager | 6 | antagonist schemes (`@mention`) |
+| `researcher` | Researcher | 3 | `IdleResearchScheduler`, item evaluation (`@mention`) |
+| `translation` | Translation | 2 | English ↔ user language at the output boundary |
 
-The old prose agents (`narrator`, `npc`, `scene`, `director`) and the dead specialist agents (`historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`) have been removed. Prose is generated solely by `stylist` via `LiteraryV2Generator`.
+**Prompt templates (template variables → what they resolve to):**
+
+- **director** — `{narrative}`, `{beat}`. Integrates a story beat into ongoing narrative.
+- **chronicler** — `{events}`, `{timeline}`. Summarizes new events chronologically.
+- **story-planner** — `{world_state}`, `{characters}`, `{events}`, `{quests}`. Output: `{"arc": ..., "quests": [{"title", "description", "objectives"}], "hooks": [...]}`.
+- **social-sim** — `{characters}`, `{relationships}`, `{context}`. Describes relationship changes and faction implications.
+- **villain** — `{villain}`, `{world_state}`, `{recent_actions}`. Plans the antagonist's next move.
+- **researcher** — `{task}`, `{world_context}`. Output: `{"verdict": "plausible|questionable|unrealistic", "confidence", "issues", "suggestions", "enrichedDetails"}`.
+- **translation** — `{source_lang}`, `{target_lang}`, `{text}`. Returns only the translated text.
 
 ---
 
@@ -166,13 +174,13 @@ New `DialogueManager` + `DialogueContext` for structured NPC conversations:
 
 Access via `engine.dialogueManager` (requires `npcRuntime` to be available).
 
-**Note:** Chat `@mentions` route to the handlers listed above (`@chronicler`, `@story-planner`, `@social-sim`, `@villain`, `@researcher`), not to the Big Six. `@narrator`, `@director`, `@scene`, and `@npc` no longer exist.
+**Note:** Chat `@mentions` route to the configured handlers (`@chronicler`, `@story-planner`, `@social-sim`, `@villain`, `@researcher`), not to the Big Six. `@narrator`, `@director`, `@scene`, and `@npc` no longer exist.
 
 ---
 
 ## Agent Registry v2
 
-All agents are registered in `AgentRegistryV2` (`src/services/agent-registry-v2.ts`):
+The Big Six are registered in `AgentRegistryV2` (`src/services/agent-registry-v2.ts`):
 
 ```typescript
 import { getAgentRegistryV2 } from './agent-registry-v2';
@@ -251,6 +259,8 @@ These variables are available to agents through the game context:
 
 ## Temperature Guide
 
+Configured agents use global defaults (temperature 0.7, max tokens 2048) unless overridden in `conf/agents.json`.
+
 | Value | Effect | Use for |
 |-------|--------|---------|
 | 0.1 - 0.3 | Focused, deterministic | Research, fact-checking, intent parsing |
@@ -261,7 +271,7 @@ These variables are available to agents through the game context:
 
 ## Using @agent in Chat
 
-Send a private message to an agent from the chat. Chat `@mentions` route to the inline handlers, not the Big Six:
+Send a private message to an agent from the chat. Chat `@mentions` route to the configured handlers, not the Big Six:
 
 ```
 @chronicler summarize the last hour

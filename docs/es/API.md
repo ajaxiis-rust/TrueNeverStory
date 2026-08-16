@@ -17,12 +17,21 @@ API REST para la plataforma de creación de mundos y rol TrueNeverStory. Todos l
 - [Probabilidad](#probabilidad)
 - [Romance](#romance)
 - [Misiones](#misiones)
+- [Comentarios](#comentarios)
+- [Motor de reglas](#motor-de-reglas)
+- [Banderas de funciones](#banderas-de-funciones)
+- [Versionado de API](#versionado-de-api)
 - [Memoria](#memoria)
 - [Mantenimiento](#mantenimiento)
+- [Sistema](#sistema)
 - [Agentes](#agentes)
 - [Proveedores y Modelos](#proveedores-y-modelos)
 - [Configuración](#configuración)
 - [Inicio](#inicio)
+- [WebSocket](#websocket)
+- [Autenticación](#autenticación)
+- [Entre mundos](#entre-mundos)
+- [Complementos](#complementos)
 
 ---
 
@@ -285,6 +294,68 @@ Detalles de una misión.
 
 ---
 
+## Comentarios
+
+### `POST /feedback`
+Registrar una reacción me gusta/no me gusta/neutral para el último turno narrativo.
+
+**Solicitud:** `{ turnId: number, reaction: 'like'|'dislike'|'neutral', techniques: string[] }`
+
+Con `dislike`, el motor regenera el último turno y devuelve `{ ok, regenerated }`. En caso contrario, devuelve `{ ok: true }`.
+
+---
+
+## Motor de reglas
+
+### `GET /rules`
+Listar las reglas sociales/económicas del mundo.
+
+### `GET /rules/:id`
+Obtener los detalles de una regla por ID.
+
+### `POST /rules/preview`
+Previsualizar las reglas fusionadas con modificadores. Cuerpo: `RulesConfig`.
+
+### `POST /rules/check`
+Comprobar si una acción está permitida. Cuerpo: `{ config, action, superiorClass?, subordinateClass? }`.
+
+---
+
+## Banderas de funciones
+
+### `GET /feature-flags`
+Listar todas las banderas de funciones y exposiciones.
+
+### `GET /feature-flags/:id`
+Obtener una sola bandera.
+
+### `POST /feature-flags`
+Crear una nueva bandera.
+
+### `PUT /feature-flags/:id`
+Actualizar una bandera.
+
+### `DELETE /feature-flags/:id`
+Eliminar una bandera.
+
+### `POST /feature-flags/:id/check`
+Comprobar si una bandera está habilitada para un contexto (usuario, etc.).
+
+---
+
+## Versionado de API
+
+TrueNeverStory admite dos versiones de API:
+
+- **v1** — Envoltorio heredado para compatibilidad con versiones anteriores
+- **v2** — Versión mejorada con integración del registro de agentes
+
+Todas las respuestas v2 incluyen cabeceras de obsolescencia cuando se usa un comportamiento heredado:
+
+- `X-API-Version: v2`
+- `X-Deprecated: true` (al devolver formato heredado)
+- `Sunset: <date>` (cuando un endpoint v1 está programado para eliminación)
+
 ## Memoria
 
 ### `POST /memory/forget?older_than=30&min_importance=0.2`
@@ -330,6 +401,16 @@ Reconstruir índice vectorial.
 
 ### `POST /maintenance/clean-orphans`
 Limpiar embeddings huérfanos.
+
+---
+
+## Sistema
+
+### `POST /system/pause`
+Pausar el motor de rol. No acepta parámetros.
+
+### `POST /system/resume`
+Reanudar el motor de rol. No acepta parámetros.
 
 ---
 
@@ -474,6 +555,76 @@ Endpoint WebSocket para rol en tiempo real. Mensajes en JSON:
 ## Autenticación
 
 Cuando la autenticación por contraseña está habilitada, las sesiones usan cookies HttpOnly. Incluya `credentials: "include"` en las llamadas fetch.
+
+---
+
+## Entre mundos
+
+### `GET /api/cross-world/status`
+Obtener el estado de la comunicación entre mundos.
+
+**Respuesta:** `{ enabled: boolean, portals: number, eventLog: number }`
+
+### `POST /api/cross-world/enable`
+Habilitar la comunicación entre mundos.
+
+**Respuesta:** `{ enabled: true }`
+
+### `POST /api/cross-world/disable`
+Deshabilitar la comunicación entre mundos.
+
+**Respuesta:** `{ enabled: false }`
+
+### `GET /api/cross-world/portals`
+Listar los portales activos entre mundos.
+
+**Respuesta:** Array de `{ id, world1, world2, createdAt, active }`
+
+### `POST /api/cross-world/portals`
+Crear un portal entre dos mundos.
+
+**Solicitud:** `{ world1: string, world2: string }`
+
+**Respuesta:** `{ id, world1, world2, createdAt, active }`
+
+### `DELETE /api/cross-world/portals/:id`
+Destruir un portal.
+
+**Respuesta:** `{ deleted: true }`
+
+### `GET /api/cross-world/events?limit=50`
+Obtener el registro de eventos entre mundos.
+
+**Respuesta:** Array de `{ type, data, source, timestamp }`
+
+---
+
+## Complementos
+
+### `GET /api/plugins`
+Listar todos los complementos registrados.
+
+**Respuesta:** Array de `{ id, name, version, description, agents, routes, hooks }`
+
+### `GET /api/plugins/:id`
+Obtener los detalles de un complemento.
+
+**Respuesta:** Objeto de complemento con detalles completos.
+
+### `GET /api/plugins/:id/capabilities`
+Obtener las capacidades del complemento (recuento de agentes, rutas, hooks).
+
+**Respuesta:** `{ agents: number, routes: number, hooks: number }`
+
+### `GET /api/plugins/agents/all`
+Obtener todos los agentes registrados por los complementos.
+
+**Respuesta:** Array de `{ id, name, description, config }`
+
+### `GET /api/plugins/routes/all`
+Obtener todas las rutas registradas por los complementos.
+
+**Respuesta:** Array de `{ path, method, handler }`
 
 ---
 

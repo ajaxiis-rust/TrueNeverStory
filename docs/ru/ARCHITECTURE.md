@@ -1,63 +1,129 @@
 # TrueNeverStory — Документ архитектуры
 
-> Анализ архитектуры на основе Domain-Driven Design для нарративного RPG-движка TrueNeverStory.
-> Сгенерировано на основе анализа кодовой базы `src/` по состоянию на 2026-08-10 v0.32.5.
+> Анализ на основе Domain-Driven Design нарративного RPG-движка TrueNeverStory.
+> Обновлено для v0.32.5 — рефакторинг RoleplayEngine с SessionState, CommandHandler, PipelineRunner и стратегиями прозы.
 
 ---
 
 ## [A1] Архитектурный паттерн
 
-**Слоёная архитектура «луковицы» с расширениями на основе событий**
+**Слоёная архитектура «луковицы» с событийными расширениями + конвейер State-First**
 
-TrueNeverStory в своём ядре следует паттерну **слоёной архитектуры «луковицы» (гексагональной архитектуры)**, обёрнутой **оркестрационным слоем на основе событий** для асинхронной нарративной обработки. Этот паттерн подходит по следующим причинам:
+TrueNeverStory в своём ядре следует **слоёной архитектуре «луковицы» (гексагональной архитектуре)**, обёрнутой **слоем событийной оркестрации** для асинхронной нарративной обработки. Начиная с v0.32.5 движок использует **конвейер State-First**, в котором детерминированная симуляция выполняется до генерации прозы.
 
-1. **Доменные модели изолированы** — `src/models/` содержит чистые структуры данных без зависимостей от инфраструктуры. `EntityNode`, `Quest`, `StoryContext`, `NPCProfile`, `ProbabilityModifier` — все они не зависят от фреймворков.
-2. **Сервисы оркестрируют доменную логику** — `src/services/` содержит прикладные сервисы (`RoleplayEngine`, `StoryEngine`) и доменные сервисы (`ProbabilityEngine`, `SocialSimulator`, `RomanceEngine`).
+Этот паттерн подходит, потому что:
+
+1. **Доменные модели изолированы** — `src/models/` содержит чистые структуры данных без зависимостей от инфраструктуры. `EntityNode`, `Quest`, `StoryContext`, `NPCProfile`, `ProbabilityModifier`, `Intent`, `SimulationResult` — все они не зависят от фреймворков.
+2. **Сервисы оркестрируют доменную логику** — `src/services/` содержит прикладные сервисы (`RoleplayEngine`, `StoryEngine`) и доменные сервисы (`ProbabilityEngine`, `SocialSimulator`, `RomanceEngine`, `SimulationEngine`).
 3. **Инфраструктура вынесена на периферию** — `src/lib/` хранит персистентность (`SQLiteStore`, `AtomicIO`), внешние интеграции (`LLMClient`, `ProviderManager`) и транспорт (`WebSocketManager`).
 4. **Маршруты — тонкие адаптеры** — `src/routes/` сопоставляет HTTP с вызовами сервисов с минимальной логикой.
+5. **Интеграция MCP** — `src/mcp/` предоставляет внешние источники знаний (Bible, Gutenberg, Wikipedia) через Model Context Protocol.
 
-**Шина событий** (`EventBus` в `src/lib/event-bus.ts`) добавляет слой асинхронной декомпозиции между ограниченными контекстами, позволяя Director Loop оркестрировать нарративные события без прямой связанности с подсистемами NPC, социальных взаимодействий или квестов.
+**Шина событий** (`EventBus` в `src/lib/event-bus.ts`) добавляет асинхронный слой декомпозиции между ограниченными контекстами, позволяя Director Loop оркестрировать нарративные события без прямой связанности с подсистемами NPC, социальных взаимодействий или квестов.
+
+### Конвейер State-First (v0.32.5)
+
+Теперь конвейер структурирован как композируемые стадии, управляемые `PipelineRunner`:
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   Маршруты (HTTP/WS)              │  ← Слой адаптеров
-├─────────────────────────────────────────────────┤
-│              Прикладные сервисы                   │  ← Варианты использования
-│  RoleplayEngine │ NarrativeService │ StoryEngine │
-├─────────────────────────────────────────────────┤
-│               Доменные сервисы                    │  ← Доменная логика
-│  ProbabilityEngine │ SocialSimulator │ NPCRuntime │
-├─────────────────────────────────────────────────┤
-│               Доменные модели                     │  ← Ядро сущностей
-│  EntityNode │ Quest │ NPCProfile │ StoryArc      │
-├─────────────────────────────────────────────────┤
-│              Инфраструктура                       │  ← Персистентность/внешние
-│  SQLiteStore │ LLMClient │ EventBus │ AtomicIO   │
-└─────────────────────────────────────────────────┘
+Player Input (any language)
+  │
+  ▼
+PipelineRunner.buildContext() — snapshot engine state
+  │
+  ▼
+PipelineRunner.translateAndClassify() — IntentParser + TranslationService
+  │ translated text + intent
+  ▼
+CommandHandler.handle() — early exit for commands
+  │
+  ▼
+PipelineRunner.runSimulation() — SimulationEngine (deterministic)
+  │ outcome, probability, stateChanges
+  ▼
+StateMutator.applyChanges() — apply to EntityStore
+  │
+  ▼
+PipelineRunner.buildGameContext() — ContextBuilder
+  │
+  ▼
+Prose Generators:
+  ├─ LiteraryV2Generator (feature-flag gated) → Stylist
+  └─ LegacyIntentGenerator → MovementHandler | DialogueHandler | ObservationHandler | ActionHandler
+  │
+  ▼
+TranslationService.translate() — if non-English target language
+  │
+  ▼
+Response to User
+
+Total: 2-3 LLM calls
 ```
 
-### Gutenberg Processing Pipeline (v0.32.5)
+### Конвейер обработки Gutenberg (v0.32.5)
 
-Двухфазный конвейер преобразует сырые .txt файлы Gutenberg в базы данных для агентов:
+Двухфазный конвейер преобразует сырые .txt-файлы Gutenberg в базы данных, пригодные для использования агентами:
 
-**Фаза A (V1 — правил-based, без LLM):**
+**Фаза A (V1 — на основе правил, без LLM):**
 ```
-classics.db → GutenbergParser → gutenberg-normalized.db (стили + FTS)
-         └→ 4-pass компилятор → classics-compiled.db (шаблоны квестов)
+classics.db → GutenbergParser → gutenberg-normalized.db (styles + FTS)
+         └→ 4-pass compiler → classics-compiled.db (quest templates)
               DramaturgicPass → StylisticPass → EmotionalPass → MetadataPass → Linter
 ```
 
-**Фаза B (V2 — LLM-обогащённая):**
+**Фаза B (V2 — обогащённая LLM):**
 ```
-classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (шаблоны сцен + стилевые паттерны)
+classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (scene_templates + style_patterns)
 ```
 
 **Новые таблицы в classics-compiled.db:**
-- `narrative_arcs` — архетипы сюжетных арок и точки напряжения по книгам
+- `narrative_arcs` — архетипы сюжетных арок и точки напряжения для каждой книги
 - `thematic_motifs` — символические мотивы с отслеживанием эволюции
 - `quality_calibration` — оценки качества ответов LLM
 
-**PlayerProfileStore** — автономные кросс-агентные стилевые профили игроков (14 метрик), хранятся в `data/player-profiles.db`.
+**PlayerProfileStore** — автономные кросс-агентные стилевые профили игрока (14 метрик), хранятся в `data/player-profiles.db`.
+
+### Архитектура с двумя моделями (v0.32.5)
+
+Движок поддерживает две LLM-модели для каждого агента:
+
+| Модель | Назначение | Примеры |
+|-------|---------|----------|
+| **Основная модель** | Генерация нарратива, диалоги NPC, планирование истории | llama-3.1-8b, qwen2.5-14b |
+| **Модель перевода** | Перевод, классификация намерений (быстрая, компактная) | phi-3-mini, gemma-2-2b, qwen2.5-3b |
+
+**Конфигурация** (для каждого агента в `conf/agents.json`):
+```json
+{
+  "agentId": "translation",
+  "providerId": "ollama",
+  "modelId": "qwen2.5:14b",
+  "translationProviderId": "ollama",
+  "translationModelId": "phi3:mini"
+}
+```
+
+**LLMClient** разрешает модель через флаг `useTranslationModel`:
+- `LLMQueue.getAgentClient("translation", { useTranslationModel: true })` → использует `translationModelId`
+- `LLMQueue.getAgentClient("stylist")` → использует `modelId`
+
+```
+┌─────────────────────────────────────────────────┐
+│                   Routes (HTTP/WS)               │  ← Adapter Layer
+├─────────────────────────────────────────────────┤
+│              Application Services                │  ← Use Cases
+│  RoleplayEngine │ NarrativeService │ StoryEngine │
+├─────────────────────────────────────────────────┤
+│               Domain Services                    │  ← Domain Logic
+│  ProbabilityEngine │ SocialSimulator │ NPCRuntime │
+├─────────────────────────────────────────────────┤
+│               Domain Models                      │  ← Core Entities
+│  EntityNode │ Quest │ NPCProfile │ StoryArc      │
+├─────────────────────────────────────────────────┤
+│              Infrastructure                      │  ← Persistence/External
+│  SQLiteStore │ LLMClient │ EventBus │ AtomicIO   │
+└─────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -65,27 +131,27 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 
 ### BC1: Управление миром
 
-**Назначение:** Жизненный цикл мульти-мира — создание, конфигурация, переключение и персистентность состояния мира.
+**Назначение:** Жизненный цикл нескольких миров — создание, конфигурация, переключение и персистентность состояния мира.
 
 | Аспект | Детали |
 |--------|--------|
 | **Ключевые агрегаты** | `World`, `WorldFrame` |
-| **Ключевые сущности** | `EntityNode` (Персонаж, Фракция, Локация, Предмет, Событие, Раса, Мировое правило) |
-| **Значимые объекты** | `WorldCreateParams`, `WorldSummary`, `LayeredProfile` (слои L1/L2/L3) |
+| **Ключевые сущности** | `EntityNode` (Character, Faction, Location, Item, Event, Race, WorldRule) |
+| **Объекты-значения** | `WorldCreateParams`, `WorldSummary`, `LayeredProfile` (слои L1/L2/L3) |
 | **Доменные события** | `WORLD_CREATED`, `WORLD_FRAME_LOADED`, `WORLD_EVOLVED` |
 | **Персистентность** | `worlds/{name}/world_frame.json`, `worlds/{name}/entities.json` |
 
 **Ключевые файлы:**
 - `src/services/world-manager.ts` — CRUD-операции, переключение миров
-- `src/services/world-builder.ts` — Слоёная постройка мира на основе LLM
+- `src/services/world-builder.ts` — Слоёное построение мира на основе LLM
 - `src/services/world-validator.ts` — Проверки целостности
-- `src/services/world-evolver.ts` — Добавление NPC/локаций/предметов со временем
+- `src/services/world-evolver.ts` — Добавляет NPC/локации/предметы со временем
 - `src/routes/worlds.ts` — HTTP-адаптер
 
 **Доменные правила:**
-- Названия миров приводятся к slug-формату и должны быть уникальными
-- Каждый мир имеет изолированную директорию данных под `worlds/`
-- `WorldFrame` определяет каноническую структуру (календарь, магическая система, расы, фракции, локации, предметы, исторические события, мировые правила)
+- Названия миров приводятся к slug-формату и уникальны
+- Каждый мир имеет собственную изолированную директорию данных в `worlds/`
+- `WorldFrame` определяет каноническую структуру (календарь, система магии, расы, фракции, локации, предметы, исторические события, правила мира)
 - Профили сущностей используют трёхуровневую систему: L1 (идентичность), L2 (динамическое состояние), L3 (скрытое/тайное)
 
 ---
@@ -98,14 +164,14 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |--------|--------|
 | **Ключевые агрегаты** | `GraphStore` (корневой агрегат графа мира) |
 | **Ключевые сущности** | `EntityNode`, `GraphEdge` |
-| **Значимые объекты** | `Relationship`, `LayeredProfile`, `GraphSummary` |
+| **Объекты-значения** | `Relationship`, `LayeredProfile`, `GraphSummary` |
 | **Доменные события** | `ENTITY_ADDED`, `ENTITY_UPDATED`, `ENTITY_REMOVED`, `RELATIONSHIP_ADDED`, `RELATIONSHIP_BROKEN`, `GRAPH_CHANGED` |
 | **Персистентность** | `worlds/{name}/entities.json` (через `UnifiedEntityStore`), `worlds/{name}/branches.json` |
 
 **Ключевые файлы:**
-- `src/store/entity-store.ts` — `UnifiedEntityStore` с `NameIndex` для разрешения имён за O(1)
+- `src/store/entity-store.ts` — `UnifiedEntityStore` с `NameIndex` для разрешения имя→UID за O(1)
 - `src/services/graph-store.ts` — Граф на основе карты смежности с прямыми/обратными рёбрами
-- `src/services/branch-manager.ts` — Ветвление в стиле Git для нарративных графов
+- `src/services/branch-manager.ts` — Ветвление в стиле Git для сюжетных графов
 - `src/intelligence/` — Анализ графа, валидация, восстановление связей
 
 **Доменные правила:**
@@ -124,16 +190,16 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |--------|--------|
 | **Ключевые агрегаты** | `StoryContext`, `StoryArc`, `DirectorTask`, `ChapterData`, `BeatData` |
 | **Ключевые сущности** | `StoryBeat`, `ArcPhase`, `ArcTimelineEvent` |
-| **Значимые объекты** | `NarratorOutput`, `NPCDialogue`, `SceneTransition` |
+| **Объекты-значения** | `NarratorOutput`, `NPCDialogue`, `SceneTransition` |
 | **Доменные события** | `STORY_EVENT`, `STORY_BEAT`, `VILLAIN_PROGRESS` |
 | **Персистентность** | `worlds/{name}/director_state.json`, `worlds/{name}/story_arcs.json`, `worlds/{name}/planner_state.json` |
 
 **Ключевые файлы:**
 - `src/services/narrative-service.ts` — **Корень композиции** / DI-контейнер для всех нарративных сервисов
 - `src/services/roleplay-engine.ts` — Основная обработка ролевой игры, диспетчеризация агентов
-- `src/services/narrator-agent.ts` — Генерация нарратива на основе LLM
-- `src/services/scene-agent.ts` — Нарративы переходов между сценами
-- `src/services/director-agent.ts` — Инъекция сюжетных узлов в нарратив
+- `src/services/agents/stylist.ts` — Генерация прозы на основе LLM (единственный генератор прозы)
+- `src/services/agents/dramaturg.ts` — Выбор нарративных паттернов из библейских архетипов
+- `src/services/agents/validator.ts` — Проверка фактов через Wikipedia MCP
 - `src/services/director-loop.ts` — Фоновая оркестрация (часы→социальная→злодей→шанс→узлы)
 - `src/services/story-engine.ts` — Генерация событий из сюжетных узлов + применение эффектов
 - `src/services/story-planner.ts` — Планирование глав/узлов на основе LLM
@@ -158,14 +224,14 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |--------|--------|
 | **Ключевые агрегаты** | `NPCProfile` (корневой агрегат для каждого NPC) |
 | **Ключевые сущности** | `EpisodicMemory`, `DialogueSession`, `DialogueMessage` |
-| **Значимые объекты** | `NPCSkills`, `NPCDialogue`, `DialogueChoice`, `GreetingTemplate` |
+| **Объекты-значения** | `NPCSkills`, `NPCDialogue`, `DialogueChoice`, `GreetingTemplate` |
 | **Доменные события** | `ENTITY_ADDED` (для сгенерированных NPC), `MEMORY_ADDED`, `MEMORY_CONSOLIDATED` |
 | **Персистентность** | `worlds/{name}/npc_profiles.json`, `worlds/{name}/npc_profiles/{name}.json` |
 
 **Ключевые файлы:**
 - `src/services/npc-runtime.ts` — `NPCRuntime`: хранилище состояния с краткосрочной/долгосрочной памятью
 - `src/services/npc-generator.ts` — Генерация NPC на основе LLM
-- `src/services/npc-agent.ts` — Генерация диалогов NPC
+- `src/services/agents/actor.ts` — Генерация диалогов и взаимодействий NPC
 - `src/services/npc-economy.ts` — Богатство NPC, налоги, казна, производство еды
 - `src/services/dialogue-manager.ts` — Сессии бесед, темы, варианты выбора
 - `src/services/dialogue-context.ts` — Контекстуальное состояние диалога
@@ -173,7 +239,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 
 **Доменные правила:**
 - Профили NPC имеют краткосрочную память (ограничена 20 записями) и долгосрочную эпизодическую память
-- Консолидация памяти происходит при превышении краткосрочной памятью порога `_importanceThreshold` (0.4)
+- Консолидация памяти происходит, когда краткосрочная память превышает порог `_importanceThreshold` (0.4)
 - NPC синхронизируются из хранилища сущностей при запуске — отсутствующие профили создаются автоматически
 - Сессии диалогов отслеживают конечный автомат: `greeting → active → farewell → idle`
 - Перечисление `TopicCategory` ограничивает допустимые темы разговора
@@ -188,7 +254,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |--------|--------|
 | **Ключевые агрегаты** | `SocialGraph` (корневой агрегат для всего социального состояния) |
 | **Ключевые сущности** | `Relationship`, `Faction`, `Alliance`, `FeudalRelationship` |
-| **Значимые объекты** | `FactionSummary`, `FeudalSummary`, `RomanceStatus`, `RomanceProgression` |
+| **Объекты-значения** | `FactionSummary`, `FeudalSummary`, `RomanceStatus`, `RomanceProgression` |
 | **Доменные события** | `RELATIONSHIP_ADDED`, `RELATIONSHIP_REPAIRED`, `RELATIONSHIP_BROKEN` |
 | **Персистентность** | Директория `worlds/{name}/social/` (JSON-файлы для каждой подсистемы) |
 
@@ -216,14 +282,13 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |--------|--------|
 | **Ключевые агрегаты** | `Quest`, `QuestDefinition` |
 | **Ключевые сущности** | `QuestObjective`, `QuestObjectiveDef` |
-| **Значимые объекты** | `QuestReward`, `QuestPrerequisite` |
+| **Объекты-значения** | `QuestReward`, `QuestPrerequisite` |
 | **Доменные события** | `QUEST_ADDED`, `QUEST_UPDATED` |
 | **Персистентность** | `worlds/{name}/quests.json` |
 
 **Ключевые файлы:**
 - `src/services/quest-manager.ts` — Базовый CRUD квестов
 - `src/services/quest-system.ts` — Полный жизненный цикл с цепочками, предусловиями, временными ограничениями
-- `src/services/quest-giver-agent.ts` — Контекстная генерация квестов на основе LLM
 - `src/models/quest.ts` — `Quest`, `QuestObjective`, `QuestData`
 
 **Доменные правила:**
@@ -243,7 +308,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |--------|--------|
 | **Ключевые агрегаты** | `WorldMemory` (корневой агрегат), `AgentMemoryStore` (для каждого агента) |
 | **Ключевые сущности** | `WorldMemoryEntry`, `AgentMemoryEntry` |
-| **Значимые объекты** | `MemoryConfig`, `ScoringWeights`, `MemoryMetadata`, `RankedItem` |
+| **Объекты-значения** | `MemoryConfig`, `ScoringWeights`, `MemoryMetadata`, `RankedItem` |
 | **Доменные события** | `MEMORY_ADDED`, `MEMORY_CONSOLIDATED`, `MEMORY_FORGOTTEN` |
 | **Персистентность** | `tns.db` (SQLite), `worlds/{name}/memory/` (разделы), индекс FAISS |
 
@@ -261,37 +326,37 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 - Записи памяти с оценкой ниже `minKeepScore` (0.15) и старше `minKeepDays` (30) удаляются
 - Память агентов изолирована по столбцу `role` (ID агента) в SQLite
 - Гибридный поиск: FTS5 по ключевым словам + плотные векторы → Reciprocal Rank Fusion (RRF)
-- Индекс FAISS пересоздаётся при превышении порога фрагментации (200 новых записей)
+- Индекс FAISS пересоздаётся, когда фрагментация превышает порог (200 новых записей)
 - Буфер записи пакетирует генерацию эмбеддингов для эффективности
 
 ---
 
 ### BC8: Интеграция с LLM
 
-**Назначение:** Управление LLM多位 провайдерами, постановка запросов в очередь, ограничение частоты, назначение моделей для каждого агента и построение промптов.
+**Назначение:** Управление LLM от нескольких провайдеров, постановка запросов в очередь, ограничение частоты, назначение моделей для каждого агента и построение промптов.
 
 | Аспект | Детали |
 |--------|--------|
 | **Ключевые агрегаты** | `ProviderManager` (синглтон), `LLMQueue` |
 | **Ключевые сущности** | `AgentModelAssignment`, `LLMProvider` |
-| **Значимые объекты** | `AgentConfig`, `AgentPromptConfig`, `LLMClientOptions` |
+| **Объекты-значения** | `AgentConfig`, `AgentPromptConfig`, `LLMClientOptions` |
 | **Доменные события** | Нет (инфраструктурный слой) |
 | **Персистентность** | `conf/providers.json`, `conf/agents.json`, `tns.db` (таблица agent_prompts) |
 
 **Ключевые файлы:**
 - `src/lib/llm-client.ts` — `LLMClient`: LRU-кэш для каждого агента, диспетчеризация по провайдерам
 - `src/lib/llm-queue.ts` — `LLMQueue`: очередь приоритетов, управление конкурентностью, ограничение частоты
-- `src/lib/providers/provider-manager.ts` — `ProviderManager`:多位 провайдеры,多位 ключи
+- `src/lib/providers/provider-manager.ts` — `ProviderManager`: поддержка нескольких провайдеров и ключей
 - `src/lib/providers/` — Провайдеры OpenAI, Anthropic, Google, Ollama, LlamaCpp
-- `src/services/agent-config.ts` — Конфигурация агентов (глобальные +world-specific промпты)
+- `src/services/agent-config.ts` — Конфигурация агентов (глобальные + промпты для каждого мира)
 - `src/services/prompt-builder.ts` — Статические шаблоны промптов для всех агентов
 - `src/services/model-manager.ts` — Управление моделями
 
 **Доменные правила:**
-- `LLMQueue` обеспечивает максимальную конкурентность (по умолчанию 3) и размер очереди (по умолчанию 50)
+- `LLMQueue` обеспечивает максимальную конкурентность (по умолчанию 3) и лимит очереди (по умолчанию 50)
 - Вытеснение по приоритету: задачи с наименьшим приоритетом удаляются при заполнении очереди
 - Ограничение частоты через `RateLimiter` (на основе RPM с автоматическим пополнением)
-- Каждый агент может иметь своего провайдера, модель, температуру и максимальное количество токенов
+- Каждый агент может иметь собственного провайдера, модель, температуру и максимальное количество токенов
 - Разрешение промптов: SQLite (`agent_prompts`) → откат к JSON → встроенные значения по умолчанию
 - `LLMClient` использует LRU-кэш (256 записей, TTL 5 минут) для повторных запросов
 
@@ -305,7 +370,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |--------|--------|
 | **Ключевые агрегаты** | `ProbabilityEngine` |
 | **Ключевые сущности** | `ProbabilityModifier`, `ProbabilityProfile` |
-| **Значимые объекты** | `ProbabilityParameter`, `ProbabilityResult`, `OutcomeQuality` |
+| **Объекты-значения** | `ProbabilityParameter`, `ProbabilityResult`, `OutcomeQuality` |
 | **Доменные события** | Нет (чистые вычисления) |
 | **Персистентность** | Нет (в памяти, вычисляется из состояния NPC) |
 
@@ -319,7 +384,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 **Доменные правила:**
 - Модификаторы имеют типы: `ADD`, `MULTIPLY`, `REPLACE`
 - Правила наложения: `STACK`, `TAKE_HIGHEST`, `TAKE_LOWEST`, `OVERRIDE`
-- Модификаторы могут истекать (по времени)
+- Модификаторы могут истекать (продолжительность по времени)
 - `OutcomeQuality` варьируется от `CRITICAL_FAILURE` до `CRITICAL_SUCCESS`
 - Разрешатель контекста вводит динамические модификаторы на основе локации, отношений, состояния мира
 - Mojo FFI-ядра (`probability_ffi.mojo`) ускоряют пакетные расчёты
@@ -328,13 +393,13 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 
 ### BC10: Управление злодеем
 
-**Назначение:** Управление жизненным циклом антагониста с стратегическим планированием на основе LLM и фазами конечного автомата.
+**Назначение:** Управление жизненным циклом антагониста со стратегическим планированием на основе LLM и фазами конечного автомата.
 
 | Аспект | Детали |
 |--------|--------|
 | **Ключевые агрегаты** | `VillainAgendaData` |
 | **Ключевые сущности** | `VillainMemoryData` |
-| **Значимые объекты** | Фаза (`plotting → preparing → executing → climax`) |
+| **Объекты-значения** | Фаза (`plotting → preparing → executing → climax`) |
 | **Доменные события** | `VILLAIN_PROGRESS` |
 | **Персистентность** | `worlds/{name}/villain_state.json` |
 
@@ -358,7 +423,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |--------|--------|
 | **Ключевые агрегаты** | Нет (сервисный слой) |
 | **Ключевые сущности** | Нет |
-| **Значимые объекты** | Результаты валидации, рекомендации |
+| **Объекты-значения** | Результаты валидации, рекомендации |
 | **Доменные события** | Нет |
 | **Персистентность** | Чтение из хранилища сущностей, запись результатов валидации |
 
@@ -369,8 +434,72 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 - `src/intelligence/relationship-repairer.ts` — Восстановление повреждённых связей
 - `src/intelligence/recommender.ts` — Рекомендации контента
 - `src/intelligence/scene-generator.ts` — Процедурная генерация сцен
-- `src/intelligence/rule-checker.ts` — Проверка мировых правил
+- `src/intelligence/rule-checker.ts` — Проверка правил мира
 - `src/intelligence/subgraph-expander.ts` — Расширение подграфа
+
+---
+
+### BC12: Литературный компилятор v2 (v0.32.5)
+
+**Назначение:** Оффлайн-извлечение нарратива из литературных источников и гибридный поиск во время выполнения для генерации прозы с ограничениями. Заменяет ресурсоёмкий конвейер v1 на основе LLM на детерминированную систему шаблонов и стилевых паттернов.
+
+| Аспект | Детали |
+|--------|--------|
+| **Ключевые агрегаты** | `LiteraryCompilerDB` (корневой агрегат для всех таблиц v2) |
+| **Ключевые сущности** | `SceneTemplate`, `StylePattern`, `ChunkIndex`, `TemplateStyleLink` |
+| **Объекты-значения** | `RetrievalKeys`, `RankedTemplate`, `ExtractResult`, `PreScoreResult`, `TurnMetrics` |
+| **Доменные события** | Нет (оффлайн-конвейер + поиск во время выполнения) |
+| **Персистентность** | `literary.db` (SQLite с индексами FTS5) |
+
+**Ключевые файлы:**
+- `src/mcp/literary-compiler/schema.ts` — `LiteraryCompilerDB`: 6 таблиц v2, FTS5, методы CRUD
+- `src/mcp/literary-compiler/archetypes.ts` — 12 канонических архетипов + наборы ключевых слов + переменные + позиции
+- `src/mcp/literary-compiler/chunker.ts` — Разбиение текста на предложения (200-400 токенов, перекрытие 40-80)
+- `src/mcp/literary-compiler/pre-score.ts` — Оценка по ключевым словам из словаря + плотность нарратива (диалог/действие/конфликт)
+- `src/mcp/literary-compiler/extractor.ts` — LLM-экстрактор JSON с валидацией в стиле Zod
+- `src/mcp/literary-compiler/retrieval.ts` — Составная оценка: архетип (0.40) + настроение (0.15) + домен (0.15) + качество (0.10) + свежесть (0.05) + теги (0.15)
+- `src/mcp/literary-compiler/fill-template.ts` — Детерминированная замена `[placeholder]`
+- `src/mcp/literary-compiler/linter.ts` — Валидация V2: обнаружение морализаторства, лимиты токенов, валидность архетипа
+- `src/mcp/literary-compiler/runtime-metrics.ts` — Отслеживание задержки для каждого хода
+- `src/services/agents/stylist.ts` — `buildMicroPrompt()` для генерации с ограничениями v2
+- `src/lib/feature-flags.ts` — Флаги `literary-compiler-v2`, `literary-v2-retrieval`, `literary-v2-stylist`
+- `scripts/migrate-v1-to-v2.ts` — Миграция названий архетипов (escape → escape_liberation и т.д.)
+
+**Доменные правила:**
+- Все шаблоны используют английский (Interlingua) для оптимизации RAG
+- Шаблоны анонимизированы (без имён персонажей из источника)
+- Ограничение против морализаторства применяется на уровне линтера и промпта
+- Каждый шаблон имеет скелет ≤ 120 токенов
+- Поиск возвращает шаблон top-1 (top-2 при почти равных оценках)
+- Жёсткий бюджет: 1-2 LLM-вызова на ход (против 4-5 в v1)
+- Выкатывается постепенно через feature-флаги
+
+**Оффлайн-конвейер:**
+```
+Source text
+  → A. Chunker (pure code, 200-400 tokens, overlap 40-80)
+  → B. BGE-M3 embed + store
+  → C. Dictionary/heuristic candidate pass
+  → D. Cluster / near-dup collapse (vectors)
+  → E. Select representatives
+  → F. Small local LLM JSON extract (Qwen3-8B, temp=0.1)
+  → G. Role consistency map
+  → H. Linter / quality gate
+  → I. Write scene_templates + style_patterns + links
+  → J. Emit metrics report
+```
+
+**Поток во время выполнения:**
+```
+Player input
+  → Intent + Simulation + State mutation (0 LLM)
+  → Build retrieval keys (position, archetype, mood, domain)
+  → FTS + dictionary hybrid retrieval → top-1 template
+  → Get linked style_pattern
+  → fillTemplate (deterministic)
+  → Stylist micro-prompt → 1 LLM call → 2-3 paragraphs
+  → Rule-based Censor
+```
 
 ---
 
@@ -380,11 +509,11 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 
 | Компонент | Тип | Инварианты |
 |-----------|------|------------|
-| `World` | Корневой агрегат | Должен иметь уникальное slug- название; должен иметь валидный `WorldFrame` |
-| `WorldFrame` | Значимый объект | Должен определять `world_name`; `world_rules` должен быть непустым для валидных миров |
-| `LayeredProfile` | Значимый объект | L1 должен иметь `name` и `type`; слои — L1/L2/L3 |
+| `World` | Корневой агрегат | Должен иметь уникальное slug-имя; должен иметь валидный `WorldFrame` |
+| `WorldFrame` | Объект-значение | Должен определять `world_name`; `world_rules` должен быть непустым для валидных миров |
+| `LayeredProfile` | Объект-значение | L1 должен иметь `name` и `type`; слои — L1/L2/L3 |
 | `EntityNode` | Сущность | Должен иметь уникальный `uid`; `entityType` должен быть валидным `EntityTypeValue` |
-| `EntityType` | Значимый объект (перечисление) | `CHARACTER`, `FACTION`, `LOCATION`, `ITEM`, `EVENT`, `WORLD_RULE`, `RACE`, `UNKNOWN` |
+| `EntityType` | Объект-значение (перечисление) | `CHARACTER`, `FACTION`, `LOCATION`, `ITEM`, `EVENT`, `WORLD_RULE`, `RACE`, `UNKNOWN` |
 
 ### BC2: Сущности и граф
 
@@ -392,18 +521,18 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |-----------|------|------------|
 | `GraphStore` | Корневой агрегат | Должен быть инициализирован перед обходом; рёбра ссылаются на валидные UID |
 | `GraphEdge` | Сущность | `source` и `target` должны быть валидными UID сущностей |
-| `Relationship` | Значимый объект | `sourceUid` и `targetUid` должны существовать; `strength` — от 0 до 1 |
+| `Relationship` | Объект-значение | `sourceUid` и `targetUid` должны существовать; `strength` — от 0 до 1 |
 | `BranchManager` | Сущность | Имена веток должны быть уникальными; родитель должен существовать |
 
 ### BC3: Нарратив и история
 
 | Компонент | Тип | Инварианты |
 |-----------|------|------------|
-| `StoryContext` | Значимый объект | Должен иметь `worldName`, `currentTime`, `location` |
+| `StoryContext` | Объект-значение | Должен иметь `worldName`, `currentTime`, `location` |
 | `StoryArc` | Корневой агрегат | Должен иметь уникальный `id`; массив `beats` упорядочен по времени |
 | `DirectorTask` | Сущность | Должен иметь уникальный `id`; `priority` в диапазоне `TaskPriority` |
 | `BeatData` | Сущность | Должен принадлежать валидному `chapter_id`; `triggered` — логическое значение |
-| `ChapterData` | Значимый объект | Должен иметь уникальный `id`; массив `beats` не null |
+| `ChapterData` | Объект-значение | Должен иметь уникальный `id`; массив `beats` не null |
 
 ### BC4: NPC и диалоги
 
@@ -412,8 +541,8 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 | `NPCProfile` | Корневой агрегат (для каждого NPC) | Должен иметь уникальные `name` и `uid`; `health` — от 0 до 100; значения `skills` — от 0 до 1 |
 | `EpisodicMemory` | Сущность | Должен иметь уникальный `id`; `importance` — от 0 до 1; `emotion` — непустое |
 | `DialogueSession` | Сущность | Должен иметь уникальный `id`; `state` в допустимом диапазоне перечисления |
-| `NPCSkills` | Значимый объект | Все значения навыков должны быть от 0 до 1 |
-| `DialogueMessage` | Значимый объект | `role` должен быть `player` или `npc` |
+| `NPCSkills` | Объект-значение | Все значения навыков должны быть от 0 до 1 |
+| `DialogueMessage` | Объект-значение | `role` должен быть `player` или `npc` |
 
 ### BC5: Социальные связи и отношения
 
@@ -421,9 +550,9 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 |-----------|------|------------|
 | `SocialGraph` | Корневой агрегат | Должен иметь валидный путь хранилища; отношения ссылаются на валидные сущности |
 | `Relationship` | Сущность | `type` в допустимом перечислении; `strength` — от 0 до 1; `source` ≠ `target` |
-| `Faction` | Значимый объект | Должен иметь уникальное `name`; участники уникальны |
-| `Alliance` | Значимый объект | `faction1` ≠ `faction2`; `strength` — от 0 до 1 |
-| `FeudalRelationship` | Значимый объект | `vassal` ≠ `liege`; `loyalty` — от 0 до 1 |
+| `Faction` | Объект-значение | Должен иметь уникальное `name`; участники уникальны |
+| `Alliance` | Объект-значение | `faction1` ≠ `faction2`; `strength` — от 0 до 1 |
+| `FeudalRelationship` | Объект-значение | `vassal` ≠ `liege`; `loyalty` — от 0 до 1 |
 
 ### BC6: Квесты
 
@@ -432,8 +561,8 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 | `Quest` | Корневой агрегат | Должен иметь уникальный `id`; `status` в допустимом перечислении; `progress` вычисляется |
 | `QuestDefinition` | Корневой агрегат | Должен иметь уникальный `id`; `objectives` — непустой |
 | `QuestObjective` | Сущность | `completed` — логическое значение |
-| `QuestReward` | Значимый объект | `gold`, `experience` ≥ 0 |
-| `QuestPrerequisite` | Значимый объект | Должно быть задано хотя бы одно предусловие |
+| `QuestReward` | Объект-значение | `gold`, `experience` ≥ 0 |
+| `QuestPrerequisite` | Объект-значение | Должно быть задано хотя бы одно предусловие |
 
 ### BC7: Память и знания
 
@@ -442,19 +571,19 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 | `WorldMemory` | Корневой агрегат | Должен иметь валидный путь хранилища; записи оцениваются взвешенной формулой |
 | `WorldMemoryEntry` | Сущность | Должен иметь уникальный `id`; `importance` — от 0 до 1; `content` — непустое |
 | `AgentMemoryStore` | Корневой агрегат | Изолирован по `agentId`; использует гибридный FTS5 + векторный поиск |
-| `MemoryConfig` | Значимый объект | Все веса ≥ 0; `halfLifeDays` > 0 |
-| `ScoringWeights` | Значимый объект | Веса суммируются до 1.0 |
+| `MemoryConfig` | Объект-значение | Все веса ≥ 0; `halfLifeDays` > 0 |
+| `ScoringWeights` | Объект-значение | Веса суммируются до 1.0 |
 
 ---
 
 ## [A4] Доменные сервисы
 
-Сервисы общего назначения, которые не принадлежат одному агрегату:
+Сквозные сервисы, которые не принадлежат одному агрегату:
 
 | Сервис | Файл | Назначение |
-|--------|------|------------|
+|---------|------|---------|
 | `NarrativeService` | `src/services/narrative-service.ts` | **Корень композиции** — создаёт и связывает все нарративные подсистемы |
-| `RoleplayEngine` | `src/services/roleplay-engine.ts` | Точка входа для ввода игрока → диспетчеризация агентов |
+| `RoleplayEngine` | `src/services/roleplay-engine.ts` | Основная точка входа: оркестрирует PipelineRunner → CommandHandler → генераторы прозы. SessionState вынесен в `roleplay/session-state.ts`, обработчики — в `roleplay/handlers/` |
 | `StoryEngine` | `src/services/story-engine.ts` | Генерация событий из узлов + применение эффектов (перемещения NPC, изменения отношений, создание квестов) |
 | `DirectorLoop` | `src/services/director-loop.ts` | Фоновая оркестрация: тик часов → социальная симуляция → злодей → случайные события → сюжетные узлы |
 | `SocialSimulator` | `src/services/social-simulator.ts` | Выбор пар NPC + генерация взаимодействий |
@@ -462,7 +591,10 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 | `MemoryEngine` | `src/services/memory-engine.ts` | Семантический поиск по эпизодической памяти NPC |
 | `WorldValidator` | `src/services/world-validator.ts` | Валидация целостности мира |
 | `AgentCoordinator` | `src/services/agent-coordinator.ts` | Очередь приоритетов для выполнения задач Director |
-| `StartResolver` | `src/services/start-resolver.ts` | Разрешение начального нарративного контекста из состояния мира |
+| `StartResolver` | `src/services/start-resolver.ts` | Разрешение начального сюжетного контекста из состояния мира |
+| `WorldIsolator` | `src/services/world-isolator.ts` | Изоляция нескольких миров с мониторингом ресурсов (память, CPU, токены) |
+| `CrossWorldBus` | `src/services/cross-world-bus.ts` | Межмировая коммуникация событий с порталами |
+| `PluginManager` | `src/plugins/plugin-manager.ts` | Управление жизненным циклом плагинов (регистрация, отмена регистрации, возможности) |
 
 ---
 
@@ -471,7 +603,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 Все события определены в перечислении `EventTopic` (`src/lib/event-bus.ts`):
 
 | Событие | Издатель | Потребители | Описание |
-|---------|----------|-------------|----------|
+|-------|-----------|-----------|-------------|
 | `ENTITY_ADDED` | `WorldBuilder`, `NPCGenerator` | `GraphStore`, `WorldMemory` | Создана новая сущность |
 | `ENTITY_UPDATED` | Различные сервисы | `GraphStore`, `WorldMemory` | Профиль сущности изменён |
 | `ENTITY_REMOVED` | `GraphStore` | `WorldMemory` | Сущность удалена |
@@ -480,10 +612,10 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 | `RELATIONSHIP_REPAIRED` | `SocialSimulator` | `GraphStore` | Разорванная связь восстановлена |
 | `RELATIONSHIP_BROKEN` | `SocialSimulator` | `GraphStore` | Связь разорвана |
 | `WORLD_CREATED` | `WorldManager` | Все сервисы | Инициализирован новый мир |
-| `WORLD_FRAME_LOADED` | `WorldBuilder` | Все сервисы | WorldFrame загружен с диска |
+| `WORLD_FRAME_LOADED` | `WorldBuilder` | Все сервисы | Каркас мира загружен с диска |
 | `WORLD_EVOLVED` | `WorldEvolver` | `Chronicler`, `WebSocketManager` | Состояние мира изменилось |
-| `STORY_EVENT` | `StoryEngine` | `Chronicler`, `WebSocketManager` | Сгенерировано нарративное событие |
-| `STORY_BEAT` | `DirectorLoop` | `Chronicler`, `WebSocketManager` | Инъецирован сюжетный узел |
+| `STORY_EVENT` | `StoryEngine` | `Chronicler`, `WebSocketManager` | Сгенерировано сюжетное событие |
+| `STORY_BEAT` | `DirectorLoop` | `Chronicler`, `WebSocketManager` | Внедрён сюжетный узел |
 | `VILLAIN_PROGRESS` | `VillainManager` | `Chronicler`, `WebSocketManager` | Выполнено действие злодея |
 | `QUEST_ADDED` | `QuestSystem` | `WebSocketManager` | Создан новый квест |
 | `QUEST_UPDATED` | `QuestSystem` | `WebSocketManager` | Состояние квеста изменено |
@@ -498,41 +630,42 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 **Механика шины событий:**
 - Обработчики сортируются по `priority` (чем выше = тем раньше выполняются)
 - Буфер повтора (по умолчанию 100 событий) для запоздавших подписчиков
-- Асинхронная публикация с `await` — нет политики «выстрелил и забыл»
+- Асинхронная публикация с `await` — без политики «выстрелил и забыл»
 
 ---
 
 ## [A6] Прикладной слой
 
-### Поток варианта использования: Сообщение игрока → Ответ рассказчика
+### Поток варианта использования: Сообщение игрока → Ответ Stylist
 
 ```
 1. HTTP POST /chat/message
-   └─→ routes/chat.ts: Валидация Zod, очистка ввода
+   └─→ routes/chat.ts: Zod validation, input sanitization
 
 2. RoleplayEngine.processInput(sanitizedMessage)
-   ├─→ Определение намерения: перемещение, диалог, упоминание @agent или общий
-   ├─→ Если перемещение: SceneAgent → обновление локации → NarratorAgent
-   ├─→ Если диалог: NPCAgent → контекст диалога → ответ
-   ├─→ Если @agent: диспетчеризация к именованному агенту (researcher, historian и т.д.)
-   └─→ Иначе: NarratorAgent.generate(context, memories, facts, history)
+   ├─→ SessionState (activeCharacter, currentLocation, currentTime)
+   ├─→ PipelineRunner.translateAndClassify() → IntentParser
+   ├─→ CommandHandler.handle() for commands
+   ├─→ PipelineRunner.runSimulation() → SimulationEngine
+   ├─→ Prose generation: LiteraryV2Generator or LegacyIntentGenerator
+   └─→ Returns narrative string
 
-3. NarratorAgent.generate()
-   ├─→ loadAgentConfig("narrator") → промпты из SQLite → откат к JSON → значения по умолчанию
-   ├─→ resolveTemplate(template, vars) с полями StoryContext
+3. Stylist.process(intent, simulation, context, pattern)
+   ├─→ loadAgentConfig("stylist") → SQLite prompts → JSON fallback → defaults
+   ├─→ resolveTemplate(template, vars) with StoryContext fields
    └─→ LLMQueue.generateText(prompt, priority, temperature, agentId)
 
 4. LLMQueue
-   ├─→ RateLimiter.check() → управление конкурентностью
-   ├─→ ProviderManager.getProvider(agentId) → провайдер/модель
-   ├─→ LLMClient.generate() → проверка LRU-кэша → HTTP к LLM
-   └─→ Возврат ответа
+   ├─→ RateLimiter.check() → concurrency control
+   ├─→ ProviderManager.getProvider(agentId) → provider/model
+   ├─→ LLMClient.generate() → LRU cache check → HTTP to LLM
+   └─→ Return response
 
 5. RoleplayEngine
    ├─→ MemoryManager.addEntry(user, response)
    ├─→ Chronicler.logEvent(...) → WorldMemory.addEvent(...)
    ├─→ EventBus.publish(STORY_EVENT)
-   └─→ Возврат { narrative, location, storyTime, activeCharacter }
+   └─→ Return { narrative, location, storyTime, activeCharacter }
 
 6. WebSocketManager.broadcast({ type: "narrative", ... })
 ```
@@ -540,23 +673,23 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 ### Поток варианта использования: Тик Director → Сюжетный узел
 
 ```
-1. DirectorLoop (фоновый setInterval, по умолчанию 30 мин)
+1. DirectorLoop (background setInterval, default 30min)
    ├─→ WorldClock.tick(minutes)
    ├─→ SocialSimulator.simulateInteraction()
-   ├─→ VillainManager.tick() → переходы фаз
-   ├─→ ProbabilityEngine.roll() → случайные события
+   ├─→ VillainManager.tick() → phase transitions
+   ├─→ ProbabilityEngine.roll() → chance events
    └─→ StoryPlanner.shouldGenerateBeat() → StoryEngine.generateEvent()
 
 2. StoryEngine.generateEvent()
-   ├─→ LLMQueue.generateJson(EVENT_PROMPT, ...) → структурированное событие
-   ├─→ Применение эффектов: перемещения NPC, изменения отношений, создание квестов
+   ├─→ LLMQueue.generateJson(EVENT_PROMPT, ...) → structured event
+   ├─→ Apply effects: NPC moves, relationship changes, quest creation
    ├─→ EventBus.publish(STORY_EVENT)
    └─→ Chronicler.logEvent(...)
 
 3. DirectorLoop
-   ├─→ StoryEngine.generateBeat() → LLM генерирует нарративный узел
-   ├─→ RoleplayEngine.injectBeat(beat) → вставка в начало следующего ответа
-   └─→ Сохранение director_state.json
+   ├─→ StoryEngine.generateBeat() → LLM generates narrative beat
+   ├─→ RoleplayEngine.injectBeat(beat) → prepend to next response
+   └─→ Save director_state.json
 ```
 
 ### Поток варианта использования: Создание мира
@@ -567,17 +700,17 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 
 2. WorldManager.createWorld()
    ├─→ mkdir worlds/{slugified-name}/
-   ├─→ Запись world_frame.json
+   ├─→ Write world_frame.json
    ├─→ EventBus.publish(WORLD_CREATED)
    └─→ NarrativeService.reset(dbPath, worldFrame)
 
-3. WorldBuilder (при /api/launch)
-   ├─→ createWorld() → LLM генерирует WorldFrame
-   ├─→ buildL1() → слой идентичности для всех сущностей
-   ├─→ buildL2() → слой динамического состояния
-   ├─→ buildL3() → слой скрытого/тайного
-   ├─→ buildRelationships() → связи между сущностями
-   └─→ EventBus.publish(ENTITY_ADDED) для каждой сущности
+3. WorldBuilder (on /api/launch)
+   ├─→ createWorld() → LLM generates WorldFrame
+   ├─→ buildL1() → identity layer for all entities
+   ├─→ buildL2() → dynamic state layer
+   ├─→ buildL3() → hidden/secret layer
+   ├─→ buildRelationships() → entity relationships
+   └─→ EventBus.publish(ENTITY_ADDED) for each entity
 
 4. WebSocketManager.broadcast({ type: "world_created", ... })
 ```
@@ -585,22 +718,22 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 ### Поток варианта использования: Память агента
 
 ```
-1. NarratorAgent генерирует нарратив
-   └─→ EventBus.publish(MEMORY_ADDED, { content, source: "narrator" })
+1. Stylist generates narrative prose
+   └─→ EventBus.publish(MEMORY_ADDED, { content, source: "stylist" })
 
 2. WorldMemory.addEvent()
-   ├─→ Создание WorldMemoryEntry с метаданными оценки
-   ├─→ EmbeddingQueue.enqueue(entry) → пакетная генерация эмбеддингов через BGE-M3
+   ├─→ Create WorldMemoryEntry with scoring metadata
+   ├─→ EmbeddingQueue.enqueue(entry) → batch embedding via BGE-M3
    ├─→ VectorIndex.add(embedding, entryId)
    ├─→ WriteBehindBuffer.add(entry)
-   └─→ Периодическая запись в SQLite + пересоздание FAISS
+   └─→ Periodic flush to SQLite + FAISS rebuild
 
 3. AgentMemoryStore.search(agentId, query)
-   ├─→ getEmbedding(query) → эндпоинт BGE-M3
-   ├─→ SQLiteStore.searchMemoriesFTS(query) → поиск по ключевым словам
-   ├─→ SQLiteStore.searchMemoriesDense(vector) → косинусное сходство
+   ├─→ getEmbedding(query) → BGE-M3 endpoint
+   ├─→ SQLiteStore.searchMemoriesFTS(query) → keyword matches
+   ├─→ SQLiteStore.searchMemoriesDense(vector) → cosine similarity
    ├─→ ReciprocalRankFusion(ftsResults, denseResults)
-   └─→ Возврат топ-K результатов, отфильтрованных по agentId
+   └─→ Return top-K results filtered by agentId
 ```
 
 ---
@@ -610,25 +743,25 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (ш
 ### Интеграция с LLM
 
 ```
-ProviderManager (синглтон)
+ProviderManager (singleton)
 ├── OpenAIProvider    (conf/providers.json)
 ├── AnthropicProvider
 ├── GoogleProvider
 ├── OllamaProvider
-└── LlamaCppProvider  (локальный, порт 5002 для эмбеддингов)
+└── LlamaCppProvider  (local, port 5002 for embeddings)
 
-LLMClient (для каждого агента)
-├── ProviderManager.getProvider(agentId) → провайдер/модель
-├── LRU-кэш (256 записей, TTL 5 минут)
-├── parseJsonWithRetry() для структурированного вывода
-└── Конфигурация для каждого агента: temperature, maxTokens, модель
+LLMClient (per-agent)
+├── ProviderManager.getProvider(agentId) → provider/model
+├── LRU Cache (256 entries, 5-min TTL)
+├── parseJsonWithRetry() for structured output
+└── Per-agent config: temperature, maxTokens, model
 
-LLMQueue (глобальная)
-├── Очередь приоритетов (CRITICAL > HIGH > NORMAL > LOW)
-├── RateLimiter (на основе RPM, автоматическое пополнение)
-├── Максимальная конкурентность (по умолчанию 3)
-├── Лимит очереди (по умолчанию 50) с вытеснением по приоритету
-└── Экземпляры LLMClient для каждого агента
+LLMQueue (global)
+├── Priority queue (CRITICAL > HIGH > NORMAL > LOW)
+├── RateLimiter (RPM-based, auto-refill)
+├── Max concurrency (default 3)
+├── Queue cap (default 50) with priority eviction
+└── Per-agent LLMClient instances
 ```
 
 **Файл:** `src/lib/llm-client.ts`, `src/lib/llm-queue.ts`, `src/lib/providers/provider-manager.ts`
@@ -636,11 +769,11 @@ LLMQueue (глобальная)
 ### Персистентность
 
 | Хранилище | Технология | Путь | Назначение |
-|-----------|-----------|------|------------|
+|-------|-----------|------|---------|
 | `UnifiedEntityStore` | JSON-файлы | `worlds/{name}/entities.json` | CRUD сущностей с разрешением имён за O(1) |
 | `SQLiteStore` | `bun:sqlite` | `worlds/{name}/tns.db` | Поиск FTS5, векторные эмбеддинги, промпты агентов, переводы |
-| `GraphStore` | Граф смежности в памяти | `worlds/{name}/entities.json` | Обход графа, ветвление |
-| `SessionStore` | `bun:sqlite` | `worlds/_sessions/sessions.db` | Токены авторизации |
+| `GraphStore` | Карта смежности в памяти | `worlds/{name}/entities.json` | Обход графа, ветвление |
+| `SessionStore` | `bun:sqlite` | `worlds/_sessions/sessions.db` | Токены сессий авторизации |
 | `Chronicler` | JSONL-файлы | `worlds/{name}/timeline.jsonl` | Хронология событий с ротацией |
 | `WorldClock` | JSON-файл | `worlds/{name}/clock_state.json` | Игровое время, запланированные события |
 | `NPCRuntime` | JSON-файлы | `worlds/{name}/npc_profiles.json` | Состояние NPC + эпизодическая память |
@@ -651,10 +784,10 @@ LLMQueue (глобальная)
 | `WorldMemory` | SQLite + FAISS | `worlds/{name}/memory/` | Семантическая память с эмбеддингами |
 | `AgentMemoryStore` | SQLite | `tns.db` | RAG для каждого агента |
 | `settings.json` | JSON-файл | `conf/settings.json` | Глобальные настройки приложения |
-| `providers.json` | JSON-файл | `conf/providers.json` | Конфигурация провайдеров LLM |
+| `providers.json` | JSON-файл | `conf/providers.json` | Конфигурации провайдеров LLM |
 | `agents.json` | JSON-файл | `conf/agents.json` | Назначения моделей агентам |
 
-**Паттерн персистентности:** Все JSON-записи используют `atomicWriteJson()` (запись во временную файл + переименование) для устойчивости к сбоям. SQLite использует режим WAL с `PRAGMA synchronous = NORMAL`.
+**Паттерн персистентности:** Все JSON-записи используют `atomicWriteJson()` (запись во временный файл + переименование) для устойчивости к сбоям. SQLite использует режим WAL с `PRAGMA synchronous = NORMAL`.
 
 ### WebSocket в реальном времени
 
@@ -667,9 +800,9 @@ LLMQueue (глобальная)
 
 ### Аутентификация
 
-**Файлы:** `src/middleware/auth.ts`, `src/lib/session-store.ts`
+**Файл:** `src/middleware/auth.ts`, `src/lib/session-store.ts`
 
-- Аутентификация на основе токенов (32-байтный случайный hex)
+- Аутентификация сессий на основе токенов (32-байтный случайный hex)
 - Сессии хранятся в SQLite (`worlds/_sessions/sessions.db`)
 - TTL 24 часа с ежечасной очисткой
 - `authMiddleware` блокирует все маршруты `/api/*`, кроме `/login`
@@ -679,27 +812,26 @@ LLMQueue (глобальная)
 
 ## [A8] Диаграммы потоков данных
 
-### 1. Сообщение пользователя → Ответ рассказчика
+### 1. Сообщение пользователя → Ответ Stylist
 
 ```
 ┌──────────┐     ┌──────────────┐     ┌─────────────────┐
-│ Браузер   │────▶│ routes/chat  │────▶│  RoleplayEngine  │
+│  Browser  │────▶│ routes/chat  │────▶│  RoleplayEngine  │
 │           │◀────│   (Hono)     │◀────│                  │
 └──────────┘     └──────────────┘     └────────┬─────────┘
                                                │
                     ┌──────────────────────────┤
                     ▼                          ▼
           ┌─────────────────┐      ┌──────────────────┐
-          │  NarratorAgent   │      │  MemoryManager   │
-          │  (промпт LLM)    │      │  (сохранение     │
-          └────────┬─────────┘      │   истории)       │
-                   │                └──────────────────┘
+          │    Stylist       │      │  MemoryManager   │
+          │  (LLM prompt)    │      │  (history save)  │
+          └────────┬─────────┘      └──────────────────┘
+                   │
                    ▼
           ┌─────────────────┐
           │    LLMQueue      │
-          │  (приоритет,     │
-          │   ограничение,   │
-          │   кэш)           │
+          │  (priority, rate │
+          │   limit, cache)  │
           └────────┬─────────┘
                    │
                    ▼
@@ -711,7 +843,7 @@ LLMQueue (глобальная)
                    │
                    ▼
           ┌─────────────────┐     ┌──────────────────┐
-          │   Внешний LLM    │────▶│  Chronicler.log   │
+          │   External LLM   │────▶│  Chronicler.log   │
           │   API            │     │  EventBus.publish │
           └─────────────────┘     └──────────────────┘
 ```
@@ -720,24 +852,24 @@ LLMQueue (глобальная)
 
 ```
 ┌─────────────────┐
-│  DirectorLoop    │  (setInterval, каждые 30 мин)
+│  DirectorLoop    │  (setInterval, every 30min)
 │  ┌─────────────┐│
-│  │ WorldClock  ││──▶ tick(minutes) → продвижение времени → запуск запланированных событий
+│  │ WorldClock  ││──▶ tick(minutes) → advance time → fire scheduled events
 │  └─────────────┘│
 │  ┌─────────────┐│
-│  │SocialSim    ││──▶ simulateInteraction() → выбор пар → генерация событий
+│  │SocialSim    ││──▶ simulateInteraction() → pair selection → event generation
 │  └─────────────┘│
 │  ┌─────────────┐│
-│  │VillainMgr   ││──▶ tick() → переход фазы → стратегическое действие LLM
+│  │VillainMgr   ││──▶ tick() → phase transition → LLM strategic action
 │  └─────────────┘│
 │  ┌─────────────┐│
-│  │ProbEngine   ││──▶ roll() → случайные события (погода, несчастные случаи, открытия)
+│  │ProbEngine   ││──▶ roll() → chance events (weather, accidents, discoveries)
 │  └─────────────┘│
 │  ┌─────────────┐│
 │  │StoryPlanner ││──▶ shouldGenerateBeat() → generateNextBeat() → LLM
 │  └─────────────┘│
 │  ┌─────────────┐│
-│  │StoryEngine  ││──▶ generateEvent() → LLM → применение эффектов → публикация события
+│  │StoryEngine  ││──▶ generateEvent() → LLM → apply effects → publish event
 │  └─────────────┘│
 └────────┬────────┘
          │
@@ -752,7 +884,7 @@ LLMQueue (глобальная)
 
 ```
 ┌──────────┐     ┌──────────────────┐     ┌────────────────┐
-│ Браузер   │────▶│  POST /worlds     │────▶│  WorldManager   │
+│  Browser  │────▶│  POST /worlds     │────▶│  WorldManager   │
 │           │     │  (routes/worlds)  │     │  createWorld()  │
 └──────────┘     └──────────────────┘     └───────┬────────┘
                                                    │
@@ -773,17 +905,17 @@ POST /api/launch:
 ┌─────────────────┐
 │  WorldBuilder    │
 │  ├─ createWorld()│──▶ LLM → WorldFrame JSON
-│  ├─ buildL1()    │──▶ LLM → L1 идентичность для каждой сущности
-│  ├─ buildL2()    │──▶ LLM → L2 динамическое состояние
-│  ├─ buildL3()    │──▶ LLM → L3 скрытое/тайное
-│  └─ buildRels()  │──▶ LLM → связи
+│  ├─ buildL1()    │──▶ LLM → L1 identity for each entity
+│  ├─ buildL2()    │──▶ LLM → L2 dynamic state
+│  ├─ buildL3()    │──▶ LLM → L3 hidden/secret
+│  └─ buildRels()  │──▶ LLM → relationships
 └─────────────────┘
           │
           ▼
 ┌─────────────────┐
 │ EventBus.publish │
 │ (ENTITY_ADDED    │
-│  × N сущностей)  │
+│  × N entities)   │
 └─────────────────┘
 ```
 
@@ -791,17 +923,16 @@ POST /api/launch:
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  NarratorAgent   │────▶│ EventBus.publish  │────▶│  WorldMemory    │
-│  (генерирует     │     │ (MEMORY_ADDED)    │     │  .addEvent()    │
-│   нарратив)      │     └──────────────────┘     └───────┬────────┘
+│    Stylist       │────▶│ EventBus.publish  │────▶│  WorldMemory    │
+│  (generates      │     │ (MEMORY_ADDED)    │     │  .addEvent()    │
+│   narrative)     │     └──────────────────┘     └───────┬────────┘
 └─────────────────┘                                       │
                                                     ┌─────┴──────┐
                                                     ▼            ▼
                                             ┌──────────────┐ ┌──────────────┐
                                             │EmbeddingQueue │ │ WriteBehind  │
-                                            │ (пакетная     │ │   Buffer     │
-                                            │  BGE-M3)      │ └──────┬───────┘
-                                            └──────┬───────┘        │
+                                            │ (batch BGE-M3)│ │   Buffer     │
+                                            └──────┬───────┘ └──────┬───────┘
                                                    │                │
                                                    ▼                ▼
                                             ┌──────────────┐ ┌──────────────┐
@@ -809,13 +940,11 @@ POST /api/launch:
                                             │ (FAISS)       │ │ (tns.db)     │
                                             └──────────────┘ └──────────────┘
 
-Поток запросов:
+Query flow:
 ┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
-│ AgentMemory   │────▶│ SQLiteStore       │────▶│ FTS5 (ключевые  │
-│ .search()     │     │ .searchMemories   │     │  слова)         │
-│               │     │                   │     │ + плотные       │
-│               │     │                   │     │   векторы       │
-│               │     │                   │     │ → RRF-слияние   │
+│ AgentMemory   │────▶│ SQLiteStore       │────▶│ FTS5 (keyword)  │
+│ .search()     │     │ .searchMemories   │     │ + Dense vectors │
+│               │     │                   │     │ → RRF fusion    │
 └──────────────┘     └──────────────────┘     └────────────────┘
                            │
                            ▼
@@ -831,139 +960,148 @@ POST /api/launch:
 
 ```
                     ┌─────────────────────┐
-                    │  Управление миром    │
+                    │  World Management    │
                     │  (BC1)               │
                     └──────────┬──────────┘
-                               │ создаёт/загружает
+                               │ creates/loads
                                ▼
 ┌──────────────┐    ┌─────────────────────┐    ┌──────────────┐
-│ Сущности и   │◀──▶│  Нарратив и история  │◀──▶│  NPC и       │
-│ граф (BC2)   │    │  (BC3)               │    │  диалоги     │
+│ Entity &     │◀──▶│  Narrative & Story   │◀──▶│  NPC &       │
+│ Graph (BC2)  │    │  (BC3)               │    │  Dialogue    │
 └──────┬───────┘    └──────────┬──────────┘    │  (BC4)       │
-       │                       │               └──────┬───────┘
-       │                       │                      │
-       │                       ▼                      │
-       │              ┌─────────────────────┐         │
-       │              │  Интеграция с LLM    │         │
-       │              │  (BC8)               │◀────────┘
+       │                       │                └──────┬───────┘
+       │                       │                       │
+       │                       ▼                       │
+       │              ┌─────────────────────┐          │
+       │              │  LLM Integration     │          │
+       │              │  (BC8)               │◀─────────┘
        │              └──────────┬──────────┘
        │                         │
        │    ┌────────────────────┼────────────────────┐
        │    ▼                    ▼                    ▼
        │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-       │ │  Социальные   │ │  Квесты      │ │  Злодей      │
-       │ │  связи        │ │  (BC6)       │ │  (BC10)      │
+       │ │  Social &     │ │  Quests      │ │  Villain     │
+       │ │  Relationships│ │  (BC6)       │ │  (BC10)      │
        │ │  (BC5)        │ └──────┬───────┘ └──────────────┘
        │ └──────┬───────┘        │
        │        │                │
        │        ▼                ▼
        │ ┌─────────────────────────────┐
-       │ │  Вероятности и бой          │
+       │ │  Probability & Combat       │
        │ │  (BC9)                      │
        │ └─────────────────────────────┘
        │
        ▼
 ┌─────────────────────┐    ┌─────────────────────┐
-│  Память и знания     │◀──▶│  Интеллект и         │
-│  (BC7)               │    │  анализ (BC11)       │
+│  Memory & Knowledge  │◀──▶│  Intelligence        │
+│  (BC7)               │    │  (BC11)              │
 └─────────────────────┘    └─────────────────────┘
+        │
+        ▼
+┌─────────────────────┐
+│  Literary Compiler   │  (BC12, v0.32.5)
+│  v2                  │
+└─────────────────────┘
 ```
 
 **Ключевые зависимости:**
 
-| Исходный ЦК | Целевой ЦК | Механизм связанности |
-|-------------|------------|---------------------|
+| Исходный BC | Целевой BC | Механизм связанности |
+|-----------|-----------|-------------------|
 | BC1 (Мир) | BC2 (Сущности) | Общий экземпляр `UnifiedEntityStore` |
 | BC1 (Мир) | BC3 (Нарратив) | `NarrativeService.reset()` |
-| BC3 (Нарратив) | BC4 (NPC) | `NPCRuntime` инжектируется в `RoleplayEngine` |
-| BC3 (Нарратив) | BC5 (Социальные) | `SocialSimulator` инжектируется в `DirectorLoop` |
-| BC3 (Нарратив) | BC6 (Квесты) | `QuestManager` инжектируется в `StoryEngine` |
-| BC3 (Нарратив) | BC10 (Злодей) | `VillainManager` инжектируется в `DirectorLoop` |
+| BC3 (Нарратив) | BC4 (NPC) | `NPCRuntime` внедряется в `RoleplayEngine` |
+| BC3 (Нарратив) | BC5 (Социальное) | `SocialSimulator` внедряется в `DirectorLoop` |
+| BC3 (Нарратив) | BC6 (Квесты) | `QuestManager` внедряется в `StoryEngine` |
+| BC3 (Нарратив) | BC10 (Злодей) | `VillainManager` внедряется в `DirectorLoop` |
 | BC3 (Нарратив) | BC9 (Вероятности) | `ProbabilityEngine` в `RoleplayEngine` |
+| BC3 (Нарратив) | BC12 (ЛитКомпилятор) | `RoleplayEngine` вызывает `searchTemplates` + `fillTemplate` |
 | BC4 (NPC) | BC7 (Память) | `NPCRuntime` использует `EpisodicMemory` |
-| BC5 (Социальные) | BC2 (Сущности) | `SocialGraph` читает из `UnifiedEntityStore` |
-| BC8 (LLM) | Все ЦК | `LLMQueue` является общим для всех агентов |
+| BC5 (Социальное) | BC2 (Сущности) | `SocialGraph` читает из `UnifiedEntityStore` |
+| BC8 (LLM) | Все BC | `LLMQueue` общий для всех агентов |
+| BC8 (LLM) | BC12 (ЛитКомпилятор) | Оффлайн-экстрактор использует `LLMClient` для структурированного извлечения |
 | BC7 (Память) | BC8 (LLM) | `EmbeddingQueue` вызывает `LLMClient` для эмбеддингов |
 | BC11 (Интеллект) | BC2 (Сущности) | Анализ графа читает `GraphStore` |
 
 ---
 
-## [A10] Ключевые архитектурные решения
+## [A10] Ключевые проектные решения
 
-### D1: Паттерн корня композиции
+### D1: Паттерн «Корень композиции»
 
-**Решение:** `NarrativeService` (`src/services/narrative-service.ts`) выступает в роли корня композиции, создавая все сервисы и связывая зависимости вручную.
+**Решение:** `NarrativeService` (`src/services/narrative-service.ts`) выступает корнем композиции, создавая все сервисы и связывая зависимости вручную.
 
-**Компромисс:** Явное внедрение зависимостей без фреймворка. Все зависимости видны в одном конструкторе, что делает систему отладочной, но многословной. Альтернатива (контейнер IoC) добавила бы рантайм-магию.
+**Компромисс:** Явный DI без фреймворка. Все зависимости видны в одном конструкторе, что делает систему удобной для отладки, но многословной. Альтернатива (IoC-контейнер) добавила бы «магию» во время выполнения.
 
-### D2: JSON-файлы как основное хранилище (SQLite для поиска)
+### D2: JSON-файлы как основное хранилище (с SQLite для поиска)
 
-**Решение:** Состояние сущностей, профили NPC и социальные отношения хранятся как JSON-файлы. SQLite используется только для поиска (FTS5), эмбеддингов (векторы), сессий и промптов агентов.
+**Решение:** Состояние сущностей, профили NPC и социальные связи хранятся в виде JSON-файлов. SQLite используется только для поиска (FTS5), эмбеддингов (векторы), сессий и промптов агентов.
 
-**Компромисс:** Простые чтения/записи с атомарными файловыми операциями, но без транзакционных гарантий между сущностями. Паттерн `atomicWriteJson()` (запись во временный файл + переименование) обеспечивает устойчивость к сбоям для отдельных записей, но не к согласованности нескольких файлов. SQLite обеспечивает полный ACID для поиска и эмбеддингов.
+**Компромисс:** Простые чтения/записи с атомарными файловыми операциями, но без транзакционных гарантий между сущностями. Паттерн `atomicWriteJson()` (запись во временный файл + переименование) обеспечивает устойчивость к сбоям для отдельных записей, но не согласованность между несколькими файлами. SQLite обеспечивает полный ACID для поиска и эмбеддингов.
 
 ### D3: Шина событий для межконтекстной коммуникации
 
-**Решение:** `EventBus` с обработчиками, отсортированными по приоритету, и буфером повтора соединяет ограниченные контексты асинхронно.
+**Решение:** `EventBus` с обработчиками, отсортированными по приоритету, и буфером повтора асинхронно связывает ограниченные контексты.
 
-**Компромисс:** Декомпозирует контексты (NPC не знает о памяти, память не знает о NPC), но добавляет косвенность. Буфер повтора (100 событий) гарантирует, что запоздавшие подписчики не пропускают недавние события, ценой памяти.
+**Компромисс:** Разделяет контексты (NPC не знает о Памяти, Память не знает о NPC), но добавляет косвенность. Буфер повтора (100 событий) гарантирует, что запоздавшие подписчики не пропустят недавние события, ценой затрат памяти.
 
 ### D4: Назначение модели для каждого агента
 
-**Решение:** Каждый агент (рассказчик, NPC, режиссёр, исследователь и т.д.) может иметь своего провайдера LLM, модель, температуру и максимальное количество токенов.
+**Решение:** Каждый агент (`stylist`, `director`, `researcher`, `translation` и т.д.) может иметь собственного LLM-провайдера, модель, температуру и максимальное количество токенов.
 
-**Компромисс:** Максимальная гибкость (дешёвые модели для хрониста, мощные модели для рассказчика), но требуется управление конфигурацией. ProviderManager решает это через `conf/providers.json` и `conf/agents.json`.
+**Компромисс:** Максимальная гибкость (дешёвые модели для chronicler, мощные — для stylist), но требует управления конфигурацией. ProviderManager обрабатывает это с помощью `conf/providers.json` и `conf/agents.json`.
 
 ### D5: Трёхуровневый профиль сущности (L1/L2/L3)
 
-**Решение:** Профили сущностей используют три слоя: L1 (идентичность/имя), L2 (динамическое состояние/локация), L3 (скрытое/тайное).
+**Решение:** Профили сущностей используют три уровня: L1 (идентичность/имя), L2 (динамическое состояние/локация), L3 (скрытое/тайное).
 
-**Компромисс:** Позволяет постепенное раскрытие и секреты, управляемые Мастером. L1 всегда виден, L2 обновляется во время игры, L3 скрыт от игроков. Цена — дополнительная сложность в разрешении профилей.
+**Компромисс:** Позволяет постепенное раскрытие и скрытые секреты, контролируемые DM. L1 всегда видим, L2 обновляется во время игры, L3 скрыт от игроков. Цена — дополнительная сложность разрешения профилей.
 
-### D6: Фоновый цикл Director
+### D6: Фоновый Director Loop
 
 **Решение:** `DirectorLoop` работает как фоновый интервал, оркестрируя тики часов, социальную симуляцию, действия злодея и сюжетные узлы независимо от ввода игрока.
 
-**Компромисс:** Создаёт живой мир, который развивается даже когда игроки оффлайн. Компромисс — сложность управления состоянием (приостановка/работа, кулдауны основных узлов) и возможность событий, которые игроки пропускают.
+**Компромисс:** Создаёт живой мир, который развивается даже когда игроки офлайн. Компромисс — сложность управления состоянием (состояния паузы/работы, кулдауны основных узлов) и возможность событий, которые игроки пропустят.
 
-### D7: Гибридный поиск (FTS5 + векторы + RRF)
+### D7: Гибридный поиск (FTS5 + Векторный + RRF)
 
-**Решение:** Поиск по памяти использует как ключевые слова (FTS5), так и семантический (плотный вектор) поиск, объединённые через Reciprocal Rank Fusion.
+**Решение:** Поиск по памяти использует как ключевые слова (FTS5), так и семантический (плотный векторный) поиск, объединённые через Reciprocal Rank Fusion.
 
-**Компромисс:** Лучшее из обоих миров — точные совпадения по ключевым словам и семантическое сходство. Цена — поддержка обоих индексов и конвейера эмбеддингов (BGE-M3 через llama.cpp сервер на порту 5002).
+**Компромисс:** Лучшее из двух миров — точное совпадение по ключевым словам и семантическое сходство. Цена — поддержка обоих индексов и конвейера эмбеддингов (BGE-M3 через сервер llama.cpp на порту 5002).
 
-### D8: Ветвление в стиле Git для графов нарратива
+### D8: Ветвление в стиле Git для сюжетных графов
 
-**Решение:** `BranchManager` поддерживает ветвление графа сущностей, позволяя альтернативные нарративные пути.
+**Решение:** `BranchManager` поддерживает ветвление графа сущностей, позволяя альтернативные сюжетные пути.
 
-**Компромисс:** Позволяет сценарии «а что, если» и параллельные таймлайны без дублирования всего состояния мира. Каждая ветка хранит только добавления и удаления относительно родителя.
+**Компромисс:** Позволяет сценарии «что если» и параллельные таймлайны без дублирования всего состояния мира. Каждая ветка хранит только добавления и удаления относительно родителя.
 
 ### D9: Промпты агентов на основе шаблонов с откатом к SQLite
 
-**Решение:** Промпты агентов хранятся в SQLite (`agent_prompts`) с изоляцией по мирам и языкам, с откатом к JSON-файлам и затем к встроенным значениям по умолчанию.
+**Решение:** Промпты агентов хранятся в SQLite (`agent_prompts`) с изоляцией для каждого мира и языка, с откатом к JSON-файлам, а затем к встроенным значениям по умолчанию.
 
-**Компромисс:** Поддержка i18n иworld-specific кастомизации без изменений кода. Трёхуровневый откат гарантирует работоспособность системы даже без базы данных.
+**Компромисс:** Поддерживает i18n и настройку для каждого мира без изменения кода. Трёхуровневый откат гарантирует работу системы даже без базы данных.
 
-### D10: Mojo FFI для вычислений критичных к производительности
+### D10: Mojo FFI для критичных по производительности вычислений
 
-**Решение:** Вероятностные расчёты и векторные операции могут использовать Mojo FFI-ядра (`probability_ffi.mojo`, `vector_ffi.mojo`) с откатами на TypeScript.
+**Решение:** Вероятностные расчёты и векторные операции могут использовать Mojo FFI-ядра (`probability_ffi.mojo`, `vector_ffi.mojo`) с откатом на TypeScript.
 
-**Компромисс:** Значительный прирост производительности для пакетных операций (вероятностные броски, косинусное сходство), но увеличивается сложность сборки и зависимость от платформы. Откаты на TypeScript обеспечивают портируемость.
+**Компромисс:** Значительный выигрыш производительности для пакетных операций (броски вероятностей, косинусное сходство), но добавляет сложность сборки и зависимость от платформы. Откаты на TypeScript обеспечивают переносимость.
 
 ---
 
-## Приложение: Справочник по файлам
+## Приложение: Справочник файлов
 
 | Директория | Файлы | Назначение |
-|------------|-------|------------|
+|-----------|-------|---------|
 | `src/models/` | 12 файлов | Доменные модели (Entity, Quest, Story, Director, NPC, Romance, Probability, Memory, Item, Rank, Archetype) |
 | `src/services/` | 45+ файлов | Прикладные + доменные сервисы |
 | `src/routes/` | 18 файлов | HTTP-адаптеры (роутеры Hono) |
 | `src/lib/` | 15+ файлов | Инфраструктура (LLM, SQLite, EventBus, векторные операции, провайдеры) |
 | `src/memory/` | 12 файлов | Подсистема памяти (оценка, кластеризация, эмбеддинги, когнитивный конвейер) |
-| `src/intelligence/` | 10 файлов | Анализ и валидация графа |
+| `src/intelligence/` | 10 файлов | Анализ графа и валидация |
 | `src/store/` | 1 файл | Единое хранилище сущностей с NameIndex |
 | `src/config/` | env.ts | Конфигурация окружения |
 | `src/i18n/` | Интернационализация | Многоязычная поддержка (7 языков) |
-| `src/middleware/` | auth, rate-limiter и т.д. | HTTP-промежуточное ПО |
+| `src/middleware/` | auth, rate-limiter и т.д. | HTTP-промежуточный слой |
 | `src/utils/` | logger, sanitize и т.д. | Общие утилиты |
+

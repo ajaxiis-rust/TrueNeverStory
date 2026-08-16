@@ -17,12 +17,21 @@ REST-API für die TrueNeverStory-Weltenbau- und Rollenspielplattform. Alle Endpu
 - [Wahrscheinlichkeit](#wahrscheinlichkeit)
 - [Romanze](#romanze)
 - [Quests](#quests)
+- [Feedback](#feedback)
+- [Regel-Engine](#regel-engine)
+- [Feature-Flags](#feature-flags)
+- [API-Versionierung](#api-versionierung)
 - [Gedächtnis](#gedächtnis)
 - [Wartung](#wartung)
+- [System](#system)
 - [Agenten](#agenten)
 - [Anbieter & Modelle](#anbieter--modelle)
 - [Einstellungen](#einstellungen)
 - [Start](#start)
+- [WebSocket](#websocket)
+- [Authentifizierung](#authentifizierung)
+- [Weltenübergreifend](#weltenübergreifend)
+- [Plugins](#plugins)
 
 ---
 
@@ -285,6 +294,68 @@ Einzelne Quest-Details abrufen.
 
 ---
 
+## Feedback
+
+### `POST /feedback`
+Eine Reaktion „Gefällt mir"/„Gefällt mir nicht"/„Neutral" für den letzten Erzählzug aufzeichnen.
+
+**Anfrage:** `{ turnId: number, reaction: 'like'|'dislike'|'neutral', techniques: string[] }`
+
+Bei `dislike` generiert die Engine den letzten Zug neu und gibt `{ ok, regenerated }` zurück. Andernfalls `{ ok: true }`.
+
+---
+
+## Regel-Engine
+
+### `GET /rules`
+Soziale/ökonomische Regeln der Welt auflisten.
+
+### `GET /rules/:id`
+Regeldetails per ID abrufen.
+
+### `POST /rules/preview`
+Zusammengeführte Regeln mit Modifikatoren in der Vorschau anzeigen. Body: `RulesConfig`.
+
+### `POST /rules/check`
+Prüfen, ob eine Aktion erlaubt ist. Body: `{ config, action, superiorClass?, subordinateClass? }`.
+
+---
+
+## Feature-Flags
+
+### `GET /feature-flags`
+Alle Feature-Flags und Exposures auflisten.
+
+### `GET /feature-flags/:id`
+Ein einzelnes Flag abrufen.
+
+### `POST /feature-flags`
+Neues Flag erstellen.
+
+### `PUT /feature-flags/:id`
+Flag aktualisieren.
+
+### `DELETE /feature-flags/:id`
+Flag löschen.
+
+### `POST /feature-flags/:id/check`
+Prüfen, ob ein Flag für einen Kontext (Benutzer usw.) aktiviert ist.
+
+---
+
+## API-Versionierung
+
+TrueNeverStory unterstützt zwei API-Versionen:
+
+- **v1** — Legacy-Wrapper für Abwärtskompatibilität
+- **v2** — Erweiterte Version mit Integration der Agenten-Registry
+
+Alle v2-Antworten enthalten Deprecation-Header, wenn Legacy-Verhalten verwendet wird:
+
+- `X-API-Version: v2`
+- `X-Deprecated: true` (bei Rückgabe des Legacy-Formats)
+- `Sunset: <date>` (wenn ein v1-Endpunkt zur Entfernung vorgesehen ist)
+
 ## Gedächtnis
 
 ### `POST /memory/forget?older_than=30&min_importance=0.2`
@@ -330,6 +401,16 @@ Vektorindex neu aufbauen.
 
 ### `POST /maintenance/clean-orphans`
 Verwaiste Embeddings bereinigen.
+
+---
+
+## System
+
+### `POST /system/pause`
+Die Rollenspiel-Engine pausieren. Akzeptiert keine Parameter.
+
+### `POST /system/resume`
+Die Rollenspiel-Engine fortsetzen. Akzeptiert keine Parameter.
 
 ---
 
@@ -474,6 +555,76 @@ WebSocket-Endpunkt für Echtzeit-Rollenspiel. Nachrichten in JSON:
 ## Authentifizierung
 
 Bei aktivierter Passwort-Authentifizierung verwenden Sitzungen HttpOnly-Cookies. Fügen Sie `credentials: "include"` in Fetch-Aufrufen ein.
+
+---
+
+## Weltenübergreifend
+
+### `GET /api/cross-world/status`
+Status der weltenübergreifenden Kommunikation abrufen.
+
+**Antwort:** `{ enabled: boolean, portals: number, eventLog: number }`
+
+### `POST /api/cross-world/enable`
+Weltenübergreifende Kommunikation aktivieren.
+
+**Antwort:** `{ enabled: true }`
+
+### `POST /api/cross-world/disable`
+Weltenübergreifende Kommunikation deaktivieren.
+
+**Antwort:** `{ enabled: false }`
+
+### `GET /api/cross-world/portals`
+Aktive Portale zwischen Welten auflisten.
+
+**Antwort:** Array von `{ id, world1, world2, createdAt, active }`
+
+### `POST /api/cross-world/portals`
+Portal zwischen zwei Welten erstellen.
+
+**Anfrage:** `{ world1: string, world2: string }`
+
+**Antwort:** `{ id, world1, world2, createdAt, active }`
+
+### `DELETE /api/cross-world/portals/:id`
+Portal zerstören.
+
+**Antwort:** `{ deleted: true }`
+
+### `GET /api/cross-world/events?limit=50`
+Ereignisprotokoll der weltenübergreifenden Kommunikation abrufen.
+
+**Antwort:** Array von `{ type, data, source, timestamp }`
+
+---
+
+## Plugins
+
+### `GET /api/plugins`
+Alle registrierten Plugins auflisten.
+
+**Antwort:** Array von `{ id, name, version, description, agents, routes, hooks }`
+
+### `GET /api/plugins/:id`
+Plugin-Details abrufen.
+
+**Antwort:** Plugin-Objekt mit vollständigen Details.
+
+### `GET /api/plugins/:id/capabilities`
+Plugin-Fähigkeiten abrufen (Anzahl der Agenten, Routen, Hooks).
+
+**Antwort:** `{ agents: number, routes: number, hooks: number }`
+
+### `GET /api/plugins/agents/all`
+Alle von Plugins registrierten Agenten abrufen.
+
+**Antwort:** Array von `{ id, name, description, config }`
+
+### `GET /api/plugins/routes/all`
+Alle von Plugins registrierten Routen abrufen.
+
+**Antwort:** Array von `{ path, method, handler }`
 
 ---
 

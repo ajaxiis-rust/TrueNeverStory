@@ -279,6 +279,105 @@ NPCは、歴史的パターンに基づいた**現実的な経済行動**を持�
 
 ---
 
+## Mojo計算層
+
+計算集約的な操作のために、TrueNeverStoryはTypeScriptフォールバック付きの**Mojoカーネル**を使用します：
+
+| カーネル | 目的 |
+|--------|---------|
+| `probability_ffi.mojo` | 成功率、ロール結果、バッチ確率 |
+| `vector_ffi.mojo` | 4次元ベクトル演算（コサイン、L2、内積） |
+| `vector_full.mojo` | 768次元BGE-M3埋め込み（全次元） |
+| `batch_ops.mojo` | バッチNPC演算（年齢減衰、悪癖、税、忠誠） |
+| `graph_ops.mojo` | グラフ走査、RRF融合、評判 |
+
+Mojoが利用できない場合、すべてのカーネルはTypeScriptにフォールバックします — ハードな依存はありません。
+
+---
+
+## マルチエージェントアーキテクチャ
+
+TrueNeverStoryには、共存する**2つのエージェントシステム**があります：
+
+- **The Big Six (AgentV2)** — `AgentRegistryV2` に登録されたナラティブ散文パイプライン。
+- **設定済みエージェント（`DEFAULT_AGENTS`）** — Settings/Providers UIといくつかのサブシステムを支える、`src/services/agent-config.ts` 内の設定駆動型エージェント。
+
+### The Big Six
+
+| エージェント | 役割 | MCPツール |
+|-------|------|-----------|
+| **Dramaturg** | 聖書のアーキタイプからナラティブパターンを選択 | `search_verses`, `get_pattern`, `get_archetype` |
+| **Validator** | Wikipediaで事実を検証 | `verify_fact`, `get_context` |
+| **Stylist** | グーテンベルクの文体パターンで散文をレンダリング（唯一の散文生成器） | `get_style_pattern`, `apply_style` |
+| **Actor** | NPCの対話、交易、社会的動態 | — |
+| **Censor** | AIの決まり文句を除去し、文体の一貫性を強制 | — |
+| **Chronicler** | 世界記憶を更新し、タイムラインを維持 | — |
+
+### 設定済みエージェント（`DEFAULT_AGENTS`）
+
+| エージェント | 目的 |
+|-------|---------|
+| **Director** | ストーリービート注入 |
+| **Chronicler** | タイムライン要約（Big Sixと共有） |
+| **Story Planner** | ストーリーアークとクエストの提案 |
+| **Social Simulator** | NPCの社会的動態 |
+| **Villain Manager** | 敵対者の策略 |
+| **Researcher** | アイドルリサーチ、アイテム評価 |
+| **Translation** | 出力境界での英語 ↔ ユーザー言語 |
+
+各エージェントは独自のLLMクライアント、プロンプトテンプレート、temperatureで独立して動作します。削除されたエージェント（`narrator`, `npc`, `scene`, `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`）はもはやコードのどこにも存在しません。
+
+---
+
+## MCPサーバーとツール呼び出し
+
+エージェントは**MCP（Model Context Protocol）サーバー**を通じて構造化ツールを呼び出します：
+
+### 聖書MCP
+- 66書にわたる31,097節のSQLiteデータベース
+- FTS5全文検索 + 相互参照グラフ走査
+- キャラクター抽出（43キャラクター、10,446言及）
+- アーキタイプパターンマッチング（12の聖書アーキタイプ）
+
+### グーテンベルクMCP
+- 古典文学から抽出された文体パターン
+- リズム、語彙、トーンを保持する脱語彙化テンプレート
+- ムードベースのパターン取得
+
+### Wikipedia MCP
+- 信頼度付きの歴史的事実確認
+- 設定可能なリトライを備えたREST API統合
+
+### 経済MCP
+- 派閥税ジレンマ、労働規則、経済サイクル照会
+- 奴隷経済：価値計算、反乱、解放
+
+---
+
+## RAG / 埋め込みとベクトル検索
+
+長期記憶は、キーワード検索と意味検索を組み合わせた**ハイブリッド検索**を使用します：
+
+```
+Agent Request → AgentMemoryStore → SQLite Hybrid Search
+                                        ↓
+                              ┌────────┴────────┐
+                              │ FTS5 (keyword)  │ Dense Vectors (BGE-M3)
+                              │ LIKE matching   │ Cosine Similarity
+                              └────────┬────────┘
+                                       ↓
+                              RRF Fusion (Reciprocal Rank)
+                                       ↓
+                              Context for LLM Prompt
+```
+
+- **BGE-M3** 埋め込み（llama.cpp経由、768次元）
+- **RRF** がキーワード検索と意味検索の結果を統合
+- ワールド単位の記憶分離がワールド間の幻覚を防止
+- `role` 列によるエージェント単位・セッション単位の記憶
+
+---
+
 ## 将来の拡張
 
 ### 追加の文学的ソース

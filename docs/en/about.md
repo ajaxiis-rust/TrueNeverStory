@@ -311,7 +311,10 @@ When Mojo is unavailable, all kernels fall back to TypeScript — no hard depend
 
 ## Multi-Agent Architecture
 
-Narrative generation is split across **6 core agents** (The Big Six) plus **5 specialist agents**:
+TrueNeverStory has **two agent systems** that coexist:
+
+- **The Big Six (AgentV2)** — the narrative prose pipeline, registered in `AgentRegistryV2`.
+- **Configured agents (`DEFAULT_AGENTS`)** — the config-driven agents in `src/services/agent-config.ts`, backing the Settings/Providers UI and a few subsystems.
 
 ### The Big Six
 
@@ -319,22 +322,24 @@ Narrative generation is split across **6 core agents** (The Big Six) plus **5 sp
 |-------|------|-----------|
 | **Dramaturg** | Selects narrative patterns from Bible archetypes | `search_verses`, `get_pattern`, `get_archetype` |
 | **Validator** | Verifies facts via Wikipedia | `verify_fact`, `get_context` |
-| **Stylist** | Renders prose using Gutenberg style patterns | `get_style_pattern`, `apply_style` |
+| **Stylist** | Renders prose using Gutenberg style patterns (the sole prose generator) | `get_style_pattern`, `apply_style` |
 | **Actor** | NPC interactions, dialogue, trading, social dynamics | — |
 | **Censor** | Removes AI clichés, enforces style consistency | — |
 | **Chronicler** | Updates world memory, maintains timeline | — |
 
-### Specialist Agents
+### Configured agents (`DEFAULT_AGENTS`)
 
 | Agent | Purpose |
 |-------|---------|
-| **Cartographer** | Location/geography: distances, paths, terrain |
-| **Historian** | World history, chronology, past events |
-| **Lorekeeper** | World facts, magic system rules, established canon |
-| **Merchant** | NPC trading, pricing, inventory |
-| **QuestGiver** | Quest generation based on world state and story threads |
+| **Director** | Story-beat injection |
+| **Chronicler** | Timeline summary (shared with the Big Six) |
+| **Story Planner** | Story-arc and quest suggestions |
+| **Social Simulator** | NPC social dynamics |
+| **Villain Manager** | Antagonist schemes |
+| **Researcher** | Idle research, item evaluation |
+| **Translation** | English ↔ user language at the output boundary |
 
-Each agent runs independently with its own LLM client, prompt template, and temperature.
+Each agent runs independently with its own LLM client, prompt template, and temperature. The removed agents (`narrator`, `npc`, `scene`, `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`) no longer exist anywhere in the code.
 
 ---
 

@@ -6,32 +6,16 @@
 
 ## Обзор архитектуры
 
-TrueNeverStory — мультиагентный ИИ-движок ролевой игры. Игрок отправляет сообщения, которые обрабатываются пайплайном из 14 специализированных ИИ-агентов, каждый из которых отвечает за свой аспект нарратива (повествование, диалоги NPC, переходы между сценами, планирование сюжета и т.д.).
+TrueNeverStory — мультиагентный ИИ-движок ролевой игры с архитектурой State-First. Игрок отправляет сообщения, которые обрабатываются через детерминированный пайплайн: парсинг намерения, симуляция, изменение состояния, сборка контекста и рендеринг специализированными агентами.
 
 ```
 Ввод игрока
     ↓
-RoleplayEngine.processInput()
+Парсер намерений → Движок симуляции → Мутатор состояния → Сборщик контекста
     ↓
-┌─────────────────────────────────┐
-│  Детекция намерения             │
-│  - Движение → SceneAgent       │
-│  - Разговор с NPC → NPCAgent   │
-│  - Упоминание @agent → Агент   │
-│  - По умолчанию → NarratorAgent│
-└─────────────┬───────────────────┘
-              ↓
-┌─────────────────────────────────┐
-│  Пайплайн агентов              │
-│  1. Сбор контекста (память,     │
-│     отношения, состояние мира)  │
-│  2. Генерация промпта          │
-│  3. Вызов LLM через очередь    │
-│  4. Парсинг ответа             │
-│  5. Обновление состояния мира  │
-└─────────────┬───────────────────┘
-              ↓
-         Ответ-нарратив
+Dramaturg (MCP) → Stylist (MCP) → Censor → Сервис перевода
+    ↓
+Нарративный ответ
 ```
 
 ---
@@ -56,7 +40,7 @@ RoleplayEngine.processInput()
 ```
 src/
 ├── index.ts                    # Точка входа сервера (Bun.serve)
-├── app.ts                      # Hono приложение — цепочка middleware + роуты
+├── app.ts                      # Hono приложение — цепочка middleware + монтирование роутов
 │
 ├── config/
 │   ├── env.ts                  # Zod-валидация env (.env + process.env)
@@ -90,10 +74,13 @@ src/
 │   ├── error-handler.ts        # Глобальный обработчик ошибок
 │   └── logger.ts               # Логирование запросов
 │
-├── models/                     # Модели данных (22 файла)
-│   ├── entity.ts               # Core entity (uid, name, профиль L1/L2/L3)
+├── models/                     # Модели данных (25 файлов)
+│   ├── entity.ts               # Core entity (uid, name, профиль со слоями L1/L2/L3)
 │   ├── chat.ts                 # ChatMessageSchema, SessionSetupSchema (Zod)
 │   ├── director.ts             # DirectorTask, TaskPriority
+│   ├── intent.ts               # Intent, IntentType
+│   ├── simulation.ts           # SimulationResult, SimulationState
+│   ├── heartbeat.ts            # HeartbeatPayload
 │   ├── memory.ts               # MemoryEntry
 │   ├── probability.ts          # ProbabilityProfile, Modifier
 │   ├── romance.ts              # RomanceState
@@ -102,11 +89,11 @@ src/
 │   ├── item.ts                 # Item, ItemBoost
 │   ├── rank.ts                 # Феодальная иерархия (10 рангов)
 │   ├── archetype.ts            # 34 архетипа NPC
-│   ├── npc-state.ts            # Состояние NPC
+│   ├── npc-state.ts            # Рантайм-состояние NPC
 │   └── npc-stats.ts            # NPCStats, Vices, FamilyExpenses
 │
 ├── routes/                     # API роуты (18 модулей)
-│   ├── index.ts                # Агрегатор — монтирует все модули под /api
+│   ├── index.ts                # Агрегатор роутов — монтирует все модули под /api
 │   ├── chat.ts                 # POST /chat/setup, /message, /stream (SSE), /agent
 │   ├── entities.ts             # GET /entity/:uid, /neighbors, /path, /search, /graph/*
 │   ├── agents.ts               # CRUD конфигов агентов + промпты по языкам
@@ -126,30 +113,33 @@ src/
 │   ├── providers.ts            # Управление LLM провайдерами
 │   └── system.ts               # Пауза/возобновление фоновых процессов
 │
-├── services/                   # Бизнес-логика (52+ сервиса)
+├── services/                   # Бизнес-логика (60+ сервисов)
 │   │
-│   │  ── Ядро ──
+│   │  ── Ядро движка ──
 │   ├── narrative-service.ts    # DI контейнер — создаёт ВСЕ сервисы
 │   ├── roleplay-engine.ts      # Основной пайплайн обработки (processInput)
 │   ├── story-engine.ts         # Генерация сюжетных событий
 │   ├── director-loop.ts        # Фоновое развитие сюжета (setInterval)
 │   ├── agent-coordinator.ts    # Приоритетная очередь задач режиссёра
 │   │
-│   │  ── Агенты (14) ──
-│   ├── narrator-agent.ts       # Основной рассказчик
-│   ├── director-agent.ts       # Инъекция сюжетных beatов
-│   ├── scene-agent.ts          # Переходы между сценами
-│   ├── npc-agent.ts            # Диалоги и реакции NPC
-│   ├── crafter-agent.ts        # Предложения крафта
-│   ├── researcher-agent.ts     # Проверка фактов, валидация реализма
-│   ├── historian-agent.ts      # Исторические события
-│   ├── cartographer-agent.ts   # География, расстояния
-│   ├── merchant-agent.ts       # Торговля, ценообразование
-│   ├── quest-giver-agent.ts    # Генерация квестов
-│   ├── lorekeeper-agent.ts     # Факты мира, правила магии
-│   ├── chronicler.ts           # Управление таймлайном
-│   ├── villain-manager.ts      # Действия антагонистов
-│   ├── social-simulator.ts     # Социальная динамика NPC
+│   │  ── Агенты (Big Six) ──
+│   ├── agents/
+│   │   ├── dramaturg.ts       # Выбор нарративных паттернов (MCP)
+│   │   ├── validator.ts       # Проверка фактов через Wikipedia (MCP)
+│   │   ├── stylist.ts         # Рендеринг прозы (MCP)
+│   │   ├── actor.ts           # Диалоги и взаимодействия NPC
+│   │   ├── censor.ts          # Удаление клише ИИ
+│   │   └── chronicler.ts      # Таймлайн + обновления памяти
+│   ├── agent-registry-v2.ts   # Регистрация агентов + поиск
+│   └── agent-v2.ts            # Интерфейс AgentV2 + базовый класс
+│
+│   │  ── Пайплайн состояния ──
+│   ├── intent-parser.ts       # Классификация намерений пользователя
+│   ├── simulation-engine.ts   # Детерминированная симуляция мира
+│   ├── state-mutator.ts       # Обновление состояния мира
+│   ├── context-builder.ts     # Сборка контекста промпта
+│   ├── heartbeat.ts           # Фоновое сердцебиение мира
+│   └── translation-service.ts # Многоязычный перевод ответов
 │   │
 │   │  ── Системы мира ──
 │   ├── story-planner.ts        # Планирование арок (LLM-driven)
@@ -209,17 +199,19 @@ src/
 │
 ├── memory/                     # Подсистема памяти
 │   ├── world-memory.ts         # Основной класс памяти
-│   ├── cognitive-pipeline.ts   # Извлечение → противоречия → pain signals
+│   ├── cognitive-pipeline.ts   # Извлечение сущностей → противоречия → pain signals
 │   ├── entity-extractor.ts     # Извлечение сущностей из текста
 │   ├── contradiction-detector.ts
 │   ├── pain-signals.ts         # Детекция важных моментов
 │   ├── scoring.ts              # Оценка важности памяти
 │   ├── clustering.ts           # Кластеризация памяти
 │   ├── partition.ts            # Разбиение памяти
-│   ├── faiss-index.ts          # Векторный индекс
+│   ├── faiss-index.ts          # Векторный индекс (FAISS-совместимый)
 │   ├── embedding-queue.ts      # Асинхронная генерация эмбеддингов
 │   ├── optimizer.ts            # Оптимизация памяти
 │   └── write-buffer.ts         # Буфер пакетной записи
+│
+├── mcp/                        # MCP сервер — парсеры Bible/Gutenberg, инструменты Wikipedia
 │
 ├── i18n/                       # Интернационализация (7 языков)
 │   ├── types.ts                # Интерфейс LanguagePack
@@ -291,20 +283,20 @@ worlds/_sessions/
 
 ---
 
-## DI контейнер — NarrativeService
+## Dependency Injection — NarrativeService
 
 `NarrativeService` (`src/services/narrative-service.ts`) — центральный DI контейнер. Создаёт все 30+ сервисов и связывает их зависимости.
 
 ```
 NarrativeService
 ├── entityStore (UnifiedEntityStore) — O(1) доступ к сущностям
-├── graphStore (GraphStore) — граф смежности + поиск пути
+├── graphStore (GraphStore) — карта смежности + поиск пути
 ├── eventBus (EventBus) — pub/sub события
 ├── historyMgr (HistoryManager) — персистентность диалогов
 ├── llm (LLMClient) — HTTP клиент для LLM API
 ├── llmQueue (LLMQueue) — очередь параллельных запросов (макс. 3)
-├── sqliteStore (SQLiteStore) — FTS5 + векторы + промпты + переводы
-├── chronicler (Chronicler) — writer timeline.jsonl
+├── sqliteStore (SQLiteStore) — FTS5 + векторы + agent_prompts + переводы
+├── chronicler (Chronicler) — запись timeline.jsonl
 ├── validator (WorldValidator) — валидация world_frame
 ├── questMgr (QuestManager) — персистентность квестов
 ├── clock (WorldClock) — время в мире
@@ -322,7 +314,15 @@ NarrativeService
 ├── userAgent (UserAgent) — группа + бой
 ├── npcGenerator (NPCGenerator) — умное создание NPC
 ├── worldEvolver (WorldEvolver) — авто-расширение мира
-└── graphValidator (GraphValidator) — self-healing граф
+├── graphValidator (GraphValidator) — self-healing граф
+├── intentParser (IntentParser) — классификация намерений пользователя
+├── simEngine (SimulationEngine) — детерминированная симуляция мира
+├── stateMutator (StateMutator) — обновление состояния мира
+├── contextBuilder (ContextBuilder) — сборка контекста промпта
+├── heartbeatService (HeartbeatService) — фоновое сердцебиение мира
+├── tnsServer (TNSServer) — MCP сервер (Bible/Gutenberg/Wikipedia)
+├── translationService (TranslationService) — многоязычный перевод
+└── agentRegistry (AgentRegistryV2) — регистрация агентов + поиск
 ```
 
 **Жизненный цикл:**
@@ -349,13 +349,14 @@ NarrativeService
    - engine.processInput(sanitized.clean)
 
 3. RoleplayEngine.processInput():
-   - Детекция намерения: движение, разговор, @agent, или общее
-   - Маршрутизация к нужному агенту
-   - Сбор контекста (память, отношения, состояние мира)
-   - Генерация промпта через PromptBuilder или userTemplate
-   - Вызов LLM через llmQueue
-   - Парсинг ответа
-   - Обновление состояния мира (chronicler, entity store)
+   - Парсер намерений → классификация намерения пользователя
+   - Движок симуляции → детерминированная симуляция мира
+   - Мутатор состояния → обновление состояния мира
+   - Сборщик контекста → сборка контекста промпта
+   - Dramaturg (MCP) → выбор нарративного паттерна
+   - Stylist (MCP) → рендеринг прозы
+   - Censor → удаление клише ИИ
+   - Сервис перевода → многоязычный ответ
    - Возврат строки нарратива
 
 4. Ответ: JSON { narrative, location, story_time, ... }
@@ -363,7 +364,7 @@ NarrativeService
 
 ### SSE стриминг (POST /api/chat/stream)
 
-То же, что REST, но оборачивает `engine.processInputStream()` в `ReadableStream` с keepalive пингами.
+То же, что и REST, но оборачивает `engine.processInputStream()` в `ReadableStream` с keepalive-пингами.
 
 ### WebSocket (ws://host/ws/...)
 
@@ -377,33 +378,78 @@ NarrativeService
 
 ## Система агентов
 
-Каждый агент — класс с методом `generateResponse()`, который:
-1. Получает объект контекста (сообщение, локация, персонаж, правила и т.д.)
-2. Строит промпт (system + user template + output format)
-3. Вызывает LLM через очередь
-4. Возвращает структурированный ответ
+Каждый агент реализует интерфейс `AgentV2` с методом `process()`, который получает намерение, результаты симуляции и игровой контекст.
 
-### Приоритет агентов (больше = обрабатывается первым)
+### The Big Six
 
-| Приоритет | Агент |
-|-----------|-------|
-| 10 | Narrator |
-| 9 | NPC |
-| 8 | Director |
-| 7 | Scene, Quest Giver |
-| 6 | Story Planner, Villain, Historian, Lorekeeper |
-| 5 | Chronicler, Merchant |
-| 4 | Social Sim, Cartographer |
-| 3 | Researcher |
+| Агент | Роль | MCP-инструменты |
+|-------|------|-----------------|
+| Dramaturg | Выбор нарративных паттернов | search_verses, get_pattern, get_archetype |
+| Validator | Проверка фактов через Wikipedia | verify_fact, get_context |
+| Stylist | Рендеринг прозы | get_style_pattern, apply_style |
+| Actor | Диалоги и взаимодействия NPC | — |
+| Censor | Удаление клише ИИ | — |
+| Chronicler | Таймлайн + обновления памяти | — |
+
+### Интерфейс AgentV2
+
+```typescript
+interface AgentV2 {
+  readonly id: AgentId;
+  readonly name: string;
+  readonly description: string;
+  readonly mcpTools: string[];
+  process(
+    intent: Intent,
+    simulation: SimulationResult,
+    context: GameContext,
+    pattern?: NarrativePattern,
+  ): Promise<AgentOutput>;
+}
+```
+
+**Примечание:** Устаревшая система из 14 агентов deprecated, но всё ещё работает для обратной совместимости. Старые ID агентов (`@narrator`, `@director` и т.д.) внутри маршрутизируются к новым агентам.
 
 ### Разрешение промптов
 
-Промпты агентов разрешаются в этом порядке:
-1. SQLite таблица `agent_prompts` (по миру + языку)
+Промпты агентов разрешаются в таком порядке:
+1. Таблица SQLite `agent_prompts` (по миру + языку)
 2. JSON fallback (`worlds/{world}/agents/{agentId}.json`)
 3. Захардкоженные дефолты (`DEFAULT_PROMPTS` в `agent-config.ts`)
 
-Шаблоны используют плейсхолдеры `{variable}`, разрешаемые `resolveTemplate()`.
+Шаблоны используют плейсхолдеры `{variable}`, разрешаемые через `resolveTemplate()`.
+
+---
+
+## Интеграция MCP (v0.32.5)
+
+TNSServer (`src/mcp/tns-server.ts`) предоставляет MCP-инструменты для доступа к внешним данным.
+
+| Инструмент | Источник | Описание |
+|------|--------|-------------|
+| search_verses | Bible | Поиск библейских стихов по тексту, книге или ссылке |
+| get_pattern | Bible | Получение нарративных паттернов по архетипу, настроению или функции |
+| get_archetype | Bible | Получение деталей архетипа по имени |
+| get_style_pattern | Gutenberg | Поиск стилей по настроению, тегам или описанию |
+| apply_style | Gutenberg | Применение стиля к тексту (делексификация и возврат предложений) |
+| verify_fact | Wikipedia | Проверка фактического утверждения |
+| get_context | Wikipedia | Получение контекста Wikipedia по теме |
+| get_economic_phase | Economic DB | Текущая фаза экономического цикла |
+| calculate_price | Economic DB | Цена с модификатором фазы |
+| generate_dilemma | Economic DB | Налоговая дилемма фракции |
+| check_jubilee | Economic DB | Проверка юбилейного цикла |
+
+### Консоль MCP (v0.32.5)
+
+Веб-консоль управления базами данных для всех баз данных проекта.
+
+**Запуск:** `./startgame.sh --mcp` (запускает только сервер управления БД на порту 8000, без игры)
+
+**Веб-интерфейс:** `http://localhost:8000` — вкладки для Bible, Gutenberg, Wikipedia, LiteraryCompiler, Economics, System
+
+**API:** Все эндпоинты под `/mcp/*` — полный список см. в `src/routes/mcp.ts`. SSE-прогресс на `/mcp/stream/:jobId`.
+
+**Выборочная загрузка Gutenberg:** Загрузка на основе каталога с фильтрацией по жанру/автору. Скрипты загрузки на TypeScript с отслеживанием SSE-прогресса.
 
 ---
 
@@ -411,7 +457,7 @@ NarrativeService
 
 ### EntityStore (JSON)
 
-- `entities.json` — граф смежности всех сущностей
+- `entities.json` — карта смежности всех сущностей
 - O(1) доступ по UID через `Map<string, EntityNode>`
 - O(1) поиск по имени через `NameIndex` (регистронезависимый)
 - Отслеживание мутаций через `onMutation()` → синхронизация в SQLite
@@ -429,7 +475,7 @@ NarrativeService
 
 ### FFI ядра
 
-5 C ядер, компилируемых через Zig:
+5 C-ядер, компилируемых через Zig для кроссплатформенного распространения:
 
 | Ядро | Функции | Fallback |
 |------|---------|----------|
@@ -563,7 +609,7 @@ worlds/
 ## Ключевые паттерны
 
 - **Dual-write**: Записи настроек идут в SQLite и JSON (обратная совместимость)
-- **Разрешение шаблонов**: Промпты агентов используют `{variable}` плейсхолдеры
+- **Разрешение шаблонов**: Промпты агентов используют `{variable}` плейсхолдеры, разрешаемые во время выполнения
 - **Безопасный eval**: Формулы вероятностей — рекурсивный спуск (без eval)
 - **Защита от prompt injection**: `sanitizeInput()` удаляет паттерны перед LLM
 - **Атомарная запись JSON**: `atomicWriteJson()` через temp file + rename

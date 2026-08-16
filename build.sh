@@ -567,16 +567,18 @@ assemble_release() {
 
     # Documentation
     mkdir -p "${release_dir}/docs"
-    cp docs/AGENTS.md docs/AGENTS.ru.md docs/AGENTS.de.md docs/AGENTS.es.md \
-       docs/AGENTS.fr.md docs/AGENTS.ja.md docs/AGENTS.zh.md \
-       docs/API.md docs/API.ru.md \
-       docs/ARCHITECTURE.md docs/CHANGELOG.md docs/COMPILE.md \
+    cp docs/en/AGENTS.md docs/en/API.md docs/en/ARCHITECTURE.md docs/en/CHANGELOG.md docs/en/COMPILE.md \
        "${release_dir}/docs/" 2>/dev/null || true
+    cp docs/ru/API.md "${release_dir}/docs/API.ru.md" 2>/dev/null || true
+    for lang in ru de es fr ja zh; do
+        cp "docs/${lang}/AGENTS.md" "${release_dir}/docs/AGENTS.${lang}.md" 2>/dev/null || true
+    done
 
-    # READMEs
-    cp README.md README.ru.md README.de.md README.es.md \
-       README.fr.md README.ja.md README.zh.md \
-       "${release_dir}/"
+    # READMEs (flatten docs/<lang>/README.md -> README.<lang>.md)
+    cp README.md "${release_dir}/"
+    for lang in ru de es fr ja zh; do
+        cp "docs/${lang}/README.md" "${release_dir}/README.${lang}.md" 2>/dev/null || true
+    done
 
     local size
     size=$(du -sh "${release_dir}" | cut -f1)

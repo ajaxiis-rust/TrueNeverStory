@@ -105,7 +105,7 @@ The engine supports two LLM models per agent:
 
 **LLMClient** resolves the model via `useTranslationModel` flag:
 - `LLMQueue.getAgentClient("translation", { useTranslationModel: true })` → uses `translationModelId`
-- `LLMQueue.getAgentClient("narrator")` → uses `modelId`
+- `LLMQueue.getAgentClient("stylist")` → uses `modelId`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -197,9 +197,9 @@ The engine supports two LLM models per agent:
 **Key files:**
 - `src/services/narrative-service.ts` — **Composition Root** / DI container for all narrative services
 - `src/services/roleplay-engine.ts` — Main roleplay processing, agent dispatch
-- `src/services/narrator-agent.ts` — LLM-driven narrative generation
-- `src/services/scene-agent.ts` — Scene transition narratives
-- `src/services/director-agent.ts` — Beat injection into narrative
+- `src/services/agents/stylist.ts` — LLM-driven prose generation (the sole prose generator)
+- `src/services/agents/dramaturg.ts` — Narrative pattern selection from Bible archetypes
+- `src/services/agents/validator.ts` — Fact verification via Wikipedia MCP
 - `src/services/director-loop.ts` — Background orchestrator (clock→social→villain→chance→beats)
 - `src/services/story-engine.ts` — Event generation from story beats + effect application
 - `src/services/story-planner.ts` — LLM-driven chapter/beat planning
@@ -231,7 +231,7 @@ The engine supports two LLM models per agent:
 **Key files:**
 - `src/services/npc-runtime.ts` — `NPCRuntime`: state store with short-term/long-term memory
 - `src/services/npc-generator.ts` — LLM-driven NPC creation
-- `src/services/npc-agent.ts` — NPC dialogue generation
+- `src/services/agents/actor.ts` — NPC dialogue and interaction generation
 - `src/services/npc-economy.ts` — NPC wealth, taxes, treasury, food production
 - `src/services/dialogue-manager.ts` — Conversation sessions, topics, choices
 - `src/services/dialogue-context.ts` — Contextual dialogue state
@@ -289,7 +289,6 @@ The engine supports two LLM models per agent:
 **Key files:**
 - `src/services/quest-manager.ts` — Basic quest CRUD
 - `src/services/quest-system.ts` — Full lifecycle with chains, prerequisites, time limits
-- `src/services/quest-giver-agent.ts` — LLM-driven contextual quest generation
 - `src/models/quest.ts` — `Quest`, `QuestObjective`, `QuestData`
 
 **Domain Rules:**
@@ -637,7 +636,7 @@ All events are defined in `EventTopic` enum (`src/lib/event-bus.ts`):
 
 ## [A6] Application Layer
 
-### Use Case Flow: Player Message → Narrator Response
+### Use Case Flow: Player Message → Stylist Response
 
 ```
 1. HTTP POST /chat/message
@@ -651,8 +650,8 @@ All events are defined in `EventTopic` enum (`src/lib/event-bus.ts`):
    ├─→ Prose generation: LiteraryV2Generator or LegacyIntentGenerator
    └─→ Returns narrative string
 
-3. NarratorAgent.generate()
-   ├─→ loadAgentConfig("narrator") → SQLite prompts → JSON fallback → defaults
+3. Stylist.process(intent, simulation, context, pattern)
+   ├─→ loadAgentConfig("stylist") → SQLite prompts → JSON fallback → defaults
    ├─→ resolveTemplate(template, vars) with StoryContext fields
    └─→ LLMQueue.generateText(prompt, priority, temperature, agentId)
 
@@ -719,8 +718,8 @@ All events are defined in `EventTopic` enum (`src/lib/event-bus.ts`):
 ### Use Case Flow: Agent Memory
 
 ```
-1. NarratorAgent generates narrative
-   └─→ EventBus.publish(MEMORY_ADDED, { content, source: "narrator" })
+1. Stylist generates narrative prose
+   └─→ EventBus.publish(MEMORY_ADDED, { content, source: "stylist" })
 
 2. WorldMemory.addEvent()
    ├─→ Create WorldMemoryEntry with scoring metadata
@@ -813,7 +812,7 @@ LLMQueue (global)
 
 ## [A8] Data Flow Diagrams
 
-### 1. User Message → Narrator Response
+### 1. User Message → Stylist Response
 
 ```
 ┌──────────┐     ┌──────────────┐     ┌─────────────────┐
@@ -824,7 +823,7 @@ LLMQueue (global)
                     ┌──────────────────────────┤
                     ▼                          ▼
           ┌─────────────────┐      ┌──────────────────┐
-          │  NarratorAgent   │      │  MemoryManager   │
+          │    Stylist       │      │  MemoryManager   │
           │  (LLM prompt)    │      │  (history save)  │
           └────────┬─────────┘      └──────────────────┘
                    │
@@ -924,7 +923,7 @@ POST /api/launch:
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  NarratorAgent   │────▶│ EventBus.publish  │────▶│  WorldMemory    │
+│    Stylist       │────▶│ EventBus.publish  │────▶│  WorldMemory    │
 │  (generates      │     │ (MEMORY_ADDED)    │     │  .addEvent()    │
 │   narrative)     │     └──────────────────┘     └───────┬────────┘
 └─────────────────┘                                       │
@@ -1048,9 +1047,9 @@ Query flow:
 
 ### D4: Per-Agent Model Assignment
 
-**Decision:** Each agent (narrator, NPC, director, researcher, etc.) can have its own LLM provider, model, temperature, and max tokens.
+**Decision:** Each agent (`stylist`, `director`, `researcher`, `translation`, etc.) can have its own LLM provider, model, temperature, and max tokens.
 
-**Trade-off:** Maximum flexibility (use cheap models for chronicler, powerful models for narrator) but requires configuration management. ProviderManager handles this with `conf/providers.json` and `conf/agents.json`.
+**Trade-off:** Maximum flexibility (use cheap models for chronicler, powerful models for stylist) but requires configuration management. ProviderManager handles this with `conf/providers.json` and `conf/agents.json`.
 
 ### D5: Three-Layer Entity Profile (L1/L2/L3)
 

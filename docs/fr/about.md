@@ -279,6 +279,105 @@ Cela nous donne la **vitesse de base de données** avec la **qualité LLM** là 
 
 ---
 
+## Couche de calcul Mojo
+
+Pour les opérations intensives en calcul, TrueNeverStory utilise des **noyaux Mojo** avec des replis TypeScript :
+
+| Noyau | Objectif |
+|-------|----------|
+| `probability_ffi.mojo` | Chances de succès, résultats de jet, probabilité par lot |
+| `vector_ffi.mojo` | Opérations vectorielles 4-dim (cosinus, L2, produit scalaire) |
+| `vector_full.mojo` | Embeddings complets 768-dim BGE-M3 |
+| `batch_ops.mojo` | Opérations PNJ par lot (vieillissement, vice, impôt, loyauté) |
+| `graph_ops.mojo` | Parcours de graphe, fusion RRF, réputation |
+
+Lorsque Mojo est indisponible, tous les noyaux retombent sur TypeScript — aucune dépendance stricte.
+
+---
+
+## Architecture multi-agents
+
+TrueNeverStory possède **deux systèmes d'agents** qui coexistent :
+
+- **Les Big Six (AgentV2)** — le pipeline de prose narrative, enregistrés dans `AgentRegistryV2`.
+- **Agents configurés (`DEFAULT_AGENTS`)** — les agents pilotés par configuration dans `src/services/agent-config.ts`, alimentant l'interface Settings/Providers et quelques sous-systèmes.
+
+### Les Big Six
+
+| Agent | Rôle | Outils MCP |
+|-------|------|------------|
+| **Dramaturg** | Sélectionne les motifs narratifs parmi les archétypes bibliques | `search_verses`, `get_pattern`, `get_archetype` |
+| **Validator** | Vérifie les faits via Wikipédia | `verify_fact`, `get_context` |
+| **Stylist** | Produit la prose à l'aide de motifs de style Gutenberg (le seul générateur de prose) | `get_style_pattern`, `apply_style` |
+| **Actor** | Interactions PNJ, dialogue, commerce, dynamique sociale | — |
+| **Censor** | Supprime les clichés d'IA, impose la cohérence de style | — |
+| **Chronicler** | Met à jour la mémoire du monde, maintient la chronologie | — |
+
+### Agents configurés (`DEFAULT_AGENTS`)
+
+| Agent | Objectif |
+|-------|----------|
+| **Directeur** | Injection de battement narratif |
+| **Chroniqueur** | Résumé de chronologie (partagé avec les Big Six) |
+| **Planificateur d'histoire** | Suggestions d'arcs narratifs et de quêtes |
+| **Simulateur social** | Dynamique sociale des PNJ |
+| **Gestionnaire d'antagonistes** | Plans des antagonistes |
+| **Chercheur** | Recherche inactive, évaluation d'objets |
+| **Traduction** | Anglais ↔ langue de l'utilisateur à la frontière de sortie |
+
+Chaque agent s'exécute indépendamment avec son propre client LLM, son modèle de prompt et sa température. Les agents supprimés (`narrator`, `npc`, `scene`, `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`) n'existent plus nulle part dans le code.
+
+---
+
+## Serveur MCP & Appel d'outils
+
+Les agents appellent des outils structurés via un **serveur MCP (Model Context Protocol)** :
+
+### MCP Bible
+- Base SQLite avec 31,097 versets répartis sur 66 livres
+- Recherche plein texte FTS5 + parcours de graphe de références croisées
+- Extraction de personnages (43 personnages, 10,446 mentions)
+- Correspondance de motifs d'archétypes (12 archétypes bibliques)
+
+### MCP Gutenberg
+- Motifs de style extraits de la littérature classique
+- Modèles délexicalisés préservant le rythme, le vocabulaire, le ton
+- Récupération de motifs basée sur l'humeur
+
+### MCP Wikipédia
+- Vérification historique des faits avec niveaux de confiance
+- Intégration d'API REST avec relance configurable
+
+### MCP Économique
+- Dilemmes fiscaux de faction, règles de travail, requêtes de cycles économiques
+- Économie des esclaves : calcul de valeur, rébellion, libération
+
+---
+
+## RAG / Embeddings & Recherche vectorielle
+
+La mémoire à long terme utilise une **recherche hybride** combinant récupération par mots-clés et sémantique :
+
+```
+Agent Request → AgentMemoryStore → SQLite Hybrid Search
+                                        ↓
+                              ┌────────┴────────┐
+                              │ FTS5 (keyword)  │ Dense Vectors (BGE-M3)
+                              │ LIKE matching   │ Cosine Similarity
+                              └────────┬────────┘
+                                       ↓
+                              RRF Fusion (Reciprocal Rank)
+                                       ↓
+                              Context for LLM Prompt
+```
+
+- Embeddings **BGE-M3** via llama.cpp (768-dim)
+- **RRF** fusionne les résultats par mots-clés + sémantiques
+- L'isolation de la mémoire par monde empêche les hallucinations inter-mondes
+- Mémoire par agent et par session via la colonne `role`
+
+---
+
 ## Extensions futures
 
 ### Sources littéraires supplémentaires

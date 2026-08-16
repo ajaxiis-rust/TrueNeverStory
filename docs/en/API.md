@@ -17,12 +17,19 @@ REST API for the TrueNeverStory world-building and roleplay platform. All endpoi
 - [Probability](#probability)
 - [Romance](#romance)
 - [Quests](#quests)
+- [Feedback](#feedback)
+- [Rules Engine](#rules-engine)
+- [Feature Flags](#feature-flags)
+- [API Versioning](#api-versioning)
 - [Memory](#memory)
 - [Maintenance](#maintenance)
+- [System](#system)
 - [Agents](#agents)
 - [Providers & Models](#providers--models)
 - [Settings](#settings)
 - [Launch](#launch)
+- [WebSocket](#websocket)
+- [Authentication](#authentication)
 - [Cross-World](#cross-world)
 - [Plugins](#plugins)
 
@@ -288,6 +295,17 @@ Get single quest details.
 
 ---
 
+## Feedback
+
+### `POST /feedback`
+Record a like/dislike/neutral reaction for the last narrative turn.
+
+**Request:** `{ turnId: number, reaction: 'like'|'dislike'|'neutral', techniques: string[] }`
+
+On `dislike`, the engine regenerates the last turn and returns `{ ok, regenerated }`. Otherwise returns `{ ok: true }`.
+
+---
+
 ## Rules Engine
 
 ### `GET /rules`
@@ -296,18 +314,33 @@ List social/economic rules for the world.
 ### `GET /rules/:id`
 Get rule details by ID.
 
-### `POST /rules/validate`
-Validate rule JSON structure.
+### `POST /rules/preview`
+Preview merged rules with modifiers. Body: `RulesConfig`.
+
+### `POST /rules/check`
+Check if an action is allowed. Body: `{ config, action, superiorClass?, subordinateClass? }`.
 
 ---
 
 ## Feature Flags
 
 ### `GET /feature-flags`
-List all feature flags.
+List all feature flags and exposures.
+
+### `GET /feature-flags/:id`
+Get a single flag.
+
+### `POST /feature-flags`
+Create a new flag.
 
 ### `PUT /feature-flags/:id`
-Update a feature flag.
+Update a flag.
+
+### `DELETE /feature-flags/:id`
+Delete a flag.
+
+### `POST /feature-flags/:id/check`
+Check if a flag is enabled for a context (user, etc.).
 
 ---
 
@@ -323,6 +356,8 @@ All v2 responses include deprecation headers when legacy behavior is used:
 - `X-API-Version: v2`
 - `X-Deprecated: true` (when returning legacy format)
 - `Sunset: <date>` (when a v1 endpoint is scheduled for removal)
+
+---
 
 ## Memory
 

@@ -17,12 +17,21 @@ TrueNeverStory ワールドビルド＆ロールプレイプラットフォー�
 - [確率](#確率)
 - [ロマンス](#ロマンス)
 - [クエスト](#クエスト)
+- [フィードバック](#フィードバック)
+- [ルールエンジン](#ルールエンジン)
+- [フィーチャーフラグ](#フィーチャーフラグ)
+- [API バージョニング](#apiバージョニング)
 - [メモリ](#メモリ)
 - [メンテナンス](#メンテナンス)
+- [システム](#システム)
 - [エージェント](#エージェント)
 - [プロバイダー＆モデル](#プロバイダーモデル)
 - [設定](#設定)
 - [起動](#起動)
+- [WebSocket](#websocket)
+- [認証](#認証)
+- [クロスワールド](#クロスワールド)
+- [プラグイン](#プラグイン)
 
 ---
 
@@ -285,6 +294,68 @@ d3-force ビジュアライゼーション用のグラフデータ。モード: 
 
 ---
 
+## フィードバック
+
+### `POST /feedback`
+直前のナラティブターンに対する like/dislike/neutral のリアクションを記録します。
+
+**リクエスト:** `{ turnId: number, reaction: 'like'|'dislike'|'neutral', techniques: string[] }`
+
+`dislike` の場合、エンジンは直前のターンを再生成し、`{ ok, regenerated }` を返します。それ以外の場合は `{ ok: true }` を返します。
+
+---
+
+## ルールエンジン
+
+### `GET /rules`
+ワールドの社会的/経済的ルールを一覧表示します。
+
+### `GET /rules/:id`
+ID でルールの詳細を取得します。
+
+### `POST /rules/preview`
+モディファイアを適用したマージ済みルールをプレビューします。ボディ: `RulesConfig`。
+
+### `POST /rules/check`
+アクションが許可されているか確認します。ボディ: `{ config, action, superiorClass?, subordinateClass? }`。
+
+---
+
+## フィーチャーフラグ
+
+### `GET /feature-flags`
+すべてのフィーチャーフラグと公開状態を一覧表示します。
+
+### `GET /feature-flags/:id`
+個々のフラグを取得します。
+
+### `POST /feature-flags`
+新しいフラグを作成します。
+
+### `PUT /feature-flags/:id`
+フラグを更新します。
+
+### `DELETE /feature-flags/:id`
+フラグを削除します。
+
+### `POST /feature-flags/:id/check`
+コンテキスト（ユーザーなど）に対してフラグが有効かどうかを確認します。
+
+---
+
+## API バージョニング
+
+TrueNeverStory は 2 つの API バージョンをサポートしています:
+
+- **v1** — 後方互換性のためのレガシーラッパー
+- **v2** — エージェントレジストリ統合を備えた拡張バージョン
+
+レガシー動作が使われる場合、すべての v2 レスポンスに非推奨ヘッダーが含まれます:
+
+- `X-API-Version: v2`
+- `X-Deprecated: true`（レガシーフォーマットを返す場合）
+- `Sunset: <date>`（v1 エンドポイントの削除が予定されている場合）
+
 ## メモリ
 
 ### `POST /memory/forget?older_than=30&min_importance=0.2`
@@ -330,6 +401,16 @@ FAISS ベクトルインデックスを再構築。
 
 ### `POST /maintenance/clean-orphans`
 オーファン埋め込みをクリーンアップ。
+
+---
+
+## システム
+
+### `POST /system/pause`
+ロールプレイエンジンを一時停止します。パラメータは受け付けません。
+
+### `POST /system/resume`
+ロールプレイエンジンを再開します。パラメータは受け付けません。
 
 ---
 
@@ -474,6 +555,76 @@ API キーを削除。
 ## 認証
 
 パスワード認証が有効な場合、セッションは HttpOnly Cookie を使用します。fetch 呼び出しには `credentials: "include"` を含めてください。
+
+---
+
+## クロスワールド
+
+### `GET /api/cross-world/status`
+クロスワールド通信のステータスを取得します。
+
+**レスポンス:** `{ enabled: boolean, portals: number, eventLog: number }`
+
+### `POST /api/cross-world/enable`
+クロスワールド通信を有効にします。
+
+**レスポンス:** `{ enabled: true }`
+
+### `POST /api/cross-world/disable`
+クロスワールド通信を無効にします。
+
+**レスポンス:** `{ enabled: false }`
+
+### `GET /api/cross-world/portals`
+ワールド間のアクティブなポータルを一覧表示します。
+
+**レスポンス:** `{ id, world1, world2, createdAt, active }` の配列
+
+### `POST /api/cross-world/portals`
+2 つのワールド間にポータルを作成します。
+
+**リクエスト:** `{ world1: string, world2: string }`
+
+**レスポンス:** `{ id, world1, world2, createdAt, active }`
+
+### `DELETE /api/cross-world/portals/:id`
+ポータルを破棄します。
+
+**レスポンス:** `{ deleted: true }`
+
+### `GET /api/cross-world/events?limit=50`
+クロスワールドイベントログを取得します。
+
+**レスポンス:** `{ type, data, source, timestamp }` の配列
+
+---
+
+## プラグイン
+
+### `GET /api/plugins`
+登録済みのすべてのプラグインを一覧表示します。
+
+**レスポンス:** `{ id, name, version, description, agents, routes, hooks }` の配列
+
+### `GET /api/plugins/:id`
+プラグインの詳細を取得します。
+
+**レスポンス:** 詳細を含むプラグインオブジェクト。
+
+### `GET /api/plugins/:id/capabilities`
+プラグインの機能（エージェント、ルート、フックの数）を取得します。
+
+**レスポンス:** `{ agents: number, routes: number, hooks: number }`
+
+### `GET /api/plugins/agents/all`
+プラグインが登録したすべてのエージェントを取得します。
+
+**レスポンス:** `{ id, name, description, config }` の配列
+
+### `GET /api/plugins/routes/all`
+プラグインが登録したすべてのルートを取得します。
+
+**レスポンス:** `{ path, method, handler }` の配列
 
 ---
 
