@@ -51,6 +51,7 @@ import { blendBehavioralSignals, createDefaultProfile, deriveType, computeDistri
 import { PlayerProfileStore } from '../lib/player-profile-store';
 import { loadAuthorCorpus } from './author-matcher';
 import { getFeatureFlagManager } from '../lib/feature-flags';
+import { logLiterarySignals } from './literary-modulation';
 
 const log = getLogger('roleplay-engine');
 
@@ -458,6 +459,16 @@ export class RoleplayEngine {
       log.info({ jungianEnabled: true, jungianType: deriveType(this.jungianProfile), confidence: this.jungianProfile.confidence }, 'jungian adaptation applied');
     }
 
+    // Observability — log literary signals without affecting generation
+    if (getFeatureFlagManager().isEnabled('literary-modulation-enabled')
+        || getFeatureFlagManager().isEnabled('short-turn-expansion-enabled')
+        || getFeatureFlagManager().isEnabled('deferred-hooks-enabled')) {
+      const signals = logLiterarySignals(
+        ctx, gameContext, intent, ctx.playerVoice, this.resolveAuthorPhrases(),
+      );
+      log.info({ literarySignals: signals }, 'literary modulation observability');
+    }
+
     // Step 6.5: Translate if needed
     if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
       const lang = this._worldFrame.language as LanguageCode;
@@ -598,6 +609,17 @@ export class RoleplayEngine {
       narrative = cleaned.cleaned;
       log.info({ jungianEnabled: true, jungianType: deriveType(this.jungianProfile), confidence: this.jungianProfile.confidence }, 'jungian adaptation applied');
     }
+
+    // Observability — log literary signals without affecting generation
+    if (getFeatureFlagManager().isEnabled('literary-modulation-enabled')
+        || getFeatureFlagManager().isEnabled('short-turn-expansion-enabled')
+        || getFeatureFlagManager().isEnabled('deferred-hooks-enabled')) {
+      const signals = logLiterarySignals(
+        { parsedInput }, gameContext, intent, playerVoice, this.resolveAuthorPhrases(),
+      );
+      log.info({ literarySignals: signals }, 'literary modulation observability');
+    }
+
     if (this.translationService && this._worldFrame.language && this._worldFrame.language !== 'en') {
       const lang = this._worldFrame.language as LanguageCode;
       if (['ru', 'de', 'fr', 'es', 'ja', 'zh'].includes(lang)) {
