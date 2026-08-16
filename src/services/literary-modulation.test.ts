@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { logLiterarySignals, computeLiteraryToneHint } from './literary-modulation';
+import { logLiterarySignals, computeLiteraryToneHint, literaryModulationCoefficients } from './literary-modulation';
 import { buildPlayerVoice } from './jungian-profiler';
-import type { ProbabilityDistribution, DramaturgEnrichment, VerificationResult } from './jungian-profiler';
+import type { ProbabilityDistribution, DramaturgEnrichment, VerificationResult, JungianProfile } from './jungian-profiler';
 
 describe('logLiterarySignals', () => {
   it('returns structured signal object', () => {
@@ -98,5 +98,55 @@ describe('buildPlayerVoice with literaryToneHint', () => {
   it('omits tone hint when hint is not provided (backward compat)', () => {
     const voice = buildPlayerVoice(dist, dramaturg, [], validator);
     expect(voice).not.toContain('Literary tone hint:');
+  });
+});
+
+describe('literaryModulationCoefficients', () => {
+  it('returns coefficients within ±15% bounds', () => {
+    const profile: JungianProfile = {
+      extraversion: { preference: 0.7, range: 0.3 },
+      intuition: { preference: 0.6, range: 0.4 },
+      thinking: { preference: 0.3, range: 0.5 },
+      judging: { preference: 0.8, range: 0.2 },
+      confidence: 0.6,
+      axisConfidence: { extraversion: 0.6, intuition: 0.6, thinking: 0.6, judging: 0.6 },
+      source: 'blended',
+    };
+    const dist: ProbabilityDistribution = {
+      sceneTone: [{ value: 'controlled', weight: 0.5 }],
+      archetypes: [
+        { value: 'judgment_trial', weight: 0.3 },
+        { value: 'rescue', weight: 0.3 },
+        { value: 'wisdom_counsel', weight: 0.4 },
+      ],
+      pacing: [{ value: 'medium', weight: 1 }],
+      sensoryChannels: [{ value: 'visual', weight: 1 }],
+      informationStyle: [{ value: 'analytical', weight: 1 }],
+      shadowInjection: 0.1,
+      explorationFactor: 0.1,
+    };
+    const coeffs = literaryModulationCoefficients(profile, dist);
+    for (const [_key, val] of Object.entries(coeffs)) {
+      expect(val).toBeGreaterThanOrEqual(-0.15);
+      expect(val).toBeLessThanOrEqual(0.15);
+    }
+  });
+
+  it('returns empty coefficients when profile confidence < 0.3', () => {
+    const profile: JungianProfile = {
+      extraversion: { preference: 0.5, range: 0 },
+      intuition: { preference: 0.5, range: 0 },
+      thinking: { preference: 0.5, range: 0 },
+      judging: { preference: 0.5, range: 0 },
+      confidence: 0.1,
+      axisConfidence: { extraversion: 0.1, intuition: 0.1, thinking: 0.1, judging: 0.1 },
+      source: 'default',
+    };
+    const dist: ProbabilityDistribution = {
+      sceneTone: [], archetypes: [], pacing: [], sensoryChannels: [],
+      informationStyle: [], shadowInjection: 0, explorationFactor: 0,
+    };
+    const coeffs = literaryModulationCoefficients(profile, dist);
+    expect(Object.keys(coeffs)).toHaveLength(0);
   });
 });

@@ -5,7 +5,7 @@
 
 import type { GameContext } from './context-builder';
 import type { Intent } from '../models/intent';
-import type { ProbabilityDistribution } from './jungian-profiler';
+import type { ProbabilityDistribution, JungianProfile } from './jungian-profiler';
 
 export interface LiterarySignals {
   turnWordCount: number;
@@ -73,3 +73,41 @@ export const LITERARY_PARAMS = [
   'internal-state', 'nudge-forward', 'callback-softness',
 ] as const;
 export type LiteraryParam = typeof LITERARY_PARAMS[number];
+
+const MAX_COEFF = 0.15; // ±15%
+
+/**
+ * Compute small dramaturgical coefficients from behavioral signals.
+ * Returns a map of archetype → adjustment (±15% max).
+ * Used by Dramaturg to softly bias archetype selection.
+ */
+export function literaryModulationCoefficients(
+  profile: JungianProfile,
+  _dist: ProbabilityDistribution,
+): Record<string, number> {
+  if (profile.confidence < 0.3) return {};
+
+  const e = profile.extraversion.preference;
+  const n = profile.intuition.preference;
+
+  const coeffs: Record<string, number> = {};
+
+  // Action-oriented (high E) → bias toward judgment_trial, rescue
+  const actionBias = (e - 0.5) * 0.3; // ±0.15 at extremes
+  coeffs['judgment_trial'] = clamp(actionBias, -MAX_COEFF, MAX_COEFF);
+  coeffs['rescue'] = clamp(actionBias * 0.8, -MAX_COEFF, MAX_COEFF);
+
+  // Reflective (low E) → bias toward wisdom_counsel
+  const reflectBias = (0.5 - e) * 0.3;
+  coeffs['wisdom_counsel'] = clamp(reflectBias, -MAX_COEFF, MAX_COEFF);
+
+  // Concrete (low N) → bias toward political_intrigue
+  const concreteBias = (0.5 - n) * 0.2;
+  coeffs['political_intrigue'] = clamp(concreteBias, -MAX_COEFF, MAX_COEFF);
+
+  return coeffs;
+}
+
+function clamp(val: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, val));
+}
