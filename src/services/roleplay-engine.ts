@@ -51,7 +51,7 @@ import { blendBehavioralSignals, createDefaultProfile, deriveType, computeDistri
 import { PlayerProfileStore } from '../lib/player-profile-store';
 import { loadAuthorCorpus } from './author-matcher';
 import { getFeatureFlagManager } from '../lib/feature-flags';
-import { logLiterarySignals, computeLiteraryToneHint } from './literary-modulation';
+import { logLiterarySignals, computeLiteraryToneHint, literaryModulationCoefficients } from './literary-modulation';
 import { shouldExpand, analyzeCharge, detectRefusal, expand, RefusalTracker } from './short-turn-expander';
 import { DeferredHookStore } from './deferred-hook-store';
 import { readJsonFileSync, atomicWriteJson } from '../lib/atomic-io';
@@ -390,7 +390,10 @@ export class RoleplayEngine {
       timeOfDay: gameContext.timeOfDay,
     };
     const dist = computeDistribution(this.jungianProfile, worldState, sceneContext);
-    const dramaturg = await this.dramaturg.enrichScene(dist.archetypes, gameContext);
+    const literaryCoeffs = getFeatureFlagManager().isEnabled('literary-modulation-enabled')
+      ? literaryModulationCoefficients(this.jungianProfile, dist)
+      : undefined;
+    const dramaturg = await this.dramaturg.enrichScene(dist.archetypes, gameContext, literaryCoeffs);
 
     // Deferred hook recall — inject as enrichment candidate
     if (getFeatureFlagManager().isEnabled('deferred-hooks-enabled')) {

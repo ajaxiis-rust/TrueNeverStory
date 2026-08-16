@@ -162,8 +162,17 @@ export class DramaturgAgent extends BaseAgentV2 {
   async enrichScene(
     archetypeWeights: WeightedChoice[],
     gameContext: GameContext,
+    literaryCoeffs?: Record<string, number>,
   ): Promise<DramaturgEnrichment> {
-    const archetype = sample(archetypeWeights);
+    // Apply literary coefficients if provided
+    const adjustedWeights = literaryCoeffs
+      ? archetypeWeights.map(w => ({
+          ...w,
+          weight: Math.max(0.01, w.weight + (literaryCoeffs[w.value] ?? 0)),
+        }))
+      : archetypeWeights;
+
+    const archetype = sample(adjustedWeights);
     const db = this.getLiteraryDb();
     if (db) {
       const ranked = await searchTemplates(db, { archetype }, 1);
