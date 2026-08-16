@@ -259,6 +259,7 @@ export function buildPlayerVoice(
   dramaturg: DramaturgEnrichment,
   actor: NpcEnrichment[],
   validator: VerificationResult,
+  literaryToneHint?: string,
 ): string {
   const tone = sample(dist.sceneTone);
   const pace = sample(dist.pacing);
@@ -280,6 +281,9 @@ export function buildPlayerVoice(
   ];
   if (validator.notes.length > 0) {
     lines.push('', `Fact-check notes:`, ...validator.notes.map(n => `- ${n}`));
+  }
+  if (literaryToneHint) {
+    lines.push('', `Literary tone hint: ${literaryToneHint}`);
   }
   return lines.join('\n');
 }

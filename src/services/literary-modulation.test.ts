@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { logLiterarySignals, computeLiteraryToneHint } from './literary-modulation';
-import type { ProbabilityDistribution } from './jungian-profiler';
+import { buildPlayerVoice } from './jungian-profiler';
+import type { ProbabilityDistribution, DramaturgEnrichment, VerificationResult } from './jungian-profiler';
 
 describe('logLiterarySignals', () => {
   it('returns structured signal object', () => {
@@ -73,5 +74,29 @@ describe('computeLiteraryToneHint', () => {
     };
     const hint = computeLiteraryToneHint(dist);
     expect(typeof hint).toBe('string');
+  });
+});
+
+describe('buildPlayerVoice with literaryToneHint', () => {
+  const dist: ProbabilityDistribution = {
+    sceneTone: [{ value: 'controlled, strategic', weight: 1 }],
+    archetypes: [],
+    pacing: [{ value: 'medium', weight: 1 }],
+    sensoryChannels: [{ value: 'visual', weight: 1 }],
+    informationStyle: [{ value: 'analytical', weight: 1 }],
+    shadowInjection: 0.1,
+    explorationFactor: 0.1,
+  };
+  const dramaturg: DramaturgEnrichment = { archetype: 'test', filledSkeleton: 'test scene', mood: 'neutral' };
+  const validator: VerificationResult = { claims: [], worldConsistency: { npcInLocation: true, itemsAvailable: true, timelineCoherent: true }, notes: [] };
+
+  it('appends tone hint line when hint string is provided', () => {
+    const voice = buildPlayerVoice(dist, dramaturg, [], validator, 'controlled, visual');
+    expect(voice).toContain('Literary tone hint: controlled, visual');
+  });
+
+  it('omits tone hint when hint is not provided (backward compat)', () => {
+    const voice = buildPlayerVoice(dist, dramaturg, [], validator);
+    expect(voice).not.toContain('Literary tone hint:');
   });
 });

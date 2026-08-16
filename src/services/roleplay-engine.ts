@@ -51,7 +51,7 @@ import { blendBehavioralSignals, createDefaultProfile, deriveType, computeDistri
 import { PlayerProfileStore } from '../lib/player-profile-store';
 import { loadAuthorCorpus } from './author-matcher';
 import { getFeatureFlagManager } from '../lib/feature-flags';
-import { logLiterarySignals } from './literary-modulation';
+import { logLiterarySignals, computeLiteraryToneHint } from './literary-modulation';
 
 const log = getLogger('roleplay-engine');
 
@@ -366,7 +366,10 @@ export class RoleplayEngine {
     }));
     const actor = this.actor.enrichNpcs(dist.informationStyle, nearbyWithTypes);
     const validator = await this.validator.verify(gameContext, dramaturg.filledSkeleton);
-    return buildPlayerVoice(dist, dramaturg, actor, validator);
+    const toneHint = getFeatureFlagManager().isEnabled('literary-modulation-enabled')
+      ? computeLiteraryToneHint(dist)
+      : undefined;
+    return buildPlayerVoice(dist, dramaturg, actor, validator, toneHint);
   }
 
   // ─── Main Input Processing (State-First Pipeline) ──────────────────────
