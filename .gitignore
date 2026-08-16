@@ -9,6 +9,10 @@ worlds/*/tns.db*
 worlds/*/tns.db-shm
 worlds/*/tns.db-wal
 *.log
+# SQLite WAL-mode transient files (never commit)
+*.db-shm
+*.db-wal
+*.db-journal
 .server.pid
 local-models/
 tns-server
