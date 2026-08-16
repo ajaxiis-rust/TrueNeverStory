@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { shouldExpand, analyzeCharge } from './short-turn-expander';
+import { shouldExpand, analyzeCharge, expand } from './short-turn-expander';
 import type { Intent } from '../models/intent';
 
 function makeIntent(type: string): Intent {
@@ -61,5 +61,47 @@ describe('analyzeCharge', () => {
 
   it('returns none for empty input', () => {
     expect(analyzeCharge('', {} as any, {} as any)).toBe('none');
+  });
+});
+
+describe('expand', () => {
+  it('preserves player turn verbatim and appends LLM continuation', async () => {
+    const mockLLM = {
+      generateText: (async (prompt: string) => {
+        expect(prompt).toContain('I walked down the street and noticed a boy');
+        return 'But a thin hand grabbed my sleeve.';
+      }) as any,
+    };
+    const result = await expand(
+      'I walked down the street and noticed a boy.',
+      { outcome: 'success', probability: 0.8, narrativeHints: [] } as any,
+      { character: { name: 'Hero' }, location: { name: 'street' }, nearbyNpcs: [] } as any,
+      undefined,
+      undefined,
+      mockLLM as any,
+    );
+    // Player decision preserved verbatim at the start
+    expect(result.startsWith('I walked down the street and noticed a boy.')).toBe(true);
+    expect(result).toContain('But a thin hand grabbed my sleeve.');
+  });
+
+  it('includes playerVoice and authorPhrases in prompt', async () => {
+    let capturedPrompt = '';
+    const mockLLM = {
+      generateText: (async (prompt: string) => {
+        capturedPrompt = prompt;
+        return 'continuation';
+      }) as any,
+    };
+    await expand(
+      'test input',
+      { outcome: 'success', narrativeHints: [] } as any,
+      { nearbyNpcs: [] } as any,
+      'Player prefers concrete info',
+      ['Author phrase one.'],
+      mockLLM as any,
+    );
+    expect(capturedPrompt).toContain('Player prefers concrete info');
+    expect(capturedPrompt).toContain('Author phrase one');
   });
 });
