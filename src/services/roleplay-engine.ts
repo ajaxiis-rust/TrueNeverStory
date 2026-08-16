@@ -53,6 +53,8 @@ import { loadAuthorCorpus } from './author-matcher';
 import { getFeatureFlagManager } from '../lib/feature-flags';
 import { logLiterarySignals, computeLiteraryToneHint } from './literary-modulation';
 import { shouldExpand, analyzeCharge, detectRefusal, expand, RefusalTracker } from './short-turn-expander';
+import { DeferredHookStore } from './deferred-hook-store';
+import { readJsonFileSync, atomicWriteJson } from '../lib/atomic-io';
 
 const log = getLogger('roleplay-engine');
 
@@ -196,6 +198,7 @@ export class RoleplayEngine {
   private jungianProfile: JungianProfile = createDefaultProfile();
   private metricsCollector = new MetricsCollector();
   private refusalTracker = new RefusalTracker();
+  private deferredHookStore = new DeferredHookStore();
   private recentSignals: { extraversion: number[]; intuition: number[]; thinking: number[]; judging: number[] } = {
     extraversion: [], intuition: [], thinking: [], judging: [],
   };
@@ -213,6 +216,14 @@ export class RoleplayEngine {
     this._eventBus = deps.eventBus ?? new EventBus();
     this.playerProfileStore = deps.playerProfileStore;
     this.initJungianProfile();
+    this.loadDeferredHooks();
+    // Block closure for deferred hooks is driven by story beats, not a turn-count heuristic.
+    this._eventBus.subscribe(EventTopic.STORY_BEAT, async () => {
+      if (getFeatureFlagManager().isEnabled('deferred-hooks-enabled')) {
+        this.deferredHookStore.closeBlock(this.metricsCollector.getTurnCount());
+        this.persistDeferredHooks();
+      }
+    });
 
     // Initialize State-First pipeline services
     this.intentParser = new IntentParser(deps.llmQueue);
@@ -322,6 +333,21 @@ export class RoleplayEngine {
     const authorName = this.playerProfileStore?.getClosestAuthor(this.playerId);
     if (!authorName) return [];
     return loadAuthorCorpus().find(a => a.name === authorName)?.samplePhrases ?? [];
+  }
+
+  private deferredHooksPath(): string {
+    return join(this._dbPath ?? '.', 'deferred-hooks.json');
+  }
+
+  private persistDeferredHooks(): void {
+    atomicWriteJson(this.deferredHooksPath(), this.deferredHookStore.toJSON());
+  }
+
+  private loadDeferredHooks(): void {
+    const data = readJsonFileSync<unknown>(this.deferredHooksPath());
+    if (Array.isArray(data)) {
+      this.deferredHookStore = DeferredHookStore.fromJSON(data);
+    }
   }
 
   private initJungianProfile(): void {
@@ -477,6 +503,25 @@ export class RoleplayEngine {
           log.info({ originalLen: ctx.parsedInput.length, expandedLen: narrative.length }, 'short turn expanded');
         } catch (err) {
           log.warn({ err }, 'short turn expansion failed, using original narrative');
+        }
+      }
+    }
+
+    // Deferred Hook Detection — gated by feature flag
+    if (getFeatureFlagManager().isEnabled('deferred-hooks-enabled')) {
+      const charge = analyzeCharge(ctx.parsedInput, simResult, gameContext);
+      if (charge === 'high') {
+        const lower = ctx.parsedInput.toLowerCase();
+        const refusedNpc = gameContext.nearbyNpcs.find(n => n.name && lower.includes(n.name.toLowerCase()));
+        if (refusedNpc) {
+          this.deferredHookStore.add({
+            npcId: refusedNpc.uid ?? refusedNpc.name,
+            npcName: refusedNpc.name,
+            hookStrength: 2, // default to "edge"
+            sourceTurn: this.metricsCollector.getTurnCount(),
+          });
+          this.persistDeferredHooks();
+          log.info({ npcId: refusedNpc.uid, npcName: refusedNpc.name }, 'deferred hook created');
         }
       }
     }
@@ -651,6 +696,25 @@ export class RoleplayEngine {
           log.info({ originalLen: parsedInput.length, expandedLen: narrative.length }, 'short turn expanded');
         } catch (err) {
           log.warn({ err }, 'short turn expansion failed, using original narrative');
+        }
+      }
+    }
+
+    // Deferred Hook Detection — gated by feature flag
+    if (getFeatureFlagManager().isEnabled('deferred-hooks-enabled')) {
+      const charge = analyzeCharge(parsedInput, simResult, gameContext);
+      if (charge === 'high') {
+        const lower = parsedInput.toLowerCase();
+        const refusedNpc = gameContext.nearbyNpcs.find(n => n.name && lower.includes(n.name.toLowerCase()));
+        if (refusedNpc) {
+          this.deferredHookStore.add({
+            npcId: refusedNpc.uid ?? refusedNpc.name,
+            npcName: refusedNpc.name,
+            hookStrength: 2, // default to "edge"
+            sourceTurn: this.metricsCollector.getTurnCount(),
+          });
+          this.persistDeferredHooks();
+          log.info({ npcId: refusedNpc.uid, npcName: refusedNpc.name }, 'deferred hook created');
         }
       }
     }
