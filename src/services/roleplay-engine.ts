@@ -52,6 +52,7 @@ import { PlayerProfileStore } from '../lib/player-profile-store';
 import { loadAuthorCorpus } from './author-matcher';
 import { getFeatureFlagManager } from '../lib/feature-flags';
 import { logLiterarySignals, computeLiteraryToneHint } from './literary-modulation';
+import { shouldExpand, analyzeCharge, detectRefusal, expand, RefusalTracker } from './short-turn-expander';
 
 const log = getLogger('roleplay-engine');
 
@@ -194,6 +195,7 @@ export class RoleplayEngine {
   private playerProfileStore?: PlayerProfileStore;
   private jungianProfile: JungianProfile = createDefaultProfile();
   private metricsCollector = new MetricsCollector();
+  private refusalTracker = new RefusalTracker();
   private recentSignals: { extraversion: number[]; intuition: number[]; thinking: number[]; judging: number[] } = {
     extraversion: [], intuition: [], thinking: [], judging: [],
   };
@@ -456,6 +458,29 @@ export class RoleplayEngine {
 
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_PROSE_COMPLETE, {}, 'engine');
 
+    // Short Turn Expansion — gated by feature flag, respecting repeated refusals
+    if (getFeatureFlagManager().isEnabled('short-turn-expansion-enabled')
+        && shouldExpand(ctx.parsedInput, intent)) {
+      const sceneId = `${gameContext.location?.name ?? 'unknown'}_${gameContext.character?.name ?? 'hero'}`;
+      // Record explicit refusal so a second refusal in this scene suppresses expansion.
+      if (detectRefusal(ctx.parsedInput)) {
+        this.refusalTracker.recordRefusal(sceneId);
+      }
+      if (!this.refusalTracker.shouldSuppress(sceneId)
+          && analyzeCharge(ctx.parsedInput, simResult, gameContext) !== 'none') {
+        try {
+          narrative = await expand(
+            ctx.parsedInput, simResult, gameContext,
+            ctx.playerVoice, this.resolveAuthorPhrases(),
+            this._llmQueue,
+          );
+          log.info({ originalLen: ctx.parsedInput.length, expandedLen: narrative.length }, 'short turn expanded');
+        } catch (err) {
+          log.warn({ err }, 'short turn expansion failed, using original narrative');
+        }
+      }
+    }
+
     if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled') && narrative) {
       const cleaned = await this.censor.clean(narrative, gameContext);
       narrative = cleaned.cleaned;
@@ -607,6 +632,29 @@ export class RoleplayEngine {
     yield { type: 'heartbeat', content: 'Weaving narrative...', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
 
     let narrative = await this.v2Generator.generate(intent, simResult, gameContext, parsedInput, playerVoice, this.resolveAuthorPhrases());
+
+    // Short Turn Expansion — gated by feature flag, respecting repeated refusals
+    if (getFeatureFlagManager().isEnabled('short-turn-expansion-enabled')
+        && shouldExpand(parsedInput, intent)) {
+      const sceneId = `${gameContext.location?.name ?? 'unknown'}_${gameContext.character?.name ?? 'hero'}`;
+      if (detectRefusal(parsedInput)) {
+        this.refusalTracker.recordRefusal(sceneId);
+      }
+      if (!this.refusalTracker.shouldSuppress(sceneId)
+          && analyzeCharge(parsedInput, simResult, gameContext) !== 'none') {
+        try {
+          narrative = await expand(
+            parsedInput, simResult, gameContext,
+            playerVoice, this.resolveAuthorPhrases(),
+            this._llmQueue,
+          );
+          log.info({ originalLen: parsedInput.length, expandedLen: narrative.length }, 'short turn expanded');
+        } catch (err) {
+          log.warn({ err }, 'short turn expansion failed, using original narrative');
+        }
+      }
+    }
+
     if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled') && narrative) {
       const cleaned = await this.censor.clean(narrative, gameContext);
       narrative = cleaned.cleaned;
