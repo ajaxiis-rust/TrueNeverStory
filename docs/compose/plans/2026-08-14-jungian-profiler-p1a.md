@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 1A: Типы (Task 1.1)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S6.
 
@@ -17,7 +17,7 @@
 **Covers:** S6
 **Interfaces (Produces):** `AxisProfile { preference; range }`; `AxisConfidence { extraversion; intuition; thinking; judging }`; `JungianProfile { extraversion; intuition; thinking; judging; confidence; axisConfidence; source }`; `createDefaultProfile(): JungianProfile`; `deriveType(profile): string`; `averageRange(profile): number`; `axisClarity(profile): number`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // src/services/jungian-profiler.test.ts
@@ -71,12 +71,12 @@ describe('axisClarity', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: FAIL — `Cannot find module './jungian-profiler'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // src/services/jungian-profiler.ts
@@ -135,12 +135,12 @@ export function axisClarity(profile: JungianProfile): number {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: PASS (6 tests)
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

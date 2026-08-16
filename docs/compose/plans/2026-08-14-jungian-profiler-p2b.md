@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 2B: Dramaturg.enrichScene (Task 2.2)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S11; impl-спека `spec-profiler-integration.md` §6.
 
@@ -19,7 +19,7 @@
 - Consumes: `WeightedChoice`, `DramaturgEnrichment` из `../jungian-profiler`; `searchTemplates` из `@/mcp/literary-compiler/retrieval`; `fillTemplate` из `@/mcp/literary-compiler/fill-template`; `LiteraryCompilerDB` из `@/mcp/literary-compiler/schema`
 - Produces: `DramaturgAgent.enrichScene(archetypeWeights, gameContext): Promise<DramaturgEnrichment>` (db резолвится ВНУТРИ агента через инжектированный `getLiteraryDb`)
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // src/services/agents/dramaturg.test.ts (create)
@@ -76,12 +76,12 @@ describe('DramaturgAgent.enrichScene', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/agents/dramaturg.test.ts`
 Expected: FAIL — `agent.enrichScene is not a function`
 
-- [ ] **Step 3: Write minimal implementation (add method to dramaturg.ts)**
+- [x] **Step 3: Write minimal implementation (add method to dramaturg.ts)**
 
 ```typescript
 // imports to add in dramaturg.ts:
@@ -129,12 +129,12 @@ private async generateFallbackSkeleton(archetype: string, gameContext: GameConte
 
 > **Wiring note:** в `roleplay-engine.ts` при конструировании `DramaturgAgent` передать 3-й аргумент `() => this.getLiteraryDb()` (существующий метод, см. `roleplay-engine.ts:634`). Дефолт `() => null` сохраняет обратную совместимость.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/agents/dramaturg.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

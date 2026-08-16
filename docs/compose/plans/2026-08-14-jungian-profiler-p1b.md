@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 1B: Blend (Task 1.2)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S6; impl-спека `spec-blend-algorithm.md`.
 
@@ -19,7 +19,7 @@
 - Consumes: `AxisSignals` from `./metrics-collector`
 - Produces: `BLEND_CONFIG`; `updateAxis(current, signal, recentSignals): AxisProfile`; `updateAxisConfidence(current, incoming, blendedPreference): number`; `blendBehavioralSignals(signals, profile, recentSignals): JungianProfile`
 
-- [ ] **Step 1: Write failing tests (append to test file)**
+- [x] **Step 1: Write failing tests (append to test file)**
 
 ```typescript
 // append to src/services/jungian-profiler.test.ts
@@ -80,12 +80,12 @@ describe('blendBehavioralSignals', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: FAIL — `BLEND_CONFIG is not exported`
 
-- [ ] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
+- [x] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
 
 ```typescript
 // append to src/services/jungian-profiler.ts
@@ -156,12 +156,12 @@ export function blendBehavioralSignals(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: PASS (тесты 1.1 + 1.2)
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

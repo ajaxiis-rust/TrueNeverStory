@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 2F: Полный конвейер + Чекпоинт P2 (Task 2.8)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S2, S3.1, S3.2, S16; impl-спека `spec-profiler-integration.md` §2.
 
@@ -21,7 +21,7 @@
 - Consumes: `computeDistribution`, `buildPlayerVoice` из `./jungian-profiler`; `DramaturgAgent.enrichScene`; `ActorAgent.enrichNpcs`; `ValidatorAgent.verify`; `CensorAgent.clean`; `getFeatureFlagManager`
 - Produces: `runEnrichmentConveyor(gameContext): Promise<string>` (возвращает `playerVoice`); `ctx.playerVoice`; prose через `buildMicroPrompt(..., playerVoice)`; `censor.clean` после prose
 
-- [ ] **Step 1: Add `playerVoice` to PipelineContext**
+- [x] **Step 1: Add `playerVoice` to PipelineContext**
 
 ```typescript
 // src/services/roleplay/pipeline-context.ts — add field:
@@ -31,7 +31,7 @@ export interface PipelineContext {
 }
 ```
 
-- [ ] **Step 2: LiteraryV2Generator — приём playerVoice**
+- [x] **Step 2: LiteraryV2Generator — приём playerVoice**
 
 ```typescript
 // src/services/roleplay/prose/literary-v2-generator.ts
@@ -66,7 +66,7 @@ async generateViaStylist(
 // P4 добавит authorPhrases ОТДЕЛЬНО (дополнительный параметр/поле) — playerVoice и authorPhrases остаются разными. process() НЕ трогать.
 ```
 
-- [ ] **Step 3: `runEnrichmentConveyor` в roleplay-engine**
+- [x] **Step 3: `runEnrichmentConveyor` в roleplay-engine**
 
 ```typescript
 // imports (top of roleplay-engine.ts):
@@ -88,7 +88,7 @@ private async runEnrichmentConveyor(gameContext: GameContext): Promise<string> {
 }
 ```
 
-- [ ] **Step 4: Wire в `_processInputImpl` (после buildGameContext, до prose)**
+- [x] **Step 4: Wire в `_processInputImpl` (после buildGameContext, до prose)**
 
 ```typescript
 // После buildGameContext(ctx), перед prose-генерацией. Используем ЛОКАЛЬНУЮ gameContext —
@@ -118,7 +118,7 @@ if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled') && narrative) 
 
 > `deriveType` из `./jungian-profiler` (Task 1.1). A/B-теги: `jungianEnabled`, `jungianType`, `confidence` — как в дизайне S16.
 
-- [ ] **Step 5: Integration test**
+- [x] **Step 5: Integration test**
 
 ```typescript
 // src/services/roleplay-engine.jungian.test.ts (create)
@@ -132,7 +132,7 @@ if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled') && narrative) 
 //   assert возвращаемая строка содержит "Player psychological context" + fact-check notes.
 ```
 
-- [ ] **Step 6: Verify + commit**
+- [x] **Step 6: Verify + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -170,13 +170,13 @@ git diff --name-only | grep -E "agents/(stylist|dramaturg|actor|validator|censor
 ```
 
 **Критерии прохождения чекпоинта:**
-- [ ] `tsc --noEmit` без ошибок
-- [ ] Все unit-тесты зелёные (нет `.only`/`.skip`)
-- [ ] `process()` у всех Big Six не изменён (только additive-методы)
-- [ ] flag=false → prose идентичен baseline (без enrichment)
-- [ ] confidence<0.3 → uniform, enrichment пропущен
-- [ ] LLM-запросы на ход: 1-4 (без новых)
-- [ ] A/B-теги `jungianEnabled`/`jungianType`/`confidence` в логах
+- [x] `tsc --noEmit` без ошибок
+- [x] Все unit-тесты зелёные (нет `.only`/`.skip`)
+- [x] `process()` у всех Big Six не изменён (только additive-методы)
+- [x] flag=false → prose идентичен baseline (без enrichment)
+- [x] confidence<0.3 → uniform, enrichment пропущен
+- [x] LLM-запросы на ход: 1-4 (без новых)
+- [x] A/B-теги `jungianEnabled`/`jungianType`/`confidence` в логах
 
 **Если чекпоинт не пройден — НЕ начинай Phase 3.** Почини и повтори.
 

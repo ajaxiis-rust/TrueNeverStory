@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 1D: Persistence (Task 1.4)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S14, S15; impl-спека `spec-profiler-persistence.md`.
 
@@ -19,7 +19,7 @@
 - Consumes: `JungianProfile`, `AxisProfile` from `../services/jungian-profiler`; `RawAggregates`, `AxisSignals` from `../services/metrics-collector`
 - Produces: `upsertJungianProfile(playerId, profile): void`; `getJungianProfile(playerId): JungianProfile | null`; `upsertBehavioralMetrics(playerId, aggregates, totalTurns, signals): void`; `getBehavioralMetrics(playerId): { aggregates; totalTurns; signals } | null`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // src/lib/__tests__/player-profile-store.test.ts (create if missing)
@@ -69,12 +69,12 @@ describe('PlayerProfileStore — jungian', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/lib/__tests__/player-profile-store.test.ts`
 Expected: FAIL — `upsertJungianProfile is not a function`
 
-- [ ] **Step 3: Write minimal implementation (modify player-profile-store.ts)**
+- [x] **Step 3: Write minimal implementation (modify player-profile-store.ts)**
 
 ```typescript
 // Imports (top of file):
@@ -209,7 +209,7 @@ getBehavioralMetrics(playerId: string): { aggregates: RawAggregates; totalTurns:
 }
 ```
 
-- [ ] **Step 4: Fix `upsertProfile` data-loss (preserve jungian columns)**
+- [x] **Step 4: Fix `upsertProfile` data-loss (preserve jungian columns)**
 
 > **Data-loss fix:** existing `upsertProfile()` uses `INSERT OR REPLACE INTO player_style_profiles` with 16 columns, which REPLACEs the whole row and wipes the newly-added `jungian_*` columns back to their defaults. Change it to `INSERT ... ON CONFLICT(player_id) DO UPDATE SET` so only the 16 style columns are touched and jungian columns survive.
 
@@ -247,12 +247,12 @@ ON CONFLICT(player_id) DO UPDATE SET
   last_updated = excluded.last_updated
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `bun test src/lib/__tests__/player-profile-store.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Typecheck + commit**
+- [x] **Step 6: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

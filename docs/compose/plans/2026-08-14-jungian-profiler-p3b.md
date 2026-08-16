@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 3B: Actor wire + Чекпоинт P3 (Task 3.3)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S12.
 
@@ -16,7 +16,7 @@
 
 **Covers:** S12
 
-- [ ] **Step 1: Add `recordInteraction` helper on ActorAgent**
+- [x] **Step 1: Add `recordInteraction` helper on ActorAgent**
 
 ```typescript
 // actor.ts — добавить метод (использует computePerceivedPlayerType из ../jungian-profiler):
@@ -53,18 +53,18 @@ recordInteraction(
 }
 ```
 
-- [ ] **Step 2: Wire psychotype в runEnrichmentConveyor (roleplay-engine)**
+- [x] **Step 2: Wire psychotype в runEnrichmentConveyor (roleplay-engine)**
 
 В `runEnrichmentConveyor` (Task 2.8) замени источник `npcPsychotypes[n.name]` на реальный: читай `psychotype` из `entity.profile.l3.psychotype` (JSON, дизайн S8.1). Собственный психотип NPC берётся ТОЛЬКО из `entity.profile.l3.psychotype` (не `store.getNpcPerception` — оно возвращает воспринимаемый игроком тип). NPC без psychotype → `assignNpcPsychotype(role)` лениво при создании (world-gen), не пересчитывается каждый ход.
 
-- [ ] **Step 3: Integration test (дополнить actor.test.ts)**
+- [x] **Step 3: Integration test (дополнить actor.test.ts)**
 
 ```typescript
 // - enrichNpcs с NPC, имеющим real psychotype → hint отражает тип (ISTP → "practical")
 // - recordInteraction: после 3 взаимодействий perceived.thinking сдвинут от player.thinking (±0.2)
 ```
 
-- [ ] **Step 4: Verify + commit**
+- [x] **Step 4: Verify + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -97,10 +97,10 @@ git diff --name-only | grep -E "agents/(stylist|dramaturg|actor|validator|censor
 ```
 
 **Критерии прохождения:**
-- [ ] `tsc --noEmit` без ошибок
-- [ ] Все unit-тесты зелёные
-- [ ] NPC-тип назначается лениво и детерминированно (не пересчитывается каждый ход)
-- [ ] `perceivedPlayerType` roundtrip в `npc_perception` работает
-- [ ] `process()` у ActorAgent/AgentV2 не изменён (только additive-методы; `@mention`-роутинг нетронут)
+- [x] `tsc --noEmit` без ошибок
+- [x] Все unit-тесты зелёные
+- [x] NPC-тип назначается лениво и детерминированно (не пересчитывается каждый ход)
+- [x] `perceivedPlayerType` roundtrip в `npc_perception` работает
+- [x] `process()` у ActorAgent/AgentV2 не изменён (только additive-методы; `@mention`-роутинг нетронут)
 
 **Phase 3 DONE.** Phase 4 (AuthorMatcher) — полный план, см. `2026-08-14-jungian-profiler-p4.md` (индекс) → `p4a`/`p4b`/`p4c`.

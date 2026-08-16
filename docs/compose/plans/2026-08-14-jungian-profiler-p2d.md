@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 2D: Validator + Stylist + Censor (Tasks 2.4–2.6)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S3.1 (Validator/Stylist/Censor), S10; impl-спека `spec-profiler-integration.md` §4, §9.
 
@@ -21,7 +21,7 @@
 
 > Граница (дизайн S3.1): Validator проверяет ТОЛЬКО факты, существующие ДО генерации. Детали, придуманные Stylist'ом, чистит Censor.
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // src/services/agents/validator.test.ts (create)
@@ -58,12 +58,12 @@ describe('ValidatorAgent.verify', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/agents/validator.test.ts`
 Expected: FAIL — `agent.buildWorldConsistency is not a function`
 
-- [ ] **Step 3: Write minimal implementation (add to validator.ts)**
+- [x] **Step 3: Write minimal implementation (add to validator.ts)**
 
 ```typescript
 // imports to add in validator.ts:
@@ -96,12 +96,12 @@ private extractClaimsFromSkeleton(filledSkeleton: string): string[] {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/agents/validator.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -115,7 +115,7 @@ git commit -m "feat(profiler): Validator.verify — pre-gen fact-check + worldCo
 
 **Covers:** S3.1 (Stylist), S10
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```typescript
 // append to src/services/jungian-profiler.test.ts
@@ -160,12 +160,12 @@ describe('StylistAgent.buildMicroPrompt', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/jungian-profiler.test.ts src/services/agents/stylist.test.ts`
 Expected: FAIL — `getMoralizingGate is not exported`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // append to src/services/jungian-profiler.ts
@@ -178,12 +178,12 @@ export function getMoralizingGate(profile: JungianProfile): 'strict' | 'relaxed'
 
 > `StylistAgent.buildMicroPrompt` **уже** принимает `playerVoice?: string` (5-й параметр) и вставляет блок `Player voice notes (soft prior)`. Изменений в stylist.ts для этого шага НЕ требуется — тест фиксирует контракт.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/jungian-profiler.test.ts src/services/agents/stylist.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -197,7 +197,7 @@ git commit -m "feat(profiler): getMoralizingGate + Stylist playerVoice contract 
 
 **Covers:** S3.1 (Censor)
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // src/services/agents/censor.test.ts (create)
@@ -226,12 +226,12 @@ describe('CensorAgent.clean', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/agents/censor.test.ts`
 Expected: FAIL — `agent.clean is not a function`
 
-- [ ] **Step 3: Write minimal implementation (add to censor.ts)**
+- [x] **Step 3: Write minimal implementation (add to censor.ts)**
 
 ```typescript
 // imports to add in censor.ts:
@@ -254,12 +254,12 @@ async clean(rawNarrative: string, context: GameContext): Promise<CensorResult> {
 > - Опциональный LLM-polish (~10–15% случаев) — ОТДЕЛЬНЫЙ шаг: `llmPolish()` / `review()`. Конвейер (RoleplayEngine) может вызвать его после `clean()` при высоком `profile.confidence` (напр. ≥ 0.7) — тогда результат помечается `llmPolished: true`.
 > - В unit-тесте `clean()` фиксируем контракт только regex-фазы; LLM-polish покрывается отдельно (или интеграционно).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/agents/censor.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

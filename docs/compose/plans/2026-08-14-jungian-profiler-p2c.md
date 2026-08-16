@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 2C: Actor.enrichNpcs (Task 2.3)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S12; impl-спека `spec-profiler-integration.md` §5.
 
@@ -17,7 +17,7 @@
 **Covers:** S12
 **Interfaces (Produces):** `ActorAgent.enrichNpcs(informationStyleWeights: WeightedChoice[], npcs: Array<{ id; name; psychotype?: JungianProfile }>): NpcEnrichment[]` — 0 LLM.
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // src/services/agents/actor.test.ts (create)
@@ -51,12 +51,12 @@ describe('ActorAgent.enrichNpcs', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/agents/actor.test.ts`
 Expected: FAIL — `agent.enrichNpcs is not a function`
 
-- [ ] **Step 3: Write minimal implementation (add method to actor.ts)**
+- [x] **Step 3: Write minimal implementation (add method to actor.ts)**
 
 ```typescript
 // imports to add in actor.ts:
@@ -90,12 +90,12 @@ private buildHint(name: string, psychotype: JungianProfile | undefined, infoStyl
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/agents/actor.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 3: NPC Psychotypes (Tasks 3.1–3.2)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S8, S8.1; impl-спека `spec-profiler-integration.md` §7.
 
@@ -19,7 +19,7 @@
 **Covers:** S8, S8.1
 **Interfaces (Produces):** `assignNpcPsychotype(role, faction?, worldSystem?, seed?): JungianProfile`; `computePerceivedPlayerType(player, npc): JungianProfile`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // append to src/services/jungian-profiler.test.ts
@@ -59,12 +59,12 @@ describe('computePerceivedPlayerType', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: FAIL — `assignNpcPsychotype is not exported`
 
-- [ ] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
+- [x] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
 
 ```typescript
 // append to src/services/jungian-profiler.ts
@@ -139,12 +139,12 @@ export function computePerceivedPlayerType(player: JungianProfile, npc: JungianP
 
 > **Хранение (world-gen):** результат `assignNpcPsychotype` пишется в `entity.profile.l3.psychotype` (JSON) при генерации мира через `UnifiedEntityStore` (`src/store/entity-store.ts` — JSON-file store, файл `entities.json`). `UnifiedEntityStore` — НЕ SQLite-таблица `entities`; SQLite-таблица `entities` живёт отдельно в `SQLiteStore` (`src/lib/sqlite-store.ts`).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -159,7 +159,7 @@ git commit -m "feat(profiler): assignNpcPsychotype + computePerceivedPlayerType 
 **Covers:** S8.1
 **Interfaces (Produces):** `upsertNpcPerception(npcId, playerId, perceived, interactionCount, interactionHistory?): void`; `getNpcPerception(npcId, playerId): { perceived: JungianProfile; interactionCount: number; interactionHistory: Array<{ ts: number; type: string; tension: number }> } | null`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // append to src/lib/__tests__/player-profile-store.test.ts
@@ -178,12 +178,12 @@ describe('PlayerProfileStore — npc_perception', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/lib/__tests__/player-profile-store.test.ts`
 Expected: FAIL — `upsertNpcPerception is not a function`
 
-- [ ] **Step 3: Write minimal implementation (add to player-profile-store.ts)**
+- [x] **Step 3: Write minimal implementation (add to player-profile-store.ts)**
 
 ```typescript
 // In constructor, after player_behavioral_metrics:
@@ -236,12 +236,12 @@ getNpcPerception(npcId: string, playerId: string): { perceived: JungianProfile; 
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/lib/__tests__/player-profile-store.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

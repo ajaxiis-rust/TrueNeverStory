@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 4A: Author embeddings corpus (Task 4.1)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S7; impl-спека `spec-profiler-implementation.md` (out of scope, теперь Phase 4).
 
@@ -21,7 +21,7 @@
 
 > Выбор сигнатуры: embedding автора = embedding от `samplePhrases.join(' ')` (few-shot фразы и есть стилевой слепок автора). Это консистентно с тем, что на лету сравнивается embedding пролога с этими же фразовыми embedding'ами.
 
-- [ ] **Step 1: Write the seed + build script**
+- [x] **Step 1: Write the seed + build script**
 
 ```typescript
 // scripts/build-author-embeddings.ts (create)
@@ -188,17 +188,17 @@ async function main(): Promise<void> {
 main().catch((e) => { console.error(e); process.exit(1); });
 ```
 
-- [ ] **Step 2: Run script to generate the corpus**
+- [x] **Step 2: Run script to generate the corpus**
 
 Run: `bun run scripts/build-author-embeddings.ts`
 Expected: `Wrote 50 author embeddings (dim=<фактическая dim настроенной embedding-модели>) to data/author-embeddings.json`. Файл создан; при отсутствии embedding-сервера — nonzero exit с `embedding server unavailable`.
 
-- [ ] **Step 3: Validate corpus shape**
+- [x] **Step 3: Validate corpus shape**
 
 Run: `bun -e "const c = JSON.parse(await Bun.file('data/author-embeddings.json').text()); if (c.length < 50) throw new Error('too few'); for (const a of c) { if (!a.name || !Array.isArray(a.embedding) || a.embedding.length === 0 || !Array.isArray(a.samplePhrases)) throw new Error('bad entry: ' + a.name); } console.log('OK', c.length, 'entries');"`
 Expected: `OK 50 entries`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/build-author-embeddings.ts data/author-embeddings.json

@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 1C: Director (Task 1.3)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S9; impl-спека `spec-blend-algorithm.md`.
 
@@ -17,7 +17,7 @@
 **Covers:** S9
 **Interfaces (Produces):** `WeightedChoice { value; weight }`; `ProbabilityDistribution { sceneTone; archetypes; pacing; sensoryChannels; informationStyle; shadowInjection; explorationFactor }`; `WorldState { genre?; socialSystem? }`; `SceneContext { mood?; timeOfDay? }`; `computeDistribution(profile: JungianProfile, worldState: WorldState, sceneContext: SceneContext): ProbabilityDistribution`; `sample(choices): string`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```typescript
 // append to src/services/jungian-profiler.test.ts
@@ -58,12 +58,12 @@ describe('sample', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: FAIL — `computeDistribution is not exported`
 
-- [ ] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
+- [x] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
 
 ```typescript
 // append to src/services/jungian-profiler.ts
@@ -192,12 +192,12 @@ export function computeDistribution(profile: JungianProfile, worldState: WorldSt
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: PASS (все тесты)
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 4: AuthorMatcher (стилевой референс)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S7; impl-спека `spec-profiler-implementation.md` (out of scope → Phase 4).
 > **Это индекс фазы.** Детальные пошаговые планы — в `p4a`/`p4b`/`p4c`. Выполняй строго по порядку; не переходи к следующему файлу, пока не пройден чекпоинт текущего.

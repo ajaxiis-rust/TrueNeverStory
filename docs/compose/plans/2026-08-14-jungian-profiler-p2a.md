@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 2A: buildPlayerVoice (Task 2.1)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются). Перед Phase 2 заведи git worktree (`compose:worktree`).
 > **Covers:** дизайн S3.1, S9; impl-спека `spec-profiler-integration.md` §3.
 
@@ -17,7 +17,7 @@
 **Covers:** S3.1, S9
 **Interfaces (Produces):** `DramaturgEnrichment { archetype; filledSkeleton; mood }`; `NpcEnrichment { npcId; name; hint }`; `VerificationResult { claims; worldConsistency; notes }`; `CensorResult { cleaned; llmPolished }`; `buildPlayerVoice(dist, dramaturg, actor, validator): string`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // append to src/services/jungian-profiler.test.ts
@@ -65,12 +65,12 @@ describe('buildPlayerVoice', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: FAIL — `buildPlayerVoice is not exported`
 
-- [ ] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
+- [x] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
 
 ```typescript
 // append to src/services/jungian-profiler.ts
@@ -115,12 +115,12 @@ export function buildPlayerVoice(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

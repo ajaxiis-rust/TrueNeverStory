@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 2E: PsychotypeAnalyzer + Synopsis/Prologue (Task 2.7)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S4, S5; impl-спека `spec-profiler-persistence.md` §2.
 
@@ -20,7 +20,7 @@
 **Covers:** S4, S5
 **Interfaces (Produces):** `TextAnalysis { psychotype; style; themes; suggestedArcs; worldHints }` (совпадает с S5 1:1); `analyzeText(synopsis, prologue, llmQueue): Promise<TextAnalysis>`; `psychotypeToProfile(psychotype, wordCount): JungianProfile`; `confidenceCap(wordCount): number`; `blendProfiles(a: JungianProfile, b: JungianProfile): JungianProfile` (чистый blend текстовых профилей, 0 LLM — этап 2 [S5.2] в P4)
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```typescript
 // src/services/jungian-profiler.test.ts (append)
@@ -84,12 +84,12 @@ describe('confidenceCap', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: FAIL — `analyzeText is not exported` / `Cannot find name 'analyzeText'`
 
-- [ ] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
+- [x] **Step 3: Write minimal implementation (append to jungian-profiler.ts)**
 
 ```typescript
 // src/services/jungian-profiler.ts — append (НЕ создавать psychotype-analyzer.ts)
@@ -195,12 +195,12 @@ Respond as JSON ONLY, matching this exact schema:
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/jungian-profiler.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Typecheck + commit**
+- [x] **Step 5: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -208,7 +208,7 @@ git add src/services/jungian-profiler.ts src/services/jungian-profiler.test.ts
 git commit -m "feat(profiler): PsychotypeAnalyzer — LLM structured output (S5 TextAnalysis) → JungianProfile"
 ```
 
-- [ ] **Step 6: Wire in createWorld (world-manager.ts) — однократно при создании мира**
+- [x] **Step 6: Wire in createWorld (world-manager.ts) — однократно при создании мира**
 
 Анализ живёт **внутри сервиса `createWorld`** (этап 1, [S5]), а не в route-handler'е. `worlds.ts` только передаёт `synopsis`/`prologue` в `createWorld` (без LLM-логики).
 
@@ -253,11 +253,11 @@ if (_profiler && (params.synopsis || params.prologue)) {
 
 > Вызов `setWorldProfilerServices(store, llmQueue)` — при инициализации приложения (там же, где `setWorldServices`). `upsertJungianProfile` — из Phase 1. **Этап 2 (birth-wizard refine + подбор автора) — НЕ здесь**: откладывается в P4 ([S5.2], [S7]), см. `p4c.md`. Пролог/синопсис уже персистятся в `world_frame.json` (этот шаг) — P4 их читает.
 
-- [ ] **Step 7: Add Synopsis/Prologue fields to public/worlds.html**
+- [x] **Step 7: Add Synopsis/Prologue fields to public/worlds.html**
 
 Два textarea: `Synopsis` (1-3 предложения) и `Prologue` (опционально). `name="synopsis"`/`name="prologue"`. Label/placeholder через `I18N` (EN, RU, DE, FR, ES, JA, ZH). Оба опциональны.
 
-- [ ] **Step 8: Manual verify (UI) + commit**
+- [x] **Step 8: Manual verify (UI) + commit**
 
 ```bash
 # Ручная проверка: создать мир с Synopsis+Prologue → в БД jungian-профиль с source='text'

@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 4B: AuthorMatcher — cosine search + selection (Task 4.2)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S7, S5.2.
 
@@ -23,7 +23,7 @@
 - Consumes: `JungianProfile` из `./jungian-profiler`; `cosineSimilarity` из `@/lib/vector-ops` (Mojo FFI, Float32Array); `LLMQueue.generateText(prompt, priority, temperature, agentId?, timeout?)`.
 - Produces: `AuthorEntry`, `AuthorMatch` (types); `topNAuthors(prologueEmbedding, corpus, n?): AuthorEntry[]`; `loadAuthorCorpus(path?): AuthorEntry[]`; `matchAuthor(prologue, corpus, embed, llmQueue?): Promise<AuthorMatch | null>`; `selectAuthor(top3, prologue, llmQueue?): Promise<{ author: AuthorEntry; reason: string }>`; `analyzeBirth(hints, prologue, corpus, embed, llmQueue): Promise<{ psychotype: JungianProfile; closestAuthor: string | null } | null>` ([S5.2]).
 
-- [ ] **Step 1: Write failing tests (jungian-profiler.test.ts + author-matcher.test.ts)**
+- [x] **Step 1: Write failing tests (jungian-profiler.test.ts + author-matcher.test.ts)**
 
 ```typescript
 // append to src/services/jungian-profiler.test.ts
@@ -139,12 +139,12 @@ describe('loadAuthorCorpus', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test src/services/jungian-profiler.test.ts src/services/author-matcher.test.ts`
 Expected: FAIL — `topNAuthors is not exported` / `Cannot find module './author-matcher'`
 
-- [ ] **Step 3: Write minimal implementation — types + pure topNAuthors (jungian-profiler.ts)**
+- [x] **Step 3: Write minimal implementation — types + pure topNAuthors (jungian-profiler.ts)**
 
 ```typescript
 // append to src/services/jungian-profiler.ts
@@ -177,7 +177,7 @@ export function topNAuthors(prologueEmbedding: number[], corpus: AuthorEntry[], 
 
 > `vecCosine` (из `@/lib/vector-ops`) бросает на dim-mismatch, но мы отфильтровали записи другой длины заранее → бросания нет. При полностью рассинхронизированном корпусе `topNAuthors` вернёт `[]`, а `matchAuthor` (Step 4) вернёт `null`.
 
-- [ ] **Step 4: Write minimal implementation — async matcher (author-matcher.ts)**
+- [x] **Step 4: Write minimal implementation — async matcher (author-matcher.ts)**
 
 ```typescript
 // src/services/author-matcher.ts (create)
@@ -264,12 +264,12 @@ export async function matchAuthor(
 
 > **agentId `'author-matcher'` не зарегистрирован** в `DEFAULT_AGENTS`/`conf/agents.json`: `LLMQueue.generateText(prompt, 1, 0.2, 'author-matcher')` резолвится в default provider через `loadAgentConfig` fallback. Опционально: зарегистрировать `author-matcher` в `conf/agents.json` (своя модель/провайдер) либо принять default.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `bun test src/services/jungian-profiler.test.ts src/services/author-matcher.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Typecheck + commit**
+- [x] **Step 6: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit

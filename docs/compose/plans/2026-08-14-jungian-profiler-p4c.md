@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 4C: Persistence + Stylist few-shot + Чекпоинт P4 (Tasks 4.3–4.4)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S7; impl-спека `spec-profiler-persistence.md` §3, §6.
 
@@ -22,7 +22,7 @@
 - Consumes: `addColumnIfMissing` (Task 1.4); `loadAuthorCorpus`, `topNAuthors`, `analyzeBirth` (Task 4.2); `blendProfiles` (Task 2.7).
 - Produces: `upsertClosestAuthor(playerId, name: string | null): void`; `getClosestAuthor(playerId): string | null`; `analyzeBirth(hints, prologue, corpus, embed, llmQueue)` + `blendProfiles(a, b)` (этап 2, [S5.2]).
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // append to src/lib/__tests__/player-profile-store.test.ts
@@ -42,12 +42,12 @@ describe('PlayerProfileStore — closest_author', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/lib/__tests__/player-profile-store.test.ts`
 Expected: FAIL — `upsertClosestAuthor is not a function`
 
-- [ ] **Step 3: Write minimal implementation (player-profile-store.ts)**
+- [x] **Step 3: Write minimal implementation (player-profile-store.ts)**
 
 ```typescript
 // In constructor, AFTER the jungianCols loop from Task 1.4:
@@ -70,12 +70,12 @@ getClosestAuthor(playerId: string): string | null {
 ```
 > **⚠️ Fix (Phase 1 `p1d`):** существующий `upsertProfile()` (player-profile-store.ts:108) использует `INSERT OR REPLACE` → при следующем апдейте профиля сотрёт `closest_author` и `jungian_*`. Заменить на `INSERT ... ON CONFLICT(player_id) DO UPDATE SET ...`, чтобы эти колонки переживали апдейт. `upsertClosestAuthor` выше уже использует `ON CONFLICT(player_id) DO UPDATE`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/lib/__tests__/player-profile-store.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Wire в birth-wizard (однократно при создании персонажа)**
+- [x] **Step 5: Wire в birth-wizard (однократно при создании персонажа)**
 
 Этап 2 ([S5.2]): комбинированный вызов — психотип из описания персонажа + подбор автора — в `src/services/birth.ts` (`BirthScenario`); `src/routes/launch.ts` инжектит `playerProfileStore`.
 
@@ -100,7 +100,7 @@ if (corpus.length > 0 && prologue.trim().length > 0) {
 
 > `analyzeBirth` (Task 4.2) — комбинированный вызов [S5.2]: `topNAuthors(embed(prologue), corpus)` (0 LLM) → один prompt `birthHints + prologue + top-3` → `{ psychotype, closestAuthor }`. `blendProfiles` (Task 2.7) — чистый blend профилей (0 LLM). LLM упал/нет пролога → graceful (автор не назначается, профиль этапа 1). Per-turn Stylist (Task 4.4) читает кеш `closest_author`; `analyzeText` (P2) не тронут — изоляция S21.
 
-- [ ] **Step 6: Typecheck + commit**
+- [x] **Step 6: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -117,7 +117,7 @@ git commit -m "feat(profiler): closest_author persistence + birth-wizard author 
 - Consumes: `buildMicroPrompt(..., playerVoice?, authorPhrases?)` (Stylist); `getClosestAuthor` (Task 4.3); `loadAuthorCorpus` (Task 4.2).
 - Produces: `StylistAgent.buildMicroPrompt` — 6-й необязательный параметр `authorPhrases?: string[]`.
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```typescript
 // append to src/services/agents/stylist.test.ts (в describe('StylistAgent.buildMicroPrompt'))
@@ -135,12 +135,12 @@ test('no authorPhrases → no few-shot block', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test src/services/agents/stylist.test.ts`
 Expected: FAIL — `user` не содержит `Author style examples` (few-shot блок отсутствует)
 
-- [ ] **Step 3: Write minimal implementation (stylist.ts)**
+- [x] **Step 3: Write minimal implementation (stylist.ts)**
 
 Добавить 6-й параметр `authorPhrases?: string[]` и блок `authorBlock` в `buildMicroPrompt`. Полный целевой метод (заменить существующий целиком):
 
@@ -195,12 +195,12 @@ Write 2-3 paragraphs continuing this scene.`;
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test src/services/agents/stylist.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Wire authorPhrases через LiteraryV2Generator**
+- [x] **Step 5: Wire authorPhrases через LiteraryV2Generator**
 
 ```typescript
 // src/services/roleplay/prose/literary-v2-generator.ts
@@ -233,7 +233,7 @@ private async generateViaStylist(
 }
 ```
 
-- [ ] **Step 6: Resolve authorPhrases в roleplay-engine**
+- [x] **Step 6: Resolve authorPhrases в roleplay-engine**
 
 ```typescript
 // src/services/roleplay-engine.ts
@@ -249,7 +249,7 @@ const authorPhrases = authorName ? loadAuthorCorpus().find(a => a.name === autho
 ```
 > При отсутствии `closest_author` (или пустом корпусе) `authorPhrases = []` → блок не добавляется, генерация не блокируется (дизайн S7).
 
-- [ ] **Step 7: Typecheck + commit**
+- [x] **Step 7: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -286,15 +286,15 @@ bun -e "const c=JSON.parse(await Bun.file('data/author-embeddings.json').text())
 ```
 
 **Критерии прохождения чекпоинта:**
-- [ ] `tsc --noEmit` без ошибок
-- [ ] Все unit-тесты Phase 1-4 зелёные (нет `.only`/`.skip`)
-- [ ] `data/author-embeddings.json` — 50 валидных `AuthorEntry`, все embedding одинаковой непустой dim
-- [ ] `matchAuthor` возвращает `null` (не бросает) при недоступном embedding-сервере И при рассинхроне dim (корпус под другую модель)
-- [ ] `analyzeBirth` (комбинированный вызов [S5.2]): prompt содержит описание персонажа + пролог + samplePhrases; LLM вне top-3 / ошибка → top-1 fallback (unit-тесты)
-- [ ] `closest_author` пишется/читается (roundtrip), `null` стирает
-- [ ] При отсутствии автора `buildMicroPrompt` НЕ содержит few-shot блок и генерация не блокируется
-- [ ] `process()` у Stylist не изменён (только `buildMicroPrompt` получил 6-й параметр)
-- [ ] `analyzeText` (P2) не изменён — изоляция фаз сохранена (P4 не блокирует P2)
+- [x] `tsc --noEmit` без ошибок
+- [x] Все unit-тесты Phase 1-4 зелёные (нет `.only`/`.skip`)
+- [x] `data/author-embeddings.json` — 50 валидных `AuthorEntry`, все embedding одинаковой непустой dim
+- [x] `matchAuthor` возвращает `null` (не бросает) при недоступном embedding-сервере И при рассинхроне dim (корпус под другую модель)
+- [x] `analyzeBirth` (комбинированный вызов [S5.2]): prompt содержит описание персонажа + пролог + samplePhrases; LLM вне top-3 / ошибка → top-1 fallback (unit-тесты)
+- [x] `closest_author` пишется/читается (roundtrip), `null` стирает
+- [x] При отсутствии автора `buildMicroPrompt` НЕ содержит few-shot блок и генерация не блокируется
+- [x] `process()` у Stylist не изменён (только `buildMicroPrompt` получил 6-й параметр)
+- [x] `analyzeText` (P2) не изменён — изоляция фаз сохранена (P4 не блокирует P2)
 
 **Если чекпоинт не пройден — почини и повтори.**
 **Phase 4 DONE.** Стилевой референс + author few-shot готовы. Все 4 фазы завершены.

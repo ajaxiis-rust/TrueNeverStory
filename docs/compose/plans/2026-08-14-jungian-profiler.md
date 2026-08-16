@@ -1,6 +1,6 @@
 # Jungian Profiler — Master Plan (v1.3)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use compose:subagent (recommended) or compose:execute to implement each sub-plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use compose:subagent (recommended) or compose:execute to implement each sub-plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 > **Источник правды:** дизайн `docs/compose/specs/2026-08-10-jungian-profiler-design_1.3.md` (контракты + WHY) + 5 impl-спек (`spec-blend-algorithm.md`, `spec-behavioral-metrics.md`, `spec-profiler-persistence.md`, `spec-profiler-integration.md`, `spec-profiler-implementation.md`).
 > **Это индекс.** Детальные пошаговые планы разбиты на файлы ≤300 строк. Выполняй строго по порядку; не переходи к следующему файлу, пока не пройден чекпоинт текущего.
 

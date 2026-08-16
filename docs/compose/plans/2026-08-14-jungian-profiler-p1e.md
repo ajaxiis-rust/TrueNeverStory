@@ -1,6 +1,6 @@
 # Jungian Profiler — Phase 1E: Flag + Hooks + Чекпоинт P1 (Tasks 1.5–1.6)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [ ]`.
+> **For agentic workers:** REQUIRED SUB-SKILL: compose:subagent или compose:execute. Steps — checkbox `- [x]`.
 > **Родитель:** `2026-08-14-jungian-profiler.md` (Global Constraints наследуются).
 > **Covers:** дизайн S5.1, S16, S21; impl-спеки `spec-profiler-integration.md`, `spec-profiler-persistence.md`.
 
@@ -18,7 +18,7 @@
 
 **Covers:** S16, S21
 
-- [ ] **Step 1: Add flag to DEFAULT_FLAGS (append to array in feature-flags.ts)**
+- [x] **Step 1: Add flag to DEFAULT_FLAGS (append to array in feature-flags.ts)**
 
 ```typescript
 {
@@ -37,9 +37,9 @@
 },
 ```
 
-- [ ] **Step 2: Add matching entry to conf/feature-flags.json** (same object, in `flags` array)
+- [x] **Step 2: Add matching entry to conf/feature-flags.json** (same object, in `flags` array)
 
-- [ ] **Step 3: Verify flag loads (and actually exists in JSON)**
+- [x] **Step 3: Verify flag loads (and actually exists in JSON)**
 
 > ⚠️ `isEnabled()` returns `false` for an **absent** flag (`if (!flag) return false`), so this check passes trivially even if the flag was never added. The flag MUST be present in `conf/feature-flags.json`, because `FeatureFlagManager._load()` only reads `DEFAULT_FLAGS` when the JSON file does **not** exist — once `conf/feature-flags.json` exists, `DEFAULT_FLAGS` is ignored. A flag added only to `DEFAULT_FLAGS` will NOT be loaded.
 
@@ -51,7 +51,7 @@ Run (runtime check):
 `bun -e "import {getFeatureFlagManager} from './src/lib/feature-flags'; console.log(getFeatureFlagManager().isEnabled('jungian-profiler-enabled'))"`
 Expected: `false`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/lib/feature-flags.ts conf/feature-flags.json
@@ -69,7 +69,7 @@ git commit -m "feat(profiler): jungian-profiler-enabled feature flag (default of
 
 > **playerId:** `this.activeCharacter ?? this.activeSessionId ?? 'default'`.
 
-- [ ] **Step 1: Add `restore()` to MetricsCollector + fields to RoleplayEngine**
+- [x] **Step 1: Add `restore()` to MetricsCollector + fields to RoleplayEngine**
 
 ```typescript
 // In src/services/metrics-collector.ts:
@@ -117,7 +117,7 @@ private initJungianProfile(): void {
 }
 ```
 
-- [ ] **Step 2: Add hooks in `_processInputImpl` + вынести blend в `_runBlendCycle`**
+- [x] **Step 2: Add hooks in `_processInputImpl` + вынести blend в `_runBlendCycle`**
 
 ```typescript
 // After translateAndClassify(ctx) → intent:
@@ -152,9 +152,9 @@ private runBlendCycle(): void {
 
 > `deriveType` импортируется из `./jungian-profiler` (Task 1.1).
 
-- [ ] **Step 3: Mirror hooks in `_processInputStreamImpl`** — `recordInput`+`recordIntent` после parse, `recordSimulation` после simulate, `this.runBlendCycle()` после build.
+- [x] **Step 3: Mirror hooks in `_processInputStreamImpl`** — `recordInput`+`recordIntent` после parse, `recordSimulation` после simulate, `this.runBlendCycle()` после build.
 
-- [ ] **Step 4: Write integration test (profile updates after 20 turns)**
+- [x] **Step 4: Write integration test (profile updates after 20 turns)**
 
 ```typescript
 // src/services/roleplay-engine.jungian.test.ts
@@ -163,12 +163,12 @@ private runBlendCycle(): void {
 // Если полный mock Engine тяжёл — unit-тест runBlendCycle(): после 20 циклов source==='blended'.
 ```
 
-- [ ] **Step 5: Verify — narrative unchanged, profile updates**
+- [x] **Step 5: Verify — narrative unchanged, profile updates**
 
 Run: `bun test src/services/metrics-collector.test.ts src/services/jungian-profiler.test.ts src/lib/__tests__/player-profile-store.test.ts`
 Expected: PASS. Вручную: с флагом true и false нарратив идентичен.
 
-- [ ] **Step 6: Typecheck + commit**
+- [x] **Step 6: Typecheck + commit**
 
 ```bash
 bunx tsc --noEmit
@@ -198,12 +198,12 @@ bun -e "import {getFeatureFlagManager} from './src/lib/feature-flags'; console.l
 ```
 
 **Критерии прохождения:**
-- [ ] `tsc --noEmit` без ошибок
-- [ ] Все unit-тесты зелёные (нет `.only`/`.skip`)
-- [ ] `jungian-profiler-enabled` → `false`
-- [ ] roundtrip профиля в БД работает (тест)
-- [ ] Нарратив идентичен при flag on/off
-- [ ] `git log --oneline -7` показывает коммиты задач 1.1–1.6
+- [x] `tsc --noEmit` без ошибок
+- [x] Все unit-тесты зелёные (нет `.only`/`.skip`)
+- [x] `jungian-profiler-enabled` → `false`
+- [x] roundtrip профиля в БД работает (тест)
+- [x] Нарратив идентичен при flag on/off
+- [x] `git log --oneline -7` показывает коммиты задач 1.1–1.6
 
 **Если чекпоинт не пройден — НЕ начинай Phase 2.** Почини и повтори.
 
