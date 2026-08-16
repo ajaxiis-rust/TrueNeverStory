@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.0
+# TrueNeverStory v0.32.5
 
 ### 玩着写你的书。
 
@@ -10,7 +10,7 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架�
 
 ---
 
-## v0.32.0 新功能
+## v0.32.5 新功能
 
 ### Gutenberg 处理管道 — 59本书 → 4个数据库
 - **导入 + 处理脚本** — 从下载的 Gutenberg .txt 文件到代理可用的 SQLite 数据库的完整管道
@@ -34,10 +34,10 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架�
 - **新数据库表** — `narrative_arcs`、`thematic_motifs`、`quality_calibration`
 
 ### 之前的版本
-- **v0.31.1** — MCP 控制台优化（XSS、i18n、进度条、经济、翻译）
-- **v0.31.0** — RoleplayEngine 重构（SessionState、CommandHandler、PipelineRunner、Prose strategies）
+- **v0.32.5** — MCP 控制台优化（XSS、i18n、进度条、经济、翻译）
+- **v0.32.5** — RoleplayEngine 重构（SessionState、CommandHandler、PipelineRunner、Prose strategies）
 
-### v0.29.6 新功能
+### v0.32.5 新功能
 - **批量图遍历** — `getRelatedVerses()` 现在使用 `IN (...)` 批量查询代替 N 次独立查询（N+1 → 1）
 - **经文索引** — 新增 `idx_verses_book_chapter` 索引加速过滤查询
 - **人物系统** — 全新 `CharacterDB`，含 3 张表：`bible_characters`、`bible_character_edges`、`bible_character_mentions`
@@ -46,7 +46,7 @@ TrueNeverStory 是一个AI驱动的互动叙事引擎，采用**State-First架�
 - **Git清理** — 移除 177MB 原始文件和 59MB 编译数据库的跟踪
 - **构建脚本** — `download-sources.sh` + `bootstrap-bible-db.ts` 用于客户端初始化
 
-### v0.29.6 新功能
+### v0.32.5 新功能
 
 ### State-First 管道
 引擎现在在**生成文本之前确定性地处理行动**：
@@ -236,7 +236,7 @@ TrueNeverStory/
 │   ├── routes/           # API路由 (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # 规则引擎 (14条规则、协同矩阵、技术依赖)
 │   ├── services/         # 60+服务 (角色扮演引擎、代理、经济、世界隔离、跨世界总线)
-│   │   ├── agents/       # v0.29.6 新代理 (编剧、验证者、风格师、演员、审查员、编年史官)
+│   │   ├── agents/       # v0.32.5 新代理 (编剧、验证者、风格师、演员、审查员、编年史官)
 │   │   └── ...
 │   ├── intelligence/     # 图分析、重复检测、推荐系统
 │   ├── i18n/             # 语言包 (7种语言)

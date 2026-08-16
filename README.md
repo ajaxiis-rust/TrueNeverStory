@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.0
+# TrueNeverStory v0.32.5
 
 ### Write your book just by playing.
 
@@ -10,7 +10,7 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 
 ---
 
-## What's New in v0.32.0
+## What's New in v0.32.5
 
 ### Gutenberg Processing Pipeline — 59 books → 4 databases
 - **Import + Process scripts** — full pipeline from downloaded Gutenberg .txt files to agent-consumable SQLite databases
@@ -34,10 +34,10 @@ Built on TypeScript (Bun + Hono) with C FFI compute kernels for performance-crit
 - **New DB tables** — `narrative_arcs`, `thematic_motifs`, `quality_calibration`
 
 ### Previous: v0.31.x
-- **v0.31.1** — MCP Console polish (XSS, i18n, progress bar, economics, translations)
-- **v0.31.0** — RoleplayEngine refactoring (SessionState, CommandHandler, PipelineRunner, Prose strategies)
+- **v0.32.5** — MCP Console polish (XSS, i18n, progress bar, economics, translations)
+- **v0.32.5** — RoleplayEngine refactoring (SessionState, CommandHandler, PipelineRunner, Prose strategies)
 
-## What's New in v0.29.6
+## What's New in v0.32.5
 
 ### Bible DB Optimization
 - **FTS5 search** — replaced `LIKE '%query%'` with FTS5 `MATCH` for O(1) full-text lookups (with LIKE fallback)
@@ -306,7 +306,7 @@ TrueNeverStory/
 │   ├── routes/           # API routes (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Social/economic rules engine (14 rules, synergy matrix, tech deps)
 │   ├── services/         # 60+ services (roleplay engine, agents, economy, world isolator, cross-world bus)
-│   │   ├── agents/       # v0.29.6 new agents (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+│   │   ├── agents/       # v0.32.5 new agents (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
 │   │   └── ...
 │   ├── intelligence/     # Graph analyzer, duplicate detector, recommender
 │   ├── i18n/             # Language packs (7 languages)

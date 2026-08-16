@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.0
+# TrueNeverStory v0.32.5
 
 ### Ecris ton livre en jouant.
 
@@ -10,7 +10,7 @@ Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les o
 
 ---
 
-## Nouveautes de v0.32.0
+## Nouveautes de v0.32.5
 
 ### Pipeline de traitement Gutenberg — 59 livres → 4 bases de donnees
 - **Scripts d'import et de traitement** — pipeline complet des fichiers .txt Gutenberg telecharges vers les bases SQLite pour agents
@@ -34,12 +34,12 @@ Construit sur TypeScript (Bun + Hono) avec des noyaux de calcul C FFI pour les o
 - **Nouvelles tables DB** — `narrative_arcs`, `thematic_motifs`, `quality_calibration`
 
 ### Versions precedentes
-- **v0.31.1** — polissage de la Console MCP (XSS, i18n, barre de progression, economie, traductions)
-- **v0.31.0** — refactoring du RoleplayEngine (SessionState, CommandHandler, PipelineRunner, Prose strategies)
+- **v0.32.5** — polissage de la Console MCP (XSS, i18n, barre de progression, economie, traductions)
+- **v0.32.5** — refactoring du RoleplayEngine (SessionState, CommandHandler, PipelineRunner, Prose strategies)
 
 ---
 
-## Nouveautes de v0.29.6
+## Nouveautes de v0.32.5
 
 ### Pipeline State-First
 Le moteur traite maintenant les actions **de maniere deterministe avant de generer du texte** :
@@ -229,7 +229,7 @@ TrueNeverStory/
 │   ├── routes/           # Routes API (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Moteur de regles (14 regles, matrice synergie, dependances tech)
 │   ├── services/         # 60+ services (moteur de jeu, agents, economie, isolation mondes, bus inter-mondes)
-│   │   ├── agents/       # Nouveaux agents v0.29.6 (Dramaturge, Validateur, Styliste, Acteur, Censeur, Chroniqueur)
+│   │   ├── agents/       # Nouveaux agents v0.32.5 (Dramaturge, Validateur, Styliste, Acteur, Censeur, Chroniqueur)
 │   │   └── ...
 │   ├── intelligence/     # Analyse graphe, detection doublons, systeme de recommandation
 │   ├── i18n/             # Pack de langues (7 langues)

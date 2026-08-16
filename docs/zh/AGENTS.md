@@ -247,7 +247,7 @@ LLM 响应会自动匹配所选的 UI 语言。语言指令在世界创建时通
 
 ---
 
-## 专业代理 (v0.32.0)
+## 专业代理 (v0.32.5)
 
 以下专业代理现已接入`RoleplayEngine`，可通过`engine.<agent>`访问：
 
@@ -263,7 +263,7 @@ LLM 响应会自动匹配所选的 UI 语言。语言指令在世界创建时通
 
 ---
 
-## 玩家风格档案 (v0.32.0)
+## 玩家风格档案 (v0.32.5)
 
 `PlayerProfileStore` (`src/lib/player-profile-store.ts`) 提供跨代理的玩家风格档案，供 Stylist 和 LiteraryV2Generator 共享使用。
 
@@ -288,7 +288,7 @@ LLM 响应会自动匹配所选的 UI 语言。语言指令在世界创建时通
 
 ---
 
-## 对话系统 (v0.32.0)
+## 对话系统 (v0.32.5)
 
 新的`DialogueManager` + `DialogueContext`用于结构化NPC对话：
 

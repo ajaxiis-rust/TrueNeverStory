@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.0
+# TrueNeverStory v0.32.5
 
 ### 遊ぶだけで、自分の物語を書こう。
 
@@ -10,7 +10,7 @@ TypeScript (Bun + Hono)とC FFIカーネルによるハイブリッド構成。
 
 ---
 
-## v0.32.0 の新機能
+## v0.32.5 の新機能
 
 ### Gutenberg 処理パイプライン — 59冊 → 4つのデータベース
 - **インポート＋処理スクリプト** — ダウンロードしたGutenbergの.txtファイルからエージェントが利用可能なSQLiteデータベースへの完全なパイプライン
@@ -34,12 +34,12 @@ TypeScript (Bun + Hono)とC FFIカーネルによるハイブリッド構成。
 - **新しいDBテーブル** — `narrative_arcs`、`thematic_motifs`、`quality_calibration`
 
 ### 以前のバージョン
-- **v0.31.1** — MCPコンソールの仕上げ（XSS、i18n、プログレスバー、経済学、翻訳）
-- **v0.31.0** — RoleplayEngineリファクタリング（SessionState、CommandHandler、PipelineRunner、Prose strategies）
+- **v0.32.5** — MCPコンソールの仕上げ（XSS、i18n、プログレスバー、経済学、翻訳）
+- **v0.32.5** — RoleplayEngineリファクタリング（SessionState、CommandHandler、PipelineRunner、Prose strategies）
 
 ---
 
-## v0.29.6 の新機能
+## v0.32.5 の新機能
 
 ### State-Firstパイプライン
 エンジンは**テキストを生成する前にアクションを決定論的に処理**するようになりました：
@@ -229,7 +229,7 @@ TrueNeverStory/
 │   ├── routes/           # APIルート (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # ルールエンジン (14ルール、シナジーマトリックス、技術依存関係)
 │   ├── services/         # 60+サービス (ロールプレイエンジン、エージェント、経済、ワールド分離、クロスワールドバス)
-│   │   ├── agents/       # v0.29.6 新エージェント (ドラマトゥルグ、バリデーター、スタイリスト、アクター、センサー、クロニクラー)
+│   │   ├── agents/       # v0.32.5 新エージェント (ドラマトゥルグ、バリデーター、スタイリスト、アクター、センサー、クロニクラー)
 │   │   └── ...
 │   ├── intelligence/     # グラフ分析、重複検出、レコメンドシステム
 │   ├── i18n/             # 言語パック (7言語)

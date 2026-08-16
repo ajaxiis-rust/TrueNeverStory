@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.32.5 (2026-08-16)
+
+### Literary Modulation — Soft Stylistic Enrichment
+
+New opt-in system that enriches narrative prose for an outside reader without touching player agency. All features ship disabled behind feature flags.
+
+**Features:**
+- **Short Turn Expansion** — thin actionable player turns are expanded with world/NPC reactions and sensory detail (1 LLM call per expanded turn). The player's decision is always preserved verbatim; a second explicit refusal in a scene suppresses further expansion.
+- **Deferred Character Hooks** — NPCs the player noticed but rejected resurface later (trace / edge / soft contact), closed on story beats.
+- **Literary Feedback** — like/dislike on a turn drives softer regeneration (1st dislike) or rollback to the raw player turn (2nd dislike), plus narrow ±15% parameter drift.
+- **Soft Dramaturgical Priors** — ±15% archetype bias from behavioral signals; a weak `literaryToneHint` in the Stylist prompt (below `authorPhrases`/`playerVoice`).
+
+**Feature flags:** `literary-modulation-enabled`, `short-turn-expansion-enabled`, `deferred-hooks-enabled`.
+
+**Other:**
+- Codebase internal language cleanup — logic, LLM prompts, and generated data now use English ("English inside, translate at boundary").
+
+---
+
 ## v0.30.0 (2026-08-01)
 
 ### Provider Priority & llama.cpp Installation Fixes

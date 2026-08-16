@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.0
+# TrueNeverStory v0.32.5
 
 ### Schreibe dein Buch, indem du einfach spielst.
 
@@ -10,7 +10,7 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskriti
 
 ---
 
-## Was ist neu in v0.32.0
+## Was ist neu in v0.32.5
 
 ### Gutenberg Verarbeitungspipeline — 59 Buecher → 4 Datenbanken
 - **Import + Verarbeitungsskripte** — vollstaendiger Pipeline von heruntergeladenen Gutenberg .txt-Dateien zu agenten-konsumierbaren SQLite-Datenbanken
@@ -34,10 +34,10 @@ Gebaut auf TypeScript (Bun + Hono) mit C FFI Compute-Kernels fuer leistungskriti
 - **Neue DB-Tabellen** — `narrative_arcs`, `thematic_motifs`, `quality_calibration`
 
 ### Vorige Versionen
-- **v0.31.1** — MCP Console Polishing (XSS, i18n, Fortschrittsbalken, Oekonomie, Uebersetzungen)
-- **v0.31.0** — RoleplayEngine Refactoring (SessionState, CommandHandler, PipelineRunner, Prose strategies)
+- **v0.32.5** — MCP Console Polishing (XSS, i18n, Fortschrittsbalken, Oekonomie, Uebersetzungen)
+- **v0.32.5** — RoleplayEngine Refactoring (SessionState, CommandHandler, PipelineRunner, Prose strategies)
 
-## Was ist neu in v0.29.6
+## Was ist neu in v0.32.5
 
 ### State-First-Pipeline
 Die Engine verarbeitet Aktionen nun **deterministisch, bevor Text generiert wird**:
@@ -229,7 +229,7 @@ TrueNeverStory/
 │   ├── routes/           # API-Routen (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Regel-Engine (14 Regeln, Synergie-Matrix, Technologie-Abhaengigkeiten)
 │   ├── services/         # 60+ Dienste (Rollenspiel-Engine, Agenten, Oekonomie, Welt-Isolierung, Cross-Welt-Bus)
-│   │   ├── agents/       # v0.29.6 neue Agenten (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
+│   │   ├── agents/       # v0.32.5 neue Agenten (Dramaturg, Validator, Stylist, Actor, Censor, Chronicler)
 │   │   └── ...
 │   ├── intelligence/     # Graph-Analyse, Duplikaterkennung, Empfehlungssystem
 │   ├── i18n/             # Sprachpakete (7 Sprachen)

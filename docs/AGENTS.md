@@ -1,6 +1,6 @@
-# Agents Reference (v0.32.0)
+# Agents Reference (v0.32.5)
 
-TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.32.0, the engine has **6 core agents** (The Big Six), registered in `AgentRegistryV2`, plus a **dialogue system**. `stylist` is the sole prose generator. A few non-prose subsystems (crafting, research) and chat-mention handlers remain (see below).
+TrueNeverStory uses a multi-agent architecture where each agent handles a specific aspect of the narrative. As of v0.32.5, the engine has **6 core agents** (The Big Six), registered in `AgentRegistryV2`, plus a **dialogue system**. `stylist` is the sole prose generator. A few non-prose subsystems (crafting, research) and chat-mention handlers remain (see below).
 
 ---
 
@@ -152,7 +152,7 @@ The old prose agents (`narrator`, `npc`, `scene`, `director`) and the dead speci
 
 ---
 
-## Dialogue System (v0.32.0)
+## Dialogue System (v0.32.5)
 
 New `DialogueManager` + `DialogueContext` for structured NPC conversations:
 
@@ -196,7 +196,7 @@ const withSearch = registry.getAgentsWithTool('search_verses');
 
 ---
 
-## Agent Interface (v0.32.0)
+## Agent Interface (v0.32.5)
 
 ```typescript
 interface AgentV2 {
@@ -308,7 +308,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## MCP Integration (v0.32.0)
+## MCP Integration (v0.32.5)
 
 ### Bible Patterns
 
@@ -353,7 +353,7 @@ Each agent stores a `userTemplate` in SQLite (`agent_prompts` table) with JSON f
 
 ---
 
-## Player Style Profiles (v0.32.0)
+## Player Style Profiles (v0.32.5)
 
 `PlayerProfileStore` (`src/lib/player-profile-store.ts`) provides cross-agent player style profiles shared between Stylist and LiteraryV2Generator.
 

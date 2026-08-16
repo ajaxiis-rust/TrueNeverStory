@@ -247,7 +247,7 @@ Les agents avec une priorité plus élevée sont traités en premier lorsque plu
 
 ---
 
-## Agents spécialisés (v0.32.0)
+## Agents spécialisés (v0.32.5)
 
 Les agents spécialisés suivants sont maintenant intégrés dans `RoleplayEngine` et accessibles via `engine.<agent>` :
 
@@ -263,7 +263,7 @@ Chaque agent spécialiste n'accepte que `LLMQueue` comme dépendance et génère
 
 ---
 
-## Profils de style du joueur (v0.32.0)
+## Profils de style du joueur (v0.32.5)
 
 `PlayerProfileStore` (`src/lib/player-profile-store.ts`) fournit des profils de style de joueur inter-agents partagés entre Stylist et LiteraryV2Generator.
 
@@ -288,7 +288,7 @@ Chaque agent spécialiste n'accepte que `LLMQueue` comme dépendance et génère
 
 ---
 
-## Système de dialogue (v0.32.0)
+## Système de dialogue (v0.32.5)
 
 Nouveau `DialogueManager` + `DialogueContext` pour les conversations structurées avec les PNJ :
 

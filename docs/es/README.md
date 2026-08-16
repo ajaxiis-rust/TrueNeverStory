@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.0
+# TrueNeverStory v0.32.5
 
 ### Escribe tu libro solo jugando.
 
@@ -10,7 +10,7 @@ Construido en TypeScript (Bun + Hono) con kernels de computo C FFI para operacio
 
 ---
 
-## Novedades en v0.32.0
+## Novedades en v0.32.5
 
 ### Pipeline de procesamiento Gutenberg — 59 libros → 4 bases de datos
 - **Scripts de import y procesamiento** — pipeline completo de archivos .txt de Gutenberg descargados a bases SQLite para agentes
@@ -34,10 +34,10 @@ Construido en TypeScript (Bun + Hono) con kernels de computo C FFI para operacio
 - **Nuevas tablas DB** — `narrative_arcs`, `thematic_motifs`, `quality_calibration`
 
 ### Versiones anteriores
-- **v0.31.1** — pulido de la Consola MCP (XSS, i18n, barra de progreso, economia, traducciones)
-- **v0.31.0** — refactoring del RoleplayEngine (SessionState, CommandHandler, PipelineRunner, Prose strategies)
+- **v0.32.5** — pulido de la Consola MCP (XSS, i18n, barra de progreso, economia, traducciones)
+- **v0.32.5** — refactoring del RoleplayEngine (SessionState, CommandHandler, PipelineRunner, Prose strategies)
 
-## Novedades en v0.29.6
+## Novedades en v0.32.5
 
 ### Pipeline State-First
 El motor ahora procesa acciones **de forma determinista antes de generar texto**:
@@ -227,7 +227,7 @@ TrueNeverStory/
 │   ├── routes/           # Rutas API (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Motor de reglas (14 reglas, matriz sinergia, dependencias tech)
 │   ├── services/         # 60+ servicios (motor de juego, agentes, economia, aislamiento mundos, bus inter-mundos)
-│   │   ├── agents/       # Nuevos agentes v0.29.6 (Dramaturgo, Validador, Estilista, Actor, Censor, Cronista)
+│   │   ├── agents/       # Nuevos agentes v0.32.5 (Dramaturgo, Validador, Estilista, Actor, Censor, Cronista)
 │   │   └── ...
 │   ├── intelligence/     # Analisis grafo, deteccion duplicados, sistema de recomendacion
 │   ├── i18n/             # Paquetes de idiomas (7 idiomas)

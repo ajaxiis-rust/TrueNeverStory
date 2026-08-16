@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.0
+# TrueNeverStory v0.32.5
 
 ### Пиши свою книгу просто играя.
 
@@ -10,7 +10,7 @@ TrueNeverStory — ИИ-движок интерактивных нарратив
 
 ---
 
-## Что нового в v0.32.0
+## Что нового в v0.32.5
 
 ### Gutenberg Processing Pipeline — 59 книг → 4 базы данных
 - **Скрипты импорта и обработки** — полный конвейер из скачанных .txt файлов Gutenberg в SQLite базы для агентов
@@ -34,10 +34,10 @@ TrueNeverStory — ИИ-движок интерактивных нарратив
 - **Новые таблицы БД** — `narrative_arcs`, `thematic_motifs`, `quality_calibration`
 
 ### Предыдущие версии
-- **v0.31.1** — шлифовка MCP Console (XSS, i18n, прогресс-бар, экономика, переводы)
-- **v0.31.0** — рефакторинг RoleplayEngine (SessionState, CommandHandler, PipelineRunner, Prose strategies)
+- **v0.32.5** — шлифовка MCP Console (XSS, i18n, прогресс-бар, экономика, переводы)
+- **v0.32.5** — рефакторинг RoleplayEngine (SessionState, CommandHandler, PipelineRunner, Prose strategies)
 
-## Что нового в v0.29.6
+## Что нового в v0.32.5
 
 ### Оптимизация БД Библии
 - **FTS5 поиск** — замена `LIKE '%query%'` на FTS5 `MATCH` для O(1) полнотекстовых запросов (с fallback на LIKE)
@@ -49,7 +49,7 @@ TrueNeverStory — ИИ-движок интерактивных нарратив
 - **Очистка git** — удалено 177MB raw sources + 59MB скомпилированной БД из трекинга
 - **Build-скрипты** — `download-sources.sh` + `bootstrap-bible-db.ts` для настройки клиента
 
-### Что нового в v0.29.6
+### Что нового в v0.32.5
 
 ### Архитектура State-First
 Движок теперь обрабатывает действия **детерминированно перед генерацией текста**:
@@ -241,7 +241,7 @@ TrueNeverStory/
 │   ├── routes/           # API роуты (chat, entities, agents, settings, v1, v2, cross-world, plugins)
 │   ├── rules/            # Движок социальных/экономических правил (14 правил, матрица синергий)
 │   ├── services/         # 60+ сервисов (roleplay engine, агенты, экономика, world isolator, cross-world bus)
-│   │   ├── agents/       # v0.29.6 новые агенты (Драматург, Валидатор, Стилист, Актёр, Цензор, Летописец)
+│   │   ├── agents/       # v0.32.5 новые агенты (Драматург, Валидатор, Стилист, Актёр, Цензор, Летописец)
 │   │   └── ...
 │   ├── intelligence/     # Анализатор графов, детектер дубликатов, рекомендер
 │   ├── i18n/             # Языковые пакеты (7 языков)
