@@ -91,3 +91,21 @@ export async function expand(
   // Player decision is inviolable: keep the raw turn verbatim, append the enrichment.
   return `${rawInput}\n\n${continuation}`.trim();
 }
+
+const MAX_REFUSALS = 2;
+
+export class RefusalTracker {
+  private refusals = new Map<string, number>();
+
+  recordRefusal(sceneId: string): void {
+    this.refusals.set(sceneId, (this.refusals.get(sceneId) ?? 0) + 1);
+  }
+
+  shouldSuppress(sceneId: string): boolean {
+    return (this.refusals.get(sceneId) ?? 0) >= MAX_REFUSALS;
+  }
+
+  resetScene(sceneId: string): void {
+    this.refusals.delete(sceneId);
+  }
+}

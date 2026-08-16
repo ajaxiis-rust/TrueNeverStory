@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { shouldExpand, analyzeCharge, expand } from './short-turn-expander';
+import { shouldExpand, analyzeCharge, expand, RefusalTracker } from './short-turn-expander';
 import type { Intent } from '../models/intent';
 
 function makeIntent(type: string): Intent {
@@ -103,5 +103,35 @@ describe('expand', () => {
     );
     expect(capturedPrompt).toContain('Player prefers concrete info');
     expect(capturedPrompt).toContain('Author phrase one');
+  });
+});
+
+describe('RefusalTracker', () => {
+  it('allows expansion on first refusal', () => {
+    const tracker = new RefusalTracker();
+    expect(tracker.shouldSuppress('scene1')).toBe(false);
+  });
+
+  it('suppresses expansion after second refusal in same scene', () => {
+    const tracker = new RefusalTracker();
+    tracker.recordRefusal('scene1');
+    tracker.recordRefusal('scene1');
+    expect(tracker.shouldSuppress('scene1')).toBe(true);
+  });
+
+  it('tracks scenes independently', () => {
+    const tracker = new RefusalTracker();
+    tracker.recordRefusal('scene1');
+    tracker.recordRefusal('scene1');
+    expect(tracker.shouldSuppress('scene1')).toBe(true);
+    expect(tracker.shouldSuppress('scene2')).toBe(false);
+  });
+
+  it('resets scene on new scene', () => {
+    const tracker = new RefusalTracker();
+    tracker.recordRefusal('scene1');
+    tracker.recordRefusal('scene1');
+    tracker.resetScene('scene1');
+    expect(tracker.shouldSuppress('scene1')).toBe(false);
   });
 });
