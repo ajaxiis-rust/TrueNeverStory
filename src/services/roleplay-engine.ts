@@ -55,6 +55,7 @@ import { logLiterarySignals, computeLiteraryToneHint } from './literary-modulati
 import { shouldExpand, analyzeCharge, detectRefusal, expand, RefusalTracker } from './short-turn-expander';
 import { DeferredHookStore } from './deferred-hook-store';
 import { readJsonFileSync, atomicWriteJson } from '../lib/atomic-io';
+import { getFeedbackStore } from './feedback-store';
 
 const log = getLogger('roleplay-engine');
 
@@ -199,6 +200,8 @@ export class RoleplayEngine {
   private metricsCollector = new MetricsCollector();
   private refusalTracker = new RefusalTracker();
   private deferredHookStore = new DeferredHookStore();
+  private turnCounter = 0;
+  private lastTurn: { turnId: number; rawInput: string; narrative: string } | null = null;
   private recentSignals: { extraversion: number[]; intuition: number[]; thinking: number[]; judging: number[] } = {
     extraversion: [], intuition: [], thinking: [], judging: [],
   };
@@ -444,6 +447,7 @@ export class RoleplayEngine {
 
     // Step 0+1: Translate + classify intent
     const intent = await this.pipelineRunner.translateAndClassify(ctx);
+    this.turnCounter++;
     await this._eventBus.publishSimple(EventTopic.HEARTBEAT_INTENT_PARSED, { input: ctx.parsedInput }, 'engine');
 
     if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) {
@@ -582,6 +586,13 @@ export class RoleplayEngine {
     // Advance time
     this.currentTime = new Date(this.currentTime.getTime() + 5 * 60 * 1000);
 
+    this.lastTurn = {
+      turnId: this.turnCounter,
+      // ctx.rawInput = the player's ORIGINAL words (rollback target); ctx.parsedInput is the English translation used by logic.
+      rawInput: ctx.rawInput,
+      narrative,
+    };
+
     return narrative;
   }
 
@@ -634,6 +645,7 @@ export class RoleplayEngine {
 
     const parserContext = this.contextBuilder.buildParserContext(engineState);
     const intent = await this.intentParser.parse(parsedInput, parserContext);
+    this.turnCounter++;
 
     if (getFeatureFlagManager().isEnabled('jungian-profiler-enabled')) {
       this.metricsCollector.recordInput(parsedInput);
@@ -770,9 +782,48 @@ export class RoleplayEngine {
     }
 
     this.currentTime = new Date(this.currentTime.getTime() + 5 * 60 * 1000);
+
+    this.lastTurn = {
+      turnId: this.turnCounter,
+      rawInput: stripped,
+      narrative,
+    };
+
     yield { type: 'done', location: this.currentLocation, story_time: this.currentTime.toISOString(), active_character: this.activeCharacter ?? undefined };
   }
 
+
+  /**
+   * Regenerate the last narrative after a dislike.
+   * 1st dislike → softer regen; 2nd dislike → rollback to the raw player turn.
+   * The raw turn is always preserved in lastTurn.rawInput.
+   */
+  async regenerateLastTurn(): Promise<{ turnId: number; narrative: string } | null> {
+    if (!this.lastTurn) return null;
+    const dislikes = getFeedbackStore().getConsecutiveDislikes(this.lastTurn.turnId);
+
+    if (dislikes >= 2) {
+      // Rollback to the raw turn + temporary caution (suppress further regen this turn).
+      this.lastTurn = { ...this.lastTurn, narrative: this.lastTurn.rawInput };
+      log.info({ turnId: this.lastTurn.turnId }, 'feedback: 2nd dislike — rolled back to raw turn');
+      return { turnId: this.lastTurn.turnId, narrative: this.lastTurn.rawInput };
+    }
+
+    try {
+      const softer = await this._llmQueue.generateText(
+        `Previous response was too aggressive. Regenerate the narrative with: less NPC pressure, softer sensory detail, a different narrative angle. Preserve all facts and the player's decision.\n\nOriginal narrative:\n${this.lastTurn.narrative}`,
+        2, // TaskPriority.HIGH
+        0.6,
+        'feedback-regen',
+      );
+      this.lastTurn = { ...this.lastTurn, narrative: softer };
+      log.info({ turnId: this.lastTurn.turnId }, 'feedback: regenerated with softer approach');
+      return { turnId: this.lastTurn.turnId, narrative: softer };
+    } catch (err) {
+      log.warn({ err }, 'feedback regeneration failed');
+      return null;
+    }
+  }
 
   // ─── Legacy Agent Support (Phase 3 will replace these) ─────────────────
 

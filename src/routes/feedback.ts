@@ -7,6 +7,7 @@ import { getFeedbackStore, type FeedbackReaction } from "../services/feedback-st
 import { LITERARY_PARAMS, type LiteraryParam } from "../services/literary-modulation";
 import { getLogger } from "../utils/logger";
 import { safeJsonBody } from "../utils/safe-request";
+import { getEngine } from "./chat";
 
 const log = getLogger("feedback-route");
 export const feedbackRouter = new Hono();
@@ -36,5 +37,10 @@ feedbackRouter.post("/feedback", async (c) => {
     techniques: techniques as LiteraryParam[],
   });
   log.info({ turnId, reaction }, "feedback recorded");
+
+  if (reaction === 'dislike') {
+    const result = await getEngine().regenerateLastTurn();
+    return c.json({ ok: true, regenerated: result });
+  }
   return c.json({ ok: true });
 });

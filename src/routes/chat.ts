@@ -25,7 +25,7 @@ export function setWSManager(manager: WebSocketManager): void {
   _wsManager = manager;
 }
 
-function getEngine(): RoleplayEngine {
+export function getEngine(): RoleplayEngine {
   if (!_engine) throw new Error("RoleplayEngine not initialised");
   return _engine;
 }
