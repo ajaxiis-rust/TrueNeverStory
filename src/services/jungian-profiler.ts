@@ -417,9 +417,9 @@ export function assignNpcPsychotype(
   let judging = base.judging + jitter();
   // Faction bias — keyword match over arbitrary worldFrame.factions names (design S8).
   const f = (faction ?? '').toLowerCase();
-  if (/(bandit|разбой)/.test(f)) judging -= 0.15;                                    // P (perceiving)
-  if (/(inquisition|инквиз)/.test(f)) judging += 0.15;                               // J (judging)
-  if (/(guild|гильдия|trade|торгов)/.test(f)) { intuition -= 0.1; thinking += 0.1; } // S+T (sensing+thinking)
+  if (/(bandit|outlaw|brigand)/.test(f)) judging -= 0.15;                  // P (perceiving)
+  if (/(inquisition)/.test(f)) judging += 0.15;                            // J (judging)
+  if (/(guild|trade)/.test(f)) { intuition -= 0.1; thinking += 0.1; }      // S+T (sensing+thinking)
   if (worldSystem === 'feudalism') judging += 0.1;
   if (worldSystem === 'anarchy') judging -= 0.15;
 

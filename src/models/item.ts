@@ -65,7 +65,7 @@ export function canAddBoost(
 
 export function formatItemWithBoost(item: Item): string {
   const boostStr = item.boost
-    ? ` [УНИКАЛЬНЫЙ] → +${item.boost.multiplier * 100}% ${item.boost.stat} (${item.boost.reason})`
+    ? ` [UNIQUE] → +${item.boost.multiplier * 100}% ${item.boost.stat} (${item.boost.reason})`
     : "";
   return `${item.name}${boostStr}`;
 }

@@ -268,11 +268,11 @@ export function getEconomySummary(state: EconomyState): string {
   }
 
   return [
-    `Ход: ${state.turn}`,
+    `Turn: ${state.turn}`,
     `NPC: ${npcs.length}`,
-    `Запас еды: ${state.foodStockpile}`,
-    `Общее богатство: ${state.totalWealth}`,
-    `По рангам:`,
+    `Food stockpile: ${state.foodStockpile}`,
+    `Total wealth: ${state.totalWealth}`,
+    `By rank:`,
     ...Array.from(byRank.entries()).map(([rank, count]) => `  ${rank}: ${count}`),
   ].join("\n");
 }

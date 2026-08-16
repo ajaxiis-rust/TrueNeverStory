@@ -108,7 +108,7 @@ export function createSlaveFamily(parent: NPCWithEconomy, count: number): NPCWit
   for (let i = 0; i < count; i++) {
     family.push({
       id: `${parent.id}_slave_child_${i}`,
-      name: `${parent.name}_младший`,
+      name: `${parent.name} Jr.`,
       rank: RankType.SLAVE,
       archetype: parent.archetype,
       stats: {
@@ -136,10 +136,10 @@ export function createSlaveFamily(parent: NPCWithEconomy, count: number): NPCWit
 
 export function getSlaveSummary(slave: NPCWithEconomy): string {
   return [
-    `Раб: ${slave.name}`,
-    `Возраст: ${slave.age}`,
-    `Здоровье: ${slave.stats.health}`,
-    `Опыт: ${slave.stats.experience}`,
-    `Интриги: ${slave.stats.intrigue}`,
+    `Slave: ${slave.name}`,
+    `Age: ${slave.age}`,
+    `Health: ${slave.stats.health}`,
+    `Experience: ${slave.stats.experience}`,
+    `Intrigue: ${slave.stats.intrigue}`,
   ].join("\n");
 }

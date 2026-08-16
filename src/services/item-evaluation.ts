@@ -62,26 +62,26 @@ export class ItemEvaluationService {
     itemName: string,
     worldHistory: string,
   ): Promise<{ isUnique: boolean; precedent: string }> {
-    const prompt = `Оцени уникальность предмета: ${itemName}
+    const prompt = `Evaluate the uniqueness of this item: ${itemName}
 
-История мира:
+World history:
 ${worldHistory}
 
-Существовали ли ранее подобные предметы в этом мире?
+Did similar items exist before in this world?
 
-Ответь ТОЛЬКО JSON без markdown:
-{ "isUnique": true/false, "precedent": "описание" }`;
+Respond with ONLY JSON, no markdown:
+{ "isUnique": true/false, "precedent": "description" }`;
 
     try {
       const response = await this._llmQueue.generateText(prompt, 0, 0.3, "historian");
       const parsed = JSON.parse(response);
       return {
         isUnique: parsed.isUnique ?? false,
-        precedent: parsed.precedent ?? "Неизвестно",
+        precedent: parsed.precedent ?? "Unknown",
       };
     } catch (err) {
       log.warn({ err, itemName }, "Historian evaluation failed, assuming not unique");
-      return { isUnique: false, precedent: "Ошибка оценки" };
+      return { isUnique: false, precedent: "Evaluation error" };
     }
   }
 
@@ -90,21 +90,21 @@ ${worldHistory}
     itemDescription: string,
     worldRules: string,
   ): Promise<{ isUseful: boolean; boost?: ItemBoost }> {
-    const prompt = `Оцени полезность предмета: ${itemName}
-Описание: ${itemDescription}
+    const prompt = `Evaluate the usefulness of this item: ${itemName}
+Description: ${itemDescription}
 
-Правила мира:
+World rules:
 ${worldRules}
 
-Какую пользу он принесёт? Кому именно будет полезен?
+What benefit will it provide? Who exactly will benefit?
 
-Ответь ТОЛЬКО JSON без markdown:
+Respond with ONLY JSON, no markdown:
 {
   "isUseful": true/false,
   "boostType": "health|wealth|power|popularity|experience|intrigue",
   "multiplier": 0.05,
-  "targetGroup": "описание целевой группы",
-  "reason": "причина буста"
+  "targetGroup": "description of target group",
+  "reason": "reason for the boost"
 }`;
 
     try {
@@ -121,7 +121,7 @@ ${worldRules}
           stat: parsed.boostType ?? "health",
           multiplier: Math.min(0.10, Math.max(0.01, parsed.multiplier ?? 0.05)),
           targetGroup: parsed.targetGroup,
-          reason: parsed.reason ?? "Полезный предмет",
+          reason: parsed.reason ?? "Useful item",
         },
       };
     } catch (err) {

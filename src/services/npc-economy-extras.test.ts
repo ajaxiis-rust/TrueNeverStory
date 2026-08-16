@@ -93,10 +93,10 @@ describe("losePowerToSlavery", () => {
 });
 
 describe("getNPCRankTitle", () => {
-  test("returns Russian titles", () => {
-    expect(getNPCRankTitle(RankType.SLAVE)).toBe("Раб");
-    expect(getNPCRankTitle(RankType.KING)).toBe("Король");
-    expect(getNPCRankTitle(RankType.EMPEROR)).toBe("Император");
+  test("returns English titles", () => {
+    expect(getNPCRankTitle(RankType.SLAVE)).toBe("Slave");
+    expect(getNPCRankTitle(RankType.KING)).toBe("King");
+    expect(getNPCRankTitle(RankType.EMPEROR)).toBe("Emperor");
   });
 });
 
@@ -105,8 +105,8 @@ describe("getNPCSummary", () => {
     const npc = makeNPC();
     const summary = getNPCSummary(npc);
     expect(summary).toContain("Test");
-    expect(summary).toContain("Возраст: 30");
-    expect(summary).toContain("Богатство:");
+    expect(summary).toContain("Age: 30");
+    expect(summary).toContain("Wealth:");
   });
 });
 

@@ -44,7 +44,7 @@ describe("formatItemWithBoost", () => {
     item.boost = { stat: "power", multiplier: 0.05, reason: "enchanted" };
     const result = formatItemWithBoost(item);
     expect(result).toContain("Sword");
-    expect(result).toContain("УНИКАЛЬНЫЙ");
+    expect(result).toContain("UNIQUE");
     expect(result).toContain("5%");
   });
 });

@@ -6,9 +6,9 @@ const logger = getLogger('IntentParser');
 
 // ─── Fast Regex Patterns ─────────────────────────────────────────────────────
 
-const MOVE_PATTERNS = /^(?:go|move|travel|walk|run|head|пойти|идти|переместиться)\s+(?:to|toward|into|for|в|к|на)\s+(.+)/i;
-const TALK_PATTERNS = /^(?:say to|talk to|ask|tell|shout at|whisper to|сказать|поговорить|спросить)\s+(\S+)\s+(.+)/i;
-const OBSERVE_PATTERNS = /^(?:look at|examine|inspect|осмотреть|изучить|посмотреть)\s+(.+)/i;
+const MOVE_PATTERNS = /^(?:go|move|travel|walk|run|head)\s+(?:to|toward|into|for)\s+(.+)/i;
+const TALK_PATTERNS = /^(?:say to|talk to|ask|tell|shout at|whisper to)\s+(\S+)\s+(.+)/i;
+const OBSERVE_PATTERNS = /^(?:look at|examine|inspect)\s+(.+)/i;
 const COMMAND_PATTERN = /^\/(\w+)(?:\s+(.*))?$/;
 
 // ─── Intent Parser ───────────────────────────────────────────────────────────
@@ -89,8 +89,8 @@ export class IntentParser {
       };
     }
 
-    // Simple observation: just "look" or "осмотреться"
-    if (/^(?:look|осмотреться|look around)$/i.test(input)) {
+    // Simple observation: just "look" or "look around"
+    if (/^(?:look|look around)$/i.test(input)) {
       return {
         type: 'observation',
         detail_level: 'brief',
@@ -148,17 +148,17 @@ Rules:
 
   private detectSpeed(input: string): 'walk' | 'run' | 'travel' {
     const lower = input.toLowerCase();
-    if (/\b(run|sprint|dash|бежать|бросить)\b/.test(lower)) return 'run';
-    if (/\b(travel|journey|voyage|путешествовать)\b/.test(lower)) return 'travel';
+    if (/\b(run|sprint|dash)\b/.test(lower)) return 'run';
+    if (/\b(travel|journey|voyage)\b/.test(lower)) return 'travel';
     return 'walk';
   }
 
   private detectTone(input: string): 'neutral' | 'aggressive' | 'friendly' | 'secret' | 'deceptive' {
     const lower = input.toLowerCase();
-    if (/\b(shout|yell|scream|кричать|орать)\b/.test(lower)) return 'aggressive';
-    if (/\b(whisper|молчать|тихо)\b/.test(lower)) return 'secret';
-    if (/\b(friend|ally|comrade|друг|союзник)\b/.test(lower)) return 'friendly';
-    if (/\b(lie|deceive|обмануть|солгать)\b/.test(lower)) return 'deceptive';
+    if (/\b(shout|yell|scream)\b/.test(lower)) return 'aggressive';
+    if (/\b(whisper|quietly|softly)\b/.test(lower)) return 'secret';
+    if (/\b(friend|ally|comrade)\b/.test(lower)) return 'friendly';
+    if (/\b(lie|deceive)\b/.test(lower)) return 'deceptive';
     return 'neutral';
   }
 }

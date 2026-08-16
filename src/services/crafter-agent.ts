@@ -299,7 +299,7 @@ export class CrafterAgent {
     return {
       success: true,
       message: isUnique
-        ? `Crafted ${craftResult.result} — УНИКАЛЬНЫЙ! +${(boost?.multiplier ?? 0) * 100}% ${boost?.stat ?? "unknown"}`
+        ? `Crafted ${craftResult.result} — UNIQUE! +${(boost?.multiplier ?? 0) * 100}% ${boost?.stat ?? "unknown"}`
         : `Crafted ${craftResult.result}`,
       result: craftResult.result,
       boost: isUnique ? boost : undefined,

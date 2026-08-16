@@ -309,7 +309,7 @@ export function processInheritance(parent: NPCWithEconomy): NPCWithEconomy[] {
   for (let i = 0; i < parent.children; i++) {
     const child = createNPCWithEconomy(
       `${parent.id}_child_${i}`,
-      `${parent.name}_младший`,
+      `${parent.name} Jr.`,
       parent.rank,
       parent.archetype,
       18,
@@ -324,16 +324,16 @@ export function processInheritance(parent: NPCWithEconomy): NPCWithEconomy[] {
 
 export function getNPCRankTitle(rank: RankType): string {
   const titles: Record<RankType, string> = {
-    [RankType.SLAVE]: "Раб",
-    [RankType.COMMONER]: "Простолюдин",
-    [RankType.BARONET]: "Баронет",
-    [RankType.BARON]: "Барон",
-    [RankType.VISCOUNT]: "Виконт",
-    [RankType.COUNT]: "Граф",
-    [RankType.MARQUIS]: "Маркиз",
-    [RankType.DUKE]: "Герцог",
-    [RankType.KING]: "Король",
-    [RankType.EMPEROR]: "Император",
+    [RankType.SLAVE]: "Slave",
+    [RankType.COMMONER]: "Commoner",
+    [RankType.BARONET]: "Baronet",
+    [RankType.BARON]: "Baron",
+    [RankType.VISCOUNT]: "Viscount",
+    [RankType.COUNT]: "Count",
+    [RankType.MARQUIS]: "Marquis",
+    [RankType.DUKE]: "Duke",
+    [RankType.KING]: "King",
+    [RankType.EMPEROR]: "Emperor",
   };
   return titles[rank];
 }
@@ -341,14 +341,14 @@ export function getNPCRankTitle(rank: RankType): string {
 export function getNPCSummary(npc: NPCWithEconomy): string {
   return [
     `${npc.name} (${getNPCRankTitle(npc.rank)})`,
-    `Возраст: ${npc.age}`,
-    `Богатство: ${npc.stats.wealth}`,
-    `Могущество: ${npc.stats.power}`,
-    `Популярность: ${npc.stats.popularity}`,
-    `Здоровье: ${npc.stats.health}`,
-    `Опыт: ${npc.stats.experience}`,
-    `Интриги: ${npc.stats.intrigue}`,
-    `Лояльность: ${npc.loyalty}`,
-    `Дети: ${npc.children}`,
+    `Age: ${npc.age}`,
+    `Wealth: ${npc.stats.wealth}`,
+    `Power: ${npc.stats.power}`,
+    `Popularity: ${npc.stats.popularity}`,
+    `Health: ${npc.stats.health}`,
+    `Experience: ${npc.stats.experience}`,
+    `Intrigue: ${npc.stats.intrigue}`,
+    `Loyalty: ${npc.loyalty}`,
+    `Children: ${npc.children}`,
   ].join("\n");
 }
