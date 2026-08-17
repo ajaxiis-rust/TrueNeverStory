@@ -4,7 +4,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, renameSync, openSync, readSync, writeSync, closeSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { spawn, exec } from "node:child_process";
 import { promisify } from "node:util";
 import { getConfig } from "../config/env";
@@ -362,10 +362,12 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
 
 export async function listModels(): Promise<ModelInfo[]> {
   const models = loadModels();
+  const originalSnapshot = JSON.stringify(models);
 
-  // Build index for O(1) lookups
+  // Build index for O(1) lookups (normalize paths to absolute so relative and
+  // absolute entries match — importLocalModel stores absolute, downloadGguf relative)
   const byId = new Map(models.map(m => [m.id, m]));
-  const byPath = new Map(models.filter(m => m.path).map(m => [m.path, m]));
+  const byPath = new Map(models.filter(m => m.path).map(m => [resolve(m.path), m]));
 
   // Sync with Ollama — always run so models persist when offline
   const ollamaRunning = await isOllamaRunning();
@@ -401,11 +403,26 @@ export async function listModels(): Promise<ModelInfo[]> {
     }
   }
 
-  // Clean up stale "downloading" models (server was restarted during download)
+  // Clean up stale "downloading" models (server was restarted during download).
+  // If the GGUF file actually exists on disk, recover as "installed" instead of
+  // marking "available" — this handles downloads that completed but whose DB
+  // entry was never updated (e.g. server crash right after rename).
+  const ggufDir = getGgufDir();
   for (const m of models) {
     if (m.status === "downloading" && !_activeDownloads.has(m.name) && !_activeDownloads.has(m.id)) {
-      m.status = "available";
-      log.warn({ id: m.id }, "Reset stale downloading model to available");
+      const expectedPath = resolve(join(ggufDir, m.name + ".gguf"));
+      if (existsSync(expectedPath) && isGgufValid(expectedPath)) {
+        const stat = statSync(expectedPath);
+        m.status = "installed";
+        m.path = expectedPath;
+        m.size = stat.size;
+        m.sizeHuman = formatSize(stat.size);
+        m.downloadedAt = stat.mtime.toISOString();
+        log.info({ id: m.id, path: expectedPath }, "Recovered model from disk (was stale downloading)");
+      } else {
+        m.status = "available";
+        log.warn({ id: m.id }, "Reset stale downloading model to available");
+      }
     }
   }
 
@@ -414,7 +431,7 @@ export async function listModels(): Promise<ModelInfo[]> {
   if (existsSync(dir)) {
     const files = readdirSync(dir).filter((f) => f.endsWith(".gguf") && !f.endsWith(".downloading"));
     for (const file of files) {
-      const filePath = join(dir, file);
+      const filePath = resolve(join(dir, file));
       // Validate GGUF header — if corrupted, delete and skip
       if (!isGgufValid(filePath)) {
         cleanupCorruptedGguf(filePath);
@@ -486,13 +503,22 @@ export async function listModels(): Promise<ModelInfo[]> {
     }
   }
 
-  // Deduplicate by ID
-  const seen = new Set<string>();
-  const deduped = models.filter((m) => {
-    if (seen.has(m.id)) return false;
-    seen.add(m.id);
-    return true;
-  });
+  // Deduplicate by ID — prefer "installed" entries (and those with a path)
+  // over stale "available"/"downloading" duplicates left by interrupted installs.
+  const seen = new Map<string, ModelInfo>();
+  const score = (mm: ModelInfo) => (mm.status === "installed" ? 2 : 0) + (mm.path ? 1 : 0);
+  for (const m of models) {
+    const existing = seen.get(m.id);
+    if (!existing) { seen.set(m.id, m); continue; }
+    if (score(m) > score(existing)) seen.set(m.id, m);
+  }
+  const deduped = Array.from(seen.values());
+
+  // Persist the cleaned state if anything changed (stale recovery, dedup,
+  // size refresh) so models.json doesn't keep growing with stale duplicates.
+  if (JSON.stringify(deduped) !== originalSnapshot) {
+    saveModels(deduped).catch((err) => log.error({ err }, "Failed to persist deduped models.json"));
+  }
 
   return deduped;
 }
@@ -538,9 +564,12 @@ export async function installModel(
     // Direct GGUF download — queued with concurrency limit
     const filename = name.endsWith(".gguf") ? name : `${name}.gguf`;
 
-    // Register in DB as "downloading" immediately
+    // Register in DB as "downloading" immediately — reuse the existing entry
+    // if one with the same id is already present (interrupted/repeated install)
+    // instead of pushing a duplicate that would bloat models.json.
+    const modelId = `local:${filename}`;
     const pendingModel: ModelInfo = {
-      id: `local:${filename}`,
+      id: modelId,
       name: filename.replace(".gguf", ""),
       size: 0,
       sizeHuman: "?",
@@ -550,7 +579,9 @@ export async function installModel(
       format: "gguf",
       backend: "llamacpp",
     };
-    models.push(pendingModel);
+    const existingIdx = models.findIndex((m) => m.id === modelId);
+    if (existingIdx >= 0) models[existingIdx] = pendingModel;
+    else models.push(pendingModel);
     await saveModels(models);
 
     // Queue the download
@@ -564,7 +595,7 @@ export async function installModel(
     const model: ModelInfo = {
       ...pendingModel,
       status: filePath ? "installed" : "available",
-      path: filePath ?? "",
+      path: filePath ? resolve(filePath) : "",
       downloadedAt: filePath ? new Date().toISOString() : undefined,
     };
 
