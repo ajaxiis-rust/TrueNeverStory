@@ -1,7 +1,7 @@
 # TrueNeverStory — Documento de Arquitectura
 
 > Un análisis de Diseño Dirigido por el Dominio del motor RPG narrativo TrueNeverStory.
-> Actualizado para v0.32.5 — RoleplayEngine refactorizado con SessionState, CommandHandler, PipelineRunner, estrategias de prosa.
+> Actualizado para v0.32.6 — RoleplayEngine refactorizado con SessionState, CommandHandler, PipelineRunner, estrategias de prosa.
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Arquitectura de cebolla por capas con extensiones dirigidas por eventos + pipeline State-First**
 
-TrueNeverStory sigue una **arquitectura de cebolla (hexagonal) por capas** en su núcleo, envuelta con una **capa de orquestación dirigida por eventos** para el procesamiento narrativo asíncrono. A partir de v0.32.5, el motor utiliza un **pipeline State-First** donde la simulación determinista ocurre antes de la generación de prosa.
+TrueNeverStory sigue una **arquitectura de cebolla (hexagonal) por capas** en su núcleo, envuelta con una **capa de orquestación dirigida por eventos** para el procesamiento narrativo asíncrono. A partir de v0.32.6, el motor utiliza un **pipeline State-First** donde la simulación determinista ocurre antes de la generación de prosa.
 
 El patrón encaja porque:
 
@@ -21,7 +21,7 @@ El patrón encaja porque:
 
 El **bus de eventos** (`EventBus` en `src/lib/event-bus.ts`) añade una capa de desacoplamiento asíncrono entre contextos delimitados, permitiendo que el Director Loop orqueste eventos narrativos sin acoplamiento directo a los subsistemas de NPC, Social o Quest.
 
-### Pipeline State-First (v0.32.5)
+### Pipeline State-First (v0.32.6)
 
 El pipeline ahora se estructura como etapas componibles gestionadas por `PipelineRunner`:
 
@@ -60,7 +60,7 @@ Respuesta al Usuario
 Total: 2-3 llamadas LLM
 ```
 
-### Pipeline de Procesamiento de Gutenberg (v0.32.5)
+### Pipeline de Procesamiento de Gutenberg (v0.32.6)
 
 Un pipeline de dos fases convierte archivos .txt crudos de Gutenberg en bases de datos consumibles por los agentes:
 
@@ -83,7 +83,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (sc
 
 **PlayerProfileStore** — perfiles de estilo de jugador entre agentes, independientes (14 métricas), almacenados en `data/player-profiles.db`.
 
-### Arquitectura de Modelo Dual (v0.32.5)
+### Arquitectura de Modelo Dual (v0.32.6)
 
 El motor soporta dos modelos LLM por agente:
 
@@ -439,7 +439,7 @@ El motor soporta dos modelos LLM por agente:
 
 ---
 
-### BC12: Compilador Literario v2 (v0.32.5)
+### BC12: Compilador Literario v2 (v0.32.6)
 
 **Propósito:** Extracción narrativa offline de fuentes literarias y recuperación híbrida en tiempo de ejecución para generación de prosa restringida. Reemplaza el pipeline v1 intensivo en LLM por un sistema determinista de plantilla + patrones de estilo.
 
@@ -1003,7 +1003,7 @@ Flujo de consulta:
         │
         ▼
 ┌─────────────────────┐
-│  Compilador          │  (BC12, v0.32.5)
+│  Compilador          │  (BC12, v0.32.6)
 │  Literario v2        │
 └─────────────────────┘
 ```

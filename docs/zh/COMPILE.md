@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.5 — 编译指南
+# TrueNeverStory v0.32.6 — 编译指南
 
 ## 快速开始
 
@@ -140,6 +140,7 @@ dist/
 │   ├── tns-server              # 独立二进制
 │   ├── libtns_kernels.so       # Mojo：概率
 │   ├── libtns_vectors.so       # Mojo：向量运算
+│   ├── libtns_vector_full.so   # Mojo：全维向量运算
 │   ├── libtns_graph_ops.so     # Mojo：图运算
 │   ├── libtns_batch_ops.so     # Mojo：批量运算
 │   └── .env                      # 配置
@@ -179,19 +180,19 @@ tns-server.exe
 
 ```bash
 # BGE M3 — 多语言（100+ 种语言，8192 tokens）
-./llama-server -m local-models/bge-m3-Q8_0.gguf --embedding --pooling mean --port 8081
+./llama-server -m local-models/bge-m3-Q8_0.gguf --embedding --pooling mean --port 5002
 
 # Qwen3 Embedding 0.6B — 紧凑且快速
-./llama-server -m local-models/Qwen3-Embedding-0.6B-Q8_0.gguf --embedding --pooling mean --port 8081
+./llama-server -m local-models/Qwen3-Embedding-0.6B-Q8_0.gguf --embedding --pooling mean --port 5002
 
 # KaLM Embedding Gemma3 12B — 最高质量
-./llama-server -m local-models/KaLM-Embedding-Gemma3-12B-2511.Q4_K_M.gguf --embedding --pooling mean --port 8081
+./llama-server -m local-models/KaLM-Embedding-Gemma3-12B-2511.Q4_K_M.gguf --embedding --pooling mean --port 5002
 ```
 
 在 `.env` 中指定：
 ```ini
-EMBED_MODEL=bge-m3-Q8_0
-EMBED_SERVER_PORT=8081
+WORLD_EMBEDDING_MODEL=bge-m3
+WORLD_EMBEDDING_BASE_URL=http://localhost:5002
 ```
 
 > **重要：** `--embedding` 和 `--pooling mean` 标志对于嵌入模型正常工作是必需的。没有它们，llama-server 会作为普通 LLM 运行，输出文本而非向量。
@@ -262,12 +263,16 @@ mojo build --emit shared-lib -O3 \
   mojo/kernels/vector_ffi.mojo
 
 mojo build --emit shared-lib -O3 \
-  -o dist/libtns_graph_ops.so \
-  mojo/kernels/graph_ops.c
+  -o dist/libtns_vector_full.so \
+  mojo/kernels/vector_full.mojo
 
 mojo build --emit shared-lib -O3 \
   -o dist/libtns_batch_ops.so \
-  mojo/kernels/batch_ops.c
+  mojo/kernels/batch_ops.mojo
+
+mojo build --emit shared-lib -O3 \
+  -o dist/libtns_graph_ops.so \
+  mojo/kernels/graph_ops.mojo
 ```
 
 ### 交叉编译

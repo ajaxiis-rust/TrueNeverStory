@@ -421,7 +421,7 @@ Templates use `{variable}` placeholders resolved by `resolveTemplate()`.
 
 ---
 
-## MCP Integration (v0.32.5)
+## MCP Integration (v0.32.6)
 
 TNSServer (`src/mcp/tns-server.ts`) provides MCP tools for external data access.
 
@@ -439,7 +439,7 @@ TNSServer (`src/mcp/tns-server.ts`) provides MCP tools for external data access.
 | generate_dilemma | Economic DB | Faction tax dilemma |
 | check_jubilee | Economic DB | Jubilee cycle check |
 
-### MCP Console (v0.32.5)
+### MCP Console (v0.32.6)
 
 Web-based database management console for all project databases.
 

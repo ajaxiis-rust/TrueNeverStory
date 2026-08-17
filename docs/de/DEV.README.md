@@ -421,7 +421,7 @@ Templates verwenden `{variable}`-Platzhalter, die von `resolveTemplate()` aufgel
 
 ---
 
-## MCP-Integration (v0.32.5)
+## MCP-Integration (v0.32.6)
 
 TNSServer (`src/mcp/tns-server.ts`) stellt MCP-Tools für den Zugriff auf externe Daten bereit.
 
@@ -439,7 +439,7 @@ TNSServer (`src/mcp/tns-server.ts`) stellt MCP-Tools für den Zugriff auf extern
 | generate_dilemma | Wirtschafts-DB | Fraktions-Steuerdilemma |
 | check_jubilee | Wirtschafts-DB | Jubiläumszyklus-Prüfung |
 
-### MCP-Konsole (v0.32.5)
+### MCP-Konsole (v0.32.6)
 
 Webbasierte Datenbankverwaltungskonsole für alle Projekt-Datenbanken.
 

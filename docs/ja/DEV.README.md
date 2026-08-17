@@ -421,7 +421,7 @@ interface AgentV2 {
 
 ---
 
-## MCP統合 (v0.32.5)
+## MCP統合 (v0.32.6)
 
 TNSServer（`src/mcp/tns-server.ts`）は、外部データアクセス用のMCPツールを提供します。
 
@@ -439,7 +439,7 @@ TNSServer（`src/mcp/tns-server.ts`）は、外部データアクセス用のMCP
 | generate_dilemma | 経済DB | 派閥の税ジレンマ |
 | check_jubilee | 経済DB | ジュビリーサイクルチェック |
 
-### MCPコンソール (v0.32.5)
+### MCPコンソール (v0.32.6)
 
 全プロジェクトデータベース用のWebベースのデータベース管理コンソール。
 

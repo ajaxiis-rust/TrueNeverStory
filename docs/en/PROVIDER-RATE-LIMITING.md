@@ -2,7 +2,7 @@
 
 ## Overview
 
-Ограничение запросов к каждому провайдеру индивидуально. Round-robin по API-ключам одного провайдера. Fallback на локальную модель при ошибке.
+Rate limits are applied to each LLM provider independently. API keys for a single provider are used round-robin, with automatic fallback to a local model on failure.
 
 ## Architecture
 
@@ -101,12 +101,12 @@ Return result (slower but works)
 ┌─────────────────────────────────────────────┐
 │ ⚠️ Gemini rate limit (50 RPM)              │
 │                                             │
-│ Ключ AIza...1 достиг лимита.               │
-│ Автоматический fallback: Ollama/deepseek-r1 │
+│ Key AIza...1 has hit its limit.             │
+│ Automatic fallback: Ollama/deepseek-r1      │
 │                                             │
-│ Переключить модель: [gemini-2.5-flash ▾]   │
+│ Switch model: [gemini-2.5-flash ▾]          │
 │                                             │
-│ [Отключить уведомления] [Закрыть]           │
+│ [Disable notifications] [Close]              │
 └─────────────────────────────────────────────┘
 ```
 
@@ -114,36 +114,20 @@ Return result (slower but works)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/providers/rate-limit/status` | Текущие счётчики |
-| POST | `/api/providers/rate-limit/switch` | Ручное переключение модели |
-| POST | `/api/providers/rate-limit/reset` | Сброс счётчиков |
+| GET | `/providers/rate-limit` | Get the current rate-limit config |
+| PUT | `/providers/rate-limit` | Update the rate-limit config |
+| GET | `/providers/rate-limit/status` | Current counters |
+| POST | `/providers/rate-limit/reset` | Reset counters |
+| POST | `/providers/rate-limit/switch` | Manually switch model |
 
-## Implementation Steps
+## Source Files
 
-- [x] T2.1: Create `ProviderRateLimiter` class (`src/lib/provider-rate-limiter.ts`)
-- [x] T2.2: Create config loader for `conf/provider-rate-limits.json`
-- [x] T2.3: Update `LLMQueue` to use per-provider rate limiting
-- [x] T2.4: Add WebSocket notification for rate limit events
-- [x] T2.5: Add API endpoints for rate limit status/control
-- [x] T2.6: Add frontend popup component
-- [x] T2.7: Update LLM providers to use rate-limited keys
-- [x] T2.8: Test full flow
-
-## Files to create/modify
-
-| File | Action | Status |
-|------|--------|--------|
-| `src/lib/provider-rate-limiter.ts` | CREATE | ✅ |
-| `conf/provider-rate-limits.json` | CREATE | ✅ |
-| `src/lib/llm-queue.ts` | MODIFY | ✅ |
-| `src/lib/providers/google-provider.ts` | MODIFY | ✅ |
-| `src/lib/providers/openai-provider.ts` | MODIFY | ✅ |
-| `src/lib/providers/anthropic-provider.ts` | MODIFY | ✅ |
-| `src/lib/providers/provider-manager.ts` | MODIFY | ✅ |
-| `src/services/narrative-bootstrapper.ts` | MODIFY | ✅ |
-| `src/services/narrative-service.ts` | MODIFY | ✅ |
-| `src/routes/providers.ts` | MODIFY | ✅ |
-| `src/index.ts` | MODIFY | ✅ |
-| `public/static/rate-limit-popup.css` | CREATE | ✅ |
-| `public/static/rate-limit-popup.js` | CREATE | ✅ |
-| `docs/en/PROVIDER-RATE-LIMITING.md` | CREATE | ✅ |
+| File | Purpose |
+|------|--------|
+| `src/lib/provider-rate-limiter.ts` | `ProviderRateLimiter` class |
+| `conf/provider-rate-limits.json` | Per-provider rate-limit config |
+| `src/lib/llm-queue.ts` | LLMQueue using per-provider rate limiting |
+| `src/lib/providers/*.ts` | Provider implementations using rate-limited keys |
+| `src/routes/providers.ts` | Rate-limit status/control endpoints |
+| `public/static/rate-limit-popup.css` | Frontend popup styles |
+| `public/static/rate-limit-popup.js` | Frontend popup logic |

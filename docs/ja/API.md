@@ -20,18 +20,22 @@ TrueNeverStory ワールドビルド＆ロールプレイプラットフォー�
 - [フィードバック](#フィードバック)
 - [ルールエンジン](#ルールエンジン)
 - [フィーチャーフラグ](#フィーチャーフラグ)
-- [API バージョニング](#apiバージョニング)
+- [API バージョニング](#api-バージョニング)
 - [メモリ](#メモリ)
 - [メンテナンス](#メンテナンス)
 - [システム](#システム)
 - [エージェント](#エージェント)
-- [プロバイダー＆モデル](#プロバイダーモデル)
+- [プロバイダー＆モデル](#プロバイダー＆モデル)
 - [設定](#設定)
 - [起動](#起動)
 - [WebSocket](#websocket)
 - [認証](#認証)
 - [クロスワールド](#クロスワールド)
 - [プラグイン](#プラグイン)
+- [モニタリング](#モニタリング)
+- [I18n](#i18n)
+- [ワールドストア](#ワールドストア)
+- [Wikiリサーチ](#wikiリサーチ)
 
 ---
 
@@ -40,7 +44,7 @@ TrueNeverStory ワールドビルド＆ロールプレイプラットフォー�
 ### `GET /health`
 ヘルスチェック。
 
-**レスポンス:** `{ status: "ok", engine_ready: boolean, uptime: number }`
+**レスポンス:** `{ status: "ok", engine_ready: boolean, uptime: number, version: string }`
 
 ### `GET /system-check`
 Node バージョンとプラットフォーム情報を含むシステムステータス。
@@ -75,12 +79,13 @@ Node バージョンとプラットフォーム情報を含むシステムステ
 **レスポンス:** `{ narrative: string, agent_id?, agent_name?, location, story_time, active_character, success: boolean, error? }`
 
 ### `POST /chat/stream`
-プログレッシブなナラティブ配信のための SSE ストリーミング。リクエストボディは `/chat/message` と同じ。
+プログレッシブなナラティブ配信のための SSE ストリーミングエンドポイント。リクエストボディは `/chat/message` と同じ。
 
 **レスポンス:** Server-Sent Events ストリーム:
 - `event: start` — セッション状態
 - `event: chunk` — ナラティブテキストチャンク
 - `event: agent` — エージェント応答（`@agent` 言及時）
+- `event: heartbeat` — キープアライブコメント（`: keepalive`）
 - `event: done` — 最終状態
 - `event: error` — エラーメッセージ
 - `data: [DONE]` — ストリーム終了マーカー
@@ -127,7 +132,7 @@ Node バージョンとプラットフォーム情報を含むシステムステ
 ワールドの詳細とフレームデータを取得。
 
 ### `PUT /worlds/:name`
-World Frame フィールドを更新。
+ワールドフレームのフィールドを更新。
 
 ### `DELETE /worlds/:name`
 ワールドを削除。
@@ -153,10 +158,10 @@ World Frame フィールドを更新。
 ```json
 {
   "name": "default",
-  "title": "マイワールド",
+  "title": "My World",
   "description": "...",
   "genre": "fantasy",
-  "language": "ja",
+  "language": "en",
   "worldRules": [{ "name": "...", "description": "..." }],
   "magicSystem": "...",
   "entityCounts": { "Character": 5, "Location": 3, "Faction": 2, "Item": 8 },
@@ -181,7 +186,7 @@ World Frame フィールドを更新。
 UID でエンティティの詳細を取得。
 
 ### `GET /neighbors/:uid?depth=1&direction=out&layers=l1,l2`
-グラフトラバーサルによるエンティティの近隣ノード。方向: `out`、`in`、または `both`。
+グラフトラバーサルによるエンティティの近隣ノードを取得。方向: `out`、`in`、または `both`。
 
 ### `GET /path?source=Character:Kaelen&target=Location:Village`
 2 つのエンティティ間の最短パスを検索。
@@ -195,7 +200,7 @@ UID でエンティティの詳細を取得。
 グラフの統計情報（ノード/エッジ数、ブランチ情報）。
 
 ### `GET /graph/d3?mode=relationships`
-d3-force ビジュアライゼーション用のグラフデータ。モード: `relationships` または `crafting`。
+d3-force ビジュアライゼーション用のグラフデータを取得。モード: `relationships` または `crafting`。
 
 **レスポンス:** `{ nodes: [{id, name, type, group}], links: [{source, target, label, strength}] }`
 
@@ -350,11 +355,13 @@ TrueNeverStory は 2 つの API バージョンをサポートしています:
 - **v1** — 後方互換性のためのレガシーラッパー
 - **v2** — エージェントレジストリ統合を備えた拡張バージョン
 
-レガシー動作が使われる場合、すべての v2 レスポンスに非推奨ヘッダーが含まれます:
+レガシールート（`/api/*` 配下のもの）には非推奨ヘッダーが含まれます:
 
-- `X-API-Version: v2`
-- `X-Deprecated: true`（レガシーフォーマットを返す場合）
-- `Sunset: <date>`（v1 エンドポイントの削除が予定されている場合）
+- `X-API-Version: legacy`
+- `Deprecation: true`
+- `Sunset: 2026-12-31`
+
+---
 
 ## メモリ
 
@@ -412,6 +419,9 @@ FAISS ベクトルインデックスを再構築。
 ### `POST /system/resume`
 ロールプレイエンジンを再開します。パラメータは受け付けません。
 
+### `GET /system/status`
+エンジンの実行/一時停止ステータスを取得。
+
 ---
 
 ## エージェント
@@ -419,28 +429,55 @@ FAISS ベクトルインデックスを再構築。
 ### `GET /agents`
 設定されたすべてのエージェントを一覧表示。
 
-クエリパラメータ: `world` — オプション、特定のワールドでフィルタリング
+**クエリパラメータ:** `world` — オプション、特定のワールドでフィルタリング
 
 ### `GET /agents/:id`
 個々のエージェントの設定を取得。
 
-クエリパラメータ: `world` — オプション、特定のワールドから読み込み
+**クエリパラメータ:** `world` — オプション、特定のワールドから読み込み
 
 ### `PUT /agents/:id`
-エージェントの設定を更新（モデル、温度、プロンプトなど）。レート制限: 30件/分/IP。
+エージェントの設定を更新（モデル、temperature、プロンプトなど）。レート制限: 30件/分/IP。
 
-クエリパラメータ: `world` — オプション、特定のワールドに保存
+**クエリパラメータ:** `world` — オプション、特定のワールドに保存
 
 ### `PUT /agents/:id/prompts`
 エージェントのプロンプトのみを更新。
 
-クエリパラメータ: `world` — オプション、特定のワールドに保存
+**クエリパラメータ:** `world` — オプション、特定のワールドに保存
 
 ### `POST /agents/:id/reset`
 エージェントをデフォルト設定にリセット。
 
 ### `GET /agents/providers/options`
-エージェント割り当てに利用可能なプロバイダー/モデルオプション。
+エージェント割り当てに利用可能なプロバイダー/モデルオプションを取得。
+
+### `GET /agents/:id/prompts/:lang`
+特定の言語のエージェントプロンプトを取得。
+
+### `PUT /agents/:id/prompts/:lang`
+特定の言語のエージェントプロンプトを更新。
+
+### `GET /agents/registry`
+登録済みのすべてのエージェントを一覧表示（AgentRegistry）。
+
+### `GET /agents/registry/stats`
+レジストリの統計情報を取得。
+
+### `GET /agents/registry/:id`
+個々の登録済みエージェントを取得。
+
+### `PUT /agents/registry/:id`
+登録済みエージェントを更新。
+
+### `POST /agents/registry/:id/enable`
+エージェントを有効にする。
+
+### `POST /agents/registry/:id/disable`
+エージェントを無効にする。
+
+### `DELETE /agents/registry/:id`
+エージェントの登録を解除。
 
 ---
 
@@ -462,6 +499,18 @@ FAISS ベクトルインデックスを再構築。
 エージェントにプロバイダー+モデルを割り当て。
 
 **リクエスト:** `{ agentId, providerId, modelId, temperature?, maxTokens? }`
+
+### `GET /providers/assignments`
+すべてのプロバイダーとエージェントの割り当てを一覧表示。
+
+### `GET /providers/agents`
+プロバイダーマネージャーからエージェントを一覧表示。
+
+### `POST /providers/sync-from-agents`
+エージェント設定から割り当てを同期。
+
+### `GET /providers/reset`
+プロバイダーマネージャーをリセット。
 
 ### `DELETE /providers/assign/:agentId`
 エージェントのプロバイダー割り当てを削除。
@@ -520,6 +569,18 @@ API キーを削除。
 ### `GET /languages`
 利用可能な UI 言語を一覧表示（EN、RU、DE、FR、ES、JA、ZH）。
 
+### `GET /llm-config`
+LLM サーバーの設定を取得。
+
+### `PUT /llm-config`
+LLM サーバーの設定を更新。
+
+### `POST /server/restart`
+LLM サーバーを再起動。
+
+### `GET /server/status`
+LLM サーバーのステータスを確認。
+
 ---
 
 ## 起動
@@ -527,27 +588,32 @@ API キーを削除。
 ### `POST /launch`
 キャラクター生成付きの新しいゲームセッションを作成。
 
-**リクエスト:** `{ name?: string, hints?: string, isekai?: boolean, starting_age?: number }`
+**リクエスト:** `{ hints?: string, isekai?: boolean, starting_age?: number, name?: string }`
 
-`name` — 明示的なキャラクター名（オプション）。指定した場合、LLM名前の生成をスキップ。非ラテン文字をサポート。
+- `name` — 明示的なキャラクター名（オプション）。指定した場合、LLM名前の生成をスキップ。非ラテン文字をサポート。
 
-**レスポンス:** `{ status: "success", session_id, character_name, opening_narrative, url }`
+**レスポンス:** `{ status: "success", session_id, character_name, opening_narrative, race, social_class, birthplace, initial_location }`
 
 ### `POST /continue`
 既存のセッションを続ける。
 
 **リクエスト:** `{ session_id: string }`
 
-**レスポンス:** `{ status: "success", session_id, character_name, url }`
+**レスポンス:** `{ status: "success", session_id, character_name, restored: boolean }`
+
+### `POST /snapshot`
+現在のゲーム状態を保存。
+
+**リクエスト:** `{ session_id?: string }`
 
 ---
 
 ## WebSocket
 
-### `GET /ws/roleplay/:sessionId`
-リアルタイムロールプレイ用の WebSocket エンドポイント。メッセージは JSON:
+### `GET /ws/*`
+リアルタイムロールプレイ用の WebSocket エンドポイント。サーバーは任意の `/ws/*` パスで WebSocket アップグレードを受け付けます。セッションコンテキストは URL ではなくメッセージタイプによって決定されます。
 
-**クライアント → サーバー:** `{ type: "message", content: string }`
+**クライアント → サーバー:** `{ type: "message", content: string }` または `{ type: "setup", ... }`
 **サーバー → クライアント:** `{ type: "chunk"|"done"|"error", content?: string, location?, story_time? }`
 
 ---
@@ -628,4 +694,68 @@ API キーを削除。
 
 ---
 
-*生成日: 2026-06-27 | TrueNeverStory v0.32.5*
+## モニタリング
+
+### `GET /monitoring/dashboard`
+集約されたモニタリングダッシュボードデータ。
+
+### `GET /monitoring/stats`
+ポーリング用の軽量な統計情報。
+
+---
+
+## I18n
+
+### `GET /i18n/translations/:lang/:page`
+特定の言語とページの翻訳を取得。
+
+### `GET /i18n/translations/:lang`
+特定の言語のすべての翻訳を取得。
+
+### `PUT /i18n/translations`
+バッチ翻訳をアップサート。
+
+### `DELETE /i18n/translations/:lang/:page/:key`
+翻訳キーを削除。
+
+---
+
+## ワールドストア
+
+### `POST /world-store/migrate`
+JSON データを SQLite に移行。
+
+### `GET /world-store/stats`
+移行統計情報を取得。
+
+### `GET /world-store/quests`
+SQLite からクエストを取得。
+
+### `GET /world-store/npc-memories/:uid`
+エンティティ UID で NPC の記憶を取得。
+
+### `GET /world-store/frame`
+SQLite からワールドフレームを取得。
+
+---
+
+## Wikiリサーチ
+
+### `POST /api/wiki/research/:worldId`
+ワールドの Wikipedia リサーチを開始。
+
+### `GET /api/wiki/research/:worldId/progress`
+進行中のリサーチの SSE 進捗ストリーム。
+
+### `POST /api/wiki/research/:worldId/pause`
+進行中のリサーチを一時停止。
+
+### `POST /api/wiki/research/:worldId/resume`
+一時停止したリサーチを再開。
+
+### `GET /api/wiki/research/:worldId/status`
+リサーチのステータスを取得。
+
+---
+
+*生成日: 2026-07-31 | TrueNeverStory v0.32.6*

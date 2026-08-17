@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.5 — Guía de compilación
+# TrueNeverStory v0.32.6 — Guía de compilación
 
 ## Inicio rápido
 
@@ -140,6 +140,7 @@ dist/
 │   ├── tns-server              # Standalone binary
 │   ├── libtns_kernels.so       # Mojo: probabilities
 │   ├── libtns_vectors.so       # Mojo: vector operations
+│   ├── libtns_vector_full.so   # Mojo: operaciones vectoriales de dimensión completa
 │   ├── libtns_graph_ops.so     # Mojo: graph operations
 │   ├── libtns_batch_ops.so     # Mojo: batch operations
 │   └── .env                      # Configuration
@@ -179,19 +180,19 @@ Para la búsqueda vectorial y la similitud semántica puedes ejecutar un llama-s
 
 ```bash
 # BGE M3 — multilingual (100+ languages, 8192 tokens)
-./llama-server -m local-models/bge-m3-Q8_0.gguf --embedding --pooling mean --port 8081
+./llama-server -m local-models/bge-m3-Q8_0.gguf --embedding --pooling mean --port 5002
 
 # Qwen3 Embedding 0.6B — compact and fast
-./llama-server -m local-models/Qwen3-Embedding-0.6B-Q8_0.gguf --embedding --pooling mean --port 8081
+./llama-server -m local-models/Qwen3-Embedding-0.6B-Q8_0.gguf --embedding --pooling mean --port 5002
 
 # KaLM Embedding Gemma3 12B — maximum quality
-./llama-server -m local-models/KaLM-Embedding-Gemma3-12B-2511.Q4_K_M.gguf --embedding --pooling mean --port 8081
+./llama-server -m local-models/KaLM-Embedding-Gemma3-12B-2511.Q4_K_M.gguf --embedding --pooling mean --port 5002
 ```
 
 En `.env` especifica:
 ```ini
-EMBED_MODEL=bge-m3-Q8_0
-EMBED_SERVER_PORT=8081
+WORLD_EMBEDDING_MODEL=bge-m3
+WORLD_EMBEDDING_BASE_URL=http://localhost:5002
 ```
 
 > **Importante:** las opciones `--embedding` y `--pooling mean` son obligatorias para que los modelos de embedding funcionen correctamente. Sin ellas, llama-server se ejecuta como un LLM normal y produce texto en lugar de vectores.
@@ -262,12 +263,16 @@ mojo build --emit shared-lib -O3 \
   mojo/kernels/vector_ffi.mojo
 
 mojo build --emit shared-lib -O3 \
-  -o dist/libtns_graph_ops.so \
-  mojo/kernels/graph_ops.c
+  -o dist/libtns_vector_full.so \
+  mojo/kernels/vector_full.mojo
 
 mojo build --emit shared-lib -O3 \
   -o dist/libtns_batch_ops.so \
-  mojo/kernels/batch_ops.c
+  mojo/kernels/batch_ops.mojo
+
+mojo build --emit shared-lib -O3 \
+  -o dist/libtns_graph_ops.so \
+  mojo/kernels/graph_ops.mojo
 ```
 
 ### Compilación cruzada

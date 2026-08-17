@@ -32,6 +32,10 @@ REST API for the TrueNeverStory world-building and roleplay platform. All endpoi
 - [Authentication](#authentication)
 - [Cross-World](#cross-world)
 - [Plugins](#plugins)
+- [Monitoring](#monitoring)
+- [I18n](#i18n)
+- [World Store](#world-store)
+- [Wiki Research](#wiki-research)
 
 ---
 
@@ -40,7 +44,7 @@ REST API for the TrueNeverStory world-building and roleplay platform. All endpoi
 ### `GET /health`
 Health check.
 
-**Response:** `{ status: "ok", engine_ready: boolean, uptime: number }`
+**Response:** `{ status: "ok", engine_ready: boolean, uptime: number, version: string }`
 
 ### `GET /system-check`
 System status with node version and platform info.
@@ -81,7 +85,7 @@ SSE streaming endpoint for progressive narrative delivery. Same request body as 
 - `event: start` — session state
 - `event: chunk` — narrative text chunk
 - `event: agent` — agent response (for `@agent` mentions)
-- `event: heartbeat` — progress indicator ({ message: string, progress: number, stage: string })
+- `event: heartbeat` — keepalive comment (`: keepalive`)
 - `event: done` — final state
 - `event: error` — error message
 - `data: [DONE]` — stream end sentinel
@@ -351,11 +355,11 @@ TrueNeverStory supports two API versions:
 - **v1** — Legacy wrapper for backward compatibility
 - **v2** — Enhanced version with agent registry integration
 
-All v2 responses include deprecation headers when legacy behavior is used:
+Legacy routes (anything under `/api/*`) include deprecation headers:
 
-- `X-API-Version: v2`
-- `X-Deprecated: true` (when returning legacy format)
-- `Sunset: <date>` (when a v1 endpoint is scheduled for removal)
+- `X-API-Version: legacy`
+- `Deprecation: true`
+- `Sunset: 2026-12-31`
 
 ---
 
@@ -415,6 +419,9 @@ Pause the roleplay engine. Accepts no parameters.
 ### `POST /system/resume`
 Resume the roleplay engine. Accepts no parameters.
 
+### `GET /system/status`
+Get running/paused status of the engine.
+
 ---
 
 ## Agents
@@ -445,6 +452,33 @@ Reset agent to defaults.
 ### `GET /agents/providers/options`
 Get available provider/model options for agent assignment.
 
+### `GET /agents/:id/prompts/:lang`
+Get agent prompts for a specific language.
+
+### `PUT /agents/:id/prompts/:lang`
+Update agent prompts for a specific language.
+
+### `GET /agents/registry`
+List all registered agents (AgentRegistry).
+
+### `GET /agents/registry/stats`
+Get registry statistics.
+
+### `GET /agents/registry/:id`
+Get single registered agent.
+
+### `PUT /agents/registry/:id`
+Update registered agent.
+
+### `POST /agents/registry/:id/enable`
+Enable an agent.
+
+### `POST /agents/registry/:id/disable`
+Disable an agent.
+
+### `DELETE /agents/registry/:id`
+Unregister an agent.
+
 ---
 
 ## Providers & Models
@@ -465,6 +499,18 @@ Trigger health check on all providers.
 Assign a provider+model to an agent.
 
 **Request:** `{ agentId, providerId, modelId, temperature?, maxTokens? }`
+
+### `GET /providers/assignments`
+List all provider-agent assignments.
+
+### `GET /providers/agents`
+List agents from provider manager.
+
+### `POST /providers/sync-from-agents`
+Sync assignments from agent config.
+
+### `GET /providers/reset`
+Reset provider manager.
 
 ### `DELETE /providers/assign/:agentId`
 Remove provider assignment from agent.
@@ -523,6 +569,18 @@ Reset to defaults.
 ### `GET /languages`
 List available UI languages (EN, RU, DE, FR, ES, JA, ZH).
 
+### `GET /llm-config`
+Get LLM server configuration.
+
+### `PUT /llm-config`
+Update LLM server configuration.
+
+### `POST /server/restart`
+Restart LLM servers.
+
+### `GET /server/status`
+Check LLM server status.
+
 ---
 
 ## Launch
@@ -534,23 +592,28 @@ Create a new game session with character generation.
 
 - `name` — explicit character name (optional). If provided, skips LLM name generation. Supports non-Latin characters.
 
-**Response:** `{ status: "success", session_id, character_name, opening_narrative, url }`
+**Response:** `{ status: "success", session_id, character_name, opening_narrative, race, social_class, birthplace, initial_location }`
 
 ### `POST /continue`
 Continue an existing session.
 
 **Request:** `{ session_id: string }`
 
-**Response:** `{ status: "success", session_id, character_name, url }`
+**Response:** `{ status: "success", session_id, character_name, restored: boolean }`
+
+### `POST /snapshot`
+Save current game state.
+
+**Request:** `{ session_id?: string }`
 
 ---
 
 ## WebSocket
 
-### `GET /ws/roleplay/:sessionId`
-WebSocket endpoint for real-time roleplay. Messages are JSON:
+### `GET /ws/*`
+WebSocket endpoint for real-time roleplay. The server accepts WebSocket upgrades on any `/ws/*` path. Session context is determined by message type, not URL.
 
-**Client → Server:** `{ type: "message", content: string }`
+**Client → Server:** `{ type: "message", content: string }` or `{ type: "setup", ... }`
 **Server → Client:** `{ type: "chunk"|"done"|"error", content?: string, location?, story_time? }`
 
 ---
@@ -631,4 +694,68 @@ Get all routes registered by plugins.
 
 ---
 
-*Generated: 2026-07-31 | TrueNeverStory v0.32.5*
+## Monitoring
+
+### `GET /monitoring/dashboard`
+Aggregated monitoring dashboard data.
+
+### `GET /monitoring/stats`
+Lightweight stats for polling.
+
+---
+
+## I18n
+
+### `GET /i18n/translations/:lang/:page`
+Get translations for a specific language and page.
+
+### `GET /i18n/translations/:lang`
+Get all translations for a language.
+
+### `PUT /i18n/translations`
+Upsert batch translations.
+
+### `DELETE /i18n/translations/:lang/:page/:key`
+Delete a translation key.
+
+---
+
+## World Store
+
+### `POST /world-store/migrate`
+Migrate JSON data to SQLite.
+
+### `GET /world-store/stats`
+Get migration statistics.
+
+### `GET /world-store/quests`
+Get quests from SQLite.
+
+### `GET /world-store/npc-memories/:uid`
+Get NPC memories by entity UID.
+
+### `GET /world-store/frame`
+Get world frame from SQLite.
+
+---
+
+## Wiki Research
+
+### `POST /api/wiki/research/:worldId`
+Initiate Wikipedia research for a world.
+
+### `GET /api/wiki/research/:worldId/progress`
+SSE progress stream for ongoing research.
+
+### `POST /api/wiki/research/:worldId/pause`
+Pause ongoing research.
+
+### `POST /api/wiki/research/:worldId/resume`
+Paused research.
+
+### `GET /api/wiki/research/:worldId/status`
+Get research status.
+
+---
+
+*Generated: 2026-07-31 | TrueNeverStory v0.32.6*

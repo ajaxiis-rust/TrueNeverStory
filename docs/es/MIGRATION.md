@@ -8,15 +8,15 @@ TrueNeverStory almacena los datos del mundo en **SQLite** mediante la clase `Wor
 
 Los archivos JSON originales permanecen en el directorio del mundo como fuente de la migración y nunca se eliminan — sirven como respaldo y registro histórico.
 
-## Migración v0.32.5: Compilador Literario y Modelos Económicos
+## Migración v0.32.6: Compilador Literario y Modelos Económicos
 
-La versión v0.32.5 añade el Compilador Literario y los Modelos Económicos. No se requiere migración — son funcionalidades aditivas que extienden el pipeline State-First existente.
+La versión v0.32.6 añade el Compilador Literario y los Modelos Económicos. No se requiere migración — son funcionalidades aditivas que extienden el pipeline State-First existente.
 
-## Migración v0.32.5: Pipeline State-First
+## Migración v0.32.6: Pipeline State-First
 
 ### Qué cambió
 
-La versión v0.32.5 introduce una arquitectura de pipeline state-first. Ahora coexisten dos sistemas de agentes:
+La versión v0.32.6 introduce una arquitectura de pipeline state-first. Ahora coexisten dos sistemas de agentes:
 
 1. **The Big Six (AgentV2)** — la canalización de prosa narrativa (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`), registrados en `AgentRegistryV2`.
 2. **Agentes configurados (`DEFAULT_AGENTS`)** — los agentes dirigidos por configuración en `src/services/agent-config.ts` (`director`, `chronicler`, `story-planner`, `social-sim`, `villain`, `researcher`, `translation`), que respaldan la UI de Ajustes/Proveedores y algunos subsistemas.
@@ -46,7 +46,7 @@ Intención del usuario → Simulación → Selección de patrón (Dramaturg) →
 
 ### Integración MCP
 
-v0.32.5 introduce herramientas del Model Context Protocol (MCP) para el acceso a conocimiento externo:
+v0.32.6 introduce herramientas del Model Context Protocol (MCP) para el acceso a conocimiento externo:
 
 | Servidor MCP | Herramientas | Propósito |
 |------------|-------|---------|

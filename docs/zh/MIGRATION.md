@@ -8,15 +8,15 @@ TrueNeverStory 通过 `WorldStore` 类（`src/store/world-store.ts`）将世界�
 
 原始 JSON 文件仍保留在世界目录中作为迁移源，且永远不会被删除 — 它们充当回退和历史的记录。
 
-## v0.32.5 迁移：文学编译器与经济学模型
+## v0.32.6 迁移：文学编译器与经济学模型
 
-v0.32.5 版本新增了文学编译器与经济学模型。无需迁移 — 这些是扩展现有状态优先管道的附加功能。
+v0.32.6 版本新增了文学编译器与经济学模型。无需迁移 — 这些是扩展现有状态优先管道的附加功能。
 
-## v0.32.5 迁移：状态优先管道
+## v0.32.6 迁移：状态优先管道
 
 ### 变更内容
 
-v0.32.5 版本引入了状态优先的管道架构。两个代理系统现在共存：
+v0.32.6 版本引入了状态优先的管道架构。两个代理系统现在共存：
 
 1. **The Big Six (AgentV2)** — 叙事散文管道（`dramaturg`、`validator`、`stylist`、`actor`、`censor`、`chronicler`），注册在 `AgentRegistryV2` 中。
 2. **配置代理（`DEFAULT_AGENTS`）** — `src/services/agent-config.ts` 中的配置驱动代理（`director`、`chronicler`、`story-planner`、`social-sim`、`villain`、`researcher`、`translation`），支撑 Settings/Providers UI 和若干子系统。
@@ -46,7 +46,7 @@ User Intent → Simulation → Pattern Selection (Dramaturg) → Fact Check (Val
 
 ### MCP 集成
 
-v0.32.5 引入了 Model Context Protocol (MCP) 工具用于外部知识访问：
+v0.32.6 引入了 Model Context Protocol (MCP) 工具用于外部知识访问：
 
 | MCP 服务器 | 工具 | 用途 |
 |------------|-------|---------|

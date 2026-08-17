@@ -1,4 +1,4 @@
-# Agenten-Referenz (v0.32.5)
+# Agenten-Referenz (v0.32.6)
 
 TrueNeverStory besitzt **zwei Agentensysteme**, die parallel existieren:
 
@@ -160,7 +160,7 @@ Diese liegen in `src/services/agent-config.ts` und stützen die Einstellungen-/A
 
 ---
 
-## Dialogsystem (v0.32.5)
+## Dialogsystem (v0.32.6)
 
 Neues `DialogueManager` + `DialogueContext` für strukturierte NPC-Gespräche:
 
@@ -204,7 +204,7 @@ const withSearch = registry.getAgentsWithTool('search_verses');
 
 ---
 
-## Agentenschnittstelle (v0.32.5)
+## Agentenschnittstelle (v0.32.6)
 
 ```typescript
 interface AgentV2 {
@@ -318,7 +318,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## MCP-Integration (v0.32.5)
+## MCP-Integration (v0.32.6)
 
 ### Bibel-Muster
 
@@ -363,7 +363,7 @@ Jeder Agent speichert ein `userTemplate` in SQLite (`agent_prompts`-Tabelle) mit
 
 ---
 
-## Spieler-Stilprofile (v0.32.5)
+## Spieler-Stilprofile (v0.32.6)
 
 `PlayerProfileStore` (`src/lib/player-profile-store.ts`) liefert agentenübergreifende Spieler-Stilprofile, geteilt zwischen Stylist und LiteraryV2Generator.
 
