@@ -332,6 +332,15 @@ function getModelType(m) {
   return 'other';
 }
 
+// Normalize a model id/name for catalog↔installed matching.
+// Catalog id: "bge-m3-q8_0"; installed id: "local:bge-m3-q8_0.gguf" → both normalize to "bge-m3-q8_0".
+function normalizeModelKey(v) {
+  let n = (v || '').toLowerCase();
+  if (n.startsWith('local:')) n = n.slice(6);
+  n = n.replace(/\.gguf$/i, '');
+  return n.trim();
+}
+
 function typeLabel(type) {
   const map = { llamacpp: 'LLAMA.cpp (GGUF)', ollama: 'Ollama', embedding: 'Embedding', other: 'Other' };
   return map[type] || type;
@@ -428,8 +437,9 @@ async function loadModels() {
         const pct = progress?.percent || 0;
         const speed = progress?.speed || '';
         const eta = progress?.eta || '';
+        const dlKey = isDownloading ? ` data-model-key="${esc(m.name)}"` : '';
         return `
-        <div class="model-card" ${isActive ? 'style="border-color:var(--success)"' : ''}>
+        <div class="model-card"${dlKey}${isActive ? ' style="border-color:var(--success)"' : ''}>
           <div class="model-card__head">
             <span class="model-card__name tooltip-wrap">${esc(m.name)}${makeTooltip(m)}</span>
             <div class="model-card__badges">
@@ -439,8 +449,8 @@ async function loadModels() {
             </div>
           </div>
           ${isDownloading ? `
-          <div class="progress" style="margin:4px 0"><div class="progress__fill" style="width:${pct}%"></div></div>
-          <div style="font-size:11px;color:var(--text-disabled);font-family:var(--font-mono)">${pct}%${speed ? ' | ' + speed : ''}${eta ? ' | ETA: ' + eta : ''}</div>
+          <div class="progress" style="margin:4px 0"><div class="progress__fill" data-progress-fill style="width:${pct}%"></div></div>
+          <div data-progress-text style="font-size:11px;color:var(--text-disabled);font-family:var(--font-mono)">${pct}%${speed ? ' | ' + speed : ''}${eta ? ' | ETA: ' + eta : ''}</div>
           ` : `
           <div class="model-card__meta">
             <span>${m.sizeHuman || '?'}</span>
@@ -461,7 +471,13 @@ async function loadModels() {
 
     // Catalog grouped by type
     window._catalogData = data.catalog || [];
-    const installedIds = new Set(installed.map(m => m.id));
+    // Build a set of normalized keys (id + name) so installed llamacpp models
+    // (id "local:foo.gguf") match their catalog entry (id "foo").
+    const installedKeys = new Set();
+    for (const m of installed) {
+      installedKeys.add(normalizeModelKey(m.id));
+      installedKeys.add(normalizeModelKey(m.name));
+    }
     const groups = {};
     for (const m of (data.catalog || [])) {
       const t = getModelType(m);
@@ -483,7 +499,9 @@ async function loadModels() {
       const section = document.createElement('div');
       section.className = 'section';
 
-      if (!backendReady) {
+      // Embedding models can be downloaded without llama-server (GGUF download
+      // only needs fetch), so always show the list — only hide LLM backends.
+      if (!backendReady && type !== 'embedding') {
         section.innerHTML = `
           <div class="type-group">
             <div class="type-group__header">
@@ -505,7 +523,7 @@ async function loadModels() {
             </div>
             <div class="model-grid">
               ${items.map(m => {
-                const isInstalled = installedIds.has(m.id);
+                const isInstalled = installedKeys.has(normalizeModelKey(m.id)) || installedKeys.has(normalizeModelKey(m.name));
                 return `
                   <div class="model-card">
                     <div class="model-card__head">
@@ -764,9 +782,20 @@ fbBrowse(fbCurrentPath);
 loadModels();
 setInterval(loadModels, 30000);
 
-// Download progress polling (every 2s when downloads are active)
+// Download progress polling — incremental: patches only progress bars of
+// existing downloading cards instead of re-rendering the whole list (which
+// caused the progress bar to flicker/jump on every poll).
 window._downloadProgress = {};
 let _progressPoller = null;
+let _lastDownloadCount = 0;
+
+function findDownloadCard(modelId) {
+  const cards = document.querySelectorAll('#installedModels [data-model-key]');
+  for (const c of cards) {
+    if (c.getAttribute('data-model-key') === modelId) return c;
+  }
+  return null;
+}
 
 function startProgressPolling() {
   if (_progressPoller) return;
@@ -779,15 +808,33 @@ function startProgressPolling() {
       for (const d of downloads) {
         window._downloadProgress[d.modelId] = d;
       }
-      // Refresh installed section if there are active downloads
-      if (downloads.length > 0) {
-        loadModels();
-      } else {
-        stopProgressPolling();
-        loadModels(); // final refresh to show installed state
+
+      if (downloads.length === 0) {
+        // All downloads finished — stop polling, refresh once to update statuses
+        if (_lastDownloadCount > 0) {
+          stopProgressPolling();
+          loadModels();
+        }
+        _lastDownloadCount = 0;
+        return;
       }
+      _lastDownloadCount = downloads.length;
+
+      // Patch existing cards in place (no DOM re-render → no flicker)
+      let missingCard = false;
+      for (const d of downloads) {
+        const card = findDownloadCard(d.modelId);
+        if (!card) { missingCard = true; continue; }
+        const fill = card.querySelector('[data-progress-fill]');
+        const text = card.querySelector('[data-progress-text]');
+        const pct = d.percent || 0;
+        if (fill) fill.style.width = pct + '%';
+        if (text) text.textContent = pct + '%' + (d.speed ? ' | ' + d.speed : '') + (d.eta ? ' | ETA: ' + d.eta : '');
+      }
+      // A new download started but its card isn't rendered yet — render once
+      if (missingCard) loadModels();
     } catch {}
-  }, 2000);
+  }, 1500);
 }
 
 function stopProgressPolling() {
@@ -796,6 +843,7 @@ function stopProgressPolling() {
     _progressPoller = null;
   }
   window._downloadProgress = {};
+  _lastDownloadCount = 0;
 }
 </script>
 </body>

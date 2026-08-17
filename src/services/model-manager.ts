@@ -37,9 +37,6 @@ interface DownloadProgress {
   speed: string;
   eta: string;
   _startTime?: number;
-  _lastBytes?: number;
-  _lastTime?: number;
-  _smoothPercent?: number;
 }
 
 const MODELS_DB = "models.json";
@@ -167,6 +164,17 @@ async function getOllamaModels(): Promise<Array<{ name: string; size: number; mo
 }
 
 async function pullOllamaModel(name: string, onProgress?: (p: DownloadProgress) => void): Promise<boolean> {
+  const now = Date.now();
+  _activeDownloads.set(name, {
+    modelId: name,
+    percent: 0,
+    downloaded: 0,
+    total: 0,
+    speed: "",
+    eta: "",
+    _startTime: now,
+  });
+
   try {
     const res = await fetch("http://localhost:11434/api/pull", {
       method: "POST",
@@ -174,7 +182,10 @@ async function pullOllamaModel(name: string, onProgress?: (p: DownloadProgress) 
       body: JSON.stringify({ name, stream: true }),
     });
 
-    if (!res.ok || !res.body) return false;
+    if (!res.ok || !res.body) {
+      _activeDownloads.delete(name);
+      return false;
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -187,14 +198,32 @@ async function pullOllamaModel(name: string, onProgress?: (p: DownloadProgress) 
       for (const line of lines) {
         try {
           const data = JSON.parse(line);
-          if (onProgress) {
+          const entry = _activeDownloads.get(name);
+          if (entry && typeof data.total === "number" && data.total > 0 && typeof data.completed === "number") {
+            const completed = data.completed as number;
+            const total = data.total as number;
+            entry.percent = Math.round((completed / total) * 100);
+            entry.downloaded = completed;
+            entry.total = total;
+
+            // Speed: prefer Ollama-provided (bytes/sec), else compute average from elapsed
+            const elapsed = (Date.now() - (entry._startTime ?? now)) / 1000;
+            const speedBps = typeof data.speed === "number" && data.speed > 0
+              ? data.speed
+              : elapsed > 0 ? completed / elapsed : 0;
+            if (speedBps > 0) {
+              entry.speed = formatBytes(speedBps) + "/s";
+              if (total > completed) entry.eta = formatTime((total - completed) / speedBps);
+            }
+          }
+          if (onProgress && entry) {
             onProgress({
               modelId: name,
-              percent: data.completed ? Math.round((data.completed / (data.total ?? 1)) * 100) : 0,
-              downloaded: data.completed ?? 0,
-              total: data.total ?? 0,
-              speed: data.speed ?? "",
-              eta: data.eta ?? "",
+              percent: entry.percent,
+              downloaded: entry.downloaded,
+              total: entry.total,
+              speed: entry.speed,
+              eta: entry.eta,
             });
           }
         } catch {
@@ -202,8 +231,13 @@ async function pullOllamaModel(name: string, onProgress?: (p: DownloadProgress) 
         }
       }
     }
+
+    const finalEntry = _activeDownloads.get(name);
+    if (finalEntry) finalEntry.percent = 100;
+    _activeDownloads.delete(name);
     return true;
   } catch (err) {
+    _activeDownloads.delete(name);
     log.error({ err, model: name }, "Ollama pull failed");
     return false;
   }
@@ -240,9 +274,6 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
     speed: "",
     eta: "",
     _startTime: now,
-    _lastBytes: 0,
-    _lastTime: now,
-    _smoothPercent: 0,
   });
 
   try {
@@ -276,22 +307,16 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
         if (!entry) break;
 
         const elapsed = (now - (entry._startTime ?? now)) / 1000;
-        const instantSpeed = ((downloaded - (entry._lastBytes ?? 0)) / ((now - (entry._lastTime ?? now)) / 1000));
-        entry._lastBytes = downloaded;
-        entry._lastTime = now;
-
         const avgSpeed = elapsed > 0 ? downloaded / elapsed : 0;
-        const smoothSpeed = avgSpeed * 0.3 + instantSpeed * 0.7;
 
         const rawPercent = contentLength > 0 ? (downloaded / contentLength) * 100 : 0;
-        entry._smoothPercent = (entry._smoothPercent ?? 0) * 0.6 + rawPercent * 0.4;
-        entry.percent = Math.round(entry._smoothPercent);
+        entry.percent = Math.round(rawPercent);
         entry.downloaded = downloaded;
         entry.total = contentLength;
-        entry.speed = formatBytes(smoothSpeed) + "/s";
+        entry.speed = formatBytes(avgSpeed) + "/s";
 
-        if (contentLength > 0 && smoothSpeed > 0) {
-          const remaining = (contentLength - downloaded) / smoothSpeed;
+        if (contentLength > 0 && avgSpeed > 0) {
+          const remaining = (contentLength - downloaded) / avgSpeed;
           entry.eta = formatTime(remaining);
         }
       }
@@ -314,7 +339,6 @@ async function downloadGguf(url: string, filename: string, onProgress?: (p: Down
     const finalEntry = _activeDownloads.get(modelKey);
     if (finalEntry) {
       finalEntry.percent = 100;
-      finalEntry._smoothPercent = 100;
     }
 
     _activeDownloads.delete(modelKey);
@@ -573,6 +597,18 @@ export async function removeModel(modelId: string): Promise<boolean> {
 
 export function getDownloadProgress(): DownloadProgress[] {
   return Array.from(_activeDownloads.values());
+}
+
+/**
+ * Auxiliary (non-LLM) models: embeddings, rerankers, translation models.
+ * These must never be applied as the primary `llmModel` after install —
+ * they are served by llama-server with `--embedding` and cannot generate text.
+ */
+const AUXILIARY_KEYWORDS = ["embed", "bge", "rerank", "nllb", "madlad"];
+
+export function isAuxiliaryModel(name: string): boolean {
+  const lower = (name || "").toLowerCase();
+  return AUXILIARY_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
 // ── Filesystem Browser ──

@@ -12,6 +12,7 @@ import {
   POPULAR_MODELS,
   browseDirectory,
   importLocalModel,
+  isAuxiliaryModel,
 } from "../services/model-manager";
 import { updateSettings } from "../services/settings";
 import { getLogger } from "../utils/logger";
@@ -106,15 +107,17 @@ models.post("/models/install", async (c) => {
 
   log.info({ name, backend, source }, "Installing model (background)");
 
-  installModel(source, name, backend, (progress) => {
-    log.info({ model: name, percent: progress.percent }, "Download progress");
-  }).then(async (model) => {
-    if (model.status === "installed" && backend === "llamacpp") {
+  // Progress is tracked inside _activeDownloads (both Ollama and GGUF paths),
+  // so no onProgress callback is needed here — poll GET /models/progress.
+  installModel(source, name, backend).then(async (model) => {
+    if (model.status === "installed" && backend === "llamacpp" && !isAuxiliaryModel(model.name)) {
       await updateSettings({
         llmBaseUrl: "http://127.0.0.1:5001/v1",
         llmModel: model.name,
       });
       log.info({ model: model.name }, "Applied llamacpp settings after download");
+    } else if (model.status === "installed" && isAuxiliaryModel(model.name)) {
+      log.info({ model: model.name }, "Auxiliary model installed (not applied as llmModel)");
     }
   }).catch((err) => {
     log.error({ err, name }, "Background install failed");
