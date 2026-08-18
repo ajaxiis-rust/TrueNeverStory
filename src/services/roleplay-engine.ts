@@ -828,13 +828,13 @@ export class RoleplayEngine {
     }
   }
 
-  // ─── Legacy Agent Support (Phase 3 will replace these) ─────────────────
+  // ─── @mention Agent Routing (v2-paradigm Vector 2a) ────────────────────
 
   async processAgentMessage(agentId: string, message: string): Promise<{ response: string; agentId: string; agentName: string }> {
     const agent = this._getAgentById(agentId);
     if (!agent) {
       return {
-        response: `Unknown agent: ${agentId}. Available: chronicler, story-planner, social-sim, villain, researcher`,
+        response: `Unknown agent: ${agentId}. Available: dramaturg, stylist, actor, validator, censor, chronicler, villain, researcher`,
         agentId,
         agentName: agentId,
       };
@@ -866,50 +866,62 @@ export class RoleplayEngine {
     return { response, agentId, agentName: agent.name };
   }
 
-  // LEGACY — scheduled for removal, see v2-paradigm §S4.1
-  // These @mention agents use static prompts. Big Six replacement via adapter
-  // is planned in v2-paradigm Vector 2a.
+  // ─── Big Six @mention adapter (v2-paradigm Vector 2a) ──────────────────
+
+  private _adaptToBigSix(agentId: string): ServiceMessageAgent | null {
+    const agent = this.agentRegistry?.get(agentId as any);
+    if (!agent) return null;
+
+    return {
+      name: agent.name,
+      generateServiceMessage: async (ctx: ServiceMessageContext): Promise<string> => {
+        const intent = {
+          type: 'dialogue',
+          content: ctx.message,
+          target: null,
+          verb: ctx.message,
+        } as unknown as Intent;
+        const simulation = { outcome: 'neutral', stateChanges: [] } as any;
+        const gameContext = {
+          nearbyNpcs: ctx.nearbyNpcs.map(name => ({ name })),
+          location: { name: ctx.location },
+          character: { name: ctx.character },
+          time: new Date(ctx.storyTime),
+          recentTimeline: ctx.recentEvents.map(desc => ({ description: desc, timestamp: ctx.storyTime })),
+          worldRules: ctx.worldRules.map(r => ({ name: r, description: r })),
+          world: { name: 'World', calendar: {}, magic: {}, races: [], factions: [], rules: {} },
+          timeOfDay: 'day' as const,
+          activeQuests: [],
+          playerInventory: [],
+          relationshipGraph: { nodes: [], edges: [] },
+          memory: { recent: [], summary: '' },
+          weather: 'clear',
+        } as unknown as GameContext;
+
+        try {
+          const output = await agent.process(intent, simulation, gameContext);
+          if (output.text) return output.text;
+          if (output.stateChanges?.length) {
+            return `[${agent.name}] Applied ${output.stateChanges.length} state change(s). Metadata: ${JSON.stringify(output.metadata ?? {})}`;
+          }
+          return `[${agent.name}] ${JSON.stringify(output.metadata ?? { status: 'processed' })}`;
+        } catch (err) {
+          log.warn({ err, agentId: agent.id }, 'Big Six @mention failed');
+          return `[${agent.name}] Unable to process request at this time.`;
+        }
+      },
+    };
+  }
+
   private _getAgentById(agentId: string): ServiceMessageAgent | null {
+    // Big Six agents via adapter (v2-paradigm Vector 2a)
+    const bigSixIds = ['dramaturg', 'validator', 'stylist', 'actor', 'censor', 'chronicler'];
+    if (bigSixIds.includes(agentId)) {
+      return this._adaptToBigSix(agentId);
+    }
+
+    // Non-Big-Six service agents
     const agents: Record<string, ServiceMessageAgent> = {
-      chronicler: {
-        name: 'Chronicler',
-        generateServiceMessage: async (ctx) => {
-          const timeline = await this.chronicler.getTimeline(new Date(this.currentTime.getTime() - 24 * 60 * 60 * 1000), 20);
-          return `The world timeline contains ${timeline.length} events. Recent events:\n${timeline.slice(-5).map(e => `- ${e.description}`).join('\n') || 'No recent events.'}\n\nYour request: "${ctx.message}"`;
-        },
-      },
-      'story-planner': {
-        name: 'Story Planner',
-        generateServiceMessage: async (ctx) => {
-          const planPrompt = `You are a Story Planner for a living narrative world.
-World rules: ${ctx.worldRules.join('; ') || 'None'}
-Recent events: ${ctx.recentEvents.join('; ') || 'None'}
-Current location: ${ctx.location}
-Active character: ${ctx.character}
-
-Your task: Analyze the current narrative state and respond to the player's request.
-Provide story arc suggestions, beat recommendations, or plot analysis.
-
-Player request: "${ctx.message}"`;
-          return this._llmQueue.generateText(planPrompt, 1, 0.7, 'story-planner');
-        },
-      },
-      'social-sim': {
-        name: 'Social Simulator',
-        generateServiceMessage: async (ctx) => {
-          const simPrompt = `You are a Social Dynamics Simulator for a living narrative world.
-Current location: ${ctx.location}
-Nearby NPCs: ${ctx.nearbyNpcs.join(', ') || 'none'}
-Recent events: ${ctx.recentEvents.join('; ') || 'None'}
-World rules: ${ctx.worldRules.join('; ') || 'None'}
-
-Your task: Analyze social dynamics, simulate NPC interactions, or respond to the player's request.
-Consider relationships, moods, and recent events.
-
-Player request: "${ctx.message}"`;
-          return this._llmQueue.generateText(simPrompt, 1, 0.7, 'social-sim');
-        },
-      },
       villain: {
         name: 'Villain Manager',
         generateServiceMessage: async (ctx) => {
@@ -928,6 +940,7 @@ Player request: "${ctx.message}"`;
       },
       researcher: this.researcher,
     };
+
     return agents[agentId] ?? null;
   }
 
