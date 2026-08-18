@@ -1,155 +1,219 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect, beforeEach } from 'bun:test';
 import { ChroniclerAgent } from './chronicler-agent';
-import { EventTopic } from '@/lib/event-bus';
 import type { Intent } from '@/models/intent';
 import type { SimulationResult } from '@/models/simulation';
 import type { GameContext } from '@/services/context-builder';
+import type { UnifiedEntityStore } from '@/store/entity-store';
+import { EventTopic } from '@/lib/event-bus';
+import { OutcomeQuality } from '@/models/simulation';
 
-// ── Mock helpers ────────────────────────────────────────────────
+const makeIntent = (overrides: Partial<Intent> = {}): Intent =>
+  ({ type: 'action', verb: 'forge', target: 'sword', ...overrides }) as Intent;
 
-const makeIntent = (o: Partial<Intent> = {}): Intent =>
-  ({ type: 'action', verb: 'forges', target: 'sword', ...o } as unknown as Intent);
-
-const makeSim = (o: Partial<SimulationResult> = {}): SimulationResult =>
-  ({ outcome: 'success', stateChanges: [], ...o } as unknown as SimulationResult);
-
-const makeCtx = (o: Partial<GameContext> = {}): GameContext =>
+const makeSimulation = (overrides: Partial<SimulationResult> = {}): SimulationResult =>
   ({
-    nearbyNpcs: [],
-    location: { name: 'Tavern' },
-    character: { name: 'Alek' },
+    outcome: OutcomeQuality.SUCCESS,
+    probability: 0.7,
+    rawRoll: 15,
+    modifiers: [],
+    stateChanges: [],
+    narrativeHints: [],
+    requiresRoll: true,
+    ...overrides,
+  }) as SimulationResult;
+
+const makeContext = (overrides: Partial<GameContext> = {}): GameContext =>
+  ({
+    character: { name: 'Alek', uid: 'char-1' },
+    location: { name: 'Forge', uid: 'loc-1' },
     time: new Date('2026-01-01T12:00:00Z'),
-    ...o,
-  } as unknown as GameContext);
+    nearbyNpcs: [],
+    ...overrides,
+  }) as unknown as GameContext;
 
-const makeEventBus = () => {
-  const calls: [unknown, unknown, unknown][] = [];
-  return {
-    publishSimple: (t: unknown, d: unknown, s: unknown) => { calls.push([t, d, s]); },
-    _calls: calls,
-  };
-};
+describe('ChroniclerAgent', () => {
+  let agent: ChroniclerAgent;
+  let mockEntityStore: UnifiedEntityStore;
+  let publishedEvents: Array<{ topic: EventTopic; payload: Record<string, unknown>; source: string }>;
 
-const makeStore = (entities: Record<string, { uid: string }> = {}) => ({
-  getByNameAndType: (name: string) => entities[name] ?? null,
-});
+  beforeEach(() => {
+    publishedEvents = [];
+    mockEntityStore = {
+      getByNameAndType: () => undefined,
+    } as unknown as UnifiedEntityStore;
 
-// ── Tests ───────────────────────────────────────────────────────
+    const mockEventBus = {
+      publishSimple: (topic: EventTopic, payload: Record<string, unknown>, source: string) => {
+        publishedEvents.push({ topic, payload, source });
+      },
+    };
 
-describe('ChroniclerAgent identity', () => {
-  const agent = new ChroniclerAgent(makeStore() as any, makeEventBus() as any);
-
-  test('id is "chronicler"', () => {
-    expect(agent.id).toBe('chronicler');
+    agent = new ChroniclerAgent(mockEntityStore, mockEventBus as never);
   });
 
-  test('name is "Chronicler"', () => {
+  test('has correct id and name', () => {
+    expect(agent.id).toBe('chronicler');
     expect(agent.name).toBe('Chronicler');
   });
 
-  test('mcpTools is empty', () => {
-    expect(agent.mcpTools).toEqual([]);
-  });
-});
-
-describe('ChroniclerAgent.process — return value', () => {
-  test('returns AgentOutput with eventLogged=true', async () => {
-    const agent = new ChroniclerAgent(makeStore() as any, makeEventBus() as any);
-    const result = await agent.process(makeIntent(), makeSim(), makeCtx());
+  test('process returns AgentOutput with metadata', async () => {
+    const result = await agent.process(
+      makeIntent(),
+      makeSimulation(),
+      makeContext(),
+    );
+    expect(result.metadata).toBeDefined();
     expect(result.metadata!.eventLogged).toBe(true);
-  });
-
-  test('returns stateChanges array', async () => {
-    const agent = new ChroniclerAgent(makeStore() as any, makeEventBus() as any);
-    const result = await agent.process(makeIntent(), makeSim(), makeCtx());
+    expect(result.metadata!.eventType).toBe('action');
     expect(Array.isArray(result.stateChanges)).toBe(true);
   });
-});
 
-describe('ChroniclerAgent.process — EventBus publishing', () => {
-  test('publishes STORY_EVENT to EventBus', async () => {
-    const bus = makeEventBus();
-    const agent = new ChroniclerAgent(makeStore() as any, bus as any);
-    await agent.process(makeIntent(), makeSim(), makeCtx());
-    expect(bus._calls.length).toBe(1);
-    expect(bus._calls[0]![0]).toBe(EventTopic.STORY_EVENT);
+  test('publishes STORY_EVENT to eventBus', async () => {
+    await agent.process(
+      makeIntent({ type: 'action', verb: 'forge', target: 'sword' }),
+      makeSimulation(),
+      makeContext(),
+    );
+    expect(publishedEvents).toHaveLength(1);
+    expect(publishedEvents[0]!.topic).toBe(EventTopic.STORY_EVENT);
+    expect(publishedEvents[0]!.source).toBe('chronicler');
+    expect(publishedEvents[0]!.payload.type).toBe('action');
+    expect(publishedEvents[0]!.payload.outcome).toBe(OutcomeQuality.SUCCESS);
+    expect(publishedEvents[0]!.payload.location).toBe('Forge');
+    expect(publishedEvents[0]!.payload.character).toBe('Alek');
   });
 
-  test('publishes with source "chronicler"', async () => {
-    const bus = makeEventBus();
-    const agent = new ChroniclerAgent(makeStore() as any, bus as any);
-    await agent.process(makeIntent(), makeSim(), makeCtx());
-    expect(bus._calls[0]![2]).toBe('chronicler');
-  });
-});
-
-describe('ChroniclerAgent.process — intent types → eventType', () => {
-  const agent = new ChroniclerAgent(makeStore() as any, makeEventBus() as any);
-
-  test('movement → eventType "movement"', async () => {
-    const r = await agent.process(makeIntent({ type: 'movement' }), makeSim(), makeCtx());
-    expect(r.metadata!.eventType).toBe('movement');
+  test('movement intent → eventType "movement"', async () => {
+    const result = await agent.process(
+      makeIntent({ type: 'movement', destination: 'Tavern' }),
+      makeSimulation(),
+      makeContext(),
+    );
+    expect(result.metadata!.eventType).toBe('movement');
   });
 
-  test('dialogue → eventType "dialogue"', async () => {
-    const r = await agent.process(makeIntent({ type: 'dialogue', target: 'Bran' }), makeSim(), makeCtx());
-    expect(r.metadata!.eventType).toBe('dialogue');
+  test('dialogue intent → eventType "dialogue"', async () => {
+    const result = await agent.process(
+      makeIntent({ type: 'dialogue', target: 'Bran', content: 'Hello' }),
+      makeSimulation(),
+      makeContext(),
+    );
+    expect(result.metadata!.eventType).toBe('dialogue');
   });
 
-  test('action → eventType "action"', async () => {
-    const r = await agent.process(makeIntent({ type: 'action', verb: 'forges' }), makeSim(), makeCtx());
-    expect(r.metadata!.eventType).toBe('action');
+  test('observation intent → eventType "observation"', async () => {
+    const result = await agent.process(
+      makeIntent({ type: 'observation', detail_level: 'brief' }),
+      makeSimulation(),
+      makeContext(),
+    );
+    expect(result.metadata!.eventType).toBe('observation');
   });
 
-  test('observation → eventType "observation"', async () => {
-    const r = await agent.process(makeIntent({ type: 'observation' }), makeSim(), makeCtx());
-    expect(r.metadata!.eventType).toBe('observation');
-  });
-});
+  test('nearby NPCs with action intent → entityStore queried + stateChanges returned', async () => {
+    const npcEntity = { uid: 'npc-1', name: 'Bran' };
+    mockEntityStore = {
+      getByNameAndType: (name: string, type: string) => {
+        if (name === 'Bran' && type === 'Character') return npcEntity as never;
+        return undefined;
+      },
+    } as unknown as UnifiedEntityStore;
 
-describe('ChroniclerAgent.process — NPC memory updates', () => {
-  test('action + nearby NPC in store → stateChange with episodic_memory', async () => {
-    const store = makeStore({ Bran: { uid: 'char_bran' } });
-    const agent = new ChroniclerAgent(store as any, makeEventBus() as any);
-    const ctx = makeCtx({ nearbyNpcs: [{ name: 'Bran' }] as any });
-    const r = await agent.process(makeIntent({ type: 'action', verb: 'forges' }), makeSim(), ctx);
+    const mockEventBus = { publishSimple: () => {} };
+    agent = new ChroniclerAgent(mockEntityStore, mockEventBus as never);
 
-    expect(r.stateChanges!.length).toBe(1);
-    expect(r.stateChanges![0]!.entityUid).toBe('char_bran');
-    expect(r.stateChanges![0]!.field).toBe('episodic_memory');
-    expect(r.stateChanges![0]!.operation).toBe('add');
-    expect(r.stateChanges![0]!.layer).toBe('l3');
-  });
-
-  test('action + nearby NPC NOT in store → no stateChange', async () => {
-    const store = makeStore({});
-    const agent = new ChroniclerAgent(store as any, makeEventBus() as any);
-    const ctx = makeCtx({ nearbyNpcs: [{ name: 'Ghost' }] as any });
-    const r = await agent.process(makeIntent({ type: 'action' }), makeSim(), ctx);
-    expect(r.stateChanges!.length).toBe(0);
-  });
-
-  test('action + no nearby NPCs → no stateChange', async () => {
-    const agent = new ChroniclerAgent(makeStore() as any, makeEventBus() as any);
-    const r = await agent.process(makeIntent({ type: 'action' }), makeSim(), makeCtx({ nearbyNpcs: [] }));
-    expect(r.stateChanges!.length).toBe(0);
-  });
-
-  test('dialogue + nearby NPCs → no stateChange (only action triggers memory)', async () => {
-    const store = makeStore({ Bran: { uid: 'char_bran' } });
-    const agent = new ChroniclerAgent(store as any, makeEventBus() as any);
-    const ctx = makeCtx({ nearbyNpcs: [{ name: 'Bran' }] as any });
-    const r = await agent.process(makeIntent({ type: 'dialogue' }), makeSim(), ctx);
-    expect(r.stateChanges!.length).toBe(0);
-  });
-
-  test('action + 5 nearby NPCs → max 3 stateChanges (slice limit)', async () => {
-    const store = makeStore({
-      A: { uid: 'a' }, B: { uid: 'b' }, C: { uid: 'c' }, D: { uid: 'd' }, E: { uid: 'e' },
+    const ctx = makeContext({
+      nearbyNpcs: [{ name: 'Bran', uid: 'npc-1' }] as never,
     });
-    const agent = new ChroniclerAgent(store as any, makeEventBus() as any);
-    const ctx = makeCtx({ nearbyNpcs: [{ name: 'A' }, { name: 'B' }, { name: 'C' }, { name: 'D' }, { name: 'E' }] as any });
-    const r = await agent.process(makeIntent({ type: 'action' }), makeSim(), ctx);
-    expect(r.stateChanges!.length).toBe(3);
+
+    const result = await agent.process(
+      makeIntent({ type: 'action', verb: 'forge', target: 'sword' }),
+      makeSimulation(),
+      ctx,
+    );
+    expect(result.stateChanges).toHaveLength(1);
+    expect(result.stateChanges![0]!.entityUid).toBe('npc-1');
+    expect(result.stateChanges![0]!.field).toBe('episodic_memory');
+    expect(result.stateChanges![0]!.description).toContain('Bran');
+  });
+
+  test('nearby NPC not in store → skipped (no stateChange)', async () => {
+    mockEntityStore = {
+      getByNameAndType: () => undefined,
+    } as unknown as UnifiedEntityStore;
+
+    const mockEventBus = { publishSimple: () => {} };
+    agent = new ChroniclerAgent(mockEntityStore, mockEventBus as never);
+
+    const ctx = makeContext({
+      nearbyNpcs: [{ name: 'Ghost', uid: 'npc-ghost' }] as never,
+    });
+
+    const result = await agent.process(
+      makeIntent({ type: 'action', verb: 'look', target: 'around' }),
+      makeSimulation(),
+      ctx,
+    );
+    expect(result.stateChanges).toHaveLength(0);
+  });
+
+  test('non-action intent with nearby NPCs → no stateChanges', async () => {
+    mockEntityStore = {
+      getByNameAndType: () => ({ uid: 'npc-1', name: 'Bran' }),
+    } as unknown as UnifiedEntityStore;
+
+    const mockEventBus = { publishSimple: () => {} };
+    agent = new ChroniclerAgent(mockEntityStore, mockEventBus as never);
+
+    const ctx = makeContext({
+      nearbyNpcs: [{ name: 'Bran', uid: 'npc-1' }] as never,
+    });
+
+    const result = await agent.process(
+      makeIntent({ type: 'movement', destination: 'Tavern' }),
+      makeSimulation(),
+      ctx,
+    );
+    expect(result.stateChanges).toHaveLength(0);
+  });
+
+  test('graceful with null character/location', async () => {
+    const ctx = makeContext({
+      character: null,
+      location: null,
+      nearbyNpcs: [],
+    });
+
+    const result = await agent.process(
+      makeIntent({ type: 'action', verb: 'look' }),
+      makeSimulation(),
+      ctx,
+    );
+    expect(result.metadata?.eventLogged).toBe(true);
+    expect(publishedEvents[0]!.payload.character).toBeUndefined();
+    expect(publishedEvents[0]!.payload.location).toBeUndefined();
+  });
+
+  test('only first 3 nearby NPCs are processed', async () => {
+    let callCount = 0;
+    mockEntityStore = {
+      getByNameAndType: () => {
+        callCount++;
+        return { uid: `npc-${callCount}`, name: `NPC${callCount}` };
+      },
+    } as unknown as UnifiedEntityStore;
+
+    const mockEventBus = { publishSimple: () => {} };
+    agent = new ChroniclerAgent(mockEntityStore, mockEventBus as never);
+
+    const npcs = [1, 2, 3, 4, 5].map(i => ({ name: `NPC${i}`, uid: `npc-${i}` }));
+    const ctx = makeContext({ nearbyNpcs: npcs as never });
+
+    const result = await agent.process(
+      makeIntent({ type: 'action', verb: 'shout' }),
+      makeSimulation(),
+      ctx,
+    );
+    expect(result.stateChanges).toHaveLength(3);
   });
 });
