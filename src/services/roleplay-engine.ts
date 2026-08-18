@@ -925,11 +925,21 @@ export class RoleplayEngine {
       villain: {
         name: 'Villain Manager',
         generateServiceMessage: async (ctx) => {
+          const villainEntities = this._entityStore.listByType('Villain');
+          const villainContext = villainEntities.length > 0
+            ? `Known villains: ${villainEntities.map(v => `${v.name} — ${v.profile?.summary ?? 'unknown agenda'}`).join('; ')}`
+            : 'No villain entities in world state.';
+          const nearbyContext = ctx.nearbyNpcs.length > 0
+            ? `Nearby NPCs: ${ctx.nearbyNpcs.join(', ')}`
+            : '';
+
           const villainPrompt = `You are a Villain Manager for a living narrative world.
 World rules: ${ctx.worldRules.join('; ') || 'None'}
 Recent events: ${ctx.recentEvents.join('; ') || 'None'}
 Current location: ${ctx.location}
 Active character: ${ctx.character}
+${villainContext}
+${nearbyContext}
 
 Your task: Plan antagonist actions, analyze villain schemes, or respond to the player's request.
 Consider the villain's goals, resources, and opportunities.

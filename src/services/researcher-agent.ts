@@ -53,11 +53,13 @@ export class ResearcherAgent {
     difficulty: string,
     worldContext: string,
   ): Promise<ResearchResult> {
+    const mcpContext = await this._retrieveContext(`recipe ${recipeName} ${ingredients.join(' ')}`);
     const prompt = PromptBuilder.buildResearcherRecipePrompt(
       recipeName, ingredients, result, difficulty, worldContext,
     );
+    const fullPrompt = mcpContext ? `${prompt}\n\nRelevant literary templates:\n${mcpContext}` : prompt;
     const response = await this._llmQueue.generateText(
-      prompt, TaskPriority.NORMAL, 0.3, RESEARCHER_AGENT_ID,
+      fullPrompt, TaskPriority.NORMAL, 0.3, RESEARCHER_AGENT_ID,
     );
     return this._parseResult(response);
   }
@@ -87,11 +89,13 @@ export class ResearcherAgent {
     location: string,
     worldContext: string,
   ): Promise<ResearchResult> {
+    const mcpContext = await this._retrieveContext(`character ${characterName} ${personality}`);
     const prompt = PromptBuilder.buildResearcherCharacterPrompt(
       characterName, personality, role, location, worldContext,
     );
+    const fullPrompt = mcpContext ? `${prompt}\n\nRelevant literary templates:\n${mcpContext}` : prompt;
     const response = await this._llmQueue.generateText(
-      prompt, TaskPriority.NORMAL, 0.3, RESEARCHER_AGENT_ID,
+      fullPrompt, TaskPriority.NORMAL, 0.3, RESEARCHER_AGENT_ID,
     );
     return this._parseResult(response);
   }
@@ -102,11 +106,13 @@ export class ResearcherAgent {
     worldContext: string,
     era?: string,
   ): Promise<string> {
+    const mcpContext = await this._retrieveContext(`scene ${location} ${sceneDescription}`);
     const prompt = PromptBuilder.buildResearcherScenePrompt(
       sceneDescription, location, worldContext, era,
     );
+    const fullPrompt = mcpContext ? `${prompt}\n\nRelevant literary templates:\n${mcpContext}` : prompt;
     return this._llmQueue.generateText(
-      prompt, TaskPriority.NORMAL, 0.5, RESEARCHER_AGENT_ID,
+      fullPrompt, TaskPriority.NORMAL, 0.5, RESEARCHER_AGENT_ID,
     );
   }
 
@@ -114,9 +120,11 @@ export class ResearcherAgent {
     claim: string,
     worldContext: string,
   ): Promise<ResearchResult> {
+    const mcpContext = await this._retrieveContext(claim);
     const prompt = PromptBuilder.buildResearcherFactCheckPrompt(claim, worldContext);
+    const fullPrompt = mcpContext ? `${prompt}\n\nRelevant literary templates:\n${mcpContext}` : prompt;
     const response = await this._llmQueue.generateText(
-      prompt, TaskPriority.NORMAL, 0.2, RESEARCHER_AGENT_ID,
+      fullPrompt, TaskPriority.NORMAL, 0.2, RESEARCHER_AGENT_ID,
     );
     return this._parseResult(response);
   }
