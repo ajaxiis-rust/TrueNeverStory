@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.6 — Compilation Guide
+# TrueNeverStory v0.33.0 — Compilation Guide
 
 ## Quick Start
 

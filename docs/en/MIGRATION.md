@@ -8,15 +8,15 @@ TrueNeverStory stores world data in **SQLite** via the `WorldStore` class (`src/
 
 The original JSON files remain in the world directory as the migration source and are never deleted — they serve as a fallback and historical record.
 
-## v0.32.6 Migration: Literary Compiler & Economic Models
+## v0.33.0 Migration: Literary Compiler & Economic Models
 
-The v0.32.6 release adds the Literary Compiler and Economic Models. No migration required — these are additive features that extend the existing State-First pipeline.
+The v0.33.0 release adds the Literary Compiler and Economic Models. No migration required — these are additive features that extend the existing State-First pipeline.
 
-## v0.32.6 Migration: State-First Pipeline
+## v0.33.0 Migration: State-First Pipeline
 
 ### What Changed
 
-The v0.32.6 release introduces a state-first pipeline architecture. Two agent systems now coexist:
+The v0.33.0 release introduces a state-first pipeline architecture. Two agent systems now coexist:
 
 1. **The Big Six (AgentV2)** — the narrative prose pipeline (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`), registered in `AgentRegistryV2`.
 2. **Configured agents (`DEFAULT_AGENTS`)** — the config-driven agents in `src/services/agent-config.ts` (`director`, `chronicler`, `story-planner`, `social-sim`, `villain`, `researcher`, `translation`), backing the Settings/Providers UI and a few subsystems.
@@ -46,7 +46,7 @@ User Intent → Simulation → Pattern Selection (Dramaturg) → Fact Check (Val
 
 ### MCP Integration
 
-v0.32.6 introduces Model Context Protocol (MCP) tools for external knowledge access:
+v0.33.0 introduces Model Context Protocol (MCP) tools for external knowledge access:
 
 | MCP Server | Tools | Purpose |
 |------------|-------|---------|

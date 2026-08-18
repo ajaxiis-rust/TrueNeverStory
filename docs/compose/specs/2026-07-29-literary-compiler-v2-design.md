@@ -1,7 +1,7 @@
 # Literary Compiler v2 — Design Spec
 
 **Date:** 2026-07-29
-**Status:** Draft (awaiting review)
+**Status:** Implemented (v0.33.0)
 **Author:** MiMo Code + User (brainstorm)
 
 ---

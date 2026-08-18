@@ -1,7 +1,7 @@
 # TrueNeverStory — アーキテクチャ文書
 
 > TrueNeverStory ナラティブRPGエンジンのドメイン駆動設計（DDD）分析。
-> v0.32.6 向けに更新 — RoleplayEngine を SessionState、CommandHandler、PipelineRunner、Prose 戦略にリファクタリング。
+> v0.33.0 向けに更新 — RoleplayEngine を SessionState、CommandHandler、PipelineRunner、Prose 戦略にリファクタリング。
 
 ---
 
@@ -9,7 +9,7 @@
 
 **イベント駆動拡張 + State-First パイプラインを備えたレイヤード・オニオンアーキテクチャ**
 
-TrueNeverStory は、その中核に**レイヤード・オニオン（ヘキサゴナル）アーキテクチャ**を採用し、非同期ナラティブ処理のための**イベント駆動オーケストレーションレイヤー**でラップしている。v0.32.6 以降、エンジンは**State-First パイプライン**を使用し、散文生成の前に決定的なシミュレーションが実行される。
+TrueNeverStory は、その中核に**レイヤード・オニオン（ヘキサゴナル）アーキテクチャ**を採用し、非同期ナラティブ処理のための**イベント駆動オーケストレーションレイヤー**でラップしている。v0.33.0 以降、エンジンは**State-First パイプライン**を使用し、散文生成の前に決定的なシミュレーションが実行される。
 
 このパターンが適している理由:
 
@@ -21,7 +21,7 @@ TrueNeverStory は、その中核に**レイヤード・オニオン（ヘキサ
 
 **イベントバス**（`src/lib/event-bus.ts` の `EventBus`）は、境界づけられたコンテキスト間に非同期の疎結合レイヤーを追加し、Director ループが NPC、Social、Quest サブシステムに直接結合することなくナラティブイベントをオーケストレーションできるようにする。
 
-### State-First パイプライン (v0.32.6)
+### State-First パイプライン (v0.33.0)
 
 パイプラインは現在、`PipelineRunner` が管理する合成可能なステージとして構造化されている:
 
@@ -59,7 +59,7 @@ TranslationService.translate() — 対象言語が英語以外の場合
 合計: LLM 呼び出し 2〜3 回
 ```
 
-### Gutenberg 処理パイプライン (v0.32.6)
+### Gutenberg 処理パイプライン (v0.33.0)
 
 2 フェーズのパイプラインが生の Gutenberg .txt ファイルをエージェントが消費可能なデータベースに変換する:
 
@@ -82,7 +82,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (sc
 
 **PlayerProfileStore** — 独立したクロスエージェントのプレイヤースタイルプロファイル（14 の指標）。`data/player-profiles.db` に保存される。
 
-### デュアルモデルアーキテクチャ (v0.32.6)
+### デュアルモデルアーキテクチャ (v0.33.0)
 
 エンジンは各エージェントに対して 2 つの LLM モデルをサポートする:
 
@@ -438,7 +438,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (sc
 
 ---
 
-### BC12: 文学コンパイラ v2 (v0.32.6)
+### BC12: 文学コンパイラ v2 (v0.33.0)
 
 **目的:** 文学ソースからのオフラインナラティブ抽出と、制約付き散文生成のためのランタイムハイブリッド検索。LLM 多用の v1 パイプラインを、決定的テンプレート + スタイルパターンシステムに置き換える。
 
@@ -997,7 +997,7 @@ POST /api/launch:
         │
         ▼
 ┌─────────────────────┐
-│  文学コンパイラ v2   │  (BC12, v0.32.6)
+│  文学コンパイラ v2   │  (BC12, v0.33.0)
 │                    │
 └─────────────────────┘
 ```

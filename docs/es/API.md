@@ -758,4 +758,4 @@ Obtener estado de la investigación.
 
 ---
 
-*Generado: 2026-07-31 | TrueNeverStory v0.32.6*
+*Generado: 2026-07-31 | TrueNeverStory v0.33.0*

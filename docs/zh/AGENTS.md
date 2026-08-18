@@ -1,4 +1,4 @@
-# 代理参考 (v0.32.6)
+# 代理参考 (v0.33.0)
 
 TrueNeverStory 拥有**两个共存的代理系统**：
 
@@ -160,7 +160,7 @@ Big Six 为：`dramaturg`、`validator`、`stylist`、`actor`、`censor`、`chro
 
 ---
 
-## 对话系统 (v0.32.6)
+## 对话系统 (v0.33.0)
 
 用于结构化 NPC 对话的新 `DialogueManager` + `DialogueContext`：
 
@@ -204,7 +204,7 @@ const withSearch = registry.getAgentsWithTool('search_verses');
 
 ---
 
-## 代理接口 (v0.32.6)
+## 代理接口 (v0.33.0)
 
 ```typescript
 interface AgentV2 {
@@ -318,7 +318,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## MCP 集成 (v0.32.6)
+## MCP 集成 (v0.33.0)
 
 ### 圣经模式
 
@@ -363,7 +363,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## 玩家风格档案 (v0.32.6)
+## 玩家风格档案 (v0.33.0)
 
 `PlayerProfileStore`（`src/lib/player-profile-store.ts`）提供跨代理的玩家风格档案，供 Stylist 与 LiteraryV2Generator 共享。
 

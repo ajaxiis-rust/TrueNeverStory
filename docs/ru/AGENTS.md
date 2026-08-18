@@ -1,4 +1,4 @@
-# Справка по агентам (v0.32.6)
+# Справка по агентам (v0.33.0)
 
 В TrueNeverStory **две системы агентов**, которые сосуществуют:
 
@@ -160,7 +160,7 @@ The Big Six: `dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler
 
 ---
 
-## Система диалогов (v0.32.6)
+## Система диалогов (v0.33.0)
 
 Новые `DialogueManager` + `DialogueContext` для структурированных диалогов NPC:
 
@@ -204,7 +204,7 @@ const withSearch = registry.getAgentsWithTool('search_verses');
 
 ---
 
-## Интерфейс агента (v0.32.6)
+## Интерфейс агента (v0.33.0)
 
 ```typescript
 interface AgentV2 {
@@ -318,7 +318,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## Интеграция MCP (v0.32.6)
+## Интеграция MCP (v0.33.0)
 
 ### Библейские паттерны
 
@@ -363,7 +363,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## Стилевые профили игроков (v0.32.6)
+## Стилевые профили игроков (v0.33.0)
 
 `PlayerProfileStore` (`src/lib/player-profile-store.ts`) предоставляет кросс-агентные стилевые профили игроков, разделяемые между Stylist и LiteraryV2Generator.
 

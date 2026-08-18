@@ -1,9 +1,9 @@
 # Стратегия буста: Safe Cleanup + Coverage-Driven Refactor (TNS → v2 / Big Six)
 
 **Дата:** 2026-08-18
-**Статус:** Готов к исполнению
+**Статус:** Реализовано (v0.33.0)
 **Основания:** `safe_cleanup.md` + `2026-08-17-v2-paradigm-migration-design.md`
-**Версия кода:** 0.32.6 (верифицировано 2026-08-18 через graph + fff + чтение файлов)
+**Версия кода:** 0.33.0 (верифицировано 2026-08-18)
 **Метод:** Strangler Fig + Safe Delete + Bun coverage как навигатор
 
 > Эта стратегия синтезирует обе спецификации и **корректирует** их там, где
@@ -72,7 +72,7 @@ Gutenberg-pipeline скрипты (`download-gutenberg`, `import-gutenberg-texts
 
 **0.1. Стабильная точка.**
 ```bash
-git tag v0.32.6-stable-pre-cleanup
+git tag v0.33.0-stable-pre-cleanup
 ```
 
 **0.2. Baseline тесты + typecheck.**
@@ -312,7 +312,7 @@ diff <(grep -E '^\|' coverage-before.txt) <(grep -E '^\|' coverage-after.txt)
 ```bash
 bun test --coverage
 bun run lint
-git tag v0.32.6-stable-pre-cleanup
+git tag v0.33.0-stable-pre-cleanup
 ```
 Записать baseline-цифры. **Без этого ничего не удалять.**
 

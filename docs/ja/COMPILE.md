@@ -1,4 +1,4 @@
-# TrueNeverStory v0.32.6 — コンパイルガイド
+# TrueNeverStory v0.33.0 — コンパイルガイド
 
 ## クイックスタート
 

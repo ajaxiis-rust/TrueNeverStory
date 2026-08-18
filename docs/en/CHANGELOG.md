@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.32.6 (2026-08-16)
+## v0.33.0 (2026-08-16)
 
 ### Literary Modulation — Soft Stylistic Enrichment
 

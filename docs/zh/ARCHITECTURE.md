@@ -1,7 +1,7 @@
 # TrueNeverStory — 架构文档
 
 > 对 TrueNeverStory 叙事 RPG 引擎的领域驱动设计分析。
-> 已更新至 v0.32.6 — `RoleplayEngine` 重构为 `SessionState`、`CommandHandler`、`PipelineRunner`、散文策略。
+> 已更新至 v0.33.0 — `RoleplayEngine` 重构为 `SessionState`、`CommandHandler`、`PipelineRunner`、散文策略。
 
 ---
 
@@ -9,7 +9,7 @@
 
 **分层洋葱架构，带事件驱动扩展 + 状态优先管道**
 
-TrueNeverStory 在其核心采用**分层洋葱（六边形）架构**，外层包裹一个**事件驱动编排层**用于异步叙事处理。自 v0.32.6 起，引擎采用**状态优先（State-First）管道**，确定性的模拟在散文生成之前执行。
+TrueNeverStory 在其核心采用**分层洋葱（六边形）架构**，外层包裹一个**事件驱动编排层**用于异步叙事处理。自 v0.33.0 起，引擎采用**状态优先（State-First）管道**，确定性的模拟在散文生成之前执行。
 
 该模式成立的原因如下：
 
@@ -21,7 +21,7 @@ TrueNeverStory 在其核心采用**分层洋葱（六边形）架构**，外层�
 
 **事件总线**（`src/lib/event-bus.ts` 中的 `EventBus`）在有界上下文之间增加了一个异步解耦层，使 Director Loop 能够编排叙事事件，而无需直接耦合到 NPC、Social 或 Quest 子系统。
 
-### 状态优先管道（v0.32.6）
+### 状态优先管道（v0.33.0）
 
 管道现在被构建为由 `PipelineRunner` 管理的可组合阶段：
 
@@ -59,7 +59,7 @@ Response to User
 Total: 2-3 LLM calls
 ```
 
-### 古腾堡处理管道（v0.32.6）
+### 古腾堡处理管道（v0.33.0）
 
 两阶段管道将原始古腾堡 .txt 文件转换为可供代理消费的数据库：
 
@@ -82,7 +82,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (sc
 
 **PlayerProfileStore** — 独立的跨代理玩家风格画像（14 项指标），存储于 `data/player-profiles.db`。
 
-### 双模型架构（v0.32.6）
+### 双模型架构（v0.33.0）
 
 引擎支持每个代理两个 LLM 模型：
 
@@ -438,7 +438,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (sc
 
 ---
 
-### BC12：文学编译器 v2（v0.32.6）
+### BC12：文学编译器 v2（v0.33.0）
 
 **用途：** 从文学来源离线提取叙事，以及在运行时进行混合检索以生成受约束的散文。用确定性的模板 + 风格模式系统取代了重度依赖 LLM 的 v1 管道。
 
@@ -998,7 +998,7 @@ Query flow:
         │
         ▼
 ┌─────────────────────┐
-│  Literary Compiler   │  (BC12, v0.32.6)
+│  Literary Compiler   │  (BC12, v0.33.0)
 │  v2                  │
 └─────────────────────┘
 ```

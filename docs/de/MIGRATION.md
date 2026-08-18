@@ -8,15 +8,15 @@ TrueNeverStory speichert Weltdaten in **SQLite** über die Klasse `WorldStore` (
 
 Die ursprünglichen JSON-Dateien bleiben im Weltverzeichnis als Migrationsquelle bestehen und werden nie gelöscht — sie dienen als Fallback und historische Aufzeichnung.
 
-## v0.32.6-Migration: Literary Compiler & Ökonomische Modelle
+## v0.33.0-Migration: Literary Compiler & Ökonomische Modelle
 
-Die Version v0.32.6 ergänzt den Literary Compiler und die Ökonomischen Modelle. Keine Migration erforderlich — dies sind additive Funktionen, die die bestehende State-First-Pipeline erweitern.
+Die Version v0.33.0 ergänzt den Literary Compiler und die Ökonomischen Modelle. Keine Migration erforderlich — dies sind additive Funktionen, die die bestehende State-First-Pipeline erweitern.
 
-## v0.32.6-Migration: State-First-Pipeline
+## v0.33.0-Migration: State-First-Pipeline
 
 ### Was sich geändert hat
 
-Die Version v0.32.6 führt eine State-First-Pipeline-Architektur ein. Zwei Agentensysteme existieren nun parallel:
+Die Version v0.33.0 führt eine State-First-Pipeline-Architektur ein. Zwei Agentensysteme existieren nun parallel:
 
 1. **Die Big Six (AgentV2)** — die erzählende Prosa-Pipeline (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`), registriert in `AgentRegistryV2`.
 2. **Konfigurierte Agenten (`DEFAULT_AGENTS`)** — die konfigurationsgesteuerten Agenten in `src/services/agent-config.ts` (`director`, `chronicler`, `story-planner`, `social-sim`, `villain`, `researcher`, `translation`), die die Einstellungen-/Anbieter-UI und einige Subsysteme stützen.
@@ -46,7 +46,7 @@ User Intent → Simulation → Pattern Selection (Dramaturg) → Fact Check (Val
 
 ### MCP-Integration
 
-v0.32.6 führt Model Context Protocol (MCP)-Tools für externen Wissenszugriff ein:
+v0.33.0 führt Model Context Protocol (MCP)-Tools für externen Wissenszugriff ein:
 
 | MCP-Server | Tools | Zweck |
 |------------|-------|-------|

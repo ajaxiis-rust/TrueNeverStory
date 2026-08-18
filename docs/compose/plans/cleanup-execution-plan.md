@@ -1,7 +1,7 @@
 # Cleanup Execution Plan — Actions 2-5
 
 **Дата:** 2026-08-18
-**Baseline:** `v0.32.6-stable-pre-cleanup` (1308 pass, 0 fail, tsc 0 errors)
+**Baseline:** `v0.33.0-stable-pre-cleanup` (1308 pass, 0 fail, tsc 0 errors)
 **Стратегия:** `docs/compose/specs/2026-08-18-boost-strategy.md`
 
 > Каждое действие — отдельный коммит. После каждого: `bun test && bun run lint`.

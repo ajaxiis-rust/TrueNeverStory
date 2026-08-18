@@ -758,4 +758,4 @@ Obtenir le statut de la recherche.
 
 ---
 
-*Généré : 2026-07-31 | TrueNeverStory v0.32.6*
+*Généré : 2026-07-31 | TrueNeverStory v0.33.0*
