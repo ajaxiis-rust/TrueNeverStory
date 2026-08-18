@@ -149,6 +149,9 @@ export const DEFAULT_AGENTS = [
   { id: "translation", name: "Translation", description: "Translates game narrative between languages", priority: 2 },
 ];
 
+/** @deprecated Static prompts — scheduled for removal after v2-paradigm Vector 2.
+ *  Replacement: Big Six computable prompts (stylist.buildMicroPrompt etc.).
+ *  See: docs/compose/specs/2026-08-17-v2-paradigm-migration-design.md §S5 */
 const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
   director: {
     systemPrompt: "You are a narrative director for an interactive story. You introduce plot beats, dramatic moments, and story hooks. Be creative but consistent with established lore.",

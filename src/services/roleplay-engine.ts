@@ -866,6 +866,9 @@ export class RoleplayEngine {
     return { response, agentId, agentName: agent.name };
   }
 
+  // LEGACY — scheduled for removal, see v2-paradigm §S4.1
+  // These @mention agents use static prompts. Big Six replacement via adapter
+  // is planned in v2-paradigm Vector 2a.
   private _getAgentById(agentId: string): ServiceMessageAgent | null {
     const agents: Record<string, ServiceMessageAgent> = {
       chronicler: {

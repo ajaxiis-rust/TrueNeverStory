@@ -1,6 +1,10 @@
 /**
  * Prompt builder — all LLM prompt templates for narrative agents.
  * Uses i18n for multilingual support.
+ * @deprecated Static prompt builder — scheduled for removal after v2-paradigm Vector 2.
+ * Used by: crafter-agent, world-builder, researcher-agent (all low-coverage).
+ * Replacement: Big Six computable prompts + MCP retrieval.
+ * See: docs/compose/specs/2026-08-17-v2-paradigm-migration-design.md §S4.2, §S4.3
  */
 
 import { t } from "../i18n";
