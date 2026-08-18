@@ -48,8 +48,7 @@ PipelineRunner.buildGameContext() — ContextBuilder
   │
   ▼
 Generadores de Prosa:
-  ├─ LiteraryV2Generator (controlado por feature-flag) → Stylist
-  └─ LegacyIntentGenerator → MovementHandler | DialogueHandler | ObservationHandler | ActionHandler
+  └─ LiteraryV2Generator → Stylist
   │
   ▼
 TranslationService.translate() — si el idioma objetivo no es inglés
@@ -647,7 +646,7 @@ Todos los eventos se definen en el enum `EventTopic` (`src/lib/event-bus.ts`):
    ├─→ PipelineRunner.translateAndClassify() → IntentParser
    ├─→ CommandHandler.handle() para comandos
    ├─→ PipelineRunner.runSimulation() → SimulationEngine
-   ├─→ Generación de prosa: LiteraryV2Generator o LegacyIntentGenerator
+   ├─→ Generación de prosa: LiteraryV2Generator
    └─→ Devuelve la cadena narrativa
 
 3. Stylist.process(intent, simulation, context, pattern)

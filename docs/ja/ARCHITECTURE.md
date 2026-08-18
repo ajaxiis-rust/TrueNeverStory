@@ -48,8 +48,7 @@ PipelineRunner.buildGameContext() — ContextBuilder
   │
   ▼
 散文（Prose）ジェネレーター:
-  ├─ LiteraryV2Generator（フィーチャーフラグでゲート）→ Stylist
-  └─ LegacyIntentGenerator → MovementHandler | DialogueHandler | ObservationHandler | ActionHandler
+  └─ LiteraryV2Generator → Stylist
   │
   ▼
 TranslationService.translate() — 対象言語が英語以外の場合
@@ -647,7 +646,7 @@ Player input
    ├─→ PipelineRunner.translateAndClassify() → IntentParser
    ├─→ CommandHandler.handle() コマンドの場合
    ├─→ PipelineRunner.runSimulation() → SimulationEngine
-   ├─→ 散文生成: LiteraryV2Generator または LegacyIntentGenerator
+   ├─→ 散文生成: LiteraryV2Generator
    └─→ ナラティブ文字列を返す
 
 3. Stylist.process(intent, simulation, context, pattern)
