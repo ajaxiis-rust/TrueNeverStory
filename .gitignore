@@ -54,3 +54,6 @@ worlds/_sessions/
 
 # Compose worktrees
 .worktrees/
+
+# Bun coverage output (Phase 0 — cleanup baseline)
+coverage/

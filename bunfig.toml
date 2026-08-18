@@ -1,0 +1,9 @@
+# Bun configuration — TNS cleanup baseline (Phase 0)
+# Coverage: off by default, enable with `bun test --coverage`
+# See: docs/compose/specs/2026-08-18-boost-strategy.md §2 Phase 0
+
+[test]
+# coverage = false  — default; use `bun test --coverage` to enable
+coverageSkipTestFiles = true
+coverageReporter = ["text", "lcov"]
+coverageDir = "./coverage"

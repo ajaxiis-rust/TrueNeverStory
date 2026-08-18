@@ -1,0 +1,201 @@
+src/lib/benchmark.test.ts:
+src/lib/event-bus.test.ts:
+src/lib/atomic-io.test.ts:
+src/rules/cultural-drift.test.ts:
+src/services/state-mutator.test.ts:
+src/services/agent-coordinator.test.ts:
+src/services/economic-service.test.ts:
+src/services/graph-store.test.ts:
+src/services/birth.test.ts:
+src/services/story-arc-manager.test.ts:
+src/services/agent-registry-v2.test.ts:
+src/services/translation-service.test.ts:
+src/services/roleplay-engine.jungian.test.ts:
+src/services/npc-economy-runtime.test.ts:
+src/services/intent-parser.test.ts:
+src/services/roleplay-engine.test.ts:
+src/services/world-clock.test.ts:
+tests/integration/wikipedia-rag.test.ts:
+tests/bible/integration.test.ts:
+tests/bible/parser-json.test.ts:
+tests/bible/characters.test.ts:
+tests/bible/parser-cross-refs.test.ts:
+tests/mcp/wiki-search.test.ts:
+tests/services/idle-research-scheduler.test.ts:
+tests/services/wiki-rag-builder.test.ts:
+tests/services/world-creation-progress.test.ts:
+tests/literary-compiler/economic-cycles.test.ts:
+tests/literary-compiler/metadata-pass.test.ts:
+tests/literary-compiler/faction-labor-rules.test.ts:
+tests/literary-compiler/emotional-pass.test.ts:
+tests/literary-compiler/jubilee-manager.test.ts:
+tests/literary-compiler/faction-tax-dilemma.test.ts:
+tests/literary-compiler/dramaturgic-pass.test.ts:
+tests/literary-compiler/mcp-tool.test.ts:
+tests/literary-compiler/linter.test.ts:
+tests/literary-compiler/stylistic-pass.test.ts:
+src/mcp/tools/economic.test.ts:
+------------------------------------------------------|---------|---------|-------------------
+------------------------------------------------------|---------|---------|-------------------
+ src/config/env.ts                                    |  100.00 |   94.74 | 25,28,69-70
+ src/i18n/de.ts                                       |    0.00 |   91.43 | 11,13
+ src/i18n/en.ts                                       |    0.00 |   97.60 | 20,23
+ src/i18n/es.ts                                       |  100.00 |  100.00 | 
+ src/i18n/fr.ts                                       |  100.00 |  100.00 | 
+ src/i18n/index.ts                                    |   33.33 |   92.31 | 22
+ src/i18n/ja.ts                                       |  100.00 |  100.00 | 
+ src/i18n/ru.ts                                       |    0.00 |   97.64 | 22,25
+ src/i18n/zh.ts                                       |  100.00 |  100.00 | 
+ src/lib/agent-memory-store.ts                        |    0.00 |    9.52 | 19-92,96
+ src/lib/atomic-io.ts                                 |   75.00 |   84.62 | 16-19
+ src/lib/event-bus.ts                                 |   94.74 |   96.23 | 151-154
+ src/lib/feature-flags.ts                             |   35.29 |   73.39 | 193-199,222-233,237-242,246-248,252,256,264-272,276-282,286-291,295-300,304-311
+ src/lib/function-calling-executor.ts                 |  100.00 |   93.65 | 112-113,149-150
+ src/lib/history-manager.ts                           |   88.24 |   95.21 | 112,137-140,144-145
+ src/lib/json-retry.ts                                |  100.00 |  100.00 | 
+ src/lib/mojo-ffi.ts                                  |   50.00 |   58.43 | 53-54,96-98,131-133,161-163,199-201,225-227,233-238,242-248,253-256,292-299,303-307,311-314,318-325,329-334,338-342,346-350,354-363,367-381,385-389,393-397,401-405,409-413,417-432,436-447,451-465,474-479,483-486,490-493,510-516,520-526,530-536,543,550,557,571,573-586,614,622,626-636,645,652,661,670,685,705,717,733,741-742
+ src/lib/player-profile-store.ts                      |  100.00 |  100.00 | 
+ src/lib/prng.ts                                      |   80.00 |   94.74 | 
+ src/lib/providers/anthropic-provider.ts              |    0.00 |    6.11 | 19-43,47-51,55-139,144,148-149,153-157
+ src/lib/providers/google-provider.ts                 |    0.00 |    7.35 | 41-72,76-80,84-209,214,218-219,223-283
+ src/lib/providers/index.ts                           |  100.00 |  100.00 | 
+ src/lib/providers/llamacpp-provider.ts               |    0.00 |    3.57 | 19-127,132-184
+ src/lib/providers/llm-provider.ts                    |  100.00 |  100.00 | 
+ src/lib/providers/ollama-provider.ts                 |    0.00 |    3.88 | 15-112
+ src/lib/providers/openai-provider.ts                 |    0.00 |    3.34 | 42-78,82-266,271,275-276,280-284,288-346
+ src/lib/providers/provider-manager.ts                |    0.00 |   15.05 | 60-105,109-113,117-127,131-217,222-227,231-241,247,251,255,259,263,267-300,304-310,314-317,321-338,342-355,359-372,376-378,382-389,393-420,424-428,437-445
+ src/lib/session-store.ts                             |    0.00 |   23.73 | 16-28,32-35,39-46,50-51,55-58,62-67,71-78
+ src/lib/sqlite-store.ts                              |   71.05 |   76.56 | 435,439,443-450,454-459,463,469-477,481-489,495-504,508-518,522-525
+ src/lib/ui-translation-seeder.ts                     |  100.00 |  100.00 | 
+ src/lib/vector-ops.ts                                |  100.00 |  100.00 | 
+ src/mcp/bible/characters.ts                          |   95.00 |   94.92 | 133-138
+ src/mcp/bible/name-dictionary.ts                     |   33.33 |   95.24 | 68-69
+ src/mcp/bible/parser.ts                              |   64.71 |   50.34 | 19-21,100-145,230-251,258-294,318-427,431-467,471-479,483-489,493-509,826-828
+ src/mcp/bible/types.ts                               |  100.00 |  100.00 | 
+ src/mcp/gutenberg/analyze-pass.ts                    |  100.00 |   98.41 | 99
+ src/mcp/gutenberg/catalog.ts                         |   64.71 |   66.67 | 60-76,80-104,194-200,252-253,259,327-340
+ src/mcp/gutenberg/clean.ts                           |  100.00 |  100.00 | 
+ src/mcp/gutenberg/delexifier.ts                      |   50.00 |   50.43 | 136-142,173-279
+ src/mcp/gutenberg/helpers.ts                         |  100.00 |  100.00 | 
+ src/mcp/gutenberg/parser.ts                          |   33.33 |   12.50 | 53-96,127-129,145-248,252-384,388-401,405-426,430-431,435-483
+ src/mcp/literary-compiler/archetypes.ts              |  100.00 |  100.00 | 
+ src/mcp/literary-compiler/chunker.ts                 |  100.00 |   98.75 | 
+ src/mcp/literary-compiler/dramaturgic-pass.ts        |   80.95 |   81.94 | 291-326,472-500,504-516
+ src/mcp/literary-compiler/economic-cycles.ts         |   66.67 |   85.32 | 192-195,203-206,214-220
+ src/mcp/literary-compiler/economic-schema.ts         |  100.00 |  100.00 | 
+ src/mcp/literary-compiler/emotional-pass.ts          |   93.33 |   96.89 | 141-143,195-196
+ src/mcp/literary-compiler/extractor.ts               |  100.00 |  100.00 | 
+ src/mcp/literary-compiler/faction-labor-rules.ts     |  100.00 |  100.00 | 
+ src/mcp/literary-compiler/faction-tax-dilemma.ts     |   85.71 |   98.90 | 
+ src/mcp/literary-compiler/fill-template.ts           |  100.00 |  100.00 | 
+ src/mcp/literary-compiler/jubilee-manager.ts         |   83.33 |   98.72 | 
+ src/mcp/literary-compiler/linter.ts                  |   70.00 |   57.97 | 152-157,161-166,170-175,194-199,205-210,243-288,295-305
+ src/mcp/literary-compiler/metadata-pass.ts           |   83.33 |   84.04 | 123-126,128-138
+ src/mcp/literary-compiler/pre-score.ts               |  100.00 |  100.00 | 
+ src/mcp/literary-compiler/retrieval.ts               |  100.00 |  100.00 | 
+ src/mcp/literary-compiler/runtime-metrics.ts         |  100.00 |  100.00 | 
+ src/mcp/literary-compiler/schema.ts                  |   63.64 |   60.86 | 320-353,395-432,436-439,443,447,451,455,459-486,605-612,651-653,657-665
+ src/mcp/literary-compiler/stylistic-pass.ts          |   93.33 |   97.56 | 128-130
+ src/mcp/tools/economic.ts                            |  100.00 |  100.00 | 
+ src/mcp/tools/literary-compiler.ts                   |   75.00 |   55.36 | 59-83
+ src/mcp/tools/wikipedia.ts                           |    0.00 |    5.00 | 28-130,137-188,193-208
+ src/mcp/wiki/wiki-search.ts                          |   80.00 |  100.00 | 
+ src/memory/clustering.ts                             |   90.91 |   64.08 | 86-122
+ src/memory/scoring.ts                                |  100.00 |  100.00 | 
+ src/middleware/auth.ts                               |    7.14 |   14.76 | 24,34-35,39-58,62-64,68-69,79-103,107,112-118,123-124,129-156,169-197,202-208,213-260,265-268
+ src/middleware/rate-limiter.ts                       |  100.00 |   87.10 | 24-27
+ src/middleware/security-headers.ts                   |  100.00 |  100.00 | 
+ src/models/director.ts                               |   66.67 |   80.00 | 66-71
+ src/models/entity.ts                                 |   95.65 |   97.52 | 44-47
+ src/models/intent.ts                                 |   83.33 |   98.21 | 
+ src/models/item.ts                                   |  100.00 |  100.00 | 
+ src/models/memory.ts                                 |   94.44 |  100.00 | 
+ src/models/npc-role.ts                               |  100.00 |   98.67 | 
+ src/models/npc-state.ts                              |  100.00 |  100.00 | 
+ src/models/npc-stats.ts                              |  100.00 |  100.00 | 
+ src/models/probability.ts                            |   63.16 |   72.09 | 20,24,137-145,149-157,207-218,222-236
+ src/models/quest.ts                                  |  100.00 |  100.00 | 
+ src/models/rank.ts                                   |  100.00 |  100.00 | 
+ src/models/romance.ts                                |  100.00 |  100.00 | 
+ src/models/simulation.ts                             |   66.67 |   59.09 | 22-30
+ src/routes/health.ts                                 |  100.00 |  100.00 | 
+ src/routes/mcp.ts                                    |   78.46 |   77.37 | 62,73,83,142,159-178,180-188,316-317,321-322,344-354,359-378,397,400,497,515-516,519-521,525-527,541-542,545-547,555-564,568-577,586-588,610-612,623-629
+ src/routes/sessions.ts                               |   54.55 |   30.36 | 18,22-24,33,41-42,52-53,63-66,68-73,87,89-90,92-94,96-98,100-109,111,113,115,117,123-131,138-164
+ src/rules/cultural-drift.ts                          |  100.00 |  100.00 | 
+ src/rules/rule-validator.ts                          |  100.00 |   79.78 | 37-38,50,56,68,71,83,86,100-104,110-114
+ src/rules/rules-engine.ts                            |   87.50 |   91.67 | 86-93
+ src/services/agent-config.ts                         |    0.00 |   25.00 | 21,61,65,71-89,93,99-110,114-117,121-131,135-136,190,196-205,212-217,221-222,228-251,255-271,277-306,310-334,338,342-359
+ src/services/agent-coordinator.ts                    |   83.33 |   80.00 | 57,126-145
+ src/services/agent-registry-v2.ts                    |   92.31 |  100.00 | 
+ src/services/agent-v2.ts                             |    0.00 |  100.00 | 
+ src/services/agents/actor.ts                         |   50.00 |   24.62 | 26-106,110-139,143-178
+ src/services/agents/censor.ts                        |   60.00 |   60.84 | 48-79,162-163,199-229
+ src/services/agents/chronicler-agent.ts              |   25.00 |    5.08 | 25-55,59-139
+ src/services/agents/dramaturg.ts                     |   41.67 |   17.41 | 30-108,112-129,133-147,151-158,169-171,194-236
+ src/services/agents/stylist.ts                       |   71.43 |  100.00 | 
+ src/services/agents/validator.ts                     |   87.50 |   52.68 | 22-53,57-77
+ src/services/author-matcher.ts                       |  100.00 |   98.13 | 23
+ src/services/behavior-engine.ts                      |   69.23 |   82.35 | 128-145
+ src/services/birth.ts                                |   83.02 |   92.40 | 310,315,320-325,329,447-486
+ src/services/branch-manager.ts                       |  100.00 |  100.00 | 
+ src/services/chronicler.ts                           |   87.50 |   93.75 | 113-117
+ src/services/context-builder.ts                      |   83.33 |   89.17 | 157-158,167-171,190-194,244-248
+ src/services/crafter-agent.ts                        |   23.08 |   23.67 | 97-116,121-142,147-215,220,225,230-235,240-306
+ src/services/deferred-hook-store.ts                  |   92.31 |  100.00 | 
+ src/services/dialogue-context.ts                     |   75.00 |   84.55 | 138-156
+ src/services/dialogue-manager.ts                     |   88.57 |  100.00 | 
+ src/services/economic-service.ts                     |   89.47 |   96.88 | 106
+ src/services/feedback-store.ts                       |   91.67 |  100.00 | 
+ src/services/graph-store.ts                          |   88.24 |   93.13 | 218-227
+ src/services/idle-research-scheduler.ts              |   55.56 |   25.74 | 35-41,50-55,59-62,77-134
+ src/services/intent-parser.ts                        |  100.00 |  100.00 | 
+ src/services/inventory-manager.ts                    |   94.34 |   95.28 | 196-204,263-264
+ src/services/item-evaluation.ts                      |   16.67 |    6.50 | 16-128,133
+ src/services/jungian-profiler.ts                     |   95.92 |   98.46 | 142,175-176,183-184
+ src/services/literary-modulation.ts                  |  100.00 |  100.00 | 
+ src/services/memory-engine.ts                        |   84.62 |  100.00 | 
+ src/services/memory-manager.ts                       |   75.00 |   95.24 | 64-65
+ src/services/metrics-collector.ts                    |   94.44 |  100.00 | 
+ src/services/navigator.ts                            |  100.00 |  100.00 | 
+ src/services/npc-economy-runtime.ts                  |   60.00 |   39.73 | 62-70,85-86,108-135,139-181,185-258,262-276,328-330,347-348
+ src/services/npc-economy.ts                          |  100.00 |   99.57 | 
+ src/services/npc-runtime.ts                          |   97.06 |  100.00 | 
+ src/services/probability-engine.ts                   |   71.43 |   85.19 | 289-293,320-336,378-398
+ src/services/probability-expression.ts               |  100.00 |  100.00 | 
+ src/services/probability-profiles.ts                 |   66.67 |   98.69 | 193
+ src/services/probability-resolver.ts                 |   50.00 |   56.27 | 165-220,248-320
+ src/services/prompt-builder.ts                       |    0.00 |   10.16 | 77-87,92-96,107-113,126-143,147-161,165-182,186-202,206-217,221-232
+ src/services/quest-manager.ts                        |  100.00 |  100.00 | 
+ src/services/quest-system.ts                         |   94.44 |   99.08 | 289
+ src/services/researcher-agent.ts                     |   12.50 |    7.81 | 29-96,100-149
+ src/services/roleplay-engine.ts                      |   60.00 |   85.88 | 173,175,179,181-183,185,224-227,345,413-415,795-826,873-874,880-890,896-906,912-922,931-934,971-977,981-983
+ src/services/roleplay/handlers/command-handler.ts    |   50.00 |  100.00 | 
+ src/services/roleplay/pipeline-runner.ts             |  100.00 |  100.00 | 
+ src/services/roleplay/prose/literary-v2-generator.ts |   75.00 |   80.19 | 117-137
+ src/services/roleplay/session-state.ts               |   50.00 |   76.47 | 38-45
+ src/services/romance-profiles.ts                     |  100.00 |  100.00 | 
+ src/services/settings.ts                             |    0.00 |   15.38 | 85-89,93-133,137-147,151,155-163,167-176
+ src/services/short-turn-expander.ts                  |   90.91 |  100.00 | 
+ src/services/simulation-engine.ts                    |  100.00 |  100.00 | 
+ src/services/slave-economy.ts                        |   66.67 |   45.63 | 82-102,106-133,137-143
+ src/services/social-graph.ts                         |   98.11 |   98.12 | 551-557
+ src/services/start-resolver.ts                       |   20.00 |    8.16 | 32-57,61-127,132-173
+ src/services/state-mutator.ts                        |  100.00 |  100.00 | 
+ src/services/story-arc-manager.ts                    |  100.00 |  100.00 | 
+ src/services/story-planner.ts                        |   71.05 |   50.89 | 181,217-218,239-429,433-444,461-466,516-523
+ src/services/translation-service.ts                  |   90.91 |   84.11 | 86-102
+ src/services/user-agent.ts                           |   77.78 |   50.45 | 82-130,141-146
+ src/services/wiki-rag-builder.ts                     |   85.71 |   98.80 | 
+ src/services/wikipedia-researcher.ts                 |   78.95 |   57.53 | 96-157
+ src/services/world-clock.ts                          |   91.30 |   94.67 | 47-50
+ src/services/world-creation-progress.ts              |   80.00 |   84.62 | 88-97
+ src/services/world-validator.ts                      |  100.00 |  100.00 | 
+ src/store/entity-store.ts                            |   83.78 |   92.64 | 149-156,253-260
+ src/utils/hash.ts                                    |  100.00 |  100.00 | 
+ src/utils/logger.ts                                  |   64.29 |   85.90 | 73,88,92-99
+ src/utils/progress-bar.ts                            |   50.00 |   73.81 | 34-44
+ src/utils/safe-request.ts                            |   50.00 |   66.67 | 11-12
+ src/utils/sanitize.ts                                |  100.00 |  100.00 | 
+ src/utils/template-resolver.ts                       |  100.00 |  100.00 | 
+ src/utils/time.ts                                    |  100.00 |  100.00 | 
+------------------------------------------------------|---------|---------|-------------------
