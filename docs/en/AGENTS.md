@@ -2,10 +2,10 @@
 
 TrueNeverStory has **two agent systems** that coexist:
 
-1. **The Big Six (AgentV2)** — the narrative prose pipeline. Registered in `AgentRegistryV2` and instantiated in `RoleplayEngine`.
-2. **Configured agents (`DEFAULT_AGENTS`)** — the older config-driven agents, listed in `src/services/agent-config.ts`. These back the Settings/Providers UI and a few subsystems (idle research, chat `@mentions`).
+1. **The Big Six (AgentV2)** — the narrative prose pipeline and `@mention` routing. Registered in `AgentRegistryV2` and instantiated in `RoleplayEngine`.
+2. **Configured agents (`DEFAULT_AGENTS`)** — admin-config metadata for the Settings/Providers UI, listed in `src/services/agent-config.ts`. Backs a few subsystems (idle research, villain management).
 
-The Big Six are: `dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`. The configured agents are: `director`, `chronicler`, `story-planner`, `social-sim`, `villain`, `researcher`, `translation`.
+The Big Six are: `dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`. The configured agents are: `director`, `chronicler`, `story-planner`, `social-sim`, `villain`, `researcher`, `translation` (static prompts for `director`, `chronicler`, `story-planner`, `social-sim` have been removed — migrated to Big Six).
 
 `stylist` is the sole prose generator. The removed agents (`narrator`, `npc`, `scene`, `historian`, `cartographer`, `lorekeeper`, `merchant`, `quest-giver`) no longer exist anywhere in the code.
 
@@ -174,7 +174,7 @@ New `DialogueManager` + `DialogueContext` for structured NPC conversations:
 
 Access via `engine.dialogueManager` (requires `npcRuntime` to be available).
 
-**Note:** Chat `@mentions` route to the configured handlers (`@chronicler`, `@story-planner`, `@social-sim`, `@villain`, `@researcher`), not to the Big Six. `@narrator`, `@director`, `@scene`, and `@npc` no longer exist.
+**Note:** Chat `@mentions` now route through the Big Six via an adapter (`@dramaturg`, `@stylist`, `@actor`, `@validator`, `@censor`, `@chronicler`). `@villain` and `@researcher` retain their own handlers. `@story-planner` and `@social-sim` have been removed (redundant with Big Six). `@narrator`, `@director`, `@scene`, and `@npc` no longer exist.
 
 ---
 
@@ -283,7 +283,7 @@ Send a private message to an agent from the chat. Chat `@mentions` route to the 
 
 Responses are marked with a blue left border and agent name in brackets.
 
-The Big Six (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`) are registered in `AgentRegistryV2` but are **not** reachable via `@mention`.
+The Big Six (`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`) are registered in `AgentRegistryV2` and are reachable via `@mention` through the Big Six adapter (v2-paradigm Vector 2a).
 
 ---
 

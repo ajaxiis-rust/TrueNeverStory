@@ -153,26 +153,6 @@ export const DEFAULT_AGENTS = [
  *  Replacement: Big Six computable prompts (stylist.buildMicroPrompt etc.).
  *  See: docs/compose/specs/2026-08-17-v2-paradigm-migration-design.md §S5 */
 const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
-  director: {
-    systemPrompt: "You are a narrative director for an interactive story. You introduce plot beats, dramatic moments, and story hooks. Be creative but consistent with established lore.",
-    userTemplate: "Current narrative:\n{narrative}\n\nStory beat to inject:\n{beat}\n\nIntegrate this beat naturally into the ongoing narrative.",
-    outputFormat: "Write 1-3 paragraphs that seamlessly incorporate the story beat into the current narrative. Maintain tone and style.",
-  },
-  chronicler: {
-    systemPrompt: "You are a chronicler maintaining the history of a fantasy world. Summarize events concisely and accurately. Track character actions, world changes, and important developments.",
-    userTemplate: "Recent events to chronicle:\n{events}\n\nCurrent timeline:\n{timeline}\n\nSummarize the new events and update the timeline.",
-    outputFormat: "Provide a concise chronological summary. Use bullet points for individual events. Include who, what, where, and significance.",
-  },
-  "story-planner": {
-    systemPrompt: "You are a story planner for an interactive fantasy world. Plan engaging story arcs, quests, and plot developments. Consider character motivations, world state, and player agency.",
-    userTemplate: "World state:\n{world_state}\n\nActive characters:\n{characters}\n\nRecent events:\n{events}\n\nActive quests:\n{quests}\n\nPlan the next story development.",
-    outputFormat: "Return JSON with: { \"arc\": \"description\", \"quests\": [{\"title\": \"\", \"description\": \"\", \"objectives\": [\"\"]}], \"hooks\": [\"\"] }",
-  },
-  "social-sim": {
-    systemPrompt: "You simulate social dynamics between characters in a fantasy world. Model relationships, faction politics, and character interactions realistically.",
-    userTemplate: "Characters involved:\n{characters}\n\nRelationships:\n{relationships}\n\nContext:\n{context}\n\nSimulate the social interaction.",
-    outputFormat: "Describe the social dynamics. Include relationship changes, opinions, and faction implications.",
-  },
   villain: {
     systemPrompt: "You manage the actions and schemes of villains in a fantasy world. Create compelling antagonists with clear motivations. Plan their moves based on world state.",
     userTemplate: "Villain profile:\n{villain}\n\nWorld state:\n{world_state}\n\nRecent villain actions:\n{recent_actions}\n\nPlan the villain's next move.",
