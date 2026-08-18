@@ -4,6 +4,7 @@
  */
 
 import type { LLMQueue } from "../lib/llm-queue";
+import type { TNSServer } from "../mcp/server";
 import { TaskPriority } from "../models/director";
 import { PromptBuilder } from "./prompt-builder";
 import { getLogger } from "../utils/logger";
@@ -24,9 +25,25 @@ export interface ResearchResult {
 export class ResearcherAgent {
   readonly name = "Researcher";
   private _llmQueue: LLMQueue;
+  private _mcpServer?: TNSServer;
 
-  constructor(llmQueue: LLMQueue) {
+  constructor(llmQueue: LLMQueue, mcpServer?: TNSServer) {
     this._llmQueue = llmQueue;
+    this._mcpServer = mcpServer;
+  }
+
+  /** Retrieve relevant literary templates via MCP (v2-paradigm §S4.3) */
+  private async _retrieveContext(query: string): Promise<string> {
+    if (!this._mcpServer) return '';
+    try {
+      const result = await this._mcpServer.handleToolCall('search_templates', { query, limit: 2 }) as { templates?: Array<{ template_text?: string; archetype?: string }> };
+      if (result.templates?.length) {
+        return result.templates.map(t => `- ${t.archetype ?? 'unknown'}: ${t.template_text ?? ''}`).join('\n');
+      }
+    } catch (err) {
+      log.warn({ err }, 'MCP retrieval failed, using static prompt');
+    }
+    return '';
   }
 
   async verifyRecipe(
@@ -50,7 +67,14 @@ export class ResearcherAgent {
     worldContext: string,
     era?: string,
   ): Promise<string> {
+    const mcpContext = await this._retrieveContext(topic);
     const prompt = PromptBuilder.buildResearcherTopicPrompt(topic, worldContext, era);
+    if (mcpContext) {
+      return this._llmQueue.generateText(
+        `${prompt}\n\nRelevant literary templates:\n${mcpContext}`,
+        TaskPriority.NORMAL, 0.4, RESEARCHER_AGENT_ID,
+      );
+    }
     return this._llmQueue.generateText(
       prompt, TaskPriority.NORMAL, 0.4, RESEARCHER_AGENT_ID,
     );
@@ -130,7 +154,8 @@ export class ResearcherAgent {
   }
 
   async generateServiceMessage(ctx: ServiceMessageContext): Promise<string> {
-    const prompt = `You are the Researcher agent for a fantasy world. The user is sending you a private service message.
+    const mcpContext = await this._retrieveContext(ctx.message);
+    const basePrompt = `You are the Researcher agent for a fantasy world. The user is sending you a private service message.
 
 Location: ${ctx.location}
 Character: ${ctx.character}
@@ -144,6 +169,7 @@ Private message: "${ctx.message}"
 
 Respond with research insights, fact-checking, historical context, or world-building details. Keep it concise and grounded.`;
 
+    const prompt = mcpContext ? `${basePrompt}\n\nRelevant literary templates:\n${mcpContext}` : basePrompt;
     const response = await this._llmQueue.generateText(
       prompt, TaskPriority.NORMAL, 0.3, RESEARCHER_AGENT_ID,
     );

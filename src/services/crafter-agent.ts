@@ -12,6 +12,7 @@ import { EntityNode } from "../models/entity";
 import type { LLMQueue } from "../lib/llm-queue";
 import { TaskPriority } from "../models/director";
 import { PromptBuilder } from "./prompt-builder";
+import type { StylistAgent } from "./agents/stylist";
 import { ItemEvaluationService } from "./item-evaluation";
 import type { ItemBoost } from "../models/item";
 import { getLogger } from "../utils/logger";
@@ -41,11 +42,13 @@ export class CrafterAgent {
   private _recipes: Recipe[] = [];
   private _inventory: Map<string, number> = new Map();
   private _evaluationService: ItemEvaluationService;
+  private _stylist?: StylistAgent;
 
-  constructor(entityStore: UnifiedEntityStore, llmQueue: LLMQueue, dataDir?: string) {
+  constructor(entityStore: UnifiedEntityStore, llmQueue: LLMQueue, dataDir?: string, stylist?: StylistAgent) {
     this._entityStore = entityStore;
     this._llmQueue = llmQueue;
     this._evaluationService = new ItemEvaluationService(llmQueue);
+    this._stylist = stylist;
     this._loadRecipes(dataDir);
   }
 
@@ -209,8 +212,18 @@ export class CrafterAgent {
     };
   }
 
-  /** Use LLM to suggest creative recipe from two items */
+  /** Use LLM to suggest creative recipe from two items (v2: stylist + MCP) */
   async suggestRecipe(item1: string, item2: string, worldContext: string): Promise<string> {
+    if (this._stylist) {
+      const skeleton = `Suggest a creative recipe by combining ${item1} and ${item2}. World context: ${worldContext}`;
+      const style = { register: 'medium', pacing: 'medium', sensory: [] as string[], snippets: [] as string[], forbidden: [] as string[] };
+      const { system, user } = this._stylist.buildMicroPrompt(
+        skeleton, style, { world: worldContext, location: 'crafting' }, 'A creative recipe suggestion',
+      );
+      const response = await this._llmQueue.generateText(`${system}\n\n${user}`, TaskPriority.LOW, 0.9, 'crafter');
+      return response.trim();
+    }
+    // Fallback: static prompt (deprecated, v2-paradigm §S4.2)
     const prompt = PromptBuilder.buildCrafterPrompt(item1, item2, worldContext);
     const response = await this._llmQueue.generateText(prompt, TaskPriority.LOW, 0.9, "crafter");
     return response.trim();

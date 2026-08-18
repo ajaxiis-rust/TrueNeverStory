@@ -266,8 +266,8 @@ export class RoleplayEngine {
       this.actor = new ActorAgent(deps.entityStore, deps.llmQueue);
       this.censor = new CensorAgent(deps.llmQueue);
       this.chroniclerAgent = new ChroniclerAgent(deps.entityStore, this._eventBus);
-      this.crafter = new CrafterAgent(deps.entityStore, deps.llmQueue, deps.dbPath);
-      this.researcher = new ResearcherAgent(deps.llmQueue);
+      this.crafter = new CrafterAgent(deps.entityStore, deps.llmQueue, deps.dbPath, this.stylist);
+      this.researcher = new ResearcherAgent(deps.llmQueue, deps.mcpServer);
     }
 
     // Register new agents
