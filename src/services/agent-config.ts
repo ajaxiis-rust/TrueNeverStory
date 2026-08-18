@@ -151,18 +151,9 @@ export const DEFAULT_AGENTS = [
 
 /** @deprecated Static prompts — scheduled for removal after v2-paradigm Vector 2.
  *  Replacement: Big Six computable prompts (stylist.buildMicroPrompt etc.).
+ *  villain/researcher entries removed in Vector 3 — migrated to computable prompts.
  *  See: docs/compose/specs/2026-08-17-v2-paradigm-migration-design.md §S5 */
 const DEFAULT_PROMPTS: Record<string, AgentPromptConfig> = {
-  villain: {
-    systemPrompt: "You manage the actions and schemes of villains in a fantasy world. Create compelling antagonists with clear motivations. Plan their moves based on world state.",
-    userTemplate: "Villain profile:\n{villain}\n\nWorld state:\n{world_state}\n\nRecent villain actions:\n{recent_actions}\n\nPlan the villain's next move.",
-    outputFormat: "Describe the villain's next action or scheme. Include motivation, method, and potential consequences.",
-  },
-  researcher: {
-    systemPrompt: "You are a research analyst specializing in historical accuracy, cultural authenticity, and practical realism for world-building. You fact-check details, verify plausibility, and enrich scenes with accurate, grounded details about clothing, food, daily life, materials, and tools.",
-    userTemplate: "{task}\n\nWorld context:\n{world_context}\n\nProvide your analysis as a structured JSON response.",
-    outputFormat: "Return JSON with verdict, confidence, issues, suggestions, and enrichedDetails fields.",
-  },
   translation: {
     systemPrompt: "Translate game text between English and other languages. Rules: 1. Output ONLY the translation — no quotes, no explanations, no \"Translation:\" 2. Preserve paragraph structure and line breaks 3. Keep proper nouns, character names, and item names unchanged 4. Match the tone: epic for combat, intimate for dialogue, atmospheric for description",
     userTemplate: "Translate {source_lang} → {target_lang}: {text}",
