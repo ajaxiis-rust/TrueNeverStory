@@ -41,34 +41,6 @@ interface FlagStore {
 
 const DEFAULT_FLAGS: FeatureFlag[] = [
   {
-    id: "narrative-v2",
-    name: "Narrative V2",
-    description: "New narrative generation algorithm",
-    enabled: false,
-    percentage: 0,
-    conditions: [],
-    variants: [
-      { id: "control", name: "Control", weight: 50 },
-      { id: "treatment", name: "Treatment", weight: 50 },
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "npc-memory-v2",
-    name: "NPC Memory V2",
-    description: "Enhanced NPC memory system",
-    enabled: false,
-    percentage: 0,
-    conditions: [],
-    variants: [
-      { id: "basic", name: "Basic Memory", weight: 50 },
-      { id: "enhanced", name: "Enhanced Memory", weight: 50 },
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
     id: "literary-compiler-v2",
     name: "Literary Compiler V2",
     description: "Use v2 pipeline with BGE-M3 + small LLM extractor",
