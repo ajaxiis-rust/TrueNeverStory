@@ -496,6 +496,21 @@ async function runPhaseB() {
       litDb.db.exec('COMMIT');
       litDb.db.exec('PRAGMA wal_checkpoint(PASSIVE)');
       totalChunks += chunks.length;
+
+      const elapsed = Math.round((Date.now() - phaseStart) / 1000);
+      emit({
+        phase: 'v2',
+        pct: Math.round(((i + 0.5) / books.length) * 95 + 3),
+        message: `Book ${i + 1}/${books.length}: ${sourceId} — chunks ready`,
+        stats: {
+          book_current: i + 1,
+          book_total: books.length,
+          book_title: sourceId,
+          chunks_done: totalChunks,
+          templates: totalTemplates,
+          elapsed_s: elapsed,
+        },
+      });
     } catch (err) {
       litDb.db.exec('ROLLBACK');
       console.warn(`Book ${sourceId} chunks rolled back:`, err);

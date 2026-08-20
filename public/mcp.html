@@ -1138,7 +1138,7 @@ function reconnectPhaseJob(phaseId, jobId, progress, stats) {
 function updateStatsDisplay(statsEl, s) {
   let html = "";
   if (s.book_title) html += "<div><span>Book</span><span>" + s.book_current + "/" + s.book_total + ": " + escapeHtml(s.book_title.split("::").pop() || s.book_title) + "</span></div>";
-  else if (s.book_current) html += "<div><span>Book</span><span>" + s.book_current + "/" + s.book_total + "</span></div>";
+  else if (s.book_current != null) html += "<div><span>Book</span><span>" + s.book_current + "/" + s.book_total + "</span></div>";
   if (s.chunks_done != null) html += "<div><span>Chunks</span><span>" + s.chunks_done + "</span></div>";
   if (s.templates != null) html += "<div><span>Templates</span><span>" + s.templates + "</span></div>";
   if (s.elapsed_s != null) {
@@ -1146,7 +1146,7 @@ function updateStatsDisplay(statsEl, s) {
     const sec = s.elapsed_s % 60;
     html += "<div><span>Elapsed</span><span>" + m + "m " + sec + "s</span></div>";
   }
-  statsEl.innerHTML = html;
+  if (html) statsEl.innerHTML = html;
 }
 
 function setPhaseData(id, active, text) {
