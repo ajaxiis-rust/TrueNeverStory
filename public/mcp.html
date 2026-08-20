@@ -1251,6 +1251,8 @@ function runPhase(path, phaseId) {
   btn.disabled = true;
   btn.textContent = "Running...";
   btn.style.setProperty("--phase-progress", "0%");
+  const statsEl = document.getElementById("phase-" + phaseId + "-stats");
+  if (statsEl) statsEl.innerHTML = "<div><span>Status</span><span>Initializing...</span></div>";
   toast("Starting: " + path);
   addLog("Phase start: " + path);
 

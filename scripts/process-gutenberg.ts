@@ -417,7 +417,7 @@ async function runPhaseB() {
     context: string;
   }>;
 
-  emit({ phase: 'v2', pct: 3, message: `Found ${books.length} books` });
+  emit({ phase: 'v2', pct: 3, message: `Found ${books.length} books`, stats: { book_current: 0, book_total: books.length, chunks_done: 0, templates: 0, elapsed_s: 0 } });
 
   const litDb = new LiteraryCompilerDB(LITERARY_DB);
   litDb.createV2Tables();
