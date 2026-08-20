@@ -82,6 +82,39 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 .progress-bar-track{background:var(--surface);border-radius:var(--radius-pill);height:6px;overflow:hidden}
 .progress-bar-fill{background:var(--accent);height:100%;border-radius:var(--radius-pill);transition:width 340ms var(--ease-out);width:0%}
 .progress-bar-label{font-size:11px;color:var(--text-disabled);margin-top:4px}
+
+.pipeline-grid{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:center;margin:16px 0}
+.pipeline-stage{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;position:relative}
+.pipeline-stage--active{border-color:var(--success)}
+.pipeline-stage--empty{border-color:var(--border);opacity:.6}
+.pipeline-stage__name{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary);margin-bottom:6px}
+.pipeline-stage__value{font-family:var(--font-body);font-size:20px;font-weight:700;color:var(--text-display);line-height:1}
+.pipeline-stage__detail{font-size:11px;color:var(--text-disabled);margin-top:4px}
+.pipeline-arrow{color:var(--text-disabled);font-size:18px;text-align:center}
+.pipeline-arrow--active{color:var(--accent)}
+.pipeline-section-label{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-disabled);text-align:center;margin:8px 0 4px;grid-column:1/-1}
+.pipeline-pass{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0}
+.pipeline-pass__item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;text-align:center}
+.pipeline-pass__name{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary)}
+.pipeline-pass__desc{font-size:11px;color:var(--text-disabled);margin-top:2px}
+.pipeline-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.phase-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;min-width:170px;flex:1;max-width:220px}
+.phase-card__header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.phase-card__name{font-size:12px;font-weight:600;color:var(--text-display)}
+.phase-card__status{font-size:10px;padding:2px 6px;border-radius:var(--radius-sm);background:var(--surface);color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em}
+.phase-card__status.running{background:var(--accent);color:#fff}
+.phase-card__status.done{background:var(--success);color:#fff}
+.phase-card__status.error{background:var(--error);color:#fff}
+.phase-card__desc{font-size:11px;color:var(--text-disabled);margin-bottom:8px;line-height:1.4}
+.phase-card__data{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px;min-height:18px}
+.phase-card__btn{width:100%;margin-bottom:8px;font-size:12px}
+.phase-card__progress{height:4px;background:var(--surface);border-radius:2px;overflow:hidden}
+.phase-card__progress-fill{height:100%;background:var(--accent);width:0%;transition:width .3s ease}
+.phase-arrow{color:var(--text-disabled);font-size:16px;flex-shrink:0}
+.phase-card--wide{min-width:240px;max-width:280px}
+.phase-card__stats{font-size:11px;color:var(--text-secondary);margin-bottom:8px;line-height:1.6;min-height:0}
+.phase-card__stats div{display:flex;justify-content:space-between}
+.phase-card__stats span:last-child{color:var(--text-display);font-weight:600}
 </style>
 </head>
 <body>
@@ -98,10 +131,10 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
   <button class="tab active" data-tab="dashboard" data-i18n="mcp.tab.dashboard">Dashboard</button>
   <button class="tab" data-tab="bible" data-i18n="mcp.tab.bible">Bible</button>
   <button class="tab" data-tab="gutenberg" data-i18n="mcp.tab.gutenberg">Gutenberg</button>
-  <button class="tab" data-tab="catalog" data-i18n="mcp.tab.catalog">Catalog</button>
   <button class="tab" data-tab="wikipedia" data-i18n="mcp.tab.wikipedia">Wikipedia</button>
   <button class="tab" data-tab="literary" data-i18n="mcp.tab.literary">Literary</button>
   <button class="tab" data-tab="economics" data-i18n="mcp.tab.economics">Economics</button>
+  <button class="tab" data-tab="pipeline" data-i18n="mcp.tab.pipeline">Pipeline</button>
   <button class="tab" data-tab="system" data-i18n="mcp.tab.system">System</button>
 </div>
 
@@ -112,8 +145,8 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
     <div class="section">
       <div class="section__title" data-i18n="mcp.quickActions">Quick Actions</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" onclick="compactAll()" data-i18n="mcp.compactAll">Compact All</button>
-        <button class="btn" onclick="rebuildIndex()" data-i18n="mcp.rebuildIndex">Rebuild Index</button>
+        <button class="btn" onclick="compactAll()" data-i18n="mcp.compactAll" data-i18n-title="mcp.compactAll.title">Compact All</button>
+        <button class="btn" onclick="rebuildIndex()" data-i18n="mcp.rebuildIndex" data-i18n-title="mcp.rebuildIndex.title">Rebuild Index</button>
       </div>
     </div>
   </div>
@@ -125,7 +158,7 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div class="section__title" data-i18n="mcp.bible.search">Search Verses</div>
       <div class="search-row">
         <input class="input" id="bible-q" placeholder="Search verses..." data-i18n-placeholder="mcp.bible.searchPlaceholder">
-        <button class="btn" onclick="searchBible()" data-i18n="mcp.search">Search</button>
+        <button class="btn" onclick="searchBible()" data-i18n="mcp.search" data-i18n-title="mcp.search.title">Search</button>
       </div>
       <div id="bible-results"></div>
     </div>
@@ -133,42 +166,19 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div class="section__title" data-i18n="mcp.bible.characters">Characters</div>
       <div class="search-row">
         <input class="input" id="bible-char-q" placeholder="Search characters..." data-i18n-placeholder="mcp.bible.charPlaceholder">
-        <button class="btn" onclick="searchBibleChars()" data-i18n="mcp.search">Search</button>
+        <button class="btn" onclick="searchBibleChars()" data-i18n="mcp.search" data-i18n-title="mcp.search.title">Search</button>
       </div>
       <div id="bible-char-results"></div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn--success" onclick="runAction('bible/bootstrap')" data-i18n="mcp.bible.bootstrap">Bootstrap</button>
-      <button class="btn" onclick="runAction('bible/compact')" data-i18n="mcp.bible.compact">Compact</button>
+      <button class="btn btn--success" onclick="runAction('bible/bootstrap')" data-i18n="mcp.bible.bootstrap" data-i18n-title="mcp.bible.bootstrap.title">Bootstrap</button>
+      <button class="btn" onclick="runAction('bible/compact')" data-i18n="mcp.bible.compact" data-i18n-title="mcp.bible.compact.title">Compact</button>
     </div>
   </div>
 
-  <!-- Gutenberg -->
+  <!-- Gutenberg (merged with Catalog) -->
   <div class="panel" id="panel-gutenberg">
     <div class="stats-grid" id="gutenberg-stats"></div>
-    <div class="section">
-      <div class="section__title" data-i18n="mcp.gutenberg.search">Search Styles</div>
-      <div class="search-row">
-        <input class="input" id="gutenberg-q" placeholder="Search styles..." data-i18n-placeholder="mcp.gutenberg.searchPlaceholder">
-        <button class="btn" onclick="searchGutenberg()" data-i18n="mcp.search">Search</button>
-      </div>
-      <div id="gutenberg-results"></div>
-    </div>
-    <div class="section">
-      <div class="section__title" data-i18n="mcp.gutenberg.delexify">Delexify Text</div>
-      <textarea class="input" id="gutenberg-delex" rows="4" placeholder="Paste text to delexify..." data-i18n-placeholder="mcp.gutenberg.delexifyPlaceholder" style="resize:vertical"></textarea>
-      <button class="btn" onclick="delexifyGutenberg()" style="margin-top:8px" data-i18n="mcp.gutenberg.delexifyBtn">Delexify</button>
-      <div id="gutenberg-delex-result"></div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn" onclick="runAction('gutenberg/download')" data-i18n="mcp.gutenberg.download">Download Corpus</button>
-      <button class="btn" onclick="runAction('gutenberg/convert')" data-i18n="mcp.gutenberg.convert">Convert</button>
-      <button class="btn" onclick="runAction('gutenberg/compact')" data-i18n="mcp.gutenberg.compact">Compact</button>
-    </div>
-  </div>
-
-  <!-- Catalog (Selective Download) -->
-  <div class="panel" id="panel-catalog">
     <div class="stats-grid" id="catalog-stats"></div>
     <div class="section">
       <div class="section__title" data-i18n="mcp.catalog.build">Build Catalog</div>
@@ -177,39 +187,53 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
         <input class="input" id="catalog-topic" data-i18n-placeholder="mcp.catalog.topicPlaceholder" placeholder="Topic (optional): adventure, romance..." style="max-width:200px">
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn btn--success" onclick="buildCatalog()" data-i18n="mcp.catalog.build">Build Catalog</button>
-        <button class="btn" onclick="buildCatalogPopular()" data-i18n="mcp.catalog.popular500">Popular 500</button>
-      </div>
-      <div id="catalog-build-progress" style="display:none">
-        <div style="background:var(--surface);border-radius:var(--radius-md);padding:8px 12px;font-size:12px">
-          <div id="catalog-build-status">Starting...</div>
-        </div>
+        <button class="btn btn--success" onclick="buildCatalog()" data-i18n="mcp.catalog.build" data-i18n-title="mcp.catalog.build.title">Build Catalog</button>
+        <button class="btn" onclick="buildCatalogPopular()" data-i18n="mcp.catalog.popular500" data-i18n-title="mcp.catalog.popular500.title">Popular 500</button>
       </div>
     </div>
     <div class="section">
       <div class="section__title" data-i18n="mcp.catalog.filter">Search & Filter</div>
       <div class="search-row">
         <input class="input" id="catalog-q" data-i18n-placeholder="mcp.catalog.searchPlaceholder" placeholder="Search by title, author, subjects...">
-        <button class="btn" onclick="searchCatalog()" data-i18n="mcp.catalog.searchBtn">Search</button>
+        <button class="btn" onclick="searchCatalog()" data-i18n="mcp.catalog.searchBtn" data-i18n-title="mcp.catalog.searchBtn.title">Search</button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <input class="input" id="catalog-filter-author" data-i18n-placeholder="mcp.catalog.authorPlaceholder" placeholder="Author" style="max-width:200px">
         <input class="input" id="catalog-filter-year-from" data-i18n-placeholder="mcp.catalog.yearFromPlaceholder" placeholder="Year from" style="max-width:120px" type="number">
         <input class="input" id="catalog-filter-year-to" data-i18n-placeholder="mcp.catalog.yearToPlaceholder" placeholder="Year to" style="max-width:120px" type="number">
         <input class="input" id="catalog-filter-min-dl" data-i18n-placeholder="mcp.catalog.minDlPlaceholder" placeholder="Min downloads" style="max-width:140px" type="number">
-        <button class="btn" onclick="filterCatalog()" data-i18n="mcp.catalog.apply">Apply</button>
-        <button class="btn" onclick="clearCatalogFilter()" data-i18n="mcp.catalog.clear">Clear</button>
+        <button class="btn" onclick="filterCatalog()" data-i18n="mcp.catalog.apply" data-i18n-title="mcp.catalog.apply.title">Apply</button>
+        <button class="btn" onclick="clearCatalogFilter()" data-i18n="mcp.catalog.clear" data-i18n-title="mcp.catalog.clear.title">Clear</button>
       </div>
     </div>
     <div class="section">
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn" onclick="selectAllCatalog()" data-i18n="mcp.catalog.selectAll">Select All</button>
-        <button class="btn" onclick="deselectAllCatalog()" data-i18n="mcp.catalog.deselectAll">Deselect All</button>
-        <button class="btn btn--success" onclick="downloadSelectedCatalog()" data-i18n="mcp.catalog.downloadSelected">Download Selected</button>
+        <button class="btn" onclick="selectAllCatalog()" data-i18n="mcp.catalog.selectAll" data-i18n-title="mcp.catalog.selectAll.title">Select All</button>
+        <button class="btn" onclick="deselectAllCatalog()" data-i18n="mcp.catalog.deselectAll" data-i18n-title="mcp.catalog.deselectAll.title">Deselect All</button>
+        <button class="btn btn--success" onclick="downloadSelectedCatalog()" data-i18n="mcp.catalog.downloadSelected" data-i18n-title="mcp.catalog.downloadSelected.title">Download Selected</button>
         <span id="catalog-selected-count" style="color:var(--text-secondary);font-size:12px;display:flex;align-items:center"></span>
       </div>
       <div id="catalog-results"></div>
       <div id="catalog-pagination" style="display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px"></div>
+    </div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.gutenberg.search">Search Styles</div>
+      <div class="search-row">
+        <input class="input" id="gutenberg-q" placeholder="Search styles..." data-i18n-placeholder="mcp.gutenberg.searchPlaceholder">
+        <button class="btn" onclick="searchGutenberg()" data-i18n="mcp.search" data-i18n-title="mcp.search.title">Search</button>
+      </div>
+      <div id="gutenberg-results"></div>
+    </div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.gutenberg.delexify">Delexify Text</div>
+      <textarea class="input" id="gutenberg-delex" rows="4" placeholder="Paste text to delexify..." data-i18n-placeholder="mcp.gutenberg.delexifyPlaceholder" style="resize:vertical"></textarea>
+      <button class="btn" onclick="delexifyGutenberg()" style="margin-top:8px" data-i18n="mcp.gutenberg.delexifyBtn" data-i18n-title="mcp.gutenberg.delexifyBtn.title">Delexify</button>
+      <div id="gutenberg-delex-result"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="runAction('gutenberg/download')" data-i18n="mcp.gutenberg.download" data-i18n-title="mcp.gutenberg.download.title">Download Corpus</button>
+      <button class="btn btn--success" onclick="runAction('gutenberg/import')" data-i18n="mcp.gutenberg.import" data-i18n-title="mcp.gutenberg.import.title">Import to DB</button>
+      <button class="btn" onclick="runAction('gutenberg/compact')" data-i18n="mcp.gutenberg.compact" data-i18n-title="mcp.gutenberg.compact.title">Compact</button>
     </div>
   </div>
 
@@ -220,7 +244,7 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div class="section__title" data-i18n="mcp.wikipedia.search">Search Articles</div>
       <div class="search-row">
         <input class="input" id="wikipedia-q" placeholder="Search Wikipedia..." data-i18n-placeholder="mcp.wikipedia.searchPlaceholder">
-        <button class="btn" onclick="searchWikipedia()" data-i18n="mcp.search">Search</button>
+        <button class="btn" onclick="searchWikipedia()" data-i18n="mcp.search" data-i18n-title="mcp.search.title">Search</button>
       </div>
       <div id="wikipedia-results"></div>
     </div>
@@ -228,14 +252,14 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div class="section__title" data-i18n="mcp.wikipedia.verify">Fact Verification</div>
       <div class="search-row">
         <input class="input" id="wikipedia-claim" placeholder="Enter a claim to verify..." data-i18n-placeholder="mcp.wikipedia.claimPlaceholder">
-        <button class="btn" onclick="verifyWikipedia()" data-i18n="mcp.wikipedia.verifyBtn">Verify</button>
+        <button class="btn" onclick="verifyWikipedia()" data-i18n="mcp.wikipedia.verifyBtn" data-i18n-title="mcp.wikipedia.verifyBtn.title">Verify</button>
       </div>
       <div id="wikipedia-verify-result"></div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="runAction('wikipedia/download')" data-i18n="mcp.wikipedia.download">Download</button>
-      <button class="btn" onclick="runAction('wikipedia/convert')" data-i18n="mcp.wikipedia.convert">Convert</button>
-      <button class="btn" onclick="runAction('wikipedia/compact')" data-i18n="mcp.wikipedia.compact">Compact</button>
+      <button class="btn" onclick="runAction('wikipedia/download')" data-i18n="mcp.wikipedia.download" data-i18n-title="mcp.wikipedia.download.title">Download</button>
+      <button class="btn" onclick="runAction('wikipedia/convert')" data-i18n="mcp.wikipedia.convert" data-i18n-title="mcp.wikipedia.convert.title">Convert</button>
+      <button class="btn" onclick="runAction('wikipedia/compact')" data-i18n="mcp.wikipedia.compact" data-i18n-title="mcp.wikipedia.compact.title">Compact</button>
     </div>
   </div>
 
@@ -246,13 +270,13 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div class="section__title" data-i18n="mcp.literary.templates">Quest Templates</div>
       <div class="search-row">
         <input class="input" id="literary-q" placeholder="Search templates..." data-i18n-placeholder="mcp.literary.searchPlaceholder">
-        <button class="btn" onclick="searchLiterary()" data-i18n="mcp.search">Search</button>
+        <button class="btn" onclick="searchLiterary()" data-i18n="mcp.search" data-i18n-title="mcp.search.title">Search</button>
       </div>
       <div id="literary-results"></div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn--success" onclick="runAction('literary/compile')" data-i18n="mcp.literary.compile">Compile</button>
-      <button class="btn" onclick="runAction('literary/compact')" data-i18n="mcp.literary.compact">Compact</button>
+      <button class="btn btn--success" onclick="runAction('literary/compile')" data-i18n="mcp.literary.compile" data-i18n-title="mcp.literary.compile.title">Compile</button>
+      <button class="btn" onclick="runAction('literary/compact')" data-i18n="mcp.literary.compact" data-i18n-title="mcp.literary.compact.title">Compact</button>
     </div>
   </div>
 
@@ -269,6 +293,87 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
     </div>
   </div>
 
+  <!-- Pipeline -->
+  <div class="panel" id="panel-pipeline">
+    <!-- Gutenberg Pipeline -->
+    <div class="section">
+      <div class="section__title">Gutenberg Pipeline</div>
+      <div class="pipeline-flow" id="pipeline-gutenberg">
+        <div class="phase-card" id="phase-download">
+          <div class="phase-card__header">
+            <span class="phase-card__name">1. Download</span>
+            <span class="phase-card__status" id="phase-download-status">idle</span>
+          </div>
+          <div class="phase-card__desc">Download texts from Project Gutenberg</div>
+          <div class="phase-card__data" id="phase-download-data">—</div>
+          <button class="btn phase-card__btn" onclick="runPhase('gutenberg/download','download')">Run</button>
+          <div class="phase-card__progress"><div class="phase-card__progress-fill" id="phase-download-fill"></div></div>
+        </div>
+        <div class="phase-arrow" id="arrow-download">▶</div>
+        <div class="phase-card" id="phase-import">
+          <div class="phase-card__header">
+            <span class="phase-card__name">2. Import</span>
+            <span class="phase-card__status" id="phase-import-status">idle</span>
+          </div>
+          <div class="phase-card__desc">Import texts → classics.db</div>
+          <div class="phase-card__data" id="phase-import-data">—</div>
+          <button class="btn phase-card__btn" onclick="runPhase('gutenberg/import','import')">Run</button>
+          <div class="phase-card__progress"><div class="phase-card__progress-fill" id="phase-import-fill"></div></div>
+        </div>
+        <div class="phase-arrow" id="arrow-import">▶</div>
+        <div class="phase-card" id="phase-v1">
+          <div class="phase-card__header">
+            <span class="phase-card__name">3. v1 Compile</span>
+            <span class="phase-card__status" id="phase-v1-status">idle</span>
+          </div>
+          <div class="phase-card__desc">4-pass compiler → classics-compiled.db</div>
+          <div class="phase-card__data" id="phase-v1-data">—</div>
+          <button class="btn phase-card__btn" onclick="runPhase('gutenberg/compile-v1','v1')">Run</button>
+          <div class="phase-card__progress"><div class="phase-card__progress-fill" id="phase-v1-fill"></div></div>
+        </div>
+        <div class="phase-arrow" id="arrow-v1">▶</div>
+        <div class="phase-card phase-card--wide" id="phase-v2">
+          <div class="phase-card__header">
+            <span class="phase-card__name">4. v2 LLM</span>
+            <span class="phase-card__status" id="phase-v2-status">idle</span>
+          </div>
+          <div class="phase-card__desc">LLM extraction → literary.db</div>
+          <div class="phase-card__data" id="phase-v2-data">—</div>
+          <div class="phase-card__stats" id="phase-v2-stats"></div>
+          <button class="btn phase-card__btn" onclick="runPhase('gutenberg/compile-v2','v2')">Run</button>
+          <div class="phase-card__progress"><div class="phase-card__progress-fill" id="phase-v2-fill"></div></div>
+        </div>
+        <div class="phase-arrow" id="arrow-v2">▶</div>
+        <div class="phase-card" id="phase-calibrate">
+          <div class="phase-card__header">
+            <span class="phase-card__name">5. Calibrate</span>
+            <span class="phase-card__status" id="phase-calibrate-status">idle</span>
+          </div>
+          <div class="phase-card__desc">Quality score calibration</div>
+          <div class="phase-card__data" id="phase-calibrate-data">—</div>
+          <button class="btn phase-card__btn" onclick="runPhase('gutenberg/calibrate','calibrate')">Run</button>
+          <div class="phase-card__progress"><div class="phase-card__progress-fill" id="phase-calibrate-fill"></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Bible (standalone) -->
+    <div class="section">
+      <div class="section__title">Bible</div>
+      <div class="pipeline-flow">
+        <div class="phase-card" id="phase-bible">
+          <div class="phase-card__header">
+            <span class="phase-card__name">Bootstrap</span>
+            <span class="phase-card__status" id="phase-bible-status">idle</span>
+          </div>
+          <div class="phase-card__desc">Parse Bible → bible-normalized.db</div>
+          <div class="phase-card__data" id="phase-bible-data">—</div>
+          <button class="btn phase-card__btn" onclick="runPhase('bible/bootstrap','bible')">Run</button>
+          <div class="phase-card__progress"><div class="phase-card__progress-fill" id="phase-bible-fill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- System -->
   <div class="panel" id="panel-system">
     <div class="stats-grid" id="system-stats"></div>
@@ -277,8 +382,8 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
       <div id="system-logs" style="max-height:300px;overflow-y:auto;font-size:12px"></div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="runAction('rebuild-index')" data-i18n="mcp.system.rebuildIndex">Rebuild Index</button>
-      <button class="btn btn--danger" onclick="runAction('clean-orphans')" data-i18n="mcp.system.cleanOrphans">Clean Orphans</button>
+      <button class="btn" onclick="runAction('rebuild-index')" data-i18n="mcp.system.rebuildIndex" data-i18n-title="mcp.system.rebuildIndex.title">Rebuild Index</button>
+      <button class="btn btn--danger" onclick="runAction('clean-orphans')" data-i18n="mcp.system.cleanOrphans" data-i18n-title="mcp.system.cleanOrphans.title">Clean Orphans</button>
     </div>
   </div>
 </div>
@@ -296,9 +401,17 @@ const I18N = {
   en: {
     "mcp.title": "Database Management", "mcp.back": "\u2190 Back",
     "mcp.tab.dashboard": "Dashboard", "mcp.tab.bible": "Bible",
-    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.catalog": "Catalog", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.wikipedia": "Wikipedia",
     "mcp.tab.literary": "Literary", "mcp.tab.economics": "Economics",
-    "mcp.tab.system": "System",
+    "mcp.tab.pipeline": "Pipeline", "mcp.tab.system": "System",
+    "mcp.pipeline.title": "Data Pipeline", "mcp.pipeline.actions": "Pipeline Actions",
+    "mcp.pipeline.import": "Import Texts", "mcp.pipeline.compile": "Compile All",
+    "mcp.pipeline.process": "Process Gutenberg",
+    "mcp.pipeline.sources": "Sources", "mcp.pipeline.importStage": "Import",
+    "mcp.pipeline.passes": "4-Pass Compiler", "mcp.pipeline.outputs": "Output Databases",
+    "mcp.pipeline.import.title": "Import downloaded texts into classics.db",
+    "mcp.pipeline.compile.title": "Run 4-pass compiler on all imported texts",
+    "mcp.pipeline.process.title": "Run full Gutenberg processing pipeline (Phase A + B)",
     "mcp.quickActions": "Quick Actions", "mcp.compactAll": "Compact All",
     "mcp.rebuildIndex": "Rebuild Index", "mcp.search": "Search",
     "mcp.bible.search": "Search Verses", "mcp.bible.searchPlaceholder": "Search verses...",
@@ -307,7 +420,7 @@ const I18N = {
     "mcp.gutenberg.search": "Search Styles", "mcp.gutenberg.searchPlaceholder": "Search styles...",
     "mcp.gutenberg.delexify": "Delexify Text", "mcp.gutenberg.delexifyPlaceholder": "Paste text to delexify...",
     "mcp.gutenberg.delexifyBtn": "Delexify", "mcp.gutenberg.download": "Download Corpus",
-    "mcp.gutenberg.convert": "Convert Parquet\u2192SQLite", "mcp.gutenberg.compact": "Compact",
+    "mcp.gutenberg.import": "Import to DB", "mcp.gutenberg.convert": "Convert Parquet\u2192SQLite", "mcp.gutenberg.compact": "Compact",
     "mcp.wikipedia.search": "Search Articles", "mcp.wikipedia.searchPlaceholder": "Search Wikipedia...",
     "mcp.wikipedia.verify": "Fact Verification", "mcp.wikipedia.claimPlaceholder": "Enter a claim to verify...",
     "mcp.wikipedia.verifyBtn": "Verify", "mcp.wikipedia.download": "Download",
@@ -335,13 +448,47 @@ const I18N = {
     "mcp.catalog.yearToPlaceholder": "Year to",
     "mcp.catalog.minDlPlaceholder": "Min downloads",
     "mcp.catalog.searchBtn": "Search",
+    "mcp.compactAll.title": "Compact all databases (Bible, Gutenberg, Wikipedia, Literary) in one click",
+    "mcp.rebuildIndex.title": "Rebuild full-text search indexes for all databases",
+    "mcp.search.title": "Search in the current section",
+    "mcp.bible.bootstrap.title": "Load Bible verses from source into the database (first-time setup)",
+    "mcp.bible.compact.title": "Shrink the Bible database by removing unused space",
+    "mcp.gutenberg.delexifyBtn.title": "Replace proper nouns (names, places) with placeholders for anonymous style analysis",
+    "mcp.gutenberg.download.title": "Download Project Gutenberg texts to data/gutenberg/texts/ (skips already downloaded)",
+    "mcp.gutenberg.import.title": "Import downloaded text files into classics.db for processing (idempotent, skips already imported)",
+    "mcp.gutenberg.convert.title": "Convert Gutenberg Parquet files to SQLite format",
+    "mcp.gutenberg.compact.title": "Shrink the Gutenberg database by removing unused space",
+    "mcp.catalog.popular500.title": "Fetch metadata for top 500 most-downloaded books from Gutendex API (idempotent)",
+    "mcp.catalog.build.title": "Fetch book metadata by author or topic from Gutendex API into local catalog",
+    "mcp.catalog.searchBtn.title": "Search catalog by title, author, or subjects",
+    "mcp.catalog.apply.title": "Apply filters (author, year range, min downloads) to the catalog view",
+    "mcp.catalog.clear.title": "Clear all active filters and show all books",
+    "mcp.catalog.selectAll.title": "Select all books on the current page for download",
+    "mcp.catalog.deselectAll.title": "Deselect all books on the current page",
+    "mcp.catalog.downloadSelected.title": "Download plain text of all selected books from Project Gutenberg (idempotent, skips already downloaded)",
+    "mcp.wikipedia.download.title": "Download Wikipedia dump to local storage",
+    "mcp.wikipedia.convert.title": "Convert Wikipedia dump to SQLite for fast search",
+    "mcp.wikipedia.compact.title": "Shrink the Wikipedia database by removing unused space",
+    "mcp.wikipedia.verifyBtn.title": "Verify a factual claim against Wikipedia articles",
+    "mcp.literary.compile.title": "Run 4-pass compiler (Dramaturgic, Stylistic, Emotional, Metadata) on classics (idempotent, skips already compiled)",
+    "mcp.literary.compact.title": "Shrink the Literary compiler database by removing unused space",
+    "mcp.system.rebuildIndex.title": "Rebuild all full-text search indexes from scratch",
+    "mcp.system.cleanOrphans.title": "Remove database records that reference deleted files",
   },
   ru: {
     "mcp.title": "\u0423\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0431\u0430\u0437\u0430\u043c\u0438 \u0434\u0430\u043d\u043d\u044b\u0445", "mcp.back": "\u2190 \u041d\u0430\u0437\u0430\u0434",
     "mcp.tab.dashboard": "\u041e\u0431\u0437\u043e\u0440", "mcp.tab.bible": "\u0411\u0438\u0431\u043b\u0438\u044f",
-    "mcp.tab.gutenberg": "\u0413\u0443\u0442\u0435\u043d\u0431\u0435\u0440\u0433", "mcp.tab.catalog": "\u041a\u0430\u0442\u0430\u043b\u043e\u0433", "mcp.tab.wikipedia": "\u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u044f",
+    "mcp.tab.gutenberg": "\u0413\u0443\u0442\u0435\u043d\u0431\u0435\u0440\u0433", "mcp.tab.wikipedia": "\u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u044f",
     "mcp.tab.literary": "\u041b\u0438\u0442\u0435\u0440\u0430\u0442\u0443\u0440\u0430", "mcp.tab.economics": "\u042d\u043a\u043e\u043d\u043e\u043c\u0438\u043a\u0430",
-    "mcp.tab.system": "\u0421\u0438\u0441\u0442\u0435\u043c\u0430",
+    "mcp.tab.pipeline": "\u041a\u043e\u043d\u0432\u0435\u0439\u0435\u0440", "mcp.tab.system": "\u0421\u0438\u0441\u0442\u0435\u043c\u0430",
+    "mcp.pipeline.title": "\u041a\u043e\u043d\u0432\u0435\u0439\u0435\u0440 \u0434\u0430\u043d\u043d\u044b\u0445", "mcp.pipeline.actions": "\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044f",
+    "mcp.pipeline.import": "\u0418\u043c\u043f\u043e\u0440\u0442 \u0442\u0435\u043a\u0441\u0442\u043e\u0432", "mcp.pipeline.compile": "\u041a\u043e\u043c\u043f\u0438\u043b\u044f\u0446\u0438\u044f",
+    "mcp.pipeline.process": "\u041e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430",
+    "mcp.pipeline.sources": "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438", "mcp.pipeline.importStage": "\u0418\u043c\u043f\u043e\u0440\u0442",
+    "mcp.pipeline.passes": "4-\u0445\u043e\u0434\u043e\u0432\u043e\u0439 \u043a\u043e\u043c\u043f\u0438\u043b\u044f\u0442\u043e\u0440", "mcp.pipeline.outputs": "\u0412\u044b\u0445\u043e\u0434\u043d\u044b\u0435 \u0411\u0414",
+    "mcp.pipeline.import.title": "\u0418\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0441\u043a\u0430\u0447\u0430\u043d\u043d\u044b\u0435 \u0442\u0435\u043a\u0441\u0442\u044b \u0432 classics.db",
+    "mcp.pipeline.compile.title": "\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c 4-\u0445\u043e\u0434\u043e\u0432\u043e\u0439 \u043a\u043e\u043c\u043f\u0438\u043b\u044f\u0442\u043e\u0440",
+    "mcp.pipeline.process.title": "\u041f\u043e\u043b\u043d\u0430\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 Gutenberg (Phase A + B)",
     "mcp.quickActions": "\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f", "mcp.compactAll": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0441\u0451",
     "mcp.rebuildIndex": "\u041f\u0435\u0440\u0435\u0438\u043d\u0434\u0435\u043a\u0441\u0430\u0446\u0438\u044f", "mcp.search": "\u041f\u043e\u0438\u0441\u043a",
     "mcp.bible.search": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u0445\u043e\u0432", "mcp.bible.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u0445\u043e\u0432...",
@@ -350,7 +497,7 @@ const I18N = {
     "mcp.gutenberg.search": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u043b\u0435\u0439", "mcp.gutenberg.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u043b\u0435\u0439...",
     "mcp.gutenberg.delexify": "\u0414\u0435\u043b\u0435\u043a\u0441\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f", "mcp.gutenberg.delexifyPlaceholder": "\u0412\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u0442\u0435\u043a\u0441\u0442...",
     "mcp.gutenberg.delexifyBtn": "\u0414\u0435\u043b\u0435\u043a\u0441\u0438\u0444\u0438\u0446\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.gutenberg.download": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u043a\u043e\u0440\u043f\u0443\u0441",
-    "mcp.gutenberg.convert": "\u041a\u043e\u043d\u0432\u0435\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.gutenberg.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
+    "mcp.gutenberg.import": "\u0418\u043c\u043f\u043e\u0440\u0442 \u0432 \u0411\u0414", "mcp.gutenberg.convert": "\u041a\u043e\u043d\u0432\u0435\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.gutenberg.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
     "mcp.wikipedia.search": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0430\u0442\u0435\u0439", "mcp.wikipedia.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u0438...",
     "mcp.wikipedia.verify": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0444\u0430\u043a\u0442\u043e\u0432", "mcp.wikipedia.claimPlaceholder": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0443\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435...",
     "mcp.wikipedia.verifyBtn": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c", "mcp.wikipedia.download": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c",
@@ -378,13 +525,44 @@ const I18N = {
     "mcp.catalog.yearToPlaceholder": "\u0413\u043e\u0434 \u0434\u043e",
     "mcp.catalog.minDlPlaceholder": "\u041c\u0438\u043d. \u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a",
     "mcp.catalog.searchBtn": "\u041f\u043e\u0438\u0441\u043a",
+    "mcp.compactAll.title": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0441\u0435 \u0411\u0414 (\u0411\u0438\u0431\u043b\u0438\u044f, \u0413\u0443\u0442\u0435\u043d\u0431\u0435\u0440\u0433, \u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u044f, \u041b\u0438\u0442\u0435\u0440\u0430\u0442\u0443\u0440\u0430) \u043e\u0434\u043d\u0438\u043c \u043a\u043b\u0438\u043a\u043e\u043c",
+    "mcp.rebuildIndex.title": "\u041f\u0435\u0440\u0435\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u043f\u043e\u043b\u043d\u043e\u0442\u0435\u043a\u0441\u0442\u043e\u0432\u044b\u0435 \u0438\u043d\u0434\u0435\u043a\u0441\u044b \u0432\u0441\u0435\u0445 \u0411\u0414",
+    "mcp.search.title": "\u041f\u043e\u0438\u0441\u043a \u0432 \u0442\u0435\u043a\u0443\u0449\u0435\u043c \u0440\u0430\u0437\u0434\u0435\u043b\u0435",
+    "mcp.bible.bootstrap.title": "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0441\u0442\u0438\u0445\u0438 \u0411\u0438\u0431\u043b\u0438\u0438 \u0432 \u0411\u0414 (\u043f\u0435\u0440\u0432\u0438\u0447\u043d\u0430\u044f \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430)",
+    "mcp.bible.compact.title": "\u0423\u043c\u0435\u043d\u044c\u0448\u0438\u0442\u044c \u0440\u0430\u0437\u043c\u0435\u0440 \u0411\u0414 \u0411\u0438\u0431\u043b\u0438\u0438",
+    "mcp.gutenberg.delexifyBtn.title": "\u0417\u0430\u043c\u0435\u043d\u0438\u0442\u044c \u0438\u043c\u0435\u043d\u0430 \u0438 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044f \u043d\u0430 \u043f\u043b\u0435\u0439\u0441\u0445\u043e\u043b\u0434\u0435\u0440\u044b \u0434\u043b\u044f \u0430\u043d\u043e\u043d\u0438\u043c\u043d\u043e\u0433\u043e \u0441\u0442\u0438\u043b\u0435\u0432\u043e\u0433\u043e \u0430\u043d\u0430\u043b\u0438\u0437\u0430",
+    "mcp.gutenberg.download.title": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u0442\u0435\u043a\u0441\u0442\u044b Project Gutenberg (\u043f\u0440\u043e\u043f\u0443\u0441\u043a\u0430\u0435\u0442 \u0443\u0436\u0435 \u0441\u043a\u0430\u0447\u0430\u043d\u043d\u044b\u0435)",
+    "mcp.gutenberg.import.title": "\u0418\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0441\u043a\u0430\u0447\u0430\u043d\u043d\u044b\u0435 \u0442\u0435\u043a\u0441\u0442\u044b \u0432 classics.db (\u0438\u0434\u0435\u043c\u043f\u043e\u0442\u0435\u043d\u0442\u043d\u043e)",
+    "mcp.gutenberg.convert.title": "\u041a\u043e\u043d\u0432\u0435\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0444\u0430\u0439\u043b\u044b Parquet \u0432 SQLite",
+    "mcp.gutenberg.compact.title": "\u0423\u043c\u0435\u043d\u044c\u0448\u0438\u0442\u044c \u0440\u0430\u0437\u043c\u0435\u0440 \u0411\u0414 \u0413\u0443\u0442\u0435\u043d\u0431\u0435\u0440\u0433\u0430",
+    "mcp.catalog.popular500.title": "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043c\u0435\u0442\u0430\u0434\u0430\u043d\u043d\u044b\u0435 \u0442\u043e\u043f-500 \u043a\u043d\u0438\u0433 \u0438\u0437 Gutendex API (\u0438\u0434\u0435\u043c\u043f\u043e\u0442\u0435\u043d\u0442\u043d\u043e)",
+    "mcp.catalog.build.title": "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043c\u0435\u0442\u0430\u0434\u0430\u043d\u043d\u044b\u0435 \u043f\u043e \u0430\u0432\u0442\u043e\u0440\u0443 \u0438\u043b\u0438 \u0442\u0435\u043c\u0435 \u0438\u0437 Gutendex API",
+    "mcp.catalog.searchBtn.title": "\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044e, \u0430\u0432\u0442\u043e\u0440\u0443 \u0438\u043b\u0438 \u0442\u0435\u043c\u0430\u043c",
+    "mcp.catalog.apply.title": "\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u044b (\u0430\u0432\u0442\u043e\u0440, \u0433\u043e\u0434\u044b, \u043c\u0438\u043d. \u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a)",
+    "mcp.catalog.clear.title": "\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0432\u0441\u0435 \u0444\u0438\u043b\u044c\u0442\u0440\u044b",
+    "mcp.catalog.selectAll.title": "\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0432\u0441\u0435 \u043a\u043d\u0438\u0433\u0438 \u043d\u0430 \u0442\u0435\u043a\u0443\u0449\u0435\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435",
+    "mcp.catalog.deselectAll.title": "\u0421\u043d\u044f\u0442\u044c \u0432\u044b\u0434\u0435\u043b\u0435\u043d\u0438\u0435 \u0441\u043e \u0432\u0441\u0435\u0445 \u043a\u043d\u0438\u0433 \u043d\u0430 \u0442\u0435\u043a\u0443\u0449\u0435\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435",
+    "mcp.catalog.downloadSelected.title": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u0442\u0435\u043a\u0441\u0442\u044b \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0445 \u043a\u043d\u0438\u0433 (\u0438\u0434\u0435\u043c\u043f\u043e\u0442\u0435\u043d\u0442\u043d\u043e, \u043f\u0440\u043e\u043f\u0443\u0441\u043a\u0430\u0435\u0442 \u0443\u0436\u0435 \u0441\u043a\u0430\u0447\u0430\u043d\u043d\u044b\u0435)",
+    "mcp.wikipedia.download.title": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u0434\u0430\u043c\u043f \u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u0438",
+    "mcp.wikipedia.convert.title": "\u041a\u043e\u043d\u0432\u0435\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u0430\u043c\u043f \u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u0438 \u0432 SQLite",
+    "mcp.wikipedia.compact.title": "\u0423\u043c\u0435\u043d\u044c\u0448\u0438\u0442\u044c \u0440\u0430\u0437\u043c\u0435\u0440 \u0411\u0414 \u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u0438",
+    "mcp.wikipedia.verifyBtn.title": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0444\u0430\u043a\u0442 \u043f\u043e \u0441\u0442\u0430\u0442\u044c\u044f\u043c \u0412\u0438\u043a\u0438\u043f\u0435\u0434\u0438\u0438",
+    "mcp.literary.compile.title": "\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c 4-\u0445\u043e\u0434\u043e\u0432\u043e\u0439 \u043a\u043e\u043c\u043f\u0438\u043b\u044f\u0442\u043e\u0440 (\u0414\u0440\u0430\u043c\u0430\u0442\u0443\u0440\u0433, \u0421\u0442\u0438\u043b\u0438\u0441\u0442, \u042d\u043c\u043e\u0446\u0438\u0438, \u041c\u0435\u0442\u0430\u0434\u0430\u043d\u043d\u044b\u0435) \u2014 \u0438\u0434\u0435\u043c\u043f\u043e\u0442\u0435\u043d\u0442\u043d\u043e",
+    "mcp.literary.compact.title": "\u0423\u043c\u0435\u043d\u044c\u0448\u0438\u0442\u044c \u0440\u0430\u0437\u043c\u0435\u0440 \u0411\u0414 \u041b\u0438\u0442\u0435\u0440\u0430\u0442\u0443\u0440\u044b",
+    "mcp.system.rebuildIndex.title": "\u041f\u0435\u0440\u0435\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u0432\u0441\u0435 FTS-\u0438\u043d\u0434\u0435\u043a\u0441\u044b \u0441 \u043d\u0443\u043b\u044f",
+    "mcp.system.cleanOrphans.title": "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u0438 \u0411\u0414, \u0441\u0441\u044b\u043b\u0430\u044e\u0449\u0438\u0435\u0441\u044f \u043d\u0430 \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0435 \u0444\u0430\u0439\u043b\u044b",
   },
   de: {
     "mcp.title": "Datenbankverwaltung", "mcp.back": "\u2190 Zur\u00fcck",
     "mcp.tab.dashboard": "\u00dcbersicht", "mcp.tab.bible": "Bibel",
-    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.catalog": "Katalog", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.wikipedia": "Wikipedia",
     "mcp.tab.literary": "Literatur", "mcp.tab.economics": "Wirtschaft",
-    "mcp.tab.system": "System",
+    "mcp.tab.pipeline": "Pipeline", "mcp.tab.system": "System",
+    "mcp.pipeline.title": "Daten-Pipeline", "mcp.pipeline.actions": "Aktionen",
+    "mcp.pipeline.import": "Texte importieren", "mcp.pipeline.compile": "Kompilieren",
+    "mcp.pipeline.process": "Verarbeiten",
+    "mcp.pipeline.sources": "Quellen", "mcp.pipeline.importStage": "Import",
+    "mcp.pipeline.passes": "4-Pass-Kompilierer", "mcp.pipeline.outputs": "Ausgabe-Datenbanken",
     "mcp.quickActions": "Schnellaktionen", "mcp.compactAll": "Alle komprimieren",
     "mcp.rebuildIndex": "Index neu aufbauen", "mcp.search": "Suchen",
     "mcp.bible.search": "Verse suchen", "mcp.bible.searchPlaceholder": "Verse suchen...",
@@ -425,8 +603,14 @@ const I18N = {
   fr: {
     "mcp.title": "Gestion de bases", "mcp.back": "\u2190 Retour",
     "mcp.tab.dashboard": "Tableau de bord", "mcp.tab.bible": "Bible",
-    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.catalog": "Catalogue", "mcp.tab.wikipedia": "Wikip\u00e9dia",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.wikipedia": "Wikip\u00e9dia",
     "mcp.tab.literary": "Litt\u00e9rature", "mcp.tab.economics": "\u00c9conomie",
+    "mcp.tab.pipeline": "Pipeline", "mcp.tab.system": "Syst\u00e8me",
+    "mcp.pipeline.title": "Pipeline de donn\u00e9es", "mcp.pipeline.actions": "Actions",
+    "mcp.pipeline.import": "Importer", "mcp.pipeline.compile": "Compiler",
+    "mcp.pipeline.process": "Traiter",
+    "mcp.pipeline.sources": "Sources", "mcp.pipeline.importStage": "Import",
+    "mcp.pipeline.passes": "Compilateur 4 passes", "mcp.pipeline.outputs": "Bases de sortie",
     "mcp.tab.system": "Syst\u00e8me",
     "mcp.quickActions": "Actions rapides", "mcp.compactAll": "Tout compacter",
     "mcp.rebuildIndex": "Reconstruire l'index", "mcp.search": "Rechercher",
@@ -468,9 +652,14 @@ const I18N = {
   es: {
     "mcp.title": "Gesti\u00f3n de bases", "mcp.back": "\u2190 Volver",
     "mcp.tab.dashboard": "Panel", "mcp.tab.bible": "Biblia",
-    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.catalog": "Cat\u00e1logo", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.gutenberg": "Gutenberg", "mcp.tab.wikipedia": "Wikipedia",
     "mcp.tab.literary": "Literatura", "mcp.tab.economics": "Econom\u00eda",
-    "mcp.tab.system": "Sistema",
+    "mcp.tab.pipeline": "Pipeline", "mcp.tab.system": "Sistema",
+    "mcp.pipeline.title": "Pipeline de datos", "mcp.pipeline.actions": "Acciones",
+    "mcp.pipeline.import": "Importar", "mcp.pipeline.compile": "Compilar",
+    "mcp.pipeline.process": "Procesar",
+    "mcp.pipeline.sources": "Fuentes", "mcp.pipeline.importStage": "Importar",
+    "mcp.pipeline.passes": "Compilador 4 pasos", "mcp.pipeline.outputs": "Bases de salida",
     "mcp.quickActions": "Acciones r\u00e1pidas", "mcp.compactAll": "Compactar todo",
     "mcp.rebuildIndex": "Reconstruir \u00edndice", "mcp.search": "Buscar",
     "mcp.bible.search": "Buscar vers\u00edculos", "mcp.bible.searchPlaceholder": "Buscar vers\u00edculos...",
@@ -511,9 +700,14 @@ const I18N = {
   ja: {
     "mcp.title": "\u30c7\u30fc\u30bf\u30d9\u30fc\u30b9\u7ba1\u7406", "mcp.back": "\u2190 \u623b\u308b",
     "mcp.tab.dashboard": "\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9", "mcp.tab.bible": "\u8056\u66f8",
-    "mcp.tab.gutenberg": "\u30b0\u30fc\u30c6\u30f3\u30d9\u30eb\u30b0", "mcp.tab.catalog": "\u30ab\u30bf\u30ed\u30b0", "mcp.tab.wikipedia": "Wikipedia",
+    "mcp.tab.gutenberg": "\u30b0\u30fc\u30c6\u30f3\u30d9\u30eb\u30b0", "mcp.tab.wikipedia": "Wikipedia",
     "mcp.tab.literary": "\u6587\u5b66", "mcp.tab.economics": "\u7d4c\u6e08",
-    "mcp.tab.system": "\u30b7\u30b9\u30c6\u30e0",
+    "mcp.tab.pipeline": "\u30d1\u30a4\u30d7\u30e9\u30a4\u30f3", "mcp.tab.system": "\u30b7\u30b9\u30c6\u30e0",
+    "mcp.pipeline.title": "\u30c7\u30fc\u30bf\u30d1\u30a4\u30d7\u30e9\u30a4\u30f3", "mcp.pipeline.actions": "\u30a2\u30af\u30b7\u30e7\u30f3",
+    "mcp.pipeline.import": "\u30a4\u30f3\u30dd\u30fc\u30c8", "mcp.pipeline.compile": "\u30b3\u30f3\u30d1\u30a4\u30eb",
+    "mcp.pipeline.process": "\u51e6\u7406",
+    "mcp.pipeline.sources": "\u30bd\u30fc\u30b9", "mcp.pipeline.importStage": "\u30a4\u30f3\u30dd\u30fc\u30c8",
+    "mcp.pipeline.passes": "4\u30d1\u30b9\u30b3\u30f3\u30d1\u30a4\u30e9", "mcp.pipeline.outputs": "\u51fa\u529bDB",
     "mcp.quickActions": "\u30af\u30a4\u30c3\u30af\u30a2\u30af\u30b7\u30e7\u30f3", "mcp.compactAll": "\u3059\u3079\u3066\u5727\u7e2e",
     "mcp.rebuildIndex": "\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u518d\u69cb\u7bc9", "mcp.search": "\u691c\u7d22",
     "mcp.bible.search": "\u8056\u53e5\u691c\u7d22", "mcp.bible.searchPlaceholder": "\u8056\u53e5\u3092\u691c\u7d22...",
@@ -554,8 +748,14 @@ const I18N = {
   zh: {
     "mcp.title": "\u6570\u636e\u5e93\u7ba1\u7406", "mcp.back": "\u2190 \u8fd4\u56de",
     "mcp.tab.dashboard": "\u4eea\u8868\u76d8", "mcp.tab.bible": "\u5723\u7ecf",
-    "mcp.tab.gutenberg": "\u53e4\u767b\u5821", "mcp.tab.catalog": "\u76ee\u5f55", "mcp.tab.wikipedia": "\u7ef4\u57fa\u767e\u79d1",
+    "mcp.tab.gutenberg": "\u53e4\u767b\u5821", "mcp.tab.wikipedia": "\u7ef4\u57fa\u767e\u79d1",
     "mcp.tab.literary": "\u6587\u5b66", "mcp.tab.economics": "\u7ecf\u6d4e",
+    "mcp.tab.pipeline": "\u6d41\u6c34\u7ebf", "mcp.tab.system": "\u7cfb\u7edf",
+    "mcp.pipeline.title": "\u6570\u636e\u6d41\u6c34\u7ebf", "mcp.pipeline.actions": "\u64cd\u4f5c",
+    "mcp.pipeline.import": "\u5bfc\u5165", "mcp.pipeline.compile": "\u7f16\u8bd1",
+    "mcp.pipeline.process": "\u5904\u7406",
+    "mcp.pipeline.sources": "\u6570\u636e\u6e90", "mcp.pipeline.importStage": "\u5bfc\u5165",
+    "mcp.pipeline.passes": "4\u901a\u7f16\u8bd1\u5668", "mcp.pipeline.outputs": "\u8f93\u51fa\u6570\u636e\u5e93",
     "mcp.tab.system": "\u7cfb\u7edf",
     "mcp.quickActions": "\u5feb\u6377\u64cd\u4f5c", "mcp.compactAll": "\u5168\u90e8\u538b\u7f29",
     "mcp.rebuildIndex": "\u91cd\u5efa\u7d22\u5f15", "mcp.search": "\u641c\u7d22",
@@ -601,6 +801,7 @@ function t(k) { return I18N[currentLang]?.[k] || I18N.en[k] || k; }
 function applyI18n() {
   document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
   document.querySelectorAll("[data-i18n-placeholder]").forEach(el => el.placeholder = t(el.dataset.i18nPlaceholder));
+  document.querySelectorAll("[data-i18n-title]").forEach(el => el.title = t(el.dataset.i18nTitle));
 }
 
 // ── Tabs ──────────────────────────────────────────────────────
@@ -682,8 +883,8 @@ async function searchBibleChars() {
 async function loadGutenbergStats() {
   const d = await api("gutenberg/stats");
   const el = document.getElementById("gutenberg-stats");
-  if (!d?.exists) { el.innerHTML = '<div class="empty">Gutenberg DB not found</div>'; return; }
-  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${d.styles}</div><div class="stat-card__label">Styles</div></div><div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size)}</div><div class="stat-card__label">Size</div></div>`;
+  if (!d?.exists && !d?.textFiles) { el.innerHTML = '<div class="empty">No data. Use Catalog to download books first.</div>'; return; }
+  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${d.textFiles||0}</div><div class="stat-card__label">Downloaded</div></div><div class="stat-card"><div class="stat-card__value">${d.imported||0}</div><div class="stat-card__label">Imported</div></div><div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size||0)}</div><div class="stat-card__label">DB Size</div></div>`;
 }
 async function searchGutenberg() {
   const q = document.getElementById("gutenberg-q").value;
@@ -746,7 +947,7 @@ async function buildCatalog() {
 }
 
 async function buildCatalogPopular() {
-  const d = await api("gutenberg/catalog/build", { method: "POST", body: JSON.stringify({ limit: 500 }) });
+  const d = await api("gutenberg/catalog/build", { method: "POST", body: JSON.stringify({ popular: true, limit: 500 }) });
   if (d?.jobId) {
     trackProgress(d.jobId, "catalog/build/popular", () => {
       loadCatalogStats();
@@ -811,10 +1012,7 @@ async function deselectAllCatalog() {
 }
 
 async function downloadSelectedCatalog() {
-  const checked = document.querySelectorAll("#catalog-results input[type=checkbox][data-etextno]:checked");
-  const etextnos = Array.from(checked).map(cb => parseInt(cb.dataset.etextno));
-  if (etextnos.length === 0) { toast("No books selected", "error"); return; }
-  const d = await api("gutenberg/download-selected", { method: "POST", body: JSON.stringify({ etextnos }) });
+  const d = await api("gutenberg/download-selected", { method: "POST", body: JSON.stringify({ selected: true }) });
   if (d?.jobId) {
     trackProgress(d.jobId, "download-selected", () => {
       loadCatalogStats();
@@ -858,11 +1056,10 @@ async function loadLiteraryStats() {
 }
 async function searchLiterary() {
   const q = document.getElementById("literary-q").value;
-  if (!q) return;
-  const d = await api("literary/templates?q=" + encodeURIComponent(q));
+  const d = await api("literary/templates" + (q ? "?q=" + encodeURIComponent(q) : ""));
   const el = document.getElementById("literary-results");
   if (!d?.templates?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
-  el.innerHTML = '<table class="result-table"><tr><th>Name</th><th>Archetype</th><th>Description</th></tr>' + d.templates.map(r => `<tr><td>${escapeHtml(r.name||"-")}</td><td>${escapeHtml(r.archetype||"-")}</td><td>${escapeHtml((r.description||"").slice(0,80))}</td></tr>`).join("") + '</table>';
+  el.innerHTML = '<table class="result-table"><tr><th>Source</th><th>Archetype</th><th>Template</th><th>Mood</th></tr>' + d.templates.map(r => `<tr><td>${escapeHtml((r.source_book||"-").split("::").pop().slice(0,30))}</td><td>${escapeHtml(r.archetype||"-")}</td><td>${escapeHtml((r.template_text||"").slice(0,80))}</td><td>${escapeHtml(r.mood||"-")}</td></tr>`).join("") + '</table>';
 }
 
 // ── Economics ─────────────────────────────────────────────────
@@ -885,6 +1082,43 @@ async function loadEconomicsStats() {
       ? `${jubilee.years_until} years until next Jubilee (year ${jubilee.next_year})`
       : "No jubilee data";
   }
+}
+
+// ── Pipeline ──────────────────────────────────────────────────
+async function loadPipeline() {
+  const d = await api("pipeline/status");
+  if (!d) return;
+  const src = d.sources;
+  const inter = d.intermediate;
+  const out = d.outputs;
+
+  // Gutenberg pipeline phase data
+  setPhaseData("download", src.texts.count > 0, src.texts.count + " files");
+  setPhaseData("import", inter.classics.exists, inter.classics.exists ? fmtBytes(inter.classics.size) : "—");
+  setPhaseData("v1", out.compiled.exists, out.compiled.exists ? out.compiled.templates + " templates" : "—");
+  setPhaseData("v2", out.literary.exists, out.literary.exists ? out.literary.sceneTemplates + " scenes, " + out.literary.stylePatterns + " styles" : "—");
+  setPhaseData("calibrate", out.literary.exists, out.literary.exists ? "quality scores" : "—");
+
+  // Bible (standalone)
+  setPhaseData("bible", src.bible.exists, src.bible.exists ? fmtBytes(src.bible.size) : "—");
+
+  // Arrow states
+  setArrow("download", src.texts.count > 0);
+  setArrow("import", inter.classics.exists);
+  setArrow("v1", out.compiled.exists);
+  setArrow("v2", out.literary.exists);
+}
+
+function setPhaseData(id, active, text) {
+  const el = document.getElementById("phase-" + id + "-data");
+  if (el) el.textContent = text;
+  const card = document.getElementById("phase-" + id);
+  if (card) card.style.borderColor = active ? "var(--success)" : "";
+}
+
+function setArrow(id, active) {
+  const el = document.getElementById("arrow-" + id);
+  if (el) el.style.color = active ? "var(--accent)" : "";
 }
 
 // ── System ────────────────────────────────────────────────────
@@ -966,8 +1200,94 @@ async function compactAll() {
 }
 async function rebuildIndex() { await runAction("rebuild-index"); }
 
+// ── Phase Pipeline ─────────────────────────────────────────────
+function runPhase(path, phaseId) {
+  const statusEl = document.getElementById("phase-" + phaseId + "-status");
+  const fillEl = document.getElementById("phase-" + phaseId + "-fill");
+  if (!statusEl || !fillEl) return;
+
+  statusEl.textContent = "running";
+  statusEl.className = "phase-card__status running";
+  fillEl.style.width = "0%";
+  toast("Starting: " + path);
+  addLog("Phase start: " + path);
+
+  fetch("/mcp/" + path, { method: "POST" })
+    .then(r => r.json())
+    .then(data => {
+      const jobId = data.jobId;
+      if (jobId) {
+        trackPhaseProgress(phaseId, jobId, path);
+      } else {
+        statusEl.textContent = "done";
+        statusEl.className = "phase-card__status done";
+        fillEl.style.width = "100%";
+        toast("Done: " + path, "success");
+        addLog("Phase done: " + path);
+        loadPipeline();
+      }
+    })
+    .catch(err => {
+      statusEl.textContent = "error";
+      statusEl.className = "phase-card__status error";
+      toast("Error: " + err.message, "error");
+      addLog("Phase error: " + path + " — " + err.message);
+    });
+}
+
+function trackPhaseProgress(phaseId, jobId, path) {
+  const statusEl = document.getElementById("phase-" + phaseId + "-status");
+  const fillEl = document.getElementById("phase-" + phaseId + "-fill");
+  const statsEl = document.getElementById("phase-" + phaseId + "-stats");
+
+  const es = new EventSource("/mcp/stream/" + jobId);
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    fillEl.style.width = d.progress + "%";
+    statusEl.textContent = d.progress + "%";
+    addLog(path + ": " + d.message + " (" + d.progress + "%)");
+
+    // Update stats display if available
+    if (d.stats && statsEl) {
+      const s = d.stats;
+      let html = "";
+      if (s.book_title) html += "<div><span>Book</span><span>" + s.book_current + "/" + s.book_total + ": " + escapeHtml(s.book_title.split("::").pop() || s.book_title) + "</span></div>";
+      else if (s.book_current) html += "<div><span>Book</span><span>" + s.book_current + "/" + s.book_total + "</span></div>";
+      if (s.chunks_done != null) html += "<div><span>Chunks</span><span>" + s.chunks_done + "</span></div>";
+      if (s.templates != null) html += "<div><span>Templates</span><span>" + s.templates + "</span></div>";
+      if (s.elapsed_s != null) {
+        const m = Math.floor(s.elapsed_s / 60);
+        const sec = s.elapsed_s % 60;
+        html += "<div><span>Elapsed</span><span>" + m + "m " + sec + "s</span></div>";
+      }
+      statsEl.innerHTML = html;
+    }
+
+    if (d.status === "done" || d.status === "error") {
+      es.close();
+      if (d.status === "done") {
+        statusEl.textContent = "done";
+        statusEl.className = "phase-card__status done";
+        fillEl.style.width = "100%";
+        toast("Completed: " + path, "success");
+        loadPipeline();
+      } else {
+        statusEl.textContent = "error";
+        statusEl.className = "phase-card__status error";
+        toast("Error: " + path, "error");
+      }
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    statusEl.textContent = "error";
+    statusEl.className = "phase-card__status error";
+    toast("Connection lost", "error");
+  };
+}
+
 // ── Tab loader ────────────────────────────────────────────────
-const loaders = { dashboard: loadDashboard, bible: loadBibleStats, gutenberg: loadGutenbergStats, catalog: () => { loadCatalogStats(); loadCatalogPage(1); }, wikipedia: loadWikipediaStats, literary: loadLiteraryStats, economics: loadEconomicsStats, system: loadSystemStats };
+const loaders = { dashboard: loadDashboard, bible: loadBibleStats, gutenberg: () => { loadGutenbergStats(); loadCatalogStats(); loadCatalogPage(1); }, wikipedia: loadWikipediaStats, literary: loadLiteraryStats, economics: loadEconomicsStats, pipeline: loadPipeline, system: loadSystemStats };
 function loadTab(tab) { loaders[tab]?.(); }
 
 // ── Init ──────────────────────────────────────────────────────

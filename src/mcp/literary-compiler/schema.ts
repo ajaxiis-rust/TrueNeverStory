@@ -166,6 +166,10 @@ export class LiteraryCompilerDB {
   }
 
   createV2Tables(): void {
+    // Extend archetype_llm_cache with result_json and mood columns
+    try { this.db.exec('ALTER TABLE archetype_llm_cache ADD COLUMN result_json TEXT'); } catch {}
+    try { this.db.exec('ALTER TABLE archetype_llm_cache ADD COLUMN mood TEXT'); } catch {}
+
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS scene_templates (
         id TEXT PRIMARY KEY,
@@ -619,6 +623,11 @@ export class LiteraryCompilerDB {
 
   getTemplateCount(): number {
     const result = this.db.prepare('SELECT COUNT(*) as count FROM bible_quest_templates').get() as { count: number };
+    return result.count;
+  }
+
+  getTemplateCountByBook(sourceBook: string): number {
+    const result = this.db.prepare('SELECT COUNT(*) as count FROM bible_quest_templates WHERE source_book = ?').get(sourceBook) as { count: number };
     return result.count;
   }
 

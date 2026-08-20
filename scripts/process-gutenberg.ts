@@ -35,8 +35,29 @@ const LITERARY_DB = './data/literary-compiler/literary.db';
 
 // ── Progress Emitter ──────────────────────────────────────────────────
 
-function emit(msg: { phase: string; pct: number; message: string }) {
+interface ProgressStats {
+  book_current?: number;
+  book_total?: number;
+  book_title?: string;
+  chunks_done?: number;
+  chunks_total?: number;
+  templates?: number;
+  elapsed_s?: number;
+}
+
+function emit(msg: { phase: string; pct: number; message: string; stats?: ProgressStats }) {
   console.log(JSON.stringify(msg));
+}
+
+// ── Cache Hash ────────────────────────────────────────────────────────
+
+function chunkHash(text: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h.toString(36);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -405,7 +426,11 @@ async function runPhaseB() {
   const stylistic = new StylisticPass();
 
   let totalTemplates = 0;
+  let totalChunks = 0;
   let skippedBooks = 0;
+  let llmCalls = 0;
+  let llmSeconds = 0;
+  const phaseStart = Date.now();
 
   for (let i = 0; i < books.length; i++) {
     const book = books[i];
@@ -430,14 +455,13 @@ async function runPhaseB() {
     const cleaned = cleanGutenbergText(book.context);
     if (cleaned.length < 200) continue;
 
-    // Transaction per book
+    // ── Transaction 1: Chunks (fast, rule-based) ──────────────────────
+    let chunks: TextChunk[];
     litDb.db.exec('BEGIN TRANSACTION');
     try {
-      // 1. Chunk text
-      const chunks = chunkText(cleaned, sourceId, { minTokens: 200, maxTokens: 400, overlap: 60 });
+      chunks = chunkText(cleaned, sourceId, { minTokens: 200, maxTokens: 400, overlap: 60 });
       if (chunks.length === 0) { litDb.db.exec('COMMIT'); continue; }
 
-      // 2. AnalyzePass per chunk, insert into chunk_index
       for (const chunk of chunks) {
         const analysis = analyzeChunk(chunk.text);
         chunk.pre_score = analysis.pre_score;
@@ -469,140 +493,180 @@ async function runPhaseB() {
         });
       }
 
-      // 3. Filter candidates (pre_score > 0.3)
-      const candidates = chunks.filter(c => c.pre_score > 0.3);
-      if (candidates.length === 0) { litDb.db.exec('COMMIT'); continue; }
+      litDb.db.exec('COMMIT');
+      litDb.db.exec('PRAGMA wal_checkpoint(PASSIVE)');
+      totalChunks += chunks.length;
+    } catch (err) {
+      litDb.db.exec('ROLLBACK');
+      console.warn(`Book ${sourceId} chunks rolled back:`, err);
+      continue;
+    }
 
-      // 4. Cluster by scene_type
-      const clusters = clusterBySceneType(candidates);
+    // ── Transaction 2: Templates (slow, LLM) ──────────────────────────
+    const candidates = chunks.filter(c => c.pre_score > 0.3);
+    if (candidates.length === 0) continue;
 
-      // 5. Select representatives (max pre_score per cluster)
-      const representatives: TextChunk[] = [];
-      for (const cluster of clusters) {
-        const best = cluster.chunks.reduce((a, b) =>
-          ((a as unknown as TextChunk).pre_score > (b as unknown as TextChunk).pre_score ? a : b)
-        ) as unknown as TextChunk;
-        representatives.push(best);
-      }
+    const clusters = clusterBySceneType(candidates);
+    const representatives: TextChunk[] = [];
+    for (const cluster of clusters) {
+      const best = cluster.chunks.reduce((a, b) =>
+        ((a as unknown as TextChunk).pre_score > (b as unknown as TextChunk).pre_score ? a : b)
+      ) as unknown as TextChunk;
+      representatives.push(best);
+    }
 
-      // 6. LLM extraction per representative
+    litDb.db.exec('BEGIN TRANSACTION');
+    try {
       if (llm) {
         let repIdx = 0;
         for (const rep of representatives) {
-          try {
+          // ── LLM cache lookup ──
+          const hash = chunkHash(rep.text);
+          const cached = litDb.db.prepare(
+            'SELECT result_json FROM archetype_llm_cache WHERE cache_key = ?'
+          ).get(hash) as { result_json: string } | null;
+
+          let parsed: Record<string, unknown>;
+          if (cached) {
+            parsed = JSON.parse(cached.result_json);
+          } else {
             const chunkIdx = chunks.findIndex(c => c.id === rep.id);
             const prevChunk = chunkIdx > 0 ? chunks[chunkIdx - 1].text : null;
             const nextChunk = chunkIdx < chunks.length - 1 ? chunks[chunkIdx + 1].text : null;
 
             const prompt = EXTRACT_TEMPLATE_PROMPT(prevChunk, rep.text, nextChunk);
+            const t0 = Date.now();
             const response = await llm.generateText(prompt);
-            const parsed = JSON.parse(response);
+            const elapsed = (Date.now() - t0) / 1000;
+            llmCalls++;
+            llmSeconds += elapsed;
 
-            const qualityScore = calculateLiteraryQuality(
-              { template_text: parsed.template_text, archetype_secondary: parsed.archetype_secondary ?? null, variables: parsed.variables ?? [], tags: parsed.rhetorical_devices ?? [] },
-              { sensory_tags: rep.sensory_tags }
-            );
+            parsed = JSON.parse(response);
 
-            if (qualityScore < 0.3) continue;
-
-            // ── StylisticPass ──
-            const styResult = stylistic.analyze({ text: rep.text, source_id: rep.id });
-            const styPattern = styResult.patterns[0];
-
-            const era = inferEra();
-            const period = inferLiteraryPeriod();
-
-            // ── Create SceneTemplate ──
-            const templateId = `scene-${book.etextno}-${repIdx}`;
-            const sceneTemplate: SceneTemplate = {
-              id: templateId,
-              source_book: sourceId,
-              source_chapter: rep.source_chapter,
-              source_chunk_ids: [rep.id],
-              archetype_primary: parsed.archetype_primary ?? 'inner_monologue',
-              archetype_secondary: parsed.archetype_secondary ?? null,
-              applicable_positions: [],
-              variables: parsed.variables ?? [],
-              template_text: parsed.template_text ?? '',
-              beat_sequence: parsed.beat_sequence ?? [],
-              mood: parsed.mood ?? 'neutral',
-              difficulty: parsed.difficulty ?? 'medium',
-              moral_ambiguity: parsed.moral_ambiguity ?? 0.5,
-              tension_curve: parsed.tension_curve ?? [],
-              tags: parsed.rhetorical_devices ?? [],
-              domain: 'general',
-              scale: 1.0,
-              embedding_id: null,
-              quality_score: qualityScore,
-              use_count: 0,
-              last_used_at: null,
-              created_at: Date.now() / 1000,
-            };
-            litDb.insertSceneTemplate(sceneTemplate);
-
-            // ── Create StylePattern ──
-            const styleId = `style-${templateId}`;
-            const stylePattern: StylePattern = {
-              id: styleId,
-              source_author_or_era: book.author,
-              source_chunk_ids: [rep.id],
-              avg_sentence_len: styPattern?.avg_sentence_length ?? 0,
-              sentence_len_variance: 0,
-              sensory_ratio: (styPattern?.sensory_markers.length ?? 0) / 10,
-              register: 'neutral',
-              pacing: styPattern?.pacing ?? 'medium',
-              tone: styPattern?.tone ?? 'neutral',
-              preferred_constructions: styPattern?.syntax_patterns ?? [],
-              forbidden_phrases: [],
-              example_snippets: sampleExcerpts(rep.text, 3, 200),
-              quality_score: qualityScore,
-              narrative_voice: parsed.narrative_voice ?? 'third_person',
-              temporal_style: rep.temporal_markers.join(',') || 'linear',
-              dialogue_style: 'direct',
-              metaphor_density: 0.5,
-              sentence_opening_variance: 0.5,
-              paragraph_length_avg: 60.0,
-              exclamation_ratio: 0.05,
-              rhetorical_devices: JSON.stringify(parsed.rhetorical_devices ?? []),
-              era,
-              literary_period: period,
-              created_at: Date.now() / 1000,
-            };
-            litDb.insertStylePattern(stylePattern);
-
-            // ── Create template_style_link ──
-            litDb.insertTemplateStyleLink({ template_id: templateId, style_id: styleId, weight: 1.0 });
-
-            totalTemplates++;
-            repIdx++;
-          } catch (chunkErr) {
-            console.warn(`Skipping chunk ${rep.id} for book ${sourceId}:`, chunkErr);
-            continue;
+            // Cache result
+            litDb.db.prepare(
+              'INSERT OR IGNORE INTO archetype_llm_cache (cache_key, archetype, confidence, result_json, mood, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+            ).run(hash, (parsed.archetype_primary as string) ?? 'unknown', 1.0, JSON.stringify(parsed), (parsed.mood as string) ?? 'neutral', Math.floor(Date.now() / 1000));
           }
+
+          const qualityScore = calculateLiteraryQuality(
+            { template_text: parsed.template_text, archetype_secondary: parsed.archetype_secondary ?? null, variables: parsed.variables ?? [], tags: parsed.rhetorical_devices ?? [] },
+            { sensory_tags: rep.sensory_tags }
+          );
+
+          if (qualityScore < 0.3) continue;
+
+          const styResult = stylistic.analyze({ text: rep.text, source_id: rep.id });
+          const styPattern = styResult.patterns[0];
+          const era = inferEra();
+          const period = inferLiteraryPeriod();
+
+          const templateId = `scene-${book.etextno}-${repIdx}`;
+          const sceneTemplate: SceneTemplate = {
+            id: templateId,
+            source_book: sourceId,
+            source_chapter: rep.source_chapter,
+            source_chunk_ids: [rep.id],
+            archetype_primary: (parsed.archetype_primary as string) ?? 'inner_monologue',
+            archetype_secondary: (parsed.archetype_secondary as string) ?? null,
+            applicable_positions: [],
+            variables: (parsed.variables as string[]) ?? [],
+            template_text: (parsed.template_text as string) ?? '',
+            beat_sequence: (parsed.beat_sequence as string[]) ?? [],
+            mood: (parsed.mood as string) ?? 'neutral',
+            difficulty: (parsed.difficulty as string) ?? 'medium',
+            moral_ambiguity: (parsed.moral_ambiguity as number) ?? 0.5,
+            tension_curve: (parsed.tension_curve as number[]) ?? [],
+            tags: (parsed.rhetorical_devices as string[]) ?? [],
+            domain: 'general',
+            scale: 1.0,
+            embedding_id: null,
+            quality_score: qualityScore,
+            use_count: 0,
+            last_used_at: null,
+            created_at: Date.now() / 1000,
+          };
+          litDb.insertSceneTemplate(sceneTemplate);
+
+          const styleId = `style-${templateId}`;
+          const stylePattern: StylePattern = {
+            id: styleId,
+            source_author_or_era: book.author,
+            source_chunk_ids: [rep.id],
+            avg_sentence_len: styPattern?.avg_sentence_length ?? 0,
+            sentence_len_variance: 0,
+            sensory_ratio: (styPattern?.sensory_markers.length ?? 0) / 10,
+            register: 'neutral',
+            pacing: styPattern?.pacing ?? 'medium',
+            tone: styPattern?.tone ?? 'neutral',
+            preferred_constructions: styPattern?.syntax_patterns ?? [],
+            forbidden_phrases: [],
+            example_snippets: sampleExcerpts(rep.text, 3, 200),
+            quality_score: qualityScore,
+            narrative_voice: (parsed.narrative_voice as string) ?? 'third_person',
+            temporal_style: rep.temporal_markers.join(',') || 'linear',
+            dialogue_style: 'direct',
+            metaphor_density: 0.5,
+            sentence_opening_variance: 0.5,
+            paragraph_length_avg: 60.0,
+            exclamation_ratio: 0.05,
+            rhetorical_devices: JSON.stringify(parsed.rhetorical_devices ?? []),
+            era,
+            literary_period: period,
+            created_at: Date.now() / 1000,
+          };
+          litDb.insertStylePattern(stylePattern);
+          litDb.insertTemplateStyleLink({ template_id: templateId, style_id: styleId, weight: 1.0 });
+
+          totalTemplates++;
+          repIdx++;
         }
 
-        // Narrative structure extraction (S16)
         await extractNarrativeStructure(litDb, llm, book, sourceId, chunks);
       }
 
       litDb.db.exec('COMMIT');
+      litDb.db.exec('PRAGMA wal_checkpoint(PASSIVE)');
 
+      const elapsed = Math.round((Date.now() - phaseStart) / 1000);
       emit({
         phase: 'v2',
         pct: Math.round(((i + 1) / books.length) * 95 + 3),
-        message: `Book ${i + 1}/${books.length}: ${sourceId} — ${totalTemplates} templates so far`,
+        message: `Book ${i + 1}/${books.length}: ${sourceId}`,
+        stats: {
+          book_current: i + 1,
+          book_total: books.length,
+          book_title: sourceId,
+          chunks_done: totalChunks,
+          chunks_total: totalChunks,
+          templates: totalTemplates,
+          elapsed_s: elapsed,
+        },
       });
     } catch (err) {
       litDb.db.exec('ROLLBACK');
-      console.warn(`Book ${sourceId} rolled back:`, err);
-      continue;
+      console.warn(`Book ${sourceId} templates rolled back (chunks preserved):`, err);
     }
   }
 
   srcDb.close();
   litDb.close();
 
-  emit({ phase: 'v2', pct: 100, message: `Phase B complete: ${totalTemplates} templates from ${books.length - skippedBooks} books` });
+  const totalElapsed = Math.round((Date.now() - phaseStart) / 1000);
+  const avgTps = llmCalls > 0 ? (llmSeconds / llmCalls).toFixed(1) : '0';
+  emit({
+    phase: 'v2',
+    pct: 100,
+    message: `Done: ${totalTemplates} templates, ${totalChunks} chunks, ${llmCalls} LLM calls (${avgTps}s/call)`,
+    stats: {
+      book_current: books.length,
+      book_total: books.length,
+      chunks_done: totalChunks,
+      chunks_total: totalChunks,
+      templates: totalTemplates,
+      elapsed_s: totalElapsed,
+    },
+  });
 }
 
 // ── Quality Calibration (S17) ────────────────────────────────────────
@@ -678,8 +742,16 @@ async function calibrateQualityScores(): Promise<void> {
 // ── Main ──────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
-const phaseArg = args.find(a => a.startsWith('--phase=')) ?? '--phase=all';
-const phase = phaseArg.split('=')[1] ?? 'all';
+let phase = 'all';
+const phaseEq = args.find(a => a.startsWith('--phase='));
+if (phaseEq) {
+  phase = phaseEq.split('=')[1] ?? 'all';
+} else {
+  const phaseIdx = args.indexOf('--phase');
+  if (phaseIdx !== -1 && phaseIdx + 1 < args.length) {
+    phase = args[phaseIdx + 1];
+  }
+}
 
 async function main() {
   if (phase === 'v1' || phase === 'all') {
@@ -688,7 +760,7 @@ async function main() {
   if (phase === 'v2' || phase === 'all') {
     await runPhaseB();
   }
-  if (phase === 'all') {
+  if (phase === 'calibrate' || phase === 'all') {
     await calibrateQualityScores();
   }
 }

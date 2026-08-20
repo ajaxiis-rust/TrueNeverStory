@@ -8,7 +8,7 @@ import { CharacterDB } from "@/mcp/bible/characters";
 import { GutenbergParser } from "@/mcp/gutenberg/parser";
 import { WikipediaMCPTools } from "@/mcp/tools/wikipedia";
 import { join } from "node:path";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync, readdirSync } from "node:fs";
 import { Database } from "bun:sqlite";
 import { getLogger } from "../utils/logger";
 import { EconomicDB } from "@/mcp/literary-compiler/economic-schema";
@@ -23,6 +23,7 @@ export const mcpRouter = new Hono();
 
 const BIBLE_DB = join(process.cwd(), "data", "bible", "bible-normalized.db");
 const GUTENBERG_DB = join(process.cwd(), "data", "gutenberg", "gutenberg-normalized.db");
+const CLASSICS_DB = join(process.cwd(), "data", "gutenberg", "classics.db");
 const WIKIPEDIA_DB = join(process.cwd(), "data", "mcp", "wikipedia.db");
 const LIT_COMP_DB = join(process.cwd(), "data", "literary-compiler", "classics-compiled.db");
 const LITERARY_DB = join(process.cwd(), "data", "literary-compiler", "literary.db");
@@ -277,15 +278,24 @@ mcpRouter.post("/bible/compact", async (c) => {
 // ═══════════════════════════════════════════════════════════════
 
 mcpRouter.get("/gutenberg/stats", (c) => {
-  if (!existsSync(GUTENBERG_DB)) return c.json({ error: "Gutenberg DB not found", exists: false }, 200);
-  const parser = new GutenbergParser({ dbPath: GUTENBERG_DB, extractStyles: true });
-  try {
-    const styles = parser.getAllStyles();
-    const stat = statSync(GUTENBERG_DB);
-    return c.json({ exists: true, styles: styles.length, size: stat.size, dbPath: GUTENBERG_DB });
-  } finally {
-    parser.close();
+  // Count downloaded text files on disk
+  const textsDir = join(process.cwd(), 'data', 'gutenberg', 'texts');
+  let textFiles = 0;
+  try { textFiles = readdirSync(textsDir).filter(f => f.endsWith('.txt')).length; } catch {}
+
+  // Count imported texts in classics.db
+  let imported = 0;
+  if (existsSync(GUTENBERG_DB)) {
+    try {
+      const db = new Database(GUTENBERG_DB, { readonly: true });
+      const row = db.query("SELECT COUNT(*) as n FROM gutenberg").get() as { n: number } | null;
+      imported = row?.n ?? 0;
+      db.close();
+    } catch {}
   }
+
+  const dbSize = existsSync(GUTENBERG_DB) ? statSync(GUTENBERG_DB).size : 0;
+  return c.json({ exists: existsSync(GUTENBERG_DB), textFiles, imported, size: dbSize, dbPath: GUTENBERG_DB });
 });
 
 mcpRouter.get("/gutenberg/search", (c) => {
@@ -320,6 +330,11 @@ mcpRouter.post("/gutenberg/download", (c) => {
 
 mcpRouter.post("/gutenberg/convert", (c) => {
   const result = runScriptWithJob(["bun", "run", "scripts/parquet-to-sqlite.ts"]);
+  return c.json(result);
+});
+
+mcpRouter.post("/gutenberg/import", (c) => {
+  const result = runScriptWithJob(["bun", "run", "scripts/import-gutenberg-texts.ts"]);
   return c.json(result);
 });
 
@@ -360,23 +375,46 @@ mcpRouter.post("/gutenberg/process", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const phase = (body as { phase?: string }).phase ?? "all";
 
-  const importResult = runScriptWithJob(["bun", "run", "scripts/import-gutenberg-texts.ts"]);
+  let importResult = null;
+  if (phase === "import" || phase === "all") {
+    importResult = runScriptWithJob(["bun", "run", "scripts/import-gutenberg-texts.ts"]);
+  }
 
-  let v1Result = null, v2Result = null;
+  let v1Result = null, v2Result = null, calibrateResult = null;
 
   if (phase === "v1" || phase === "all") {
-    v1Result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase", "v1"]);
+    v1Result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=v1"]);
   }
 
   if (phase === "v2" || phase === "all") {
-    v2Result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase", "v2"]);
+    v2Result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=v2"]);
+  }
+
+  if (phase === "calibrate") {
+    calibrateResult = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=calibrate"]);
   }
 
   return c.json({
-    importJob: importResult.jobId,
+    importJob: importResult?.jobId ?? null,
     v1Job: v1Result?.jobId ?? null,
     v2Job: v2Result?.jobId ?? null,
+    calibrateJob: calibrateResult?.jobId ?? null,
   });
+});
+
+mcpRouter.post("/gutenberg/compile-v1", (c) => {
+  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=v1"]);
+  return c.json(result);
+});
+
+mcpRouter.post("/gutenberg/compile-v2", (c) => {
+  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=v2"]);
+  return c.json(result);
+});
+
+mcpRouter.post("/gutenberg/calibrate", (c) => {
+  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=calibrate"]);
+  return c.json(result);
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -388,13 +426,16 @@ import { GutenbergCatalog } from '@/mcp/gutenberg/catalog';
 const GUTENBERG_CATALOG_DB = join(process.cwd(), 'data', 'mcp', 'gutenberg-catalog.db');
 
 mcpRouter.post("/gutenberg/catalog/build", async (c) => {
-  const { authors, topic, limit } = await c.req.json<{ authors?: string[]; topic?: string; limit?: number }>();
+  const { authors, topic, popular, limit } = await c.req.json<{ authors?: string[]; topic?: string; popular?: boolean; limit?: number }>();
   const args = ['bun', 'run', 'scripts/build-gutenberg-catalog.ts'];
   if (authors && authors.length > 0) {
     args.push('--authors', authors.join(','));
   }
   if (topic) {
     args.push('--topic', topic);
+  }
+  if (popular) {
+    args.push('--popular');
   }
   if (limit) {
     args.push('--limit', String(limit));
@@ -457,7 +498,11 @@ mcpRouter.get("/gutenberg/catalog/filter", (c) => {
 });
 
 mcpRouter.post("/gutenberg/download-selected", async (c) => {
-  const { etextnos } = await c.req.json<{ etextnos: number[] }>();
+  const { etextnos, selected } = await c.req.json<{ etextnos?: number[]; selected?: boolean }>();
+  if (selected) {
+    const result = runScriptWithJob(['bun', 'run', 'scripts/download-gutenberg-selected.ts', '--selected']);
+    return c.json(result);
+  }
   if (!etextnos || etextnos.length === 0) {
     return c.json({ error: 'No etextnos provided' }, 400);
   }
@@ -558,7 +603,7 @@ mcpRouter.get("/literary/stats", (c) => {
   let templates = 0;
   try {
     const db = new Database(LIT_COMP_DB, { readonly: true });
-    const row = db.query("SELECT COUNT(*) as n FROM scene_templates").get() as { n: number } | null;
+    const row = db.query("SELECT COUNT(*) as n FROM bible_quest_templates").get() as { n: number } | null;
     templates = row?.n ?? 0;
     db.close();
   } catch (err) { log.debug({ err }, 'mcp literary stats table query skipped, table may not exist'); }
@@ -571,8 +616,12 @@ mcpRouter.get("/literary/templates", (c) => {
   let templates: unknown[] = [];
   try {
     const db = new Database(LIT_COMP_DB, { readonly: true });
-    templates = db.query("SELECT * FROM scene_templates WHERE name LIKE ? OR description LIKE ? LIMIT 50")
-      .all(`%${q}%`, `%${q}%`) as unknown[];
+    if (q) {
+      templates = db.query("SELECT * FROM bible_quest_templates WHERE template_text LIKE ? OR source_book LIKE ? OR archetype LIKE ? LIMIT 50")
+        .all(`%${q}%`, `%${q}%`, `%${q}%`) as unknown[];
+    } else {
+      templates = db.query("SELECT * FROM bible_quest_templates ORDER BY source_book LIMIT 50").all() as unknown[];
+    }
     db.close();
   } catch (err) { log.debug({ err }, 'mcp literary templates query skipped, table may not exist'); }
   return c.json({ templates, query: q });
@@ -674,6 +723,63 @@ mcpRouter.get("/status", (c) => {
     mcpMode: process.env.TNS_MCP_MODE === "1",
     uptime: process.uptime(),
     memory: process.memoryUsage(),
+  });
+});
+
+mcpRouter.get("/pipeline/status", (c) => {
+  const dbInfo = (path: string) => {
+    const exists = existsSync(path);
+    return { exists, size: exists ? statSync(path).size : 0, path };
+  };
+
+  const textDir = join(process.cwd(), "data", "gutenberg", "texts");
+  const textFiles = existsSync(textDir)
+    ? readdirSync(textDir).filter((f) => f.endsWith(".txt")).length
+    : 0;
+
+  let compiledTemplates = 0;
+  if (existsSync(LIT_COMP_DB)) {
+    try {
+      const db = new Database(LIT_COMP_DB, { readonly: true });
+      compiledTemplates = (db.query("SELECT COUNT(*) as n FROM bible_quest_templates").get() as any)?.n ?? 0;
+      db.close();
+    } catch {}
+  }
+
+  let sceneTemplates = 0;
+  let stylePatterns = 0;
+  if (existsSync(LITERARY_DB)) {
+    try {
+      const db = new Database(LITERARY_DB, { readonly: true });
+      sceneTemplates = (db.query("SELECT COUNT(*) as n FROM scene_templates").get() as any)?.n ?? 0;
+      stylePatterns = (db.query("SELECT COUNT(*) as n FROM style_patterns").get() as any)?.n ?? 0;
+      db.close();
+    } catch {}
+  }
+
+  let gutenbergStyles = 0;
+  if (existsSync(GUTENBERG_DB)) {
+    try {
+      const db = new Database(GUTENBERG_DB, { readonly: true });
+      gutenbergStyles = (db.query("SELECT COUNT(*) as n FROM gutenberg_styles").get() as any)?.n ?? 0;
+      db.close();
+    } catch {}
+  }
+
+  return c.json({
+    sources: {
+      texts: { count: textFiles, dir: textDir },
+      catalog: dbInfo(join(process.cwd(), "data", "mcp", "gutenberg-catalog.db")),
+      bible: dbInfo(BIBLE_DB),
+    },
+    intermediate: {
+      classics: dbInfo(CLASSICS_DB),
+    },
+    outputs: {
+      normalized: { ...dbInfo(GUTENBERG_DB), styles: gutenbergStyles },
+      compiled: { ...dbInfo(LIT_COMP_DB), templates: compiledTemplates },
+      literary: { ...dbInfo(LITERARY_DB), sceneTemplates, stylePatterns },
+    },
   });
 });
 
