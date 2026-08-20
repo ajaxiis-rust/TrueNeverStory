@@ -67,7 +67,7 @@ def bring_batch_tax(
 def bring_batch_wealth_sum(
     wealth_ptr: UnsafePointer[Float32, StaticConstantOrigin],
     n: Int,
-) -> Float32:
+) abi("c") -> Float32:
     """Sum all wealth values."""
     var total: Float32 = 0.0
     for i in range(n):

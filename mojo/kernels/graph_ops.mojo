@@ -17,7 +17,7 @@ def bring_rrf_fusion(
         var rrf_score: Float32 = 0.0
         for l in range(n_lists):
             var rank = ranks_ptr[l * n_items + i]
-            rrf_score += 1.0 / Float32(k + rank + 1)
+            rrf_score += 1.0 / Float32(Int32(k) + rank + 1)
         out_ptr[i] = rrf_score
 
 @export
@@ -36,7 +36,7 @@ def bring_batch_relationship_strength(
         if src_uids[i] == query_src:
             out_ptr[count] = strengths[i]
             count += 1
-    out_count[0] = count
+    out_count[0] = Int32(count)
 
 @export
 def bring_batch_reputation(
@@ -46,7 +46,7 @@ def bring_batch_reputation(
     out_ptr: UnsafePointer[Float32, MutAnyOrigin],
 ) abi("c") -> None:
     """Compute reputation scores for n NPCs from their relationships.
-    type 0=friend(+0.1), 1=enemy(-0.15), 2=neutral(0), 3=romantic(+0.05), 4=rival(-0.1)"""
+    type 0=friend(+0.1), 1=enemy(-0.15), 2=neutral(0), 3=romantic(+0.05), 4=rival(-0.1)."""
     for i in range(n):
         var score: Float32 = 0.5
         var strength = rel_strengths[i]

@@ -6,7 +6,7 @@ def bring_cosine_similarity_full(
     a_ptr: UnsafePointer[Float32, StaticConstantOrigin],
     b_ptr: UnsafePointer[Float32, StaticConstantOrigin],
     dim: Int,
-) -> Float32:
+) abi("c") -> Float32:
     """Cosine similarity for arbitrary-dimension vectors."""
     var dot: Float32 = 0.0
     var norm_a: Float32 = 0.0
@@ -27,7 +27,7 @@ def bring_l2_distance_full(
     a_ptr: UnsafePointer[Float32, StaticConstantOrigin],
     b_ptr: UnsafePointer[Float32, StaticConstantOrigin],
     dim: Int,
-) -> Float32:
+) abi("c") -> Float32:
     """L2 distance for arbitrary-dimension vectors."""
     var sum: Float32 = 0.0
     for i in range(dim):
@@ -40,7 +40,7 @@ def bring_dot_product_full(
     a_ptr: UnsafePointer[Float32, StaticConstantOrigin],
     b_ptr: UnsafePointer[Float32, StaticConstantOrigin],
     dim: Int,
-) -> Float32:
+) abi("c") -> Float32:
     """Dot product for arbitrary-dimension vectors."""
     var dot: Float32 = 0.0
     for i in range(dim):

@@ -9,7 +9,7 @@ def bring_compute_success_chance(
     difficulty: Float32,
     luck: Float32,
     mod_sum: Float32,
-) -> Float32:
+) abi("c") -> Float32:
     """Compute probability of success with modifiers."""
     var base = skill * (1.0 - difficulty * 0.5)
     base = base * (0.7 + luck * 0.3)
@@ -23,7 +23,7 @@ def bring_compute_success_chance(
 # ── Roll Outcome ─────────────────────────────────────────────
 
 @export
-def bring_roll_outcome(probability: Float32, roll: Float32) -> Int:
+def bring_roll_outcome(probability: Float32, roll: Float32) abi("c") -> Int:
     """Roll against probability. Returns 0-4 quality."""
     if roll > probability:
         if roll > probability + 0.3:
@@ -39,7 +39,7 @@ def bring_roll_outcome(probability: Float32, roll: Float32) -> Int:
 # ── Modifier Value ───────────────────────────────────────────
 
 @export
-def bring_compute_modifier(base: Float32, mod_type: Int, value: Float32) -> Float32:
+def bring_compute_modifier(base: Float32, mod_type: Int, value: Float32) abi("c") -> Float32:
     """Apply modifier: 0=ADD, 1=MULTIPLY, 2=SET."""
     if mod_type == 0:
         return base + value

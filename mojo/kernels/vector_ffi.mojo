@@ -8,7 +8,7 @@
 def bring_cosine_similarity(
     a0: Float32, a1: Float32, a2: Float32, a3: Float32,
     b0: Float32, b1: Float32, b2: Float32, b3: Float32,
-) -> Float32:
+) abi("c") -> Float32:
     """Compute cosine similarity for 4-element vectors.
     For larger vectors, call multiple times or use batch version."""
     var dot = a0*b0 + a1*b1 + a2*b2 + a3*b3
@@ -24,7 +24,7 @@ def bring_cosine_similarity(
 def bring_l2_distance(
     a0: Float32, a1: Float32, a2: Float32, a3: Float32,
     b0: Float32, b1: Float32, b2: Float32, b3: Float32,
-) -> Float32:
+) abi("c") -> Float32:
     """Compute L2 distance for 4-element vectors."""
     var d0 = a0 - b0
     var d1 = a1 - b1
@@ -38,7 +38,7 @@ def bring_l2_distance(
 def bring_dot_product(
     a0: Float32, a1: Float32, a2: Float32, a3: Float32,
     b0: Float32, b1: Float32, b2: Float32, b3: Float32,
-) -> Float32:
+) abi("c") -> Float32:
     """Compute dot product for 4-element vectors."""
     return a0*b0 + a1*b1 + a2*b2 + a3*b3
 
@@ -47,7 +47,7 @@ def bring_dot_product(
 @export
 def bring_normalize4(
     v0: Float32, v1: Float32, v2: Float32, v3: Float32,
-) -> Tuple[Float32, Float32, Float32, Float32]:
+) abi("c") -> Tuple[Float32, Float32, Float32, Float32]:
     """Normalize 4-element vector to unit length."""
     var norm = (v0*v0 + v1*v1 + v2*v2 + v3*v3) ** 0.5
     if norm > 0.0:
