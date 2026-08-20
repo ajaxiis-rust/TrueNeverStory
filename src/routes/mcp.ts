@@ -33,6 +33,7 @@ const ECON_DB = join(process.cwd(), "data", "literary-compiler", "economic.db");
 
 interface Job {
   id: string;
+  phase?: string;
   status: "running" | "done" | "error";
   progress: number;
   message: string;
@@ -100,8 +101,10 @@ interface ScriptProgress {
 function runScriptWithJob(
   command: string[],
   cwd: string = process.cwd(),
+  phase?: string,
 ): { jobId: string; stream: string } {
   const job = createJob();
+  if (phase) job.phase = phase;
   updateJob(job, 5, "Starting...");
 
   (async () => {
@@ -192,7 +195,12 @@ mcpRouter.get("/stream/:jobId", (c) => {
   );
 });
 
-// ═══════════════════════════════════════════════════════════════
+mcpRouter.get("/jobs/active", (c) => {
+  const active = Array.from(jobs.values())
+    .filter(j => j.status === "running" && j.phase)
+    .map(j => ({ id: j.id, phase: j.phase, progress: j.progress, message: j.message, stats: j.stats, status: j.status }));
+  return c.json({ jobs: active });
+});// ═══════════════════════════════════════════════════════════════
 //  Bible
 // ═══════════════════════════════════════════════════════════════
 
@@ -266,7 +274,7 @@ mcpRouter.get("/bible/character/:id", (c) => {
 });
 
 mcpRouter.post("/bible/bootstrap", async (c) => {
-  const result = runScriptWithJob(["bun", "run", "scripts/bootstrap-bible-db.ts"]);
+  const result = runScriptWithJob(["bun", "run", "scripts/bootstrap-bible-db.ts"], process.cwd(), "bible");
   return c.json(result);
 });
 
@@ -327,7 +335,7 @@ mcpRouter.get("/gutenberg/styles", (c) => {
 });
 
 mcpRouter.post("/gutenberg/download", (c) => {
-  const result = runScriptWithJob(["bun", "run", "scripts/download-gutenberg.ts"]);
+  const result = runScriptWithJob(["bun", "run", "scripts/download-gutenberg.ts"], process.cwd(), "download");
   return c.json(result);
 });
 
@@ -337,7 +345,7 @@ mcpRouter.post("/gutenberg/convert", (c) => {
 });
 
 mcpRouter.post("/gutenberg/import", (c) => {
-  const result = runScriptWithJob(["bun", "run", "scripts/import-gutenberg-texts.ts"]);
+  const result = runScriptWithJob(["bun", "run", "scripts/import-gutenberg-texts.ts"], process.cwd(), "import");
   return c.json(result);
 });
 
@@ -406,17 +414,17 @@ mcpRouter.post("/gutenberg/process", async (c) => {
 });
 
 mcpRouter.post("/gutenberg/compile-v1", (c) => {
-  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=v1"]);
+  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=v1"], process.cwd(), "v1");
   return c.json(result);
 });
 
 mcpRouter.post("/gutenberg/compile-v2", (c) => {
-  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=v2"]);
+  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=v2"], process.cwd(), "v2");
   return c.json(result);
 });
 
 mcpRouter.post("/gutenberg/calibrate", (c) => {
-  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=calibrate"]);
+  const result = runScriptWithJob(["bun", "run", "scripts/process-gutenberg.ts", "--phase=calibrate"], process.cwd(), "calibrate");
   return c.json(result);
 });
 
