@@ -49,6 +49,18 @@ function emit(msg: { phase: string; pct: number; message: string; stats?: Progre
   console.log(JSON.stringify(msg));
 }
 
+function parseJsonSafe(raw: string): Record<string, unknown> {
+  try { return JSON.parse(raw); } catch {}
+  // Try extracting JSON from markdown code block
+  const m = raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (m) { try { return JSON.parse(m[1]!); } catch {} }
+  // Try finding first { ... } block
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start !== -1 && end > start) { try { return JSON.parse(raw.slice(start, end + 1)); } catch {} }
+  throw new Error('No valid JSON in LLM response');
+}
+
 // ── Cache Hash ────────────────────────────────────────────────────────
 
 function chunkHash(text: string): string {
@@ -462,7 +474,8 @@ async function runPhaseB() {
       chunks = chunkText(cleaned, sourceId, { minTokens: 200, maxTokens: 400, overlap: 60 });
       if (chunks.length === 0) { litDb.db.exec('COMMIT'); continue; }
 
-      for (const chunk of chunks) {
+      for (let ci = 0; ci < chunks.length; ci++) {
+        const chunk = chunks[ci]!;
         const analysis = analyzeChunk(chunk.text);
         chunk.pre_score = analysis.pre_score;
         chunk.dict_hits = analysis.dict_hits.length;
@@ -491,6 +504,23 @@ async function runPhaseB() {
           temporal_markers: JSON.stringify(chunk.temporal_markers),
           created_at: Date.now() / 1000,
         });
+
+        // Emit progress every 5 chunks
+        if ((ci + 1) % 5 === 0 || ci === chunks.length - 1) {
+          emit({
+            phase: 'v2',
+            pct: Math.round(((i + (ci + 1) / chunks.length * 0.5) / books.length) * 95 + 3),
+            message: `Book ${i + 1}/${books.length}: ${sourceId} — chunk ${ci + 1}/${chunks.length}`,
+            stats: {
+              book_current: i + 1,
+              book_total: books.length,
+              book_title: sourceId,
+              chunks_done: totalChunks + ci + 1,
+              templates: totalTemplates,
+              elapsed_s: Math.round((Date.now() - phaseStart) / 1000),
+            },
+          });
+        }
       }
 
       litDb.db.exec('COMMIT');
@@ -556,7 +586,7 @@ async function runPhaseB() {
             llmCalls++;
             llmSeconds += elapsed;
 
-            parsed = JSON.parse(response);
+            parsed = parseJsonSafe(response);
 
             // Cache result
             litDb.db.prepare(
@@ -569,7 +599,7 @@ async function runPhaseB() {
             { sensory_tags: rep.sensory_tags }
           );
 
-          if (qualityScore < 0.3) continue;
+          if (qualityScore < 0.3) { console.warn(`[v2] Low quality (${qualityScore.toFixed(2)}): ${rep.id} in ${sourceId}`); continue; }
 
           const styResult = stylistic.analyze({ text: rep.text, source_id: rep.id });
           const styPattern = styResult.patterns[0];
