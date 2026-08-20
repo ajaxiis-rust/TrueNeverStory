@@ -81,11 +81,19 @@ const linter = new Linter();
 let totalTemplates = 0;
 let totalChapters = 0;
 let totalErrors = 0;
-const allTemplates: QuestTemplate[] = [];
+let skippedBooks = 0;
 const startTime = Date.now();
 
 for (let i = 0; i < books.length; i++) {
   const book = books[i];
+  const sourceId = `${book.author}::${book.book_title}`;
+
+  // Dedup: skip books already compiled
+  if (compilerDb.getTemplateCountByBook(sourceId) > 0) {
+    skippedBooks++;
+    continue;
+  }
+
   const cleaned = cleanGutenbergText(book.context);
 
   if (cleaned.length < 200) {
@@ -96,10 +104,11 @@ for (let i = 0; i < books.length; i++) {
   const chapters = splitIntoChapters(cleaned, CHAPTER_WORD_TARGET);
   console.log(`[${i + 1}/${books.length}] ${book.author} — "${book.book_title}" (${chapters.length} chapters)`);
 
+  const bookTemplates: QuestTemplate[] = [];
+
   for (let ch = 0; ch < chapters.length; ch++) {
     const chapterText = chapters[ch];
     const chapterNum = ch + 1;
-    const sourceId = `${book.author}::${book.book_title}`;
 
     // ── Pass 1: Dramaturgic ──
     const dramResult = await dramaturgic.parse({
@@ -154,31 +163,26 @@ for (let i = 0; i < books.length; i++) {
         template.template_text = template.template_text.split(/\s+/).slice(0, MAX_TEMPLATE_WORDS).join(' ') + '...';
       }
 
-      allTemplates.push(template);
+      bookTemplates.push(template);
       totalTemplates++;
     }
 
     totalChapters++;
   }
 
-  // Progress: commit every 10 books
-  if ((i + 1) % 10 === 0 || i === books.length - 1) {
-    console.log(`  → ${totalTemplates} templates so far (${totalChapters} chapters processed)`);
+  // Lint + insert per book (idempotent: skip if no templates)
+  if (bookTemplates.length > 0) {
+    const lintResult = linter.lint(bookTemplates);
+    for (const t of lintResult.valid_templates) {
+      compilerDb.insertTemplate(t);
+    }
+    totalErrors += lintResult.error_count;
   }
-}
 
-// ── Lint ────────────────────────────────────────────────────────────
-console.log(`\n--- Linting ${allTemplates.length} templates ---`);
-const lintResult = linter.lint(allTemplates);
-console.log(`  Valid: ${lintResult.valid_templates.length}`);
-console.log(`  Invalid: ${lintResult.invalid_templates.length}`);
-console.log(`  Errors: ${lintResult.error_count}, Warnings: ${lintResult.warning_count}`);
-
-// ── Final insert (valid templates only) ─────────────────────────────
-// The dramaturgic pass already inserted into DB during parse().
-// We need to delete invalid ones and re-insert valid enriched ones.
-for (const t of lintResult.valid_templates) {
-  compilerDb.insertTemplate(t);
+  // Progress
+  if ((i + 1) % 10 === 0 || i === books.length - 1) {
+    console.log(`  → ${totalTemplates} templates so far (${skippedBooks} skipped, ${totalChapters} chapters processed)`);
+  }
 }
 
 // ── Stats ───────────────────────────────────────────────────────────
@@ -187,6 +191,7 @@ const dbCount = compilerDb.getTemplateCount();
 
 console.log(`\n=== Done in ${elapsed}s ===`);
 console.log(`Templates in DB: ${dbCount}`);
+console.log(`Books processed: ${books.length - skippedBooks}, skipped: ${skippedBooks}`);
 console.log(`Errors during compilation: ${totalErrors}`);
 console.log(`Output: ${OUTPUT_DB}`);
 

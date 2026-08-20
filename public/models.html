@@ -142,6 +142,9 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
 .tooltip__tag--good{border-color:var(--success);color:var(--success)}
 .tooltip__tag--mid{border-color:var(--warning);color:var(--warning)}
 .tooltip__tag--slow{border-color:var(--text-disabled);color:var(--text-disabled)}
+.tooltip__langs{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;border-top:1px solid var(--border);padding-top:6px}
+.tooltip__lang{font-family:var(--font-mono);font-size:10px;letter-spacing:.04em;padding:1px 5px;border-radius:var(--radius-pill);border:1px solid var(--border);color:var(--text-disabled)}
+.tooltip__lang--pri{border-color:var(--success);color:var(--success);font-weight:600}
 
 /* ── Responsive ── */
 @media(max-width:768px){
@@ -626,27 +629,42 @@ async function useModel(id) {
 }
 
 const MODEL_INFO = {
-  'gemma3-4b-q4_k_m': { quality: 'good', ram: '~4 GB', speed: '~7 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Best balance of quality and size.' },
-  'gemma3-4b-q5_k_m': { quality: 'good', ram: '~4.5 GB', speed: '~6 tok/s', context: '128K', quant: 'Q5_K_M', notes: 'Slightly better quality than Q4.' },
-  'gemma3-4b-q8_0': { quality: 'mid', ram: '~6 GB', speed: '~5 tok/s', context: '128K', quant: 'Q8_0', notes: 'Near-lossless quality.' },
-  'gemma3-1b-q4_k_m': { quality: 'good', ram: '~1.5 GB', speed: '~20 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Tiny, 140+ languages, great for CPU.' },
-  'qwen2.5-3b-q4_k_m': { quality: 'good', ram: '~2.5 GB', speed: '~12 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Small multilingual, 29+ languages.' },
-  'qwen2.5-7b-q4_k_m': { quality: 'mid', ram: '~5 GB', speed: '~7 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Strong multilingual, code & reasoning.' },
-  'minicpm3-4b-q4_k_m': { quality: 'good', ram: '~3 GB', speed: '~8 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Compact multilingual, strong reasoning.' },
-  'smollm2-1.7b-q4_k_m': { quality: 'good', ram: '~1.5 GB', speed: '~22 tok/s', context: '8K', quant: 'Q4_K_M', notes: 'Tiny HuggingFace model, 7 languages.' },
-  'Gemma 3 4B (Q4_K_M)': { quality: 'good', ram: '~4 GB', speed: '~7 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Best balance.' },
-  'Gemma 3 4B (Q5_K_M)': { quality: 'good', ram: '~4.5 GB', speed: '~6 tok/s', context: '128K', quant: 'Q5_K_M', notes: 'Better quality than Q4.' },
-  'Gemma 3 4B (Q8_0)': { quality: 'mid', ram: '~6 GB', speed: '~5 tok/s', context: '128K', quant: 'Q8_0', notes: 'Near-lossless.' },
-  'llama3.2:3b': { quality: 'good', ram: '~3 GB', speed: '~10 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Small, fast, good for roleplay.' },
-  'llama3.2:8b': { quality: 'mid', ram: '~6 GB', speed: '~5 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Balanced quality and speed.' },
-  'llama3.1:8b': { quality: 'mid', ram: '~6 GB', speed: '~5 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Excellent for narrative.' },
-  'mistral:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Fast, creative dialogue.' },
-  'mixtral:8x7b': { quality: 'slow', ram: '~26 GB', speed: '~2 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'High quality MoE. Very large.' },
-  'phi3:3.8b': { quality: 'good', ram: '~3 GB', speed: '~10 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Small but capable.' },
-  'gemma2:9b': { quality: 'mid', ram: '~7 GB', speed: '~4 tok/s', context: '8K', quant: 'Q4_K_M', notes: 'High-quality, 8K context.' },
-  'qwen2.5:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Strong multilingual.' },
-  'codellama:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '16K', quant: 'Q4_K_M', notes: 'Code generation.' },
-  'nous-hermes2:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Instruction following.' },
+  'gemma3-4b-q4_k_m': { quality: 'good', ram: '~4 GB', speed: '~7 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Best balance of quality and size.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'gemma3-4b-q5_k_m': { quality: 'good', ram: '~4.5 GB', speed: '~6 tok/s', context: '128K', quant: 'Q5_K_M', notes: 'Slightly better quality than Q4.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'gemma3-4b-q8_0': { quality: 'mid', ram: '~6 GB', speed: '~5 tok/s', context: '128K', quant: 'Q8_0', notes: 'Near-lossless quality.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'gemma3-1b-q4_k_m': { quality: 'good', ram: '~1.5 GB', speed: '~20 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Tiny, 140+ languages, great for CPU.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'qwen2.5-3b-q4_k_m': { quality: 'good', ram: '~2.5 GB', speed: '~12 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Small multilingual, 29+ languages.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'qwen2.5-7b-q4_k_m': { quality: 'mid', ram: '~5 GB', speed: '~7 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Strong multilingual, code & reasoning.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'minicpm3-4b-q4_k_m': { quality: 'good', ram: '~3 GB', speed: '~8 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Compact, strong reasoning.', lang: ['zh','en'] },
+  'smollm2-1.7b-q4_k_m': { quality: 'good', ram: '~1.5 GB', speed: '~22 tok/s', context: '8K', quant: 'Q4_K_M', notes: 'Tiny HuggingFace model.', lang: ['en'] },
+  'yandexgpt-5-lite-8b-q4_k_m': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Yandex RU/EN instruct, great for Russian.', lang: ['ru','en'] },
+  'gigachat3.1-10b-a1.8b-q4_k_m': { quality: 'good', ram: '~4 GB', speed: '~15 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Sber MoE, 1.8B active, fast & smart.', lang: ['ru','en'] },
+  'gigachat-20b-a3b-q4_k_m': { quality: 'mid', ram: '~10 GB', speed: '~5 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Sber MoE, 3B active, strong quality.', lang: ['ru','en'] },
+  'Gemma 3 4B (Q4_K_M)': { quality: 'good', ram: '~4 GB', speed: '~7 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Best balance.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'Gemma 3 4B (Q5_K_M)': { quality: 'good', ram: '~4.5 GB', speed: '~6 tok/s', context: '128K', quant: 'Q5_K_M', notes: 'Better quality than Q4.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'Gemma 3 4B (Q8_0)': { quality: 'mid', ram: '~6 GB', speed: '~5 tok/s', context: '128K', quant: 'Q8_0', notes: 'Near-lossless.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'llama3.2:3b': { quality: 'good', ram: '~3 GB', speed: '~10 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Small, fast, good for roleplay.', lang: ['en','de','fr','it','pt','es','hi','th'] },
+  'llama3.2:8b': { quality: 'mid', ram: '~6 GB', speed: '~5 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Balanced quality and speed.', lang: ['en','de','fr','it','pt','es','hi','th'] },
+  'llama3.1:8b': { quality: 'mid', ram: '~6 GB', speed: '~5 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Excellent for narrative.', lang: ['en','de','fr','it','pt','es','hi','th'] },
+  'mistral:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Fast, creative dialogue.', lang: ['en'] },
+  'mixtral:8x7b': { quality: 'slow', ram: '~26 GB', speed: '~2 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'High quality MoE. Very large.', lang: ['en'] },
+  'phi3:3.8b': { quality: 'good', ram: '~3 GB', speed: '~10 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Small but capable.', lang: ['en','fr'] },
+  'gemma2:9b': { quality: 'mid', ram: '~7 GB', speed: '~4 tok/s', context: '8K', quant: 'Q4_K_M', notes: 'High-quality, 8K context.', lang: ['en'] },
+  'qwen2.5:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Strong multilingual.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'codellama:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '16K', quant: 'Q4_K_M', notes: 'Code generation.', lang: ['en'] },
+  'nous-hermes2:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Instruction following.', lang: ['en'] },
+  // ── Embedding Models ──
+  'bge-m3-f16': { quality: 'good', notes: 'BAAI flagship: 100+ languages, dense+sparse+reranker.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'bge-m3-q8_0': { quality: 'good', notes: 'BAAI multilingual embedding, near-lossless.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'bge-m3-q4_k_m': { quality: 'good', notes: 'BAAI multilingual embedding, best size/quality.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'embedding-gemma-300m-q8_0': { quality: 'good', notes: 'Google Gemma-based embedding, compact.', lang: ['en'] },
+  'kalm-embedding-gemma3-12b-q4_k_m': { quality: 'mid', notes: 'Tencent KaLM on Gemma3, multilingual, top-tier.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'kalm-embedding-gemma3-12b-q8_0': { quality: 'mid', notes: 'Near-lossless KaLM Gemma3, best quality.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'qwen3-embedding-0.6b-q8_0': { quality: 'good', notes: 'Best size/quality, 100+ languages.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  // ── Translation Models ──
+  'nllb-200-distilled-600m-q8_0': { quality: 'good', notes: 'Meta 200-language translation, fast & accurate.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'nllb-200-distilled-600m-q4_k_m': { quality: 'good', notes: 'Meta translation, compact, 200 languages.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'madlad400-3b-q4_k_m': { quality: 'good', notes: 'Google 400+ language translation, great for rare langs.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
 };
 
 function fmtSize(v) {
@@ -654,6 +672,9 @@ function fmtSize(v) {
   if (typeof v === 'string') return v;
   return (v / 1048576).toFixed(0) + ' MB';
 }
+
+const PRIORITY_LANGS = ['ru','en','de','fr','es','it','ja'];
+const LANG_LABELS = { ru:'RU', en:'EN', de:'DE', fr:'FR', es:'ES', it:'IT', ja:'JA', zh:'ZH', ko:'KO', pt:'PT', ar:'AR', hi:'HI', th:'TH', vi:'VI' };
 
 function makeTooltip(m) {
   const info = MODEL_INFO[m.id] ?? MODEL_INFO[m.name];
@@ -664,19 +685,29 @@ function makeTooltip(m) {
   let rows = '';
   if (size) rows += `<div class="tooltip__row"><span>Size</span><span>${esc(size)}</span></div>`;
   if (info) {
-    rows += `<div class="tooltip__row"><span>RAM</span><span>${info.ram}</span></div>`;
-    rows += `<div class="tooltip__row"><span>Speed</span><span>${info.speed}</span></div>`;
-    rows += `<div class="tooltip__row"><span>Context</span><span>${info.context}</span></div>`;
-    rows += `<div class="tooltip__row"><span>Quant</span><span>${info.quant}</span></div>`;
+    if (info.ram) rows += `<div class="tooltip__row"><span>RAM</span><span>${info.ram}</span></div>`;
+    if (info.speed) rows += `<div class="tooltip__row"><span>Speed</span><span>${info.speed}</span></div>`;
+    if (info.context) rows += `<div class="tooltip__row"><span>Context</span><span>${info.context}</span></div>`;
+    if (info.quant) rows += `<div class="tooltip__row"><span>Quant</span><span>${info.quant}</span></div>`;
   }
   if (m.backend) rows += `<div class="tooltip__row"><span>Backend</span><span>${esc(m.backend)}</span></div>`;
   const tag = info ? `<div class="tooltip__bar"><span class="tooltip__tag ${qClass}">${info.quality === 'good' ? 'Recommended' : info.quality === 'mid' ? 'Balanced' : 'Heavy'}</span></div>` : '';
   const descHtml = desc ? `<div class="tooltip__desc">${esc(desc)}</div>` : '';
+  let langsHtml = '';
+  if (info?.lang?.length) {
+    const tags = info.lang.map(l => {
+      const pri = PRIORITY_LANGS.includes(l);
+      const label = LANG_LABELS[l] || l.toUpperCase();
+      return `<span class="tooltip__lang${pri ? ' tooltip__lang--pri' : ''}">${label}</span>`;
+    }).join('');
+    langsHtml = `<div class="tooltip__langs">${tags}</div>`;
+  }
   return `<div class="tooltip">
     <div class="tooltip__title">${esc(m.name)}</div>
     ${rows}
     ${tag}
     ${descHtml}
+    ${langsHtml}
   </div>`;
 }
 

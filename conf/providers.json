@@ -25,6 +25,63 @@
       "priority": 2
     }
   ],
-  "assignments": [],
-  "defaultProviderId": ""
+  "assignments": [
+    {
+      "agentId": "director",
+      "agentName": "Director",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "enabled": true
+    },
+    {
+      "agentId": "narrator",
+      "agentName": "Narrator",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "enabled": true
+    },
+    {
+      "agentId": "scene",
+      "agentName": "Scene Generator",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "enabled": true
+    },
+    {
+      "agentId": "npc",
+      "agentName": "NPC Agent",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "enabled": true
+    },
+    {
+      "agentId": "chronicler",
+      "agentName": "Chronicler",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "enabled": true
+    },
+    {
+      "agentId": "story-planner",
+      "agentName": "Story Planner",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "enabled": true
+    },
+    {
+      "agentId": "social-sim",
+      "agentName": "Social Simulator",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "enabled": true
+    },
+    {
+      "agentId": "villain",
+      "agentName": "Villain Manager",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "enabled": true
+    }
+  ],
+  "defaultProviderId": "llamacpp"
 }

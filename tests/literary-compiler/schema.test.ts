@@ -89,6 +89,16 @@ describe('LiteraryCompilerDB', () => {
     expect(count).toBe(2);
   });
 
+  it('should count templates by source_book (for dedup)', () => {
+    // Exodus has 1 template from the test above
+    const count = db.getTemplateCountByBook('Exodus');
+    expect(count).toBe(1);
+
+    // Non-existent book returns 0
+    const missing = db.getTemplateCountByBook('NonExistent');
+    expect(missing).toBe(0);
+  });
+
   it('should delete a template', () => {
     db.deleteTemplate('Ruth.1');
     const retrieved = db.getTemplate('Ruth.1');

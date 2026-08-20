@@ -1,3 +1,68 @@
 {
-  "assignments": []
+  "assignments": [
+    {
+      "agentId": "director",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "enabled": true
+    },
+    {
+      "agentId": "narrator",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "enabled": true
+    },
+    {
+      "agentId": "scene",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "enabled": true
+    },
+    {
+      "agentId": "npc",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "enabled": true
+    },
+    {
+      "agentId": "chronicler",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "enabled": true
+    },
+    {
+      "agentId": "story-planner",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "enabled": true
+    },
+    {
+      "agentId": "social-sim",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "enabled": true
+    },
+    {
+      "agentId": "villain",
+      "providerId": "llamacpp",
+      "modelId": "./local-models/gemma3-1b-q4_k_m.gguf",
+      "temperature": 0.7,
+      "maxTokens": 2048,
+      "enabled": true
+    }
+  ]
 }
