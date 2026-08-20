@@ -36,6 +36,7 @@ interface Job {
   status: "running" | "done" | "error";
   progress: number;
   message: string;
+  stats?: Record<string, unknown>;
   result?: unknown;
   listeners: Set<(data: string) => void>;
 }
@@ -55,10 +56,11 @@ function createJob(): Job {
   return job;
 }
 
-function updateJob(job: Job, progress: number, message: string) {
+function updateJob(job: Job, progress: number, message: string, stats?: Record<string, unknown>) {
   job.progress = progress;
   job.message = message;
-  const data = JSON.stringify({ progress, message, status: job.status });
+  if (stats) job.stats = stats;
+  const data = JSON.stringify({ progress, message, status: job.status, stats: job.stats });
   for (const listener of job.listeners) {
     listener(`data: ${data}\n\n`);
   }
@@ -92,6 +94,7 @@ interface ScriptProgress {
   phase?: string;
   pct?: number;
   message?: string;
+  stats?: Record<string, unknown>;
 }
 
 function runScriptWithJob(
@@ -123,7 +126,7 @@ function runScriptWithJob(
             try {
               const msg = JSON.parse(trimmed) as ScriptProgress;
               if (typeof msg.pct === "number" && msg.message) {
-                updateJob(job, msg.pct, msg.message);
+                updateJob(job, msg.pct, msg.message, msg.stats);
               }
             } catch {
               // non-JSON line — ignore
