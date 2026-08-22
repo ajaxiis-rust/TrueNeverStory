@@ -42,6 +42,15 @@ interface ProgressStats {
   chunks_done?: number;
   chunks_total?: number;
   templates?: number;
+  scenes?: number;
+  styles?: number;
+  reps_done?: number;
+  reps_total?: number;
+  llm_calls?: number;
+  llm_avg_s?: number;
+  llm_elapsed_s?: number;
+  errors?: number;
+  eta_min?: number;
   elapsed_s?: number;
 }
 
@@ -443,23 +452,66 @@ async function runPhaseB() {
   let llmCalls = 0;
   let llmSeconds = 0;
   const phaseStart = Date.now();
+  let totalStyles = 0;
+  let totalErrors = 0;
+
+  // ── Live progress state + heartbeat (UI must never go silent during LLM calls) ──
+  const live: { pct: number; message: string; stats: ProgressStats; llmCallStart: number | null } = {
+    pct: 3,
+    message: 'Starting Phase B: V2 LLM pipeline',
+    stats: { book_current: 0, book_total: books.length, chunks_done: 0, scenes: 0, styles: 0, errors: 0, elapsed_s: 0 },
+    llmCallStart: null,
+  };
+  const etaMin = (bookIdx: number): number => {
+    const done = bookIdx + 1 - skippedBooks;
+    if (done <= 0) return 0;
+    const avgMin = (Date.now() - phaseStart) / 60000 / done;
+    return Math.round((books.length - bookIdx - 1) * avgMin);
+  };
+  const bookStats = (bookIdx: number, sourceId: string, extra: Partial<ProgressStats> = {}): ProgressStats => ({
+    book_current: bookIdx + 1,
+    book_total: books.length,
+    book_title: sourceId,
+    chunks_done: totalChunks,
+    scenes: totalTemplates,
+    styles: totalStyles,
+    llm_calls: llmCalls,
+    llm_avg_s: llmCalls > 0 ? Math.round(llmSeconds / llmCalls) : 0,
+    errors: totalErrors,
+    eta_min: etaMin(bookIdx),
+    elapsed_s: Math.round((Date.now() - phaseStart) / 1000),
+    ...extra,
+  });
+  const emitLive = (pct: number, message: string, stats: ProgressStats) => {
+    live.pct = pct;
+    live.message = message;
+    live.stats = stats;
+    emit({ phase: 'v2', pct, message, stats });
+  };
+  const heartbeat = setInterval(() => {
+    if (live.llmCallStart == null) return;
+    const elapsed = Math.round((Date.now() - live.llmCallStart) / 1000);
+    emit({
+      phase: 'v2',
+      pct: live.pct,
+      message: `${live.message} — LLM ${elapsed}s`,
+      stats: { ...live.stats, llm_elapsed_s: elapsed },
+    });
+  }, 10_000);
 
   for (let i = 0; i < books.length; i++) {
     const book = books[i];
     const sourceId = `${book.author}::${book.book_title}`;
 
-    // Dedup: skip if already in chunk_index
-    const dedup = litDb.db
-      .prepare('SELECT COUNT(*) as n FROM chunk_index WHERE source_book = ?')
-      .get(sourceId) as { n: number };
-    if (dedup.n > 0) {
+    // Dedup: skip books fully processed in a previous run (marker-based, self-healing)
+    if (litDb.isBookProcessed(sourceId)) {
       skippedBooks++;
       if ((i + 1) % 5 === 0 || i === books.length - 1) {
-        emit({
-          phase: 'v2',
-          pct: Math.round(((i + 1) / books.length) * 95 + 3),
-          message: `${i + 1 - skippedBooks}/${books.length} books (${skippedBooks} skipped), ${totalTemplates} templates`,
-        });
+        emitLive(
+          Math.round(((i + 1) / books.length) * 95 + 3),
+          `${i + 1 - skippedBooks}/${books.length} books (${skippedBooks} skipped), ${totalTemplates} scenes`,
+          bookStats(i, sourceId),
+        );
       }
       continue;
     }
@@ -507,19 +559,11 @@ async function runPhaseB() {
 
         // Emit progress every 5 chunks
         if ((ci + 1) % 5 === 0 || ci === chunks.length - 1) {
-          emit({
-            phase: 'v2',
-            pct: Math.round(((i + (ci + 1) / chunks.length * 0.5) / books.length) * 95 + 3),
-            message: `Book ${i + 1}/${books.length}: ${sourceId} — chunk ${ci + 1}/${chunks.length}`,
-            stats: {
-              book_current: i + 1,
-              book_total: books.length,
-              book_title: sourceId,
-              chunks_done: totalChunks + ci + 1,
-              templates: totalTemplates,
-              elapsed_s: Math.round((Date.now() - phaseStart) / 1000),
-            },
-          });
+          emitLive(
+            Math.round(((i + (ci + 1) / chunks.length * 0.5) / books.length) * 95 + 3),
+            `Book ${i + 1}/${books.length}: ${sourceId} — chunk ${ci + 1}/${chunks.length}`,
+            bookStats(i, sourceId, { chunks_done: totalChunks + ci + 1 }),
+          );
         }
       }
 
@@ -527,20 +571,11 @@ async function runPhaseB() {
       litDb.db.exec('PRAGMA wal_checkpoint(PASSIVE)');
       totalChunks += chunks.length;
 
-      const elapsed = Math.round((Date.now() - phaseStart) / 1000);
-      emit({
-        phase: 'v2',
-        pct: Math.round(((i + 0.5) / books.length) * 95 + 3),
-        message: `Book ${i + 1}/${books.length}: ${sourceId} — chunks ready`,
-        stats: {
-          book_current: i + 1,
-          book_total: books.length,
-          book_title: sourceId,
-          chunks_done: totalChunks,
-          templates: totalTemplates,
-          elapsed_s: elapsed,
-        },
-      });
+      emitLive(
+        Math.round(((i + 0.5) / books.length) * 95 + 3),
+        `Book ${i + 1}/${books.length}: ${sourceId} — chunks ready`,
+        bookStats(i, sourceId),
+      );
     } catch (err) {
       litDb.db.exec('ROLLBACK');
       console.warn(`Book ${sourceId} chunks rolled back:`, err);
@@ -549,7 +584,21 @@ async function runPhaseB() {
 
     // ── Transaction 2: Templates (slow, LLM) ──────────────────────────
     const candidates = chunks.filter(c => c.pre_score > 0.3);
-    if (candidates.length === 0) continue;
+    if (candidates.length === 0) {
+      // Deterministic final state (rule-based pre_score) — safe to mark done.
+      litDb.markBookProcessed(sourceId);
+      continue;
+    }
+
+    if (!llm) {
+      // No LLM available — do NOT mark; the book is reprocessed once an LLM is up.
+      emitLive(
+        Math.round(((i + 1) / books.length) * 95 + 3),
+        `Book ${i + 1}/${books.length}: ${sourceId} — LLM unavailable, skipped (will retry next run)`,
+        bookStats(i, sourceId),
+      );
+      continue;
+    }
 
     const clusters = clusterBySceneType(candidates);
     const representatives: TextChunk[] = [];
@@ -581,7 +630,13 @@ async function runPhaseB() {
 
             const prompt = EXTRACT_TEMPLATE_PROMPT(prevChunk, rep.text, nextChunk);
             const t0 = Date.now();
-            const response = await llm.generateText(prompt);
+            live.llmCallStart = t0;
+            let response: string;
+            try {
+              response = await llm.generateText(prompt);
+            } finally {
+              live.llmCallStart = null;
+            }
             const elapsed = (Date.now() - t0) / 1000;
             llmCalls++;
             llmSeconds += elapsed;
@@ -599,7 +654,15 @@ async function runPhaseB() {
             { sensory_tags: rep.sensory_tags }
           );
 
-          if (qualityScore < 0.3) { console.warn(`[v2] Low quality (${qualityScore.toFixed(2)}): ${rep.id} in ${sourceId}`); continue; }
+          if (qualityScore < 0.3) {
+            console.warn(`[v2] Low quality (${qualityScore.toFixed(2)}): ${rep.id} in ${sourceId}`);
+            emitLive(
+              Math.round(((i + 0.5 + 0.5 * ((repIdx + 1) / representatives.length)) / books.length) * 95 + 3),
+              `Book ${i + 1}/${books.length}: ${sourceId} — rep ${repIdx + 1}/${representatives.length} low quality, skipped`,
+              bookStats(i, sourceId, { reps_done: repIdx, reps_total: representatives.length }),
+            );
+            continue;
+          }
 
           const styResult = stylistic.analyze({ text: rep.text, source_id: rep.id });
           const styPattern = styResult.patterns[0];
@@ -661,38 +724,55 @@ async function runPhaseB() {
             created_at: Date.now() / 1000,
           };
           litDb.insertStylePattern(stylePattern);
+          totalStyles++;
           litDb.insertTemplateStyleLink({ template_id: templateId, style_id: styleId, weight: 1.0 });
 
           totalTemplates++;
           repIdx++;
+          emitLive(
+            Math.round(((i + 0.5 + 0.5 * (repIdx / representatives.length)) / books.length) * 95 + 3),
+            `Book ${i + 1}/${books.length}: ${sourceId} — rep ${repIdx}/${representatives.length}`,
+            bookStats(i, sourceId, { reps_done: repIdx, reps_total: representatives.length }),
+          );
         }
 
-        await extractNarrativeStructure(litDb, llm, book, sourceId, chunks);
+        emitLive(
+          Math.round(((i + 0.9) / books.length) * 95 + 3),
+          `Book ${i + 1}/${books.length}: ${sourceId} — narrative structure`,
+          bookStats(i, sourceId),
+        );
+        live.llmCallStart = Date.now();
+        try {
+          await extractNarrativeStructure(litDb, llm, book, sourceId, chunks);
+        } finally {
+          live.llmCallStart = null;
+        }
       }
 
       litDb.db.exec('COMMIT');
       litDb.db.exec('PRAGMA wal_checkpoint(PASSIVE)');
+      litDb.markBookProcessed(sourceId);
 
-      const elapsed = Math.round((Date.now() - phaseStart) / 1000);
-      emit({
-        phase: 'v2',
-        pct: Math.round(((i + 1) / books.length) * 95 + 3),
-        message: `Book ${i + 1}/${books.length}: ${sourceId}`,
-        stats: {
-          book_current: i + 1,
-          book_total: books.length,
-          book_title: sourceId,
-          chunks_done: totalChunks,
-          chunks_total: totalChunks,
-          templates: totalTemplates,
-          elapsed_s: elapsed,
-        },
-      });
+      emitLive(
+        Math.round(((i + 1) / books.length) * 95 + 3),
+        `Book ${i + 1}/${books.length}: ${sourceId}`,
+        bookStats(i, sourceId, { chunks_total: totalChunks }),
+      );
     } catch (err) {
+      live.llmCallStart = null;
       litDb.db.exec('ROLLBACK');
+      totalErrors++;
+      const errMsg = err instanceof Error ? err.message : String(err);
       console.warn(`Book ${sourceId} templates rolled back (chunks preserved):`, err);
+      emitLive(
+        live.pct,
+        `ERROR: Book ${sourceId} rolled back: ${errMsg.slice(0, 200)}`,
+        bookStats(i, sourceId),
+      );
     }
   }
+
+  clearInterval(heartbeat);
 
   srcDb.close();
   litDb.close();
@@ -702,13 +782,16 @@ async function runPhaseB() {
   emit({
     phase: 'v2',
     pct: 100,
-    message: `Done: ${totalTemplates} templates, ${totalChunks} chunks, ${llmCalls} LLM calls (${avgTps}s/call)`,
+    message: `Done: ${totalTemplates} scenes, ${totalStyles} styles, ${totalChunks} chunks, ${llmCalls} LLM calls (${avgTps}s/call), ${totalErrors} errors, ${skippedBooks} skipped`,
     stats: {
       book_current: books.length,
       book_total: books.length,
       chunks_done: totalChunks,
       chunks_total: totalChunks,
-      templates: totalTemplates,
+      scenes: totalTemplates,
+      styles: totalStyles,
+      llm_calls: llmCalls,
+      errors: totalErrors,
       elapsed_s: totalElapsed,
     },
   });
