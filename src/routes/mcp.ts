@@ -38,6 +38,10 @@ interface Job {
   progress: number;
   message: string;
   stats?: Record<string, unknown>;
+  /** Ring buffer of child stderr lines (cap 50). */
+  logs: string[];
+  /** stderr lines not yet broadcast; drained on every updateJob/completeJob/failJob. */
+  pendingLogs: string[];
   result?: unknown;
   listeners: Set<(data: string) => void>;
 }
@@ -51,6 +55,8 @@ function createJob(): Job {
     status: "running",
     progress: 0,
     message: "Starting...",
+    logs: [],
+    pendingLogs: [],
     listeners: new Set(),
   };
   jobs.set(id, job);
@@ -61,10 +67,19 @@ function updateJob(job: Job, progress: number, message: string, stats?: Record<s
   job.progress = progress;
   job.message = message;
   if (stats) job.stats = stats;
-  const data = JSON.stringify({ progress, message, status: job.status, stats: job.stats });
+  const logs = job.pendingLogs.length > 0 ? job.pendingLogs.splice(0) : undefined;
+  const data = JSON.stringify({ progress, message, status: job.status, stats: job.stats, logs });
   for (const listener of job.listeners) {
     listener(`data: ${data}\n\n`);
   }
+}
+
+function appendJobLog(job: Job, line: string) {
+  const trimmed = line.trim().slice(0, 500);
+  if (!trimmed) return;
+  job.logs.push(trimmed);
+  if (job.logs.length > 50) job.logs.shift();
+  job.pendingLogs.push(trimmed);
 }
 
 function completeJob(job: Job, result: unknown) {
@@ -72,7 +87,8 @@ function completeJob(job: Job, result: unknown) {
   job.progress = 100;
   job.message = "Done";
   job.result = result;
-  const data = JSON.stringify({ progress: 100, message: "Done", status: "done", result });
+  const logs = job.pendingLogs.length > 0 ? job.pendingLogs.splice(0) : undefined;
+  const data = JSON.stringify({ progress: 100, message: "Done", status: "done", result, logs });
   for (const listener of job.listeners) {
     listener(`data: ${data}\n\n`);
   }
@@ -82,7 +98,8 @@ function completeJob(job: Job, result: unknown) {
 function failJob(job: Job, error: string) {
   job.status = "error";
   job.message = error;
-  const data = JSON.stringify({ progress: job.progress, message: error, status: "error" });
+  const logs = job.pendingLogs.length > 0 ? job.pendingLogs.splice(0) : undefined;
+  const data = JSON.stringify({ progress: job.progress, message: error, status: "error", logs });
   for (const listener of job.listeners) {
     listener(`data: ${data}\n\n`);
   }
@@ -111,35 +128,45 @@ function runScriptWithJob(
     try {
       const proc = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "pipe" });
 
-      // Stream stdout line by line for JSON progress
-      const decoder = new TextDecoder();
-      let buffer = "";
-      const reader = proc.stdout.getReader();
-
-      const readLoop = async () => {
+      const drainStream = async (
+        stream: ReadableStream<Uint8Array>,
+        onLine: (line: string) => void,
+      ) => {
+        const decoder = new TextDecoder();
+        let buffer = "";
+        const reader = stream.getReader();
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
           buffer = lines.pop() ?? "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-            try {
-              const msg = JSON.parse(trimmed) as ScriptProgress;
-              if (typeof msg.pct === "number" && msg.message) {
-                updateJob(job, msg.pct, msg.message, msg.stats);
-              }
-            } catch {
-              // non-JSON line — ignore
-            }
-          }
+          for (const line of lines) onLine(line);
         }
       };
 
-      await readLoop();
+      // stderr: keep UI alive + prevent pipe-buffer stall; surface as job logs
+      const stderrDone = drainStream(proc.stderr, (line) => {
+        appendJobLog(job, line);
+        updateJob(job, job.progress, job.message);
+      });
+
+      // stdout: JSON progress lines
+      await drainStream(proc.stdout, (line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        try {
+          const msg = JSON.parse(trimmed) as ScriptProgress;
+          if (typeof msg.pct === "number" && msg.message) {
+            updateJob(job, msg.pct, msg.message, msg.stats);
+          }
+        } catch {
+          // non-JSON line — ignore
+        }
+      });
+
       const exitCode = await proc.exited;
+      await stderrDone; // flush remaining stderr before final frame
 
       if (exitCode === 0) {
         completeJob(job, { status: "ok" });
@@ -198,7 +225,7 @@ mcpRouter.get("/stream/:jobId", (c) => {
 mcpRouter.get("/jobs/active", (c) => {
   const active = Array.from(jobs.values())
     .filter(j => j.status === "running" && j.phase)
-    .map(j => ({ id: j.id, phase: j.phase, progress: j.progress, message: j.message, stats: j.stats, status: j.status }));
+    .map(j => ({ id: j.id, phase: j.phase, progress: j.progress, message: j.message, stats: j.stats, logs: j.logs.slice(-10), status: j.status }));
   return c.json({ jobs: active });
 });// ═══════════════════════════════════════════════════════════════
 //  Bible
