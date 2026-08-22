@@ -1106,13 +1106,13 @@ async function loadPipeline() {
     const active = await api("jobs/active");
     if (active && active.jobs) {
       for (const job of active.jobs) {
-        reconnectPhaseJob(job.phase, job.id, job.progress, job.stats);
+        reconnectPhaseJob(job.phase, job.id, job.progress, job.stats, job.logs);
       }
     }
   } catch {}
 }
 
-function reconnectPhaseJob(phaseId, jobId, progress, stats) {
+function reconnectPhaseJob(phaseId, jobId, progress, stats, logs) {
   const statusEl = document.getElementById("phase-" + phaseId + "-status");
   const btn = document.getElementById("phase-" + phaseId + "-btn");
   const statsEl = document.getElementById("phase-" + phaseId + "-stats");
@@ -1131,6 +1131,10 @@ function reconnectPhaseJob(phaseId, jobId, progress, stats) {
     updateStatsDisplay(statsEl, stats);
   }
 
+  if (logs && logs.length) {
+    for (const l of logs) addLog(phaseId + " [stderr]: " + l);
+  }
+
   // Reconnect SSE
   trackPhaseProgress(phaseId, jobId, "gutenberg/" + phaseId);
 }
@@ -1141,6 +1145,12 @@ function updateStatsDisplay(statsEl, s) {
   else if (s.book_current != null) html += "<div><span>Book</span><span>" + s.book_current + "/" + s.book_total + "</span></div>";
   if (s.chunks_done != null) html += "<div><span>Chunks</span><span>" + s.chunks_done + "</span></div>";
   if (s.templates != null) html += "<div><span>Templates</span><span>" + s.templates + "</span></div>";
+  if (s.scenes != null) html += "<div><span>Scenes</span><span>" + s.scenes + "</span></div>";
+  if (s.styles != null) html += "<div><span>Styles</span><span>" + s.styles + "</span></div>";
+  if (s.reps_done != null && s.reps_total != null) html += "<div><span>Reps</span><span>" + s.reps_done + "/" + s.reps_total + "</span></div>";
+  if (s.llm_calls != null) html += "<div><span>LLM</span><span>" + s.llm_calls + " calls" + (s.llm_avg_s ? ", avg " + s.llm_avg_s + "s" : "") + (s.llm_elapsed_s != null ? ", current " + s.llm_elapsed_s + "s" : "") + "</span></div>";
+  if (s.errors != null && s.errors > 0) html += "<div><span>Errors</span><span>" + s.errors + "</span></div>";
+  if (s.eta_min != null && s.eta_min > 0) html += "<div><span>ETA</span><span>~" + s.eta_min + "m</span></div>";
   if (s.elapsed_s != null) {
     const m = Math.floor(s.elapsed_s / 60);
     const sec = s.elapsed_s % 60;
@@ -1217,6 +1227,9 @@ function trackProgress(jobId, path, onDone, onError) {
     addLog(path + ": " + d.message + " (" + d.progress + "%)");
     fill.style.width = d.progress + "%";
     label.textContent = d.message + " (" + d.progress + "%)";
+    if (d.logs) {
+      for (const l of d.logs) addLog(path + " [stderr]: " + l);
+    }
     if (d.status === "done" || d.status === "error") {
       es.close();
       if (d.status === "done") {
@@ -1305,18 +1318,10 @@ function trackPhaseProgress(phaseId, jobId, path) {
     addLog(path + ": " + d.message + " (" + d.progress + "%)");
 
     if (d.stats && statsEl) {
-      const s = d.stats;
-      let html = "";
-      if (s.book_title) html += "<div><span>Book</span><span>" + s.book_current + "/" + s.book_total + ": " + escapeHtml(s.book_title.split("::").pop() || s.book_title) + "</span></div>";
-      else if (s.book_current) html += "<div><span>Book</span><span>" + s.book_current + "/" + s.book_total + "</span></div>";
-      if (s.chunks_done != null) html += "<div><span>Chunks</span><span>" + s.chunks_done + "</span></div>";
-      if (s.templates != null) html += "<div><span>Templates</span><span>" + s.templates + "</span></div>";
-      if (s.elapsed_s != null) {
-        const m = Math.floor(s.elapsed_s / 60);
-        const sec = s.elapsed_s % 60;
-        html += "<div><span>Elapsed</span><span>" + m + "m " + sec + "s</span></div>";
-      }
-      statsEl.innerHTML = html;
+      updateStatsDisplay(statsEl, d.stats);
+    }
+    if (d.logs) {
+      for (const l of d.logs) addLog(path + " [stderr]: " + l);
     }
 
     if (d.status === "done" || d.status === "error") {
