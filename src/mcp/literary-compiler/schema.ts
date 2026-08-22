@@ -258,6 +258,13 @@ export class LiteraryCompilerDB {
     `);
 
     this.db.exec(`
+      CREATE TABLE IF NOT EXISTS v2_processed_books (
+        source_book TEXT PRIMARY KEY,
+        completed_at REAL
+      );
+    `);
+
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS player_style_profiles (
         player_id TEXT PRIMARY KEY,
         avg_sentence_len REAL NOT NULL DEFAULT 0,
@@ -489,6 +496,19 @@ export class LiteraryCompilerDB {
       chunk.temporal_markers ?? '[]',
       chunk.created_at,
     );
+  }
+
+  isBookProcessed(sourceBook: string): boolean {
+    const row = this.db
+      .prepare('SELECT 1 AS x FROM v2_processed_books WHERE source_book = ?')
+      .get(sourceBook);
+    return row != null;
+  }
+
+  markBookProcessed(sourceBook: string): void {
+    this.db
+      .prepare('INSERT OR REPLACE INTO v2_processed_books (source_book, completed_at) VALUES (?, ?)')
+      .run(sourceBook, Date.now() / 1000);
   }
 
   // ── V2 Query Methods ───────────────────────────────────────────────────────
