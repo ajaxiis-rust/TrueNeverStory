@@ -27,12 +27,11 @@ mkdir -p "$INSTALL_DIR"
 
 echo "Downloading llama.cpp for $RELEASE..."
 
-# Try API first, fallback to redirect trick if rate-limited
-TAG=$(curl -sL "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest" 2>/dev/null | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"//;s/".*//' || true)
-if [[ -z "$TAG" ]]; then
-  # Fallback: follow redirect from /releases/latest to get tag
-  TAG=$(curl -sI "https://github.com/ggml-org/llama.cpp/releases/latest" 2>/dev/null | grep -i '^location:' | sed 's|.*/releases/tag/||;s|\r||g' || true)
-fi
+# Get latest release with actual binaries (skip placeholder releases like v0.2.0)
+# Actual releases use build-number tags (b10603), placeholders use semver (v0.2.0)
+TAG=$(curl -sL "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=10" 2>/dev/null \
+  | grep '"tag_name"' | grep -v 'v[0-9]' | head -1 \
+  | sed 's/.*"tag_name": *"//;s/".*//' || true)
 if [[ -z "$TAG" ]]; then
   echo "ERROR: Could not determine latest llama.cpp release tag"
   echo "Try again later or download manually from: https://github.com/ggml-org/llama.cpp/releases"
