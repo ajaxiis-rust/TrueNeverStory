@@ -59,34 +59,19 @@ function saveLLMConfig(config: Partial<LLMConfig>): void {
 function killLlamaServers(): void {
   const config = loadLLMConfig();
   try {
-    // Find llama-server PIDs by port using /proc
+    // Find llama-server PIDs by port via /proc/*/cmdline (never read fd symlinks — readFileSync on a pipe fd blocks the event loop)
     const killByPort = (port: number) => {
       try {
-        const pids = readdirSync("/proc")
-          .filter(d => /^\d+$/.test(d))
-          .map(d => {
-            try {
-              const fdDir = join("/proc", d, "fd");
-              const fds = readdirSync(fdDir);
-              for (const fd of fds) {
-                try {
-                  const link = readFileSync(join(fdDir, fd), "utf-8");
-                  if (link.includes("socket:") && existsSync(join("/proc", d, "cmdline"))) {
-                    const cmdline = readFileSync(join("/proc", d, "cmdline"), "utf-8");
-                    if (cmdline.includes("llama-server") && cmdline.includes("--port") && cmdline.includes(String(port))) {
-                      return parseInt(d);
-                    }
-                  }
-                } catch (e) { log.debug({ err: e, fd, pid: d }, "Failed to read fd link"); }
-              }
-            } catch (e) { log.debug({ err: e, pid: d }, "Failed to read fd directory"); }
-            return null;
-          })
-          .filter((p): p is number => p !== null);
-
-        for (const pid of pids) {
-          try { process.kill(pid, "SIGTERM"); } catch (e) { log.debug({ err: e, pid }, "Failed to kill process"); }
-          log.info({ pid, port }, "Killed llama-server");
+        for (const d of readdirSync("/proc")) {
+          if (!/^\d+$/.test(d)) continue;
+          try {
+            const cmdline = readFileSync(join("/proc", d, "cmdline"), "utf-8");
+            if (cmdline.includes("llama-server") && cmdline.includes("--port") && cmdline.includes(String(port))) {
+              const pid = parseInt(d);
+              try { process.kill(pid, "SIGTERM"); } catch (e) { log.debug({ err: e, pid }, "Failed to kill process"); }
+              log.info({ pid, port }, "Killed llama-server");
+            }
+          } catch { /* process gone or unreadable */ }
         }
       } catch (e) { log.debug({ err: e, port }, "Failed to scan /proc for port"); }
     };
@@ -99,7 +84,7 @@ function killLlamaServers(): void {
 }
 
 function findModel(name: string): string {
-  const modelDirs = ["/home/opc/prj/HIBRING/local-models", "/home/opc/koboldcpp/models"];
+  const modelDirs = [join(process.cwd(), "local-models")];
   for (const dir of modelDirs) {
     try {
       const files = readdirSync(dir);
@@ -109,6 +94,10 @@ function findModel(name: string): string {
       // Partial match
       const partial = files.find(f => f.toLowerCase().includes(name.toLowerCase()) && f.endsWith(".gguf"));
       if (partial) return join(dir, partial);
+      // Slug-normalized match ("BGE M3" → "bge-m3")
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const slugged = slug ? files.find(f => f.toLowerCase().includes(slug) && f.endsWith(".gguf")) : undefined;
+      if (slugged) return join(dir, slugged);
     } catch (e) { log.debug({ err: e, dir, name }, "Failed to scan model directory"); }
   }
   return "";
@@ -269,14 +258,35 @@ settings.put("/llm-config", async (c) => {
   return c.json({ status: "updated", config: loadLLMConfig() });
 });
 
+function isPortOpen(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const sock = new net.Socket();
+    sock.setTimeout(200);
+    sock.once("connect", () => { sock.destroy(); resolve(true); });
+    sock.once("timeout", () => { sock.destroy(); resolve(false); });
+    sock.once("error", () => { sock.destroy(); resolve(false); });
+    sock.connect(port, "127.0.0.1");
+  });
+}
+
+/** Wait until nothing accepts connections on the port (llama-server needs seconds to release it). */
+async function waitPortFree(port: number, timeoutMs = 20_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!(await isPortOpen(port))) return;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
+
 /**
  * POST /api/server/restart — Restart LLM servers with current config.
  */
 settings.post("/server/restart", async (c) => {
   try {
+    const config = loadLLMConfig();
     killLlamaServers();
-    // Wait a bit for processes to die
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait until ports are actually released — spawning earlier makes the new server die on bind
+    await Promise.all([waitPortFree(config.llmPort), waitPortFree(config.embedPort)]);
     startLlamaServers();
     return c.json({ status: "restarted", message: "LLM servers restarting" });
   } catch (e) {
@@ -290,15 +300,6 @@ settings.post("/server/restart", async (c) => {
  */
 settings.get("/server/status", async (c) => {
   const config = loadLLMConfig();
-
-  const isPortOpen = (port: number): Promise<boolean> => new Promise((resolve) => {
-    const sock = new net.Socket();
-    sock.setTimeout(200);
-    sock.once("connect", () => { sock.destroy(); resolve(true); });
-    sock.once("timeout", () => { sock.destroy(); resolve(false); });
-    sock.once("error", () => { sock.destroy(); resolve(false); });
-    sock.connect(port, "127.0.0.1");
-  });
 
   const llmRunning = await isPortOpen(config.llmPort);
   const embedRunning = await isPortOpen(config.embedPort);

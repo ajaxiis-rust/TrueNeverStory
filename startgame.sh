@@ -546,6 +546,35 @@ fi
 detect_hardware
 detect_providers
 
+# ── User model preference (game Settings UI → conf/settings.json) ──
+# A model chosen in Settings wins over size-based auto-detection.
+if [[ "$BEST_PROVIDER" == "llamacpp" && -f conf/settings.json && -d "./local-models" ]]; then
+    USER_MODEL=$(grep -o '"llmModel"[[:space:]]*:[[:space:]]*"[^"]*"' conf/settings.json 2>/dev/null | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+    if [[ -n "$USER_MODEL" ]]; then
+        resolved=""
+        for cand in "./local-models/${USER_MODEL}" "./local-models/${USER_MODEL}.gguf"; do
+            if [[ -f "$cand" ]] && is_gguf_valid "$cand"; then
+                resolved="$cand"
+                break
+            fi
+        done
+        if [[ -z "$resolved" ]]; then
+            while IFS= read -r -d '' f; do
+                if is_gguf_valid "$f"; then
+                    resolved="$f"
+                    break
+                fi
+            done < <(find ./local-models -maxdepth 1 -iname "*${USER_MODEL}*" -name "*.gguf" -type f -print0 2>/dev/null)
+        fi
+        if [[ -n "$resolved" ]]; then
+            BEST_PROVIDER_MODEL="$(basename "$resolved")"
+            echo -e "${GREEN}  Using model from Settings: ${BEST_PROVIDER_MODEL}${NC}"
+        else
+            echo -e "${YELLOW}  Settings model '${USER_MODEL}' not found in local-models — using auto-detected ${BEST_PROVIDER_MODEL}${NC}"
+        fi
+    fi
+fi
+
 # Adapt context size for the detected model
 LLM_CTX=$(adapt_ctx_for_model "$BEST_PROVIDER_MODEL")
 EMBED_CTX=$(adapt_ctx_for_model "BGE M3")
