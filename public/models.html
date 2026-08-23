@@ -653,6 +653,12 @@ const MODEL_INFO = {
   'qwen2.5:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Strong multilingual.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
   'codellama:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '16K', quant: 'Q4_K_M', notes: 'Code generation.', lang: ['en'] },
   'nous-hermes2:7b': { quality: 'mid', ram: '~5 GB', speed: '~6 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Instruction following.', lang: ['en'] },
+  // ── Small / Creative LLMs ──
+  'creativewriter-llama3.2-3b-q4_k_m': { quality: 'good', ram: '~3 GB', speed: '~10 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Creative-writing fine-tune of Llama 3.2 3B, prose & narrative.', lang: ['en'] },
+  'llama3.2-3b-instruct-q4_k_m': { quality: 'good', ram: '~3 GB', speed: '~10 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Meta compact instruct, balanced quality and speed.', lang: ['en','de','fr','it','pt','es','hi','th'] },
+  'gemma-2-2b-it-q4_k_m': { quality: 'good', ram: '~2 GB', speed: '~15 tok/s', context: '8K', quant: 'Q4_K_M', notes: 'Google 2B instruct, strong quality for its size.', lang: ['en'] },
+  'qwen2.5-1.5b-instruct-q4_k_m': { quality: 'good', ram: '~1.5 GB', speed: '~18 tok/s', context: '32K', quant: 'Q4_K_M', notes: 'Tiny multilingual, 29+ languages, low VRAM.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
+  'phi-3.5-mini-instruct-q4_k_m': { quality: 'good', ram: '~3 GB', speed: '~9 tok/s', context: '128K', quant: 'Q4_K_M', notes: 'Microsoft 3.8B mini, strong reasoning, 128k ctx.', lang: ['en'] },
   // ── Embedding Models ──
   'bge-m3-f16': { quality: 'good', notes: 'BAAI flagship: 100+ languages, dense+sparse+reranker.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
   'bge-m3-q8_0': { quality: 'good', notes: 'BAAI multilingual embedding, near-lossless.', lang: ['ru','en','de','fr','es','it','ja','zh','ko','pt','ar','hi','th','vi'] },
