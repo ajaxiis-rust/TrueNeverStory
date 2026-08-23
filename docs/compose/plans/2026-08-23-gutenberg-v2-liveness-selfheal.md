@@ -1,5 +1,10 @@
 # Gutenberg v2 Pipeline — Liveness + Self-Healing Reindex Implementation Plan
 
+> [!NOTE]
+> This document may not reflect the current implementation.
+> See the final report for up-to-date state:
+> [Final Report](../reports/gutenberg-v2-liveness-selfheal.md)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use compose:subagent (recommended) or compose:execute to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the v2 Gutenberg pipeline visibly alive in the MCP console (per-rep stats + 10 s heartbeat), self-heal partially processed books via a marker table, and surface child-process stderr as job logs in the UI.

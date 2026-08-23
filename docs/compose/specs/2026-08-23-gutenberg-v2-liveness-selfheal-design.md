@@ -1,5 +1,10 @@
 # Gutenberg v2 Pipeline — Liveness, Self-Healing Reindex, Error Visibility
 
+> [!NOTE]
+> This document may not reflect the current implementation.
+> See the final report for up-to-date state:
+> [Final Report](../reports/gutenberg-v2-liveness-selfheal.md)
+
 Date: 2026-08-23 (local) / 2026-08-22 (UTC)
 Status: approved (design review passed)
 Scope: `scripts/process-gutenberg.ts`, `src/mcp/literary-compiler/schema.ts`, `src/routes/mcp.ts`, `public/mcp.html`
