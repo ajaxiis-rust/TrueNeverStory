@@ -1,4 +1,4 @@
-# エージェントリファレンス (v0.33.0)
+# エージェントリファレンス (v0.33.4)
 
 TrueNeverStoryには**2つのエージェントシステム**が共存しています：
 
@@ -160,7 +160,7 @@ The Big Sixは：`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chroni
 
 ---
 
-## ダイアログシステム (v0.33.0)
+## ダイアログシステム (v0.33.4)
 
 構造化されたNPC会話のための新しい `DialogueManager` + `DialogueContext`：
 
@@ -204,7 +204,7 @@ const withSearch = registry.getAgentsWithTool('search_verses');
 
 ---
 
-## エージェントインターフェース (v0.33.0)
+## エージェントインターフェース (v0.33.4)
 
 ```typescript
 interface AgentV2 {
@@ -318,7 +318,7 @@ Agent Request → AgentMemoryStore → SQLite (hybrid search)
 
 ---
 
-## MCP統合 (v0.33.0)
+## MCP統合 (v0.33.4)
 
 ### 聖書パターン
 
@@ -363,7 +363,7 @@ Wikipedia APIによる歴史的事実確認。
 
 ---
 
-## プレイヤースタイルプロファイル (v0.33.0)
+## プレイヤースタイルプロファイル (v0.33.4)
 
 `PlayerProfileStore`（`src/lib/player-profile-store.ts`）は、StylistとLiteraryV2Generatorの間で共有されるクロスエージェントのプレイヤースタイルプロファイルを提供します。
 

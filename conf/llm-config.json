@@ -1,6 +1,6 @@
 {
   "llmPort": 5001,
-  "llmModel": "gemma3-1b-q4_k_m.gguf",
+  "llmModel": "qwen2.5-3b-q4_k_m.gguf",
   "llmThreads": 3,
   "llmParallel": 1,
   "llmCtxSize": 3584,

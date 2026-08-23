@@ -1,4 +1,4 @@
-# TrueNeverStory v0.33.0 — 编译指南
+# TrueNeverStory v0.33.4 — 编译指南
 
 ## 快速开始
 

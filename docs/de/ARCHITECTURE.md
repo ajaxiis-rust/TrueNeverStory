@@ -1,7 +1,7 @@
 # TrueNeverStory — Architekturdokument
 
 > Eine Domain-Driven-Design-Analyse der TrueNeverStory-Narrative-RPG-Engine.
-> Aktualisiert für v0.33.0 — RoleplayEngine refaktoriert mit SessionState, CommandHandler, PipelineRunner, Prosa-Strategien.
+> Aktualisiert für v0.33.4 — RoleplayEngine refaktoriert mit SessionState, CommandHandler, PipelineRunner, Prosa-Strategien.
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Geschichtete Onion-Architektur mit ereignisgesteuerten Erweiterungen + State-First-Pipeline**
 
-TrueNeverStory folgt im Kern einer **geschichteten Onion- (hexagonalen) Architektur**, umhüllt von einer **ereignisgesteuerten Orchestrierungsschicht** für asynchrone Erzählverarbeitung. Seit v0.33.0 verwendet die Engine eine **State-First-Pipeline**, bei der die deterministische Simulation vor der Prosagenerierung stattfindet.
+TrueNeverStory folgt im Kern einer **geschichteten Onion- (hexagonalen) Architektur**, umhüllt von einer **ereignisgesteuerten Orchestrierungsschicht** für asynchrone Erzählverarbeitung. Seit v0.33.4 verwendet die Engine eine **State-First-Pipeline**, bei der die deterministische Simulation vor der Prosagenerierung stattfindet.
 
 Das Muster passt, weil:
 
@@ -21,7 +21,7 @@ Das Muster passt, weil:
 
 Der **Event-Bus** (`EventBus` in `src/lib/event-bus.ts`) fügt eine asynchrone Entkopplungsschicht zwischen begrenzten Kontexten hinzu, wodurch der Director Loop Erzählereignisse orchestrieren kann, ohne direkt an NPC-, Sozial- oder Quest-Subsysteme gekoppelt zu sein.
 
-### State-First-Pipeline (v0.33.0)
+### State-First-Pipeline (v0.33.4)
 
 Die Pipeline ist nun als zusammensetzbare Stufen strukturiert, die von `PipelineRunner` verwaltet werden:
 
@@ -59,7 +59,7 @@ Response to User
 Total: 2-3 LLM calls
 ```
 
-### Gutenberg-Verarbeitungspipeline (v0.33.0)
+### Gutenberg-Verarbeitungspipeline (v0.33.4)
 
 Eine zweiphasige Pipeline konvertiert rohe Gutenberg-.txt-Dateien in agentenverwertbare Datenbanken:
 
@@ -82,7 +82,7 @@ classics-compiled.db → AnalyzePass → narrative_extractor → literary.db (sc
 
 **PlayerProfileStore** — eigenständige, agentenübergreifende Spieler-Stilprofile (14 Metriken), gespeichert in `data/player-profiles.db`.
 
-### Dual-Modell-Architektur (v0.33.0)
+### Dual-Modell-Architektur (v0.33.4)
 
 Die Engine unterstützt zwei LLM-Modelle pro Agent:
 
@@ -438,7 +438,7 @@ Die Engine unterstützt zwei LLM-Modelle pro Agent:
 
 ---
 
-### BC12: Literary Compiler v2 (v0.33.0)
+### BC12: Literary Compiler v2 (v0.33.4)
 
 **Zweck:** Offline-Erzählextraktion aus literarischen Quellen und hybrider Laufzeitabruf für eingeschränkte Prosagenerierung. Ersetzt die LLM-lastige v1-Pipeline durch ein deterministisches Template- + Stilmuster-System.
 
@@ -998,7 +998,7 @@ Query flow:
         │
         ▼
 ┌─────────────────────┐
-│  Literary Compiler   │  (BC12, v0.33.0)
+│  Literary Compiler   │  (BC12, v0.33.4)
 │  v2                  │
 └─────────────────────┘
 ```

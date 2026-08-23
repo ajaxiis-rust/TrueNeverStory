@@ -1,7 +1,7 @@
 # Cleanup Baseline — Phase 0
 
 **Дата:** 2026-08-18
-**Git tag:** `v0.33.0-stable-pre-cleanup` → `80b8663`
+**Git tag:** `v0.33.4-stable-pre-cleanup` → `80b8663`
 **Bun:** 1.3.14
 **Конфиг:** `bunfig.toml` (`[test]` section, coverage off by default, `--coverage` to enable)
 
@@ -82,7 +82,7 @@ lcov-отчёт: `coverage/lcov.info` (генерируется при `bun test
 ## Команды для воспроизведения baseline
 
 ```bash
-git checkout v0.33.0-stable-pre-cleanup
+git checkout v0.33.4-stable-pre-cleanup
 bun test                    # 1308 pass, 0 fail
 bun run lint                # 0 errors
 bun test --coverage         # text table + coverage/lcov.info

@@ -421,7 +421,7 @@ Les templates utilisent des placeholders `{variable}` résolus par `resolveTempl
 
 ---
 
-## Intégration MCP (v0.33.0)
+## Intégration MCP (v0.33.4)
 
 TNSServer (`src/mcp/tns-server.ts`) fournit des outils MCP pour l'accès aux données externes.
 
@@ -439,7 +439,7 @@ TNSServer (`src/mcp/tns-server.ts`) fournit des outils MCP pour l'accès aux don
 | generate_dilemma | Éco DB | Dilemme fiscal de faction |
 | check_jubilee | Éco DB | Vérification du cycle du jubilé |
 
-### Console MCP (v0.33.0)
+### Console MCP (v0.33.4)
 
 Console de gestion de bases de données web pour toutes les bases du projet.
 

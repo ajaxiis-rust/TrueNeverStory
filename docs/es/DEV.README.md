@@ -421,7 +421,7 @@ Las plantillas usan marcadores `{variable}` resueltos por `resolveTemplate()`.
 
 ---
 
-## Integración MCP (v0.33.0)
+## Integración MCP (v0.33.4)
 
 TNSServer (`src/mcp/tns-server.ts`) proporciona herramientas MCP para acceder a datos externos.
 
@@ -439,7 +439,7 @@ TNSServer (`src/mcp/tns-server.ts`) proporciona herramientas MCP para acceder a 
 | generate_dilemma | Base de datos económica | Dilema fiscal de facción |
 | check_jubilee | Base de datos económica | Comprobación del ciclo de jubileo |
 
-### Consola MCP (v0.33.0)
+### Consola MCP (v0.33.4)
 
 Consola web de gestión de bases de datos para todas las bases de datos del proyecto.
 

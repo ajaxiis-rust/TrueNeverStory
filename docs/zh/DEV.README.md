@@ -421,7 +421,7 @@ interface AgentV2 {
 
 ---
 
-## MCP 集成 (v0.33.0)
+## MCP 集成 (v0.33.4)
 
 TNSServer（`src/mcp/tns-server.ts`）为外部数据访问提供 MCP 工具。
 
@@ -439,7 +439,7 @@ TNSServer（`src/mcp/tns-server.ts`）为外部数据访问提供 MCP 工具。
 | generate_dilemma | 经济数据库 | 派系税收困境 |
 | check_jubilee | 经济数据库 | Jubilee 周期检查 |
 
-### MCP 控制台 (v0.33.0)
+### MCP 控制台 (v0.33.4)
 
 面向所有项目数据库的基于 Web 的数据库管理控制台。
 

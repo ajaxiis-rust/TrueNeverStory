@@ -758,4 +758,4 @@ Get research status.
 
 ---
 
-*Generated: 2026-07-31 | TrueNeverStory v0.33.0*
+*Generated: 2026-07-31 | TrueNeverStory v0.33.4*

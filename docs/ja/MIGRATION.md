@@ -8,15 +8,15 @@ TrueNeverStory は `WorldStore` クラス（`src/store/world-store.ts`）経由�
 
 元の JSON ファイルは移行ソースとしてワールドディレクトリに残り、削除されることはない — フォールバックと履歴記録として機能する。
 
-## v0.33.0 移行: 文学コンパイラ & 経済モデル
+## v0.33.4 移行: 文学コンパイラ & 経済モデル
 
-v0.33.0 リリースでは文学コンパイラと経済モデルが追加される。移行は不要 — これらは既存の State-First パイプラインを拡張する追加機能である。
+v0.33.4 リリースでは文学コンパイラと経済モデルが追加される。移行は不要 — これらは既存の State-First パイプラインを拡張する追加機能である。
 
-## v0.33.0 移行: State-First パイプライン
+## v0.33.4 移行: State-First パイプライン
 
 ### 変更点
 
-v0.33.0 リリースでは state-first パイプラインアーキテクチャが導入される。2 つのエージェントシステムが共存するようになった:
+v0.33.4 リリースでは state-first パイプラインアーキテクチャが導入される。2 つのエージェントシステムが共存するようになった:
 
 1. **The Big Six (AgentV2)** — ナラティブ散文パイプライン（`dramaturg`, `validator`, `stylist`, `actor`, `censor`, `chronicler`）。`AgentRegistryV2` に登録される。
 2. **設定済みエージェント（`DEFAULT_AGENTS`）** — `src/services/agent-config.ts` の設定駆動型エージェント（`director`, `chronicler`, `story-planner`, `social-sim`, `villain`, `researcher`, `translation`）。Settings/Providers UI といくつかのサブシステムを支える。
@@ -46,7 +46,7 @@ v0.33.0 リリースでは state-first パイプラインアーキテクチャ�
 
 ### MCP 統合
 
-v0.33.0 では外部知識アクセスのために Model Context Protocol (MCP) ツールが導入される:
+v0.33.4 では外部知識アクセスのために Model Context Protocol (MCP) ツールが導入される:
 
 | MCP サーバー | ツール | 目的 |
 |------------|-------|---------|

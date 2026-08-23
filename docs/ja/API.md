@@ -758,4 +758,4 @@ SQLite からワールドフレームを取得。
 
 ---
 
-*生成日: 2026-07-31 | TrueNeverStory v0.33.0*
+*生成日: 2026-07-31 | TrueNeverStory v0.33.4*
