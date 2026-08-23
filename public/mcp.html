@@ -266,15 +266,22 @@ body{height:100%;background:var(--black);font-family:var(--font-mono);font-size:
   <div class="panel" id="panel-literary">
     <div class="stats-grid" id="literary-stats"></div>
     <div class="section">
-      <div class="section__title" data-i18n="mcp.literary.templates">Quest Templates</div>
+      <div class="section__title" data-i18n="mcp.literary.scenes">Scene Templates</div>
       <div class="search-row">
-        <input class="input" id="literary-q" placeholder="Search templates..." data-i18n-placeholder="mcp.literary.searchPlaceholder">
-        <button class="btn" onclick="searchLiterary()" data-i18n="mcp.search" data-i18n-title="mcp.search.title">Search</button>
+        <input class="input" id="literary-scenes-q" placeholder="Search scene templates..." data-i18n-placeholder="mcp.literary.scenesPlaceholder">
+        <button class="btn" onclick="searchLiteraryScenes()" data-i18n="mcp.search" data-i18n-title="mcp.search.title">Search</button>
       </div>
-      <div id="literary-results"></div>
+      <div id="literary-scenes-results"></div>
+    </div>
+    <div class="section">
+      <div class="section__title" data-i18n="mcp.literary.styles">Style Patterns</div>
+      <div class="search-row">
+        <input class="input" id="literary-styles-q" placeholder="Search style patterns..." data-i18n-placeholder="mcp.literary.stylesPlaceholder">
+        <button class="btn" onclick="searchLiteraryStyles()" data-i18n="mcp.search" data-i18n-title="mcp.search.title">Search</button>
+      </div>
+      <div id="literary-styles-results"></div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn--success" onclick="runAction('literary/compile')" data-i18n="mcp.literary.compile" data-i18n-title="mcp.literary.compile.title">Compile</button>
       <button class="btn" onclick="runAction('literary/compact')" data-i18n="mcp.literary.compact" data-i18n-title="mcp.literary.compact.title">Compact</button>
     </div>
   </div>
@@ -418,8 +425,9 @@ const I18N = {
     "mcp.wikipedia.verify": "Fact Verification", "mcp.wikipedia.claimPlaceholder": "Enter a claim to verify...",
     "mcp.wikipedia.verifyBtn": "Verify", "mcp.wikipedia.download": "Download",
     "mcp.wikipedia.convert": "Convert", "mcp.wikipedia.compact": "Compact",
-    "mcp.literary.templates": "Quest Templates", "mcp.literary.searchPlaceholder": "Search templates...",
-    "mcp.literary.compile": "Compile", "mcp.literary.compact": "Compact",
+    "mcp.literary.scenes": "Scene Templates", "mcp.literary.scenesPlaceholder": "Search scene templates...",
+    "mcp.literary.styles": "Style Patterns", "mcp.literary.stylesPlaceholder": "Search style patterns...",
+    "mcp.literary.compact": "Compact",
     "mcp.economics.phase": "Current Phase", "mcp.economics.generateBtn": "Generate",
     "mcp.economics.dilemma": "Generate Dilemma",
     "mcp.system.logs": "Operation Logs", "mcp.system.rebuildIndex": "Rebuild Index",
@@ -495,8 +503,9 @@ const I18N = {
     "mcp.wikipedia.verify": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0444\u0430\u043a\u0442\u043e\u0432", "mcp.wikipedia.claimPlaceholder": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0443\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435...",
     "mcp.wikipedia.verifyBtn": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c", "mcp.wikipedia.download": "\u0421\u043a\u0430\u0447\u0430\u0442\u044c",
     "mcp.wikipedia.convert": "\u041a\u043e\u043d\u0432\u0435\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.wikipedia.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
-    "mcp.literary.templates": "\u0428\u0430\u0431\u043b\u043e\u043d\u044b \u043a\u0432\u0435\u0441\u0442\u043e\u0432", "mcp.literary.searchPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u0448\u0430\u0431\u043b\u043e\u043d\u043e\u0432...",
-    "mcp.literary.compile": "\u041a\u043e\u043c\u043f\u0438\u043b\u0438\u0440\u043e\u0432\u0430\u0442\u044c", "mcp.literary.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
+    "mcp.literary.scenes": "\u0421\u0446\u0435\u043d\u044b-\u0448\u0430\u0431\u043b\u043e\u043d\u044b", "mcp.literary.scenesPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u0441\u0446\u0435\u043d-\u0448\u0430\u0431\u043b\u043e\u043d\u043e\u0432...",
+    "mcp.literary.styles": "\u0421\u0442\u0438\u043b\u0435\u0432\u044b\u0435 \u043f\u0430\u0442\u0442\u0435\u0440\u043d\u044b", "mcp.literary.stylesPlaceholder": "\u041f\u043e\u0438\u0441\u043a \u0441\u0442\u0438\u043b\u0435\u0432\u044b\u0445 \u043f\u0430\u0442\u0442\u0435\u0440\u043d\u043e\u0432...",
+    "mcp.literary.compact": "\u041a\u043e\u043c\u043f\u0430\u043a\u0442\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
     "mcp.economics.phase": "\u0422\u0435\u043a\u0443\u0449\u0430\u044f \u0444\u0430\u0437\u0430", "mcp.economics.generateBtn": "\u0421\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
     "mcp.economics.dilemma": "\u0413\u0435\u043d\u0435\u0440\u0430\u0446\u0438\u044f \u0434\u0438\u043b\u0435\u043c\u043c\u044b",
     "mcp.system.logs": "\u041b\u043e\u0433\u0438 \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0439", "mcp.system.rebuildIndex": "\u041f\u0435\u0440\u0435\u0438\u043d\u0434\u0435\u043a\u0441\u0430\u0446\u0438\u044f",
@@ -1044,17 +1053,75 @@ async function verifyWikipedia() {
 async function loadLiteraryStats() {
   const d = await api("literary/stats");
   const el = document.getElementById("literary-stats");
-  if (!d?.exists) { el.innerHTML = '<div class="empty">LiteraryCompiler DB not found</div>'; return; }
-  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${d.templates}</div><div class="stat-card__label">Templates</div></div><div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size)}</div><div class="stat-card__label">Size</div></div>`;
-}
-async function searchLiterary() {
-  const q = document.getElementById("literary-q").value;
-  const d = await api("literary/templates" + (q ? "?q=" + encodeURIComponent(q) : ""));
-  const el = document.getElementById("literary-results");
-  if (!d?.templates?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
-  el.innerHTML = '<table class="result-table"><tr><th>Source</th><th>Archetype</th><th>Template</th><th>Mood</th></tr>' + d.templates.map(r => `<tr><td>${escapeHtml((r.source_book||"-").split("::").pop().slice(0,30))}</td><td>${escapeHtml(r.archetype||"-")}</td><td>${escapeHtml((r.template_text||"").slice(0,80))}</td><td>${escapeHtml(r.mood||"-")}</td></tr>`).join("") + '</table>';
+  if (!d?.exists) { el.innerHTML = '<div class="empty">Literary DB not found</div>'; return; }
+  el.innerHTML = `<div class="stat-card"><div class="stat-card__value">${d.sceneTemplates}</div><div class="stat-card__label">Scene Templates</div></div><div class="stat-card"><div class="stat-card__value">${d.stylePatterns}</div><div class="stat-card__label">Style Patterns</div></div><div class="stat-card"><div class="stat-card__value">${fmtBytes(d.size)}</div><div class="stat-card__label">Size</div></div><div class="stat-card"><div class="stat-card__value">${d.avgQuality ?? 0}</div><div class="stat-card__label">Avg Quality</div></div>`;
 }
 
+async function searchLiteraryScenes() {
+  const q = document.getElementById("literary-scenes-q").value;
+  const d = await api("literary/templates" + (q ? "?q=" + encodeURIComponent(q) : ""));
+  const el = document.getElementById("literary-scenes-results");
+  if (!d?.templates?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
+  el.innerHTML = '<table class="result-table"><tr><th>Book</th><th>Archetype</th><th>Template</th><th>Mood</th><th>Quality</th></tr>' + d.templates.map(r => {
+    const rid = "scene-" + escapeHtml(String(r.id || ""));
+    return `<tr style="cursor:pointer" onclick="toggleLiteraryRow('${rid}')"><td>${escapeHtml((r.source_book||"-").split("::").pop().slice(0,30))}</td><td>${escapeHtml(r.archetype_primary||"-")}${r.archetype_secondary?' / '+escapeHtml(r.archetype_secondary):''}</td><td>${escapeHtml((r.template_text||"").slice(0,80))}…</td><td>${escapeHtml(r.mood||"-")}</td><td>${Number(r.quality_score||0).toFixed(2)}</td></tr><tr id="${rid}" style="display:none"><td colspan="5"><div class="result-box">${formatSceneFields(r)}</div></td></tr>`;
+  }).join("") + '</table>';
+}
+
+async function searchLiteraryStyles() {
+  const q = document.getElementById("literary-styles-q").value;
+  const d = await api("literary/styles" + (q ? "?q=" + encodeURIComponent(q) : ""));
+  const el = document.getElementById("literary-styles-results");
+  if (!d?.styles?.length) { el.innerHTML = '<div class="empty">No results</div>'; return; }
+  el.innerHTML = '<table class="result-table"><tr><th>Author/Era</th><th>Register</th><th>Tone</th><th>Era</th><th>Voice</th></tr>' + d.styles.map(r => {
+    const rid = "style-" + escapeHtml(String(r.id || ""));
+    return `<tr style="cursor:pointer" onclick="toggleLiteraryRow('${rid}')"><td>${escapeHtml((r.source_author_or_era||"-").slice(0,30))}</td><td>${escapeHtml(r.register||"-")}</td><td>${escapeHtml(r.tone||"-")}</td><td>${escapeHtml(r.era||"-")}</td><td>${escapeHtml(r.narrative_voice||"-")}</td></tr><tr id="${rid}" style="display:none"><td colspan="5"><div class="result-box">${formatStyleFields(r)}</div></td></tr>`;
+  }).join("") + '</table>';
+}
+
+function toggleLiteraryRow(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === "none" ? "table-row" : "none";
+}
+
+function formatSceneFields(r) {
+  const fields = [
+    ["ID", r.id], ["Source", r.source_book], ["Chapter", r.source_chapter],
+    ["Archetype (primary/secondary)", [r.archetype_primary, r.archetype_secondary].filter(Boolean).join(" / ")],
+    ["Mood", r.mood], ["Difficulty", r.difficulty], ["Domain", r.domain], ["Scale", r.scale],
+    ["Moral ambiguity", r.moral_ambiguity],
+    ["Quality score", r.quality_score != null ? Number(r.quality_score).toFixed(3) : null],
+    ["Use count", r.use_count], ["Last used at", r.last_used_at ? new Date(r.last_used_at*1000).toISOString() : null],
+    ["Tags", Array.isArray(r.tags) ? r.tags.join(", ") : r.tags],
+    ["Variables", Array.isArray(r.variables) ? r.variables.join(", ") : r.variables],
+    ["Beat sequence", Array.isArray(r.beat_sequence) ? r.beat_sequence.join(" → ") : r.beat_sequence],
+    ["Tension curve", Array.isArray(r.tension_curve) ? r.tension_curve.join(", ") : r.tension_curve],
+    ["Applicable positions", Array.isArray(r.applicable_positions) ? r.applicable_positions.join(", ") : r.applicable_positions],
+    ["Embedding id", r.embedding_id],
+    ["Created at", r.created_at ? new Date(r.created_at*1000).toISOString() : null],
+    ["Template text", r.template_text],
+  ];
+  return fields.filter(f => f[1] != null && f[1] !== "").map(f => `<div><strong>${f[0]}:</strong> ${escapeHtml(String(f[1]))}</div>`).join("");
+}
+
+function formatStyleFields(r) {
+  const fields = [
+    ["ID", r.id], ["Author/Era", r.source_author_or_era], ["Register", r.register],
+    ["Pacing", r.pacing], ["Tone", r.tone], ["Sensory ratio", r.sensory_ratio],
+    ["Avg sentence len", r.avg_sentence_len], ["Sentence len variance", r.sentence_len_variance],
+    ["Narrative voice", r.narrative_voice], ["Temporal style", r.temporal_style],
+    ["Dialogue style", r.dialogue_style], ["Metaphor density", r.metaphor_density],
+    ["Paragraph length avg", r.paragraph_length_avg], ["Exclamation ratio", r.exclamation_ratio],
+    ["Era", r.era], ["Literary period", r.literary_period],
+    ["Quality score", r.quality_score != null ? Number(r.quality_score).toFixed(3) : null],
+    ["Rhetorical devices", Array.isArray(r.rhetorical_devices) ? r.rhetorical_devices.join(", ") : r.rhetorical_devices],
+    ["Preferred constructions", Array.isArray(r.preferred_constructions) ? r.preferred_constructions.join("; ") : r.preferred_constructions],
+    ["Forbidden phrases", Array.isArray(r.forbidden_phrases) ? r.forbidden_phrases.join("; ") : r.forbidden_phrases],
+    ["Example snippets", Array.isArray(r.example_snippets) ? r.example_snippets.join(" ⏐ ") : r.example_snippets],
+    ["Created at", r.created_at ? new Date(r.created_at*1000).toISOString() : null],
+  ];
+  return fields.filter(f => f[1] != null && f[1] !== "").map(f => `<div><strong>${f[0]}:</strong> ${escapeHtml(String(f[1]))}</div>`).join("");
+}
 // ── Economics ─────────────────────────────────────────────────
 async function loadEconomicsStats() {
   const d = await api("economics/stats");
