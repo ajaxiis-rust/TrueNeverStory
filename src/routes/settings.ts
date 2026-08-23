@@ -56,8 +56,9 @@ function saveLLMConfig(config: Partial<LLMConfig>): void {
   log.info({ config: updated }, "LLM config saved");
 }
 
-function killLlamaServers(): void {
+function killLlamaServers(): number[] {
   const config = loadLLMConfig();
+  const killed: number[] = [];
   try {
     // Find llama-server PIDs by port via /proc/*/cmdline (never read fd symlinks — readFileSync on a pipe fd blocks the event loop)
     const killByPort = (port: number) => {
@@ -68,7 +69,7 @@ function killLlamaServers(): void {
             const cmdline = readFileSync(join("/proc", d, "cmdline"), "utf-8");
             if (cmdline.includes("llama-server") && cmdline.includes("--port") && cmdline.includes(String(port))) {
               const pid = parseInt(d);
-              try { process.kill(pid, "SIGTERM"); } catch (e) { log.debug({ err: e, pid }, "Failed to kill process"); }
+              try { process.kill(pid, "SIGTERM"); killed.push(pid); } catch (e) { log.debug({ err: e, pid }, "Failed to kill process"); }
               log.info({ pid, port }, "Killed llama-server");
             }
           } catch { /* process gone or unreadable */ }
@@ -81,6 +82,7 @@ function killLlamaServers(): void {
   } catch (e) {
     log.warn({ err: e }, "Failed to kill llama-server processes");
   }
+  return killed;
 }
 
 function findModel(name: string): string {
@@ -278,20 +280,56 @@ async function waitPortFree(port: number, timeoutMs = 20_000): Promise<void> {
   }
 }
 
+/** Wait until the server's /health returns 200 — llama-server binds the socket early but answers 200 only after the model is loaded. */
+async function waitServerHealthy(port: number, timeoutMs = 90_000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/health`, { signal: AbortSignal.timeout(1000) });
+      if (res.ok) return true;
+    } catch { /* not ready yet */ }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
+
+/** Guard against overlapping restarts — two concurrent restarts multiply RAM usage (old process dying + new one loading). */
+let _restartInProgress = false;
+
 /**
  * POST /api/server/restart — Restart LLM servers with current config.
+ * Held (bounded) until servers are back up; concurrent calls get 409.
  */
 settings.post("/server/restart", async (c) => {
+  if (_restartInProgress) {
+    return c.json({ status: "error", message: "Restart already in progress" }, 409);
+  }
+  _restartInProgress = true;
   try {
     const config = loadLLMConfig();
-    killLlamaServers();
+    const killed = killLlamaServers();
     // Wait until ports are actually released — spawning earlier makes the new server die on bind
     await Promise.all([waitPortFree(config.llmPort), waitPortFree(config.embedPort)]);
+    // SIGTERM is unreliable while llama-server is loading — escalate so the dying
+    // process cannot hold RAM alongside the freshly spawned one (double-restart OOM)
+    for (const pid of killed) {
+      try {
+        process.kill(pid, 0);
+        try { process.kill(pid, "SIGKILL"); log.info({ pid }, "SIGKILL to lingering llama-server"); } catch { /* raced exit */ }
+      } catch { /* already gone */ }
+    }
     startLlamaServers();
-    return c.json({ status: "restarted", message: "LLM servers restarting" });
+    // Hold the guard until servers are actually healthy so a concurrent restart cannot overlap
+    const [llmUp, embedUp] = await Promise.all([waitServerHealthy(config.llmPort), waitServerHealthy(config.embedPort)]);
+    return c.json({
+      status: "restarted",
+      message: llmUp && embedUp ? "LLM servers up" : "Servers spawned but not healthy yet (still loading)",
+    });
   } catch (e) {
     log.error({ err: e }, "Failed to restart servers");
     return c.json({ status: "error", message: String(e) }, 500);
+  } finally {
+    _restartInProgress = false;
   }
 });
 

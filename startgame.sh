@@ -944,10 +944,12 @@ if [[ "$MODE" == "binary" ]]; then
 else
     bun run dev &
 fi
-PIDS+=($!)
+SERVER_PID=$!
+PIDS+=($SERVER_PID)
 
 printf '%s\n' "${PIDS[@]}" > "$PID_FILE"
 
-for pid in "${PIDS[@]}"; do
-    wait "$pid" 2>/dev/null
-done
+# Wait only on the main server. llama-server children may be deliberately
+# killed and respawned via /api/server/restart — waiting on every PID would
+# fire the EXIT cleanup (killing the whole stack) on any llama death.
+wait "$SERVER_PID" 2>/dev/null

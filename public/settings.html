@@ -876,36 +876,47 @@ async function checkServerStatus() {
   }
 }
 
+async function waitServersUp(timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(API + '/server/status', { credentials: 'include' });
+      const s = await res.json();
+      if (s.llmRunning && s.embedRunning) return true;
+    } catch {}
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  return false;
+}
+
 async function restartServers() {
   if (!confirm('Restart LLM servers with current config?')) return;
-  
+
   const btn = document.getElementById('restartBtn');
   btn.disabled = true;
-  btn.textContent = 'Saving...';
-  
-  // Save config first
-  const saved = await saveLLMConfig();
-  if (!saved) {
-    btn.disabled = false;
-    btn.textContent = 'Apply & Restart';
-    return;
-  }
-  
-  btn.textContent = 'Restarting...';
-  
   try {
+    btn.textContent = 'Saving...';
+    const saved = await saveLLMConfig();
+    if (!saved) return;
+
+    btn.textContent = 'Restarting...';
     const res = await fetch(API + '/server/restart', { method: 'POST', credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to restart');
-    toast('Servers restarting...', true);
-    
-    // Wait and check status
-    setTimeout(async () => {
-      await checkServerStatus();
-      btn.disabled = false;
-      btn.textContent = 'Apply & Restart';
-    }, 5000);
+    if (res.status === 409) {
+      toast('Restart already in progress — waiting for servers...', false);
+    } else if (!res.ok) {
+      throw new Error('Failed to restart');
+    } else {
+      toast('Servers restarting...', true);
+    }
+
+    // Keep the button blocked until both servers actually accept connections
+    btn.textContent = 'Waiting for servers...';
+    const up = await waitServersUp(90000);
+    toast(up ? 'Servers restarted' : 'Servers still not up — check status', up);
   } catch (e) {
     toast('Restart failed: ' + e.message, false);
+  } finally {
+    await checkServerStatus();
     btn.disabled = false;
     btn.textContent = 'Apply & Restart';
   }
