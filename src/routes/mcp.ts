@@ -636,33 +636,53 @@ mcpRouter.post("/wikipedia/verify", async (c) => {
 // ═══════════════════════════════════════════════════════════════
 
 mcpRouter.get("/literary/stats", (c) => {
-  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found", exists: false }, 200);
-  const stat = statSync(LIT_COMP_DB);
-  let templates = 0;
+  if (!existsSync(LITERARY_DB)) return c.json({ error: "Literary DB not found", exists: false }, 200);
+  const stat = statSync(LITERARY_DB);
+  let sceneTemplates = 0, stylePatterns = 0, avgQuality = 0;
   try {
-    const db = new Database(LIT_COMP_DB, { readonly: true });
-    const row = db.query("SELECT COUNT(*) as n FROM bible_quest_templates").get() as { n: number } | null;
-    templates = row?.n ?? 0;
+    const db = new Database(LITERARY_DB, { readonly: true });
+    sceneTemplates = (db.query("SELECT COUNT(*) as n FROM scene_templates").get() as { n: number } | null)?.n ?? 0;
+    stylePatterns = (db.query("SELECT COUNT(*) as n FROM style_patterns").get() as { n: number } | null)?.n ?? 0;
+    avgQuality = (db.query("SELECT AVG(quality_score) as a FROM scene_templates").get() as { a: number | null } | null)?.a ?? 0;
     db.close();
-  } catch (err) { log.debug({ err }, 'mcp literary stats table query skipped, table may not exist'); }
-  return c.json({ exists: true, templates, size: stat.size, dbPath: LIT_COMP_DB });
+  } catch (err) { log.debug({ err }, 'mcp literary stats query skipped, table may not exist'); }
+  return c.json({ exists: true, sceneTemplates, stylePatterns, avgQuality: Math.round((avgQuality ?? 0) * 100) / 100, size: stat.size, dbPath: LITERARY_DB });
 });
 
 mcpRouter.get("/literary/templates", (c) => {
   const q = c.req.query("q") ?? "";
-  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found" }, 200);
+  if (!existsSync(LITERARY_DB)) return c.json({ error: "Literary DB not found" }, 200);
   let templates: unknown[] = [];
   try {
-    const db = new Database(LIT_COMP_DB, { readonly: true });
+    const db = new Database(LITERARY_DB, { readonly: true });
     if (q) {
-      templates = db.query("SELECT * FROM bible_quest_templates WHERE template_text LIKE ? OR source_book LIKE ? OR archetype LIKE ? LIMIT 50")
-        .all(`%${q}%`, `%${q}%`, `%${q}%`) as unknown[];
+      templates = db.query(
+        "SELECT * FROM scene_templates WHERE template_text LIKE ? OR source_book LIKE ? OR archetype_primary LIKE ? OR mood LIKE ? OR tags LIKE ? ORDER BY quality_score DESC LIMIT 50"
+      ).all(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`) as unknown[];
     } else {
-      templates = db.query("SELECT * FROM bible_quest_templates ORDER BY source_book LIMIT 50").all() as unknown[];
+      templates = db.query("SELECT * FROM scene_templates ORDER BY quality_score DESC LIMIT 50").all() as unknown[];
     }
     db.close();
   } catch (err) { log.debug({ err }, 'mcp literary templates query skipped, table may not exist'); }
   return c.json({ templates, query: q });
+});
+
+mcpRouter.get("/literary/styles", (c) => {
+  const q = c.req.query("q") ?? "";
+  if (!existsSync(LITERARY_DB)) return c.json({ error: "Literary DB not found" }, 200);
+  let styles: unknown[] = [];
+  try {
+    const db = new Database(LITERARY_DB, { readonly: true });
+    if (q) {
+      styles = db.query(
+        "SELECT * FROM style_patterns WHERE source_author_or_era LIKE ? OR register LIKE ? OR tone LIKE ? OR era LIKE ? OR literary_period LIKE ? ORDER BY quality_score DESC LIMIT 50"
+      ).all(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`) as unknown[];
+    } else {
+      styles = db.query("SELECT * FROM style_patterns ORDER BY quality_score DESC LIMIT 50").all() as unknown[];
+    }
+    db.close();
+  } catch (err) { log.debug({ err }, 'mcp literary styles query skipped, table may not exist'); }
+  return c.json({ styles, query: q });
 });
 
 mcpRouter.post("/literary/compile", (c) => {
@@ -671,8 +691,8 @@ mcpRouter.post("/literary/compile", (c) => {
 });
 
 mcpRouter.post("/literary/compact", (c) => {
-  if (!existsSync(LIT_COMP_DB)) return c.json({ error: "LiteraryCompiler DB not found" }, 200);
-  const result = runScriptWithJob(["bun", "run", "scripts/compact-db.ts", "--src", LIT_COMP_DB, "--dst", LIT_COMP_DB + ".compact"]);
+  if (!existsSync(LITERARY_DB)) return c.json({ error: "Literary DB not found" }, 200);
+  const result = runScriptWithJob(["bun", "run", "scripts/compact-db.ts", "--src", LITERARY_DB, "--dst", LITERARY_DB + ".compact"]);
   return c.json(result);
 });
 

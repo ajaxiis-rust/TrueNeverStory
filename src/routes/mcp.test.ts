@@ -197,6 +197,32 @@ describe("MCP routes", () => {
     });
   });
 
+  describe("Literary v2", () => {
+    test("GET /mcp/literary/stats returns v2 fields", async () => {
+      const res = await app.request("/mcp/literary/stats");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toHaveProperty("sceneTemplates");
+      expect(body).toHaveProperty("stylePatterns");
+      expect(body).toHaveProperty("avgQuality");
+      expect(typeof body.size).toBe("number");
+    });
+
+    test("GET /mcp/literary/templates returns scene rows array", async () => {
+      const res = await app.request("/mcp/literary/templates?q=a");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.templates).toBeArray();
+    });
+
+    test("GET /mcp/literary/styles returns style rows array", async () => {
+      const res = await app.request("/mcp/literary/styles?q=a");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.styles).toBeArray();
+    });
+  });
+
   // ── Bible bootstrap ─────────────────────────────────────────
 
   describe("POST /mcp/bible/bootstrap", () => {
